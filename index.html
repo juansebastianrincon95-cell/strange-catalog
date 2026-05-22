@@ -556,7 +556,6 @@ let pmId=null,pmType=null;
 let is360Cat=false,is360Liq=false,v360Id=null,v360Type=null,v360Frame=0,v360Pos=0,v360Dragging=false,v360StartX=0,v360LastX=0,_preview360Frames=null,_v360Images=[];
 let orders=[];
 let SHEETS_URL='';
-let CLOUD_NAME='',CLOUD_PRESET='';
 let PIXEL_ID='';
 const SESSION_ID=(()=>{
   let sid=sessionStorage.getItem('ss_sid');
@@ -868,8 +867,6 @@ function _showAdmin(){
   const cfgN=$('cfgNombre');if(cfgN)cfgN.value=STORE_NAME;
   const cfgW=$('cfgWA');if(cfgW)cfgW.value=WA;
   const cfgS=$('cfgSheets');if(cfgS)cfgS.value=SHEETS_URL;
-  const cfgCN=$('cfgCloudName');if(cfgCN)cfgCN.value=CLOUD_NAME;
-  const cfgCP=$('cfgUploadPreset');if(cfgCP)cfgCP.value=CLOUD_PRESET;
   const cfgPx=$('cfgPixel');if(cfgPx)cfgPx.value=PIXEL_ID;
   checkStorageQuota();
   $('ascrim').classList.add('on');$('apanel').classList.add('on');document.body.style.overflow='hidden';
@@ -897,8 +894,8 @@ function changePin(){
   alert('PIN actualizado ✓');
 }
 function closeAdmin(){$('ascrim').classList.remove('on');$('apanel').classList.remove('on');document.body.style.overflow='';}
-function toggleBanner(on){bannerOn=on;$('banner').classList.toggle('off',!on);sb.from('settings').upsert({key:'banner_on',value:String(on)});}
-function toggleGlobal(on){promoG=on;renderGrid();renderAdmin();sb.from('settings').upsert({key:'promo_global',value:String(on)});}
+async function toggleBanner(on){bannerOn=on;$('banner').classList.toggle('off',!on);await sb.from('settings').upsert({key:'banner_on',value:String(on)});}
+async function toggleGlobal(on){promoG=on;renderGrid();renderAdmin();await sb.from('settings').upsert({key:'promo_global',value:String(on)});}
 function setAdminTab(n){
   aTab=n;
   $('panCat').style.display=n===0?'flex':'none';
@@ -1201,7 +1198,7 @@ async function addQueue(dest){
     await _commitQueue(dest,isC,urls);
   }catch(e){
     console.error('Upload error:',e);
-    await _commitQueue(dest,isC,q.map(x=>x.src));
+    alert('Error al subir las fotos. Revisa tu conexión e intenta de nuevo.');
   }finally{
     if(btnEl){btnEl.disabled=false;btnEl.textContent=isC?'➕ Añadir al catálogo':'🔥 Añadir a liquidación';}
   }
@@ -1360,9 +1357,9 @@ function importCatalog(file){
 }
 
 /* ── CONFIGURACIÓN ── */
-function saveConfig(){
-  localStorage.setItem('ss_config',JSON.stringify({wa:WA,nombre:STORE_NAME,sheetsUrl:SHEETS_URL,cloudName:CLOUD_NAME,cloudPreset:CLOUD_PRESET,pixelId:PIXEL_ID}));
-  sb.from('settings').upsert([
+async function saveConfig(){
+  localStorage.setItem('ss_config',JSON.stringify({wa:WA,nombre:STORE_NAME,sheetsUrl:SHEETS_URL,pixelId:PIXEL_ID}));
+  await sb.from('settings').upsert([
     {key:'store_name',value:STORE_NAME},
     {key:'wa',        value:WA},
     {key:'pixel_id',  value:PIXEL_ID},
@@ -1375,8 +1372,6 @@ function loadConfig(){
     if(c.wa)WA=c.wa;
     if(c.nombre)STORE_NAME=c.nombre;
     if(c.sheetsUrl)SHEETS_URL=c.sheetsUrl;
-    if(c.cloudName)CLOUD_NAME=c.cloudName;
-    if(c.cloudPreset)CLOUD_PRESET=c.cloudPreset;
     if(c.pixelId)PIXEL_ID=c.pixelId;
     applyStoreName();
     const setMeta=(id,val)=>{const el=document.getElementById(id);if(el)el.content=val;};
@@ -1385,8 +1380,6 @@ function loadConfig(){
     setMeta('ogDesc','Catálogo de sneakers. Paga por WhatsApp, recibe en casa.');
     setMeta('ogUrl',location.href.split('?')[0]);
     const cfgS=$('cfgSheets');if(cfgS)cfgS.value=SHEETS_URL;
-    const cfgCN=$('cfgCloudName');if(cfgCN)cfgCN.value=CLOUD_NAME;
-    const cfgCP=$('cfgUploadPreset');if(cfgCP)cfgCP.value=CLOUD_PRESET;
     const cfgPx=$('cfgPixel');if(cfgPx)cfgPx.value=PIXEL_ID;
     initPixel();
   }catch(e){}
@@ -1488,13 +1481,6 @@ if(uzLiqEl){
    Columnas: A=Fecha B=Nombre C=Tel D=Ciudad E=Barrio F=Pago G=Total H=Pares I=Items
    ═══════════════════════════════════════════════════════════════
 
-   CLOUDINARY — Instrucciones
-   1. Crear cuenta en cloudinary.com (gratis: 25GB/mes)
-   2. Dashboard → copiar "Cloud name"
-   3. Settings → Upload → Upload Presets → Add upload preset
-   4. Signing mode: Unsigned → Guardar → copiar nombre del preset
-   5. Pegar Cloud Name y Upload Preset en Admin
-   Las fotos nuevas se subirán a la nube; las existentes quedan como base64.
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── DRAG/TOUCH VISOR 360° ── */
