@@ -410,18 +410,6 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
         <input id="cfgSheets" type="url" placeholder="https://script.google.com/macros/s/..." style="margin-top:5px;width:100%;padding:7px 10px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:11px;font-weight:500;color:var(--ink);outline:none" oninput="SHEETS_URL=this.value.trim();saveConfig()">
       </div>
     </div>
-    <div class="trow" style="background:#f0fff4">
-      <div style="flex:1;margin-right:10px">
-        <div class="trow-lbl">☁ Cloudinary Cloud Name <span title="Opcional. Sube fotos a la nube (sin límite). Ir a cloudinary.com → Dashboard → Cloud name. También necesitas un Upload Preset sin firma." style="font-size:10px;color:var(--blue);cursor:help">ⓘ</span></div>
-        <input id="cfgCloudName" type="text" placeholder="mi-tienda" style="margin-top:5px;width:100%;padding:7px 10px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none" oninput="CLOUD_NAME=this.value.trim();saveConfig()">
-      </div>
-    </div>
-    <div class="trow" style="background:#f0fff4">
-      <div style="flex:1;margin-right:10px">
-        <div class="trow-lbl">☁ Cloudinary Upload Preset <span title="Settings → Upload → Upload Presets → Add preset → Signing mode: Unsigned → copiar nombre del preset." style="font-size:10px;color:var(--blue);cursor:help">ⓘ</span></div>
-        <input id="cfgUploadPreset" type="text" placeholder="unsigned_preset" style="margin-top:5px;width:100%;padding:7px 10px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none" oninput="CLOUD_PRESET=this.value.trim();saveConfig()">
-      </div>
-    </div>
     <div style="display:flex;gap:8px;padding:10px 14px">
       <button onclick="exportMetaCatalog()" style="flex:1;padding:9px;background:#0066FF;color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📦 Catálogo Meta</button>
       <button onclick="exportCatalog()" style="flex:1;padding:9px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">⬇ Exportar backup</button>
@@ -1322,7 +1310,7 @@ function exportMetaCatalog(){
 
 /* ── BACKUP ── */
 function exportCatalog(){
-  const data={prods,liqs,orders,config:{wa:WA,nombre:STORE_NAME,sheetsUrl:SHEETS_URL,cloudName:CLOUD_NAME,cloudPreset:CLOUD_PRESET,pixelId:PIXEL_ID},exportado:new Date().toISOString()};
+  const data={prods,liqs,orders,config:{wa:WA,nombre:STORE_NAME,sheetsUrl:SHEETS_URL,pixelId:PIXEL_ID},exportado:new Date().toISOString()};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
@@ -1343,8 +1331,6 @@ function importCatalog(file){
         if(data.config.wa)WA=data.config.wa;
         if(data.config.nombre)STORE_NAME=data.config.nombre;
         if(data.config.sheetsUrl)SHEETS_URL=data.config.sheetsUrl;
-        if(data.config.cloudName)CLOUD_NAME=data.config.cloudName;
-        if(data.config.cloudPreset)CLOUD_PRESET=data.config.cloudPreset;
         if(data.config.pixelId)PIXEL_ID=data.config.pixelId;
       }
       const maxId=Math.max(0,...prods.map(p=>p.id),...liqs.map(p=>p.id));
