@@ -410,6 +410,12 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
         <input id="cfgSheets" type="url" placeholder="https://script.google.com/macros/s/..." style="margin-top:5px;width:100%;padding:7px 10px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:11px;font-weight:500;color:var(--ink);outline:none" oninput="SHEETS_URL=this.value.trim();saveConfig()">
       </div>
     </div>
+    <div class="trow" style="background:#f5eeff">
+      <div style="flex:1;margin-right:10px">
+        <div class="trow-lbl">💜 Wompi Llave Pública <span title="wompi.com.co → Developers → Llaves de API → Llave pública (pub_test_... o pub_prod_...)" style="font-size:10px;color:var(--blue);cursor:help">ⓘ</span></div>
+        <input id="cfgWompi" type="text" placeholder="pub_test_xxxxxxxx" style="margin-top:5px;width:100%;padding:7px 10px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:11px;font-weight:500;color:var(--ink);outline:none" oninput="WOMPI_PK=this.value.trim();saveConfig()">
+      </div>
+    </div>
     <div style="display:flex;gap:8px;padding:10px 14px">
       <button onclick="exportMetaCatalog()" style="flex:1;padding:9px;background:#0066FF;color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📦 Catálogo Meta</button>
       <button onclick="exportCatalog()" style="flex:1;padding:9px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">⬇ Exportar backup</button>
@@ -526,6 +532,7 @@ const LOGOS={
   addi:`<svg viewBox="0 0 110 44" fill="none"><text x="8" y="32" font-family="Arial Rounded MT Bold,Arial,sans-serif" font-weight="800" font-size="30" fill="#4D7EF7" letter-spacing="-1">Addi</text><circle cx="93" cy="10" r="3.5" fill="#4D7EF7"/></svg>`,
   sistecredito:`<svg viewBox="0 0 220 44" fill="none"><text x="4" y="30" font-family="Arial Rounded MT Bold,Arial,sans-serif" font-weight="800" font-size="22" fill="#1B2BB5">siste</text><text x="74" y="30" font-family="Arial Rounded MT Bold,Arial,sans-serif" font-weight="800" font-size="22" fill="#3CC527">crédito</text></svg>`,
   bold:`<svg viewBox="0 0 100 44" fill="none"><text x="4" y="32" font-family="Arial Rounded MT Bold,sans-serif" font-weight="900" font-size="30" fill="#1C2B6E">b</text><text x="24" y="32" font-family="Arial Rounded MT Bold,sans-serif" font-weight="900" font-size="30" fill="#7B3FA0">o</text><text x="44" y="32" font-family="Arial Rounded MT Bold,sans-serif" font-weight="900" font-size="30" fill="#1C2B6E">l</text><text x="55" y="32" font-family="Arial Rounded MT Bold,sans-serif" font-weight="900" font-size="30" fill="#E8341A">d</text></svg>`,
+  wompi:`<svg viewBox="0 0 120 44" fill="none"><rect width="120" height="44" rx="10" fill="#5D2D91"/><text x="14" y="30" font-family="Arial Black,sans-serif" font-size="20" font-weight="900" fill="#fff">Wompi</text></svg>`,
 };
 const PAYS=[
   {id:'nequi',name:'Nequi',desc:'Transferencia inmediata',badge:'Sin costo',bc:'bg'},
@@ -533,6 +540,7 @@ const PAYS=[
   {id:'addi',name:'Addi',desc:'Compra hoy, paga después',badge:'Hasta 24 cuotas',bc:'bb'},
   {id:'sistecredito',name:'Sistecrédito',desc:'Crédito fácil',badge:'Aprobación rápida',bc:'bg'},
   {id:'bold',name:'Bold',desc:'Datáfono · Link de pago',badge:'Tarjeta crédito/débito',bc:'bb'},
+  {id:'wompi',name:'Wompi',desc:'Tarjeta · PSE · Nequi · Bancolombia',badge:'Pago en línea',bc:'bb'},
 ];
 
 let prods=[],liqs=[],nid=1;
@@ -545,6 +553,7 @@ let is360Cat=false,is360Liq=false,v360Id=null,v360Type=null,v360Frame=0,v360Pos=
 let orders=[];
 let SHEETS_URL='';
 let PIXEL_ID='';
+let WOMPI_PK='';
 const SESSION_ID=(()=>{
   let sid=sessionStorage.getItem('ss_sid');
   if(!sid){sid=Date.now().toString(36)+Math.random().toString(36).slice(2);sessionStorage.setItem('ss_sid',sid);}
@@ -856,6 +865,7 @@ function _showAdmin(){
   const cfgW=$('cfgWA');if(cfgW)cfgW.value=WA;
   const cfgS=$('cfgSheets');if(cfgS)cfgS.value=SHEETS_URL;
   const cfgPx=$('cfgPixel');if(cfgPx)cfgPx.value=PIXEL_ID;
+  const cfgWo=$('cfgWompi');if(cfgWo)cfgWo.value=WOMPI_PK;
   checkStorageQuota();
   $('ascrim').classList.add('on');$('apanel').classList.add('on');document.body.style.overflow='hidden';
 }
@@ -1245,7 +1255,9 @@ function rForm(){
     <div class="fld"><label>Dirección</label><input id="fd" type="text" placeholder="Calle 10 # 25-30" value="${cData.direccion||''}"></div>
     <div class="frow"><div class="fld"><label>Barrio</label><input id="fb" type="text" placeholder="El Poblado" value="${cData.barrio||''}"></div><div class="fld"><label>Ciudad</label><input id="fci" type="text" placeholder="Medellín" value="${cData.ciudad||''}"></div></div>
     <div class="ferr" id="ferr">Completa todos los campos</div></div>`;
-  $('cfoot').innerHTML=`<button class="btnwa" onclick="enviarWA()"><svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>Enviar pedido por WhatsApp</button><button class="btnback" onclick="goStep(1)">← Volver</button>`;
+  $('cfoot').innerHTML=payM==='wompi'
+    ?`<button class="btnmain" style="background:#5D2D91;color:#fff" onclick="pagarWompi()">💜 Pagar con Wompi</button><button class="btnback" onclick="goStep(1)">← Volver</button>`
+    :`<button class="btnwa" onclick="enviarWA()"><svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>Enviar pedido por WhatsApp</button><button class="btnback" onclick="goStep(1)">← Volver</button>`;
 }
 function enviarWA(){
   const m={nombre:'fn',cedula:'fc',celular:'ft',direccion:'fd',barrio:'fb',ciudad:'fci'};
@@ -1277,6 +1289,57 @@ function enviarWA(){
   if(SHEETS_URL){fetch(SHEETS_URL,{method:'POST',body:JSON.stringify(orderObj),headers:{'Content-Type':'application/json'}}).catch(()=>{});}
   window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,'_blank');
   return false;
+}
+
+async function pagarWompi(){
+  const m={nombre:'fn',cedula:'fc',celular:'ft',direccion:'fd',barrio:'fb',ciudad:'fci'};
+  let ok=true;const d={};
+  Object.entries(m).forEach(([k,id])=>{const v=($( id)||{}).value||'';d[k]=v.trim();if(!v.trim())ok=false;});
+  if(!ok){const e=$('ferr');if(e)e.classList.add('show');return;}
+  cData=d;
+  const rows=Object.values(cart);
+  const tot=rows.reduce((s,{p,qty})=>s+p.price*qty,0);
+  const amountCents=tot*100;
+  const reference='STR-'+Date.now();
+  const totalPares=rows.reduce((s,{qty})=>s+qty,0);
+  orders.push({
+    id:Date.now(),fecha:new Date().toISOString(),
+    items:rows.map(({p,qty,type})=>({label:type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer'),qty,precio:p.price*qty})),
+    total:tot,pares:totalPares,pago:'wompi',status:'pending',
+    nombre:d.nombre,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,
+    reference,utm:getUTM(),referrer:getReferrer(),seccion:gSel
+  });
+  saveState();
+  try{
+    const res=await fetch(`/api/wompi-sign?amount=${amountCents}&reference=${reference}`);
+    if(!res.ok)throw new Error('sign error');
+    const {signature}=await res.json();
+    const params=new URLSearchParams({
+      'public-key':WOMPI_PK,
+      'currency':'COP',
+      'amount-in-cents':String(amountCents),
+      'reference':reference,
+      'signature:integrity':signature,
+      'redirect-url':location.origin+'/?wompi=1',
+      'customer-data:full-name':d.nombre,
+      'customer-data:phone-number':d.celular.replace(/\D/g,''),
+    });
+    location.href='https://checkout.wompi.co/p/?'+params.toString();
+  }catch(e){
+    alert('Error al conectar con Wompi. Verifica tu conexión e intenta de nuevo.');
+  }
+}
+
+function checkWompiReturn(){
+  const params=new URLSearchParams(location.search);
+  if(!params.get('wompi'))return;
+  const status=params.get('status');
+  history.replaceState({},'',location.pathname);
+  if(status==='APPROVED'){
+    setTimeout(()=>alert('✅ ¡Pago confirmado con Wompi!\nTu pedido está en camino. Pronto te contactamos.'),300);
+  }else{
+    setTimeout(()=>alert('❌ El pago no fue completado.\nPuedes intentar de nuevo o elegir otro método de pago.'),300);
+  }
 }
 
 /* ── META CATALOG FEED ── */
@@ -1344,12 +1407,13 @@ function importCatalog(file){
 
 /* ── CONFIGURACIÓN ── */
 async function saveConfig(){
-  localStorage.setItem('ss_config',JSON.stringify({wa:WA,nombre:STORE_NAME,sheetsUrl:SHEETS_URL,pixelId:PIXEL_ID}));
+  localStorage.setItem('ss_config',JSON.stringify({wa:WA,nombre:STORE_NAME,sheetsUrl:SHEETS_URL,pixelId:PIXEL_ID,wompiPk:WOMPI_PK}));
   await sb.from('settings').upsert([
-    {key:'store_name',value:STORE_NAME},
-    {key:'wa',        value:WA},
-    {key:'pixel_id',  value:PIXEL_ID},
-    {key:'sheets_url',value:SHEETS_URL}
+    {key:'store_name', value:STORE_NAME},
+    {key:'wa',         value:WA},
+    {key:'pixel_id',   value:PIXEL_ID},
+    {key:'sheets_url', value:SHEETS_URL},
+    {key:'wompi_pk',   value:WOMPI_PK}
   ]);
 }
 function loadConfig(){
@@ -1359,6 +1423,7 @@ function loadConfig(){
     if(c.nombre)STORE_NAME=c.nombre;
     if(c.sheetsUrl)SHEETS_URL=c.sheetsUrl;
     if(c.pixelId)PIXEL_ID=c.pixelId;
+    if(c.wompiPk)WOMPI_PK=c.wompiPk;
     applyStoreName();
     const setMeta=(id,val)=>{const el=document.getElementById(id);if(el)el.content=val;};
     setMeta('ogSite',STORE_NAME);
@@ -1367,6 +1432,7 @@ function loadConfig(){
     setMeta('ogUrl',location.href.split('?')[0]);
     const cfgS=$('cfgSheets');if(cfgS)cfgS.value=SHEETS_URL;
     const cfgPx=$('cfgPixel');if(cfgPx)cfgPx.value=PIXEL_ID;
+    const cfgWo=$('cfgWompi');if(cfgWo)cfgWo.value=WOMPI_PK;
     initPixel();
   }catch(e){}
 }
@@ -1406,12 +1472,14 @@ async function loadState(){
     if(cfg.wa)WA=cfg.wa;
     if(cfg.pixel_id)PIXEL_ID=cfg.pixel_id;
     if(cfg.sheets_url)SHEETS_URL=cfg.sheets_url;
+    if(cfg.wompi_pk)WOMPI_PK=cfg.wompi_pk;
     applyStoreName();
     const firstImg=(prods.find(p=>p.img)||liqs.find(p=>p.img))?.img;
     if(firstImg){const el=document.getElementById('ogImg');if(el)el.content=firstImg;}
     const cfgW=$('cfgWA');if(cfgW)cfgW.value=WA;
     const cfgPx=$('cfgPixel');if(cfgPx)cfgPx.value=PIXEL_ID;
     const cfgS=$('cfgSheets');if(cfgS)cfgS.value=SHEETS_URL;
+    const cfgWo=$('cfgWompi');if(cfgWo)cfgWo.value=WOMPI_PK;
     initPixel();
   }catch(e){console.warn('loadState error:',e);}
 }
@@ -1504,6 +1572,7 @@ loadConfig();
   if(bannerOn)$('banner').classList.remove('off');
   renderGrid();
   checkDeepLink();
+  checkWompiReturn();
 })();
 </script>
 </body>

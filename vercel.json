@@ -1,11 +1,13 @@
 {
   "version": 2,
   "builds": [
-    {"src": "index.html",  "use": "@vercel/static"},
-    {"src": "api/feed.js", "use": "@vercel/node"}
+    {"src": "index.html",       "use": "@vercel/static"},
+    {"src": "api/feed.js",      "use": "@vercel/node"},
+    {"src": "api/wompi-sign.js","use": "@vercel/node"}
   ],
   "routes": [
-    {"src": "/api/feed", "dest": "/api/feed.js"},
-    {"src": "/(.*)",     "dest": "/index.html"}
+    {"src": "/api/feed",        "dest": "/api/feed.js"},
+    {"src": "/api/wompi-sign",  "dest": "/api/wompi-sign.js"},
+    {"src": "/(.*)",            "dest": "/index.html"}
   ]
 }
