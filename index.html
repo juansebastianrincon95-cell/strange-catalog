@@ -1214,8 +1214,8 @@ function openCart(){
   }
 }
 function closeCart(){$('cscrim').classList.remove('on');$('csheet').classList.remove('on');document.body.style.overflow='';}
-function updDots(){[0,1,2].forEach(i=>{const d=$('cs'+i);d.className='csd'+(i===step?' active':i<step?' done':'');});$('cttl').textContent=['Tu pedido','Método de pago','Tus datos'][step];}
-function renderStep(){updDots();[rCart,rPay,rForm][step]();}
+function updDots(){[0,1,2].forEach(i=>{const d=$('cs'+i);d.className='csd'+(i===step?' active':i<step?' done':'');});$('cttl').textContent=['Tu pedido','Tus datos','Pagar'][step];}
+function renderStep(){updDots();[rCart,rForm,rPayChoice][step]();}
 function goStep(n){step=n;renderStep();$('cbody').scrollTop=0;}
 function chQty(key,d){if(!cart[key])return;cart[key].qty=Math.max(1,cart[key].qty+d);syncDot();renderStep();}
 function rmItem(key){
@@ -1255,18 +1255,31 @@ function rForm(){
     <div class="fld"><label>Dirección</label><input id="fd" type="text" placeholder="Calle 10 # 25-30" value="${cData.direccion||''}"></div>
     <div class="frow"><div class="fld"><label>Barrio</label><input id="fb" type="text" placeholder="El Poblado" value="${cData.barrio||''}"></div><div class="fld"><label>Ciudad</label><input id="fci" type="text" placeholder="Medellín" value="${cData.ciudad||''}"></div></div>
     <div class="ferr" id="ferr">Completa todos los campos</div></div>`;
-  $('cfoot').innerHTML=payM==='wompi'
-    ?`<button class="btnmain" style="background:#5D2D91;color:#fff" onclick="pagarWompi()">💜 Pagar con Wompi</button><button class="btnback" onclick="goStep(1)">← Volver</button>`
-    :`<button class="btnwa" onclick="enviarWA()"><svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>Enviar pedido por WhatsApp</button><button class="btnback" onclick="goStep(1)">← Volver</button>`;
+  $('cfoot').innerHTML=`<button class="btnmain" onclick="saveFormAndNext()">Continuar &nbsp;→</button><button class="btnback" onclick="goStep(0)">← Volver</button>`;
+}
+function saveFormAndNext(){
+  const m={nombre:'fn',cedula:'fc',celular:'ft',direccion:'fd',barrio:'fb',ciudad:'fci'};
+  let ok=true;const d={};
+  Object.entries(m).forEach(([k,id])=>{const v=($( id)||{}).value||'';d[k]=v.trim();if(!v.trim())ok=false;});
+  if(!ok){const e=$('ferr');if(e)e.classList.add('show');return;}
+  cData=d;goStep(2);
+}
+function rPayChoice(){
+  const WA_SVG=`<svg width="18" height="18" viewBox="0 0 24 24" fill="white" style="margin-right:6px;vertical-align:middle"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>`;
+  $('cbody').innerHTML=`<div class="paysec"><div class="paytit">¿Cómo quieres pagar?</div><div style="display:flex;flex-direction:column;gap:14px;margin-top:20px">
+    <button class="btnmain" style="background:#5D2D91;padding:18px;font-size:15px;line-height:1.7;height:auto" onclick="pagarWompi()">💜 Pagar con Wompi<br><span style="font-size:11px;opacity:.75;font-weight:400">Tarjeta · PSE · Nequi · Bancolombia</span></button>
+    <button class="btnwa" style="padding:18px;font-size:15px;line-height:1.7;height:auto" onclick="enviarWA()">${WA_SVG}Enviar pedido por WhatsApp<br><span style="font-size:11px;opacity:.75;font-weight:400">El dueño te confirma y coordina el pago</span></button>
+  </div></div>`;
+  $('cfoot').innerHTML=`<button class="btnback" onclick="goStep(1)">← Volver</button>`;
 }
 function enviarWA(){
   const m={nombre:'fn',cedula:'fc',celular:'ft',direccion:'fd',barrio:'fb',ciudad:'fci'};
   let ok=true;const d={};
-  Object.entries(m).forEach(([k,id])=>{const v=($( id)||{}).value||'';d[k]=v.trim();if(!v.trim())ok=false;});
+  Object.entries(m).forEach(([k,id])=>{const el=$(id);const v=el?el.value:(cData[k]||'');d[k]=v.trim();if(!v.trim())ok=false;});
   if(!ok){const e=$('ferr');if(e)e.classList.add('show');return false;}
   cData=d;
   const rows=Object.values(cart);
-  const pl={nequi:'Nequi 📱',bancolombia:'Bancolombia 🏦',addi:'Addi ✨',sistecredito:'Sistecrédito 🌟',bold:'Bold 💳'}[payM]||payM;
+  const pl={nequi:'Nequi 📱',bancolombia:'Bancolombia 🏦',addi:'Addi ✨',sistecredito:'Sistecrédito 🌟',bold:'Bold 💳',wompi:'Wompi 💜'}[payM]||'WhatsApp 📱';
   let tot=0,items='';
   rows.forEach(({p,qty,type})=>{const s=p.price*qty;tot+=s;const lbl=type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer');items+=`  • Par ${lbl} x${qty} — ${fmt(s)}\n`;});
   const msg=`🛍️ *NUEVO PEDIDO — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n💰 *Total: ${fmt(tot)}*\n📦 *Envío: GRATIS ✓*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${d.nombre}\n• Cédula: ${d.cedula}\n• Celular: ${d.celular}\n• Dirección: ${d.direccion}\n• Barrio: ${d.barrio}\n• Ciudad: ${d.ciudad}\n━━━━━━━━━━━━━━━━━━━━\n💳 *Pago:* ${pl}\n━━━━━━━━━━━━━━━━━━━━\nConfirmar disponibilidad y enviar datos de pago 🙏`;
@@ -1294,7 +1307,7 @@ function enviarWA(){
 async function pagarWompi(){
   const m={nombre:'fn',cedula:'fc',celular:'ft',direccion:'fd',barrio:'fb',ciudad:'fci'};
   let ok=true;const d={};
-  Object.entries(m).forEach(([k,id])=>{const v=($( id)||{}).value||'';d[k]=v.trim();if(!v.trim())ok=false;});
+  Object.entries(m).forEach(([k,id])=>{const el=$(id);const v=el?el.value:(cData[k]||'');d[k]=v.trim();if(!v.trim())ok=false;});
   if(!ok){const e=$('ferr');if(e)e.classList.add('show');return;}
   cData=d;
   const rows=Object.values(cart);
@@ -1324,6 +1337,7 @@ async function pagarWompi(){
       'customer-data:full-name':d.nombre,
       'customer-data:phone-number':d.celular.replace(/\D/g,''),
     });
+    localStorage.setItem('wompi_ref',reference);
     location.href='https://checkout.wompi.co/p/?'+params.toString();
   }catch(e){
     alert('Error al conectar con Wompi. Verifica tu conexión e intenta de nuevo.');
@@ -1334,10 +1348,26 @@ function checkWompiReturn(){
   const params=new URLSearchParams(location.search);
   if(!params.get('wompi'))return;
   const status=params.get('status');
+  const reference=localStorage.getItem('wompi_ref')||'';
+  localStorage.removeItem('wompi_ref');
   history.replaceState({},'',location.pathname);
   if(status==='APPROVED'){
-    setTimeout(()=>alert('✅ ¡Pago confirmado con Wompi!\nTu pedido está en camino. Pronto te contactamos.'),300);
-  }else{
+    const order=orders.find(o=>o.reference===reference)||
+                orders.filter(o=>o.pago==='wompi'&&o.status==='pending').pop();
+    if(order){
+      order.status='paid';
+      saveState();
+      let items='';
+      order.items.forEach(it=>{items+=`  • ${it.label} x${it.qty} — ${fmt(it.precio)}\n`;});
+      const msg=`✅ *PAGO WOMPI CONFIRMADO*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n💰 *Total: ${fmt(order.total)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${order.nombre}\n• Celular: ${order.tel}\n• Ciudad: ${order.ciudad}, ${order.barrio}\n• Ref: ${reference}\n━━━━━━━━━━━━━━━━━━━━\n💜 Pago realizado vía Wompi ✓`;
+      setTimeout(()=>{
+        alert('✅ ¡Pago confirmado!\nEn un momento recibirás confirmación por WhatsApp.');
+        window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,'_blank');
+      },300);
+    }else{
+      setTimeout(()=>alert('✅ ¡Pago confirmado con Wompi!\nTu pedido está en camino. Pronto te contactamos.'),300);
+    }
+  }else if(status){
     setTimeout(()=>alert('❌ El pago no fue completado.\nPuedes intentar de nuevo o elegir otro método de pago.'),300);
   }
 }
