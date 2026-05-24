@@ -6,17 +6,20 @@ module.exports = async (req, res) => {
 
   res.setHeader('Access-Control-Allow-Origin', '*');
 
-  const sb     = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
   const sbAnon = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+  const sbSvc  = process.env.SUPABASE_SERVICE_KEY
+    ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY)
+    : null;
+
+  const ordersQuery = sbSvc
+    ? sbSvc.from('orders').select('id,fecha,total,pares,pago,ciudad,status,items,created_at').order('created_at', { ascending: false }).limit(50)
+    : Promise.resolve({ data: [] });
 
   const [{ data: prods }, { data: liqs }, { data: settings }, { data: orders }] = await Promise.all([
     sbAnon.from('products').select('*'),
     sbAnon.from('liq_products').select('*'),
     sbAnon.from('settings').select('*'),
-    sb.from('orders')
-      .select('id,fecha,total,pares,pago,ciudad,status,items,created_at')
-      .order('created_at', { ascending: false })
-      .limit(50)
+    ordersQuery
   ]);
 
   const cfg = Object.fromEntries((settings || []).map(r => [r.key, r.value]));
