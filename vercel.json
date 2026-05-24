@@ -1,13 +1,20 @@
 {
   "version": 2,
   "builds": [
-    {"src": "index.html",       "use": "@vercel/static"},
-    {"src": "api/feed.js",      "use": "@vercel/node"},
-    {"src": "api/wompi-sign.js","use": "@vercel/node"}
+    {"src": "index.html",        "use": "@vercel/static"},
+    {"src": "api/feed.js",       "use": "@vercel/node"},
+    {"src": "api/wompi-sign.js", "use": "@vercel/node"},
+    {"src": "api/orders.js",     "use": "@vercel/node"},
+    {"src": "api/catalog.js",    "use": "@vercel/node"},
+    {"src": "api/meta.js",       "use": "@vercel/node"}
   ],
   "routes": [
     {"src": "/api/feed",        "dest": "/api/feed.js"},
     {"src": "/api/wompi-sign",  "dest": "/api/wompi-sign.js"},
+    {"src": "/api/orders",      "dest": "/api/orders.js"},
+    {"src": "/api/catalog",     "dest": "/api/catalog.js"},
+    {"src": "/api/meta",        "dest": "/api/meta.js"},
+    {"src": "/api/_auth",       "dest": "/404"},
     {"src": "/(.*)",            "dest": "/index.html"}
   ]
 }

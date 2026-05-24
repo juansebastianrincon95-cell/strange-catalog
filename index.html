@@ -1307,6 +1307,7 @@ function enviarWA(){
   px('Purchase',{content_ids:_pids,content_type:'product',value:tot,currency:'COP',num_items:totalPares,...getUTM()},SESSION_ID+'_purchase');
   orders.push(orderObj);
   saveState();
+  fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(orderObj)}).catch(()=>{});
   if(SHEETS_URL){fetch(SHEETS_URL,{method:'POST',body:JSON.stringify(orderObj),headers:{'Content-Type':'application/json'}}).catch(()=>{});}
   window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,'_blank');
   return false;
@@ -1323,14 +1324,16 @@ async function pagarWompi(){
   const amountCents=tot*100;
   const reference='STR-'+Date.now();
   const totalPares=rows.reduce((s,{qty})=>s+qty,0);
-  orders.push({
+  const wOrder={
     id:Date.now(),fecha:new Date().toISOString(),
     items:rows.map(({p,qty,type})=>({label:type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer'),qty,precio:p.price*qty})),
     total:tot,pares:totalPares,pago:'wompi',status:'pending',
     nombre:d.nombre,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,
     reference,utm:getUTM(),referrer:getReferrer(),seccion:gSel
-  });
+  };
+  orders.push(wOrder);
   saveState();
+  fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(wOrder)}).catch(()=>{});
   try{
     const res=await fetch(`/api/wompi-sign?amount=${amountCents}&reference=${reference}`);
     if(!res.ok)throw new Error('sign error');
