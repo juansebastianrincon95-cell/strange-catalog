@@ -212,6 +212,8 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .uopt select:focus,.uopt input:focus{border-color:var(--blue)}
 .uadd{width:calc(100% - 32px);margin:10px 16px 0;padding:11px;background:var(--ink);color:#fff;border:none;border-radius:11px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;flex-shrink:0}
 .uadd:active{opacity:.8}
+.uz-ai-btn{width:calc(100% - 32px);margin:6px 16px 0;padding:11px;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;border:none;border-radius:11px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;flex-shrink:0;text-align:center}
+.uz-ai-btn:disabled{opacity:.55;cursor:not-allowed}
 .alist-hdr{display:grid;grid-template-columns:46px 1fr 68px 58px 28px;gap:4px;padding:8px 14px;font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);border-bottom:1px solid var(--line);background:var(--bg);position:sticky;top:0;z-index:2;flex-shrink:0}
 .alist{overflow-y:auto;flex:1;min-height:0}
 .arow{display:grid;grid-template-columns:46px 1fr 68px 58px 28px;gap:4px;padding:10px 14px;border-bottom:1px solid var(--line);align-items:center}
@@ -446,6 +448,7 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
       <input type="file" accept="image/*" multiple onchange="handleFiles(this.files,'cat')">
       <div class="uz-ico">📸</div><div class="uz-txt">Toca para subir fotos</div><div class="uz-sub">Puedes seleccionar varias a la vez</div>
     </div>
+    <label class="uz-ai-btn" id="aiBtn">✨ IA Studio — fondo blanco profesional<input type="file" accept="image/*" id="aiInpCat" style="display:none" onchange="handleAIFile(this.files[0],'cat');this.value=''"></label>
     <div class="uqueue" id="qCat" style="display:none"></div>
     <button class="prev360-btn" id="prevBtn360Cat" onclick="previewQueue360('cat')">▶ Previsualizar giro</button>
     <div class="q360-count" id="cnt360Cat"></div>
@@ -467,6 +470,7 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
       <input type="file" accept="image/*" multiple onchange="handleFiles(this.files,'liq')">
       <div class="uz-ico">🔥</div><div class="uz-txt" style="color:var(--red)">Subir fotos de liquidación</div><div class="uz-sub">Precios especiales</div>
     </div>
+    <label class="uz-ai-btn" id="aiBtnLiq">✨ IA Studio — fondo blanco profesional<input type="file" accept="image/*" id="aiInpLiq" style="display:none" onchange="handleAIFile(this.files[0],'liq');this.value=''"></label>
     <div class="uqueue" id="qLiq" style="display:none"></div>
     <button class="prev360-btn" id="prevBtn360Liq" onclick="previewQueue360('liq')">▶ Previsualizar giro</button>
     <div class="q360-count" id="cnt360Liq"></div>
@@ -1062,6 +1066,26 @@ function compressImg(file,cb){
   };
   r.readAsDataURL(file);
 }
+async function handleAIFile(file, dest){
+  if(!file) return;
+  const btn=$(dest==='cat'?'aiBtn':'aiBtnLiq');
+  const orig='✨ IA Studio — fondo blanco profesional';
+  if(btn){btn.disabled=true;btn.firstChild.textContent='⏳ Procesando con IA (~10s)…';}
+  try{
+    const base64=await new Promise((res,rej)=>{compressImg(file,res);});
+    const r=await fetch('/api/ai-photo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imageBase64:base64})});
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||'Error del servidor');}
+    const {url}=await r.json();
+    const q=dest==='liq'?qL:qC;
+    q.push({id:Date.now()+Math.random(),src:url,isAI:true});
+    renderQ(dest);
+  }catch(e){
+    console.error('AI photo error:',e);
+    alert('Error IA: '+e.message);
+  }finally{
+    if(btn){btn.disabled=false;btn.firstChild.textContent=orig;}
+  }
+}
 function handleFiles(files,dest){
   const is360=dest==='cat'?is360Cat:is360Liq;
   const nuevas=Array.from(files);
@@ -1147,7 +1171,8 @@ function rmQ(id,dest){
   renderQ(dest);
 }
 /* ── SUPABASE STORAGE ── */
-async function uploadToStorage(base64, idx){
+async function uploadToStorage(base64, idx, isAI){
+  if(isAI) return base64; // ya está en Supabase Storage, devolver URL directo
   const res = await fetch(base64);
   const blob = await res.blob();
   const path = `${Date.now()}_${idx}.webp`;
@@ -1200,7 +1225,7 @@ async function addQueue(dest){
   const btnEl=$(isC?'btnCat':'btnLiq');
   if(btnEl){btnEl.disabled=true;btnEl.textContent='⏳ Subiendo...';}
   try{
-    const urls=await Promise.all(q.map((x,i)=>uploadToStorage(x.src,i)));
+    const urls=await Promise.all(q.map((x,i)=>uploadToStorage(x.src,i,x.isAI)));
     await _commitQueue(dest,isC,urls);
   }catch(e){
     console.error('Upload error:',e);

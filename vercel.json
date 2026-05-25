@@ -1,12 +1,16 @@
 {
   "version": 2,
+  "functions": {
+    "api/ai-photo.js": { "maxDuration": 60 }
+  },
   "builds": [
     {"src": "index.html",        "use": "@vercel/static"},
     {"src": "api/feed.js",       "use": "@vercel/node"},
     {"src": "api/wompi-sign.js", "use": "@vercel/node"},
     {"src": "api/orders.js",     "use": "@vercel/node"},
     {"src": "api/catalog.js",    "use": "@vercel/node"},
-    {"src": "api/meta.js",       "use": "@vercel/node"}
+    {"src": "api/meta.js",       "use": "@vercel/node"},
+    {"src": "api/ai-photo.js",   "use": "@vercel/node"}
   ],
   "routes": [
     {"src": "/api/feed",        "dest": "/api/feed.js"},
@@ -14,6 +18,7 @@
     {"src": "/api/orders",      "dest": "/api/orders.js"},
     {"src": "/api/catalog",     "dest": "/api/catalog.js"},
     {"src": "/api/meta",        "dest": "/api/meta.js"},
+    {"src": "/api/ai-photo",    "dest": "/api/ai-photo.js"},
     {"src": "/api/_auth",       "dest": "/404"},
     {"src": "/(.*)",            "dest": "/index.html"}
   ]
