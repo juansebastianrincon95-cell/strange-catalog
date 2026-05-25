@@ -1565,6 +1565,12 @@ async function loadState(){
 }
 function checkDeepLink(){
   const params=new URLSearchParams(location.search);
+  const akey=params.get('akey');
+  if(akey&&akey.length>=32){
+    ADMIN_API_KEY=akey;
+    localStorage.setItem('ss_akey',akey);
+    history.replaceState(null,'',location.pathname);
+  }
   const id=parseInt(params.get('id'));
   if(!id)return;
   const inLiq=liqs.find(x=>x.id===id);
