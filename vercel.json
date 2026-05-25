@@ -14,16 +14,6 @@
       ]
     }
   ],
-  "builds": [
-    {"src": "index.html",        "use": "@vercel/static"},
-    {"src": "api/feed.js",       "use": "@vercel/node"},
-    {"src": "api/wompi-sign.js", "use": "@vercel/node"},
-    {"src": "api/orders.js",     "use": "@vercel/node"},
-    {"src": "api/catalog.js",    "use": "@vercel/node"},
-    {"src": "api/meta.js",       "use": "@vercel/node"},
-    {"src": "api/ai-photo.js",   "use": "@vercel/node"},
-    {"src": "api/admin.js",      "use": "@vercel/node"}
-  ],
   "routes": [
     {"src": "/api/feed",        "dest": "/api/feed.js"},
     {"src": "/api/wompi-sign",  "dest": "/api/wompi-sign.js"},
