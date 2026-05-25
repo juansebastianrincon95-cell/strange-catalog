@@ -18,9 +18,15 @@ function httpsPost(hostname, path, headers, body) {
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
+
+  const auth = req.headers['authorization'] || '';
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+  if (!token || token !== process.env.ADMIN_API_KEY) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
 
   const { imageBase64 } = req.body || {};
   if (!imageBase64) return res.status(400).json({ error: 'imageBase64 requerido' });
@@ -51,8 +57,8 @@ module.exports = async (req, res) => {
 
   const geminiRes = await httpsPost(
     'generativelanguage.googleapis.com',
-    `/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${GEMINI_KEY}`,
-    { 'Content-Type': 'application/json', 'Content-Length': geminiBody.length },
+    '/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent',
+    { 'Content-Type': 'application/json', 'Content-Length': geminiBody.length, 'x-goog-api-key': GEMINI_KEY },
     geminiBody
   );
 

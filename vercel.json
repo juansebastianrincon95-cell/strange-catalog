@@ -3,6 +3,17 @@
   "functions": {
     "api/ai-photo.js": { "maxDuration": 60 }
   },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains" }
+      ]
+    }
+  ],
   "builds": [
     {"src": "index.html",        "use": "@vercel/static"},
     {"src": "api/feed.js",       "use": "@vercel/node"},
@@ -10,7 +21,8 @@
     {"src": "api/orders.js",     "use": "@vercel/node"},
     {"src": "api/catalog.js",    "use": "@vercel/node"},
     {"src": "api/meta.js",       "use": "@vercel/node"},
-    {"src": "api/ai-photo.js",   "use": "@vercel/node"}
+    {"src": "api/ai-photo.js",   "use": "@vercel/node"},
+    {"src": "api/admin.js",      "use": "@vercel/node"}
   ],
   "routes": [
     {"src": "/api/feed",        "dest": "/api/feed.js"},
@@ -19,6 +31,7 @@
     {"src": "/api/catalog",     "dest": "/api/catalog.js"},
     {"src": "/api/meta",        "dest": "/api/meta.js"},
     {"src": "/api/ai-photo",    "dest": "/api/ai-photo.js"},
+    {"src": "/api/admin",       "dest": "/api/admin.js"},
     {"src": "/api/_auth",       "dest": "/404"},
     {"src": "/(.*)",            "dest": "/index.html"}
   ]

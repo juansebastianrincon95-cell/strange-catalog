@@ -50,7 +50,10 @@ module.exports = async (req, res) => {
     }
 
     if (resource === 'insights' && campaign_id) {
-      const range = since && until ? `&time_range={"since":"${since}","until":"${until}"}` : '';
+      const dateRe = /^\d{4}-\d{2}-\d{2}$/;
+      const safeSince = since && dateRe.test(since) ? since : null;
+      const safeUntil = until && dateRe.test(until) ? until : null;
+      const range = safeSince && safeUntil ? `&time_range={"since":"${safeSince}","until":"${safeUntil}"}` : '';
       const r = await graphRequest('GET', qs(`${campaign_id}/insights?fields=impressions,clicks,spend,reach,cpc,cpm,ctr,actions${range}`));
       return res.status(r.status).json(r.body);
     }

@@ -45,17 +45,30 @@ alter table products     enable row level security;
 alter table liq_products enable row level security;
 alter table settings     enable row level security;
 
-drop policy if exists "anon all products" on products;
-create policy "anon all products"
-  on products for all to anon using (true) with check (true);
+-- Anon: solo lectura. Escrituras solo desde service_role (via /api/admin)
+drop policy if exists "anon all products"    on products;
+drop policy if exists "anon read products"   on products;
+drop policy if exists "service write products" on products;
+create policy "anon read products"
+  on products for select to anon using (true);
+create policy "service write products"
+  on products for all to service_role using (true) with check (true);
 
-drop policy if exists "anon all liq" on liq_products;
-create policy "anon all liq"
-  on liq_products for all to anon using (true) with check (true);
+drop policy if exists "anon all liq"         on liq_products;
+drop policy if exists "anon read liq"        on liq_products;
+drop policy if exists "service write liq"    on liq_products;
+create policy "anon read liq"
+  on liq_products for select to anon using (true);
+create policy "service write liq"
+  on liq_products for all to service_role using (true) with check (true);
 
-drop policy if exists "anon all settings" on settings;
-create policy "anon all settings"
-  on settings for all to anon using (true) with check (true);
+drop policy if exists "anon all settings"    on settings;
+drop policy if exists "anon read settings"   on settings;
+drop policy if exists "service write settings" on settings;
+create policy "anon read settings"
+  on settings for select to anon using (true);
+create policy "service write settings"
+  on settings for all to service_role using (true) with check (true);
 
 -- ─── RLS: Storage (bucket product-images) ───────────────────
 drop policy if exists "public read images"  on storage.objects;
@@ -66,13 +79,12 @@ create policy "public read images"
   on storage.objects for select
   using (bucket_id = 'product-images');
 
+-- Subida de imágenes desde el browser (admin panel) — sigue siendo anon
 create policy "anon upload images"
   on storage.objects for insert to anon
   with check (bucket_id = 'product-images');
 
-create policy "anon delete images"
-  on storage.objects for delete to anon
-  using (bucket_id = 'product-images');
+-- Sin policy de delete anónimo: borrar imágenes requiere service_role
 
 -- ─── VERIFICACIÓN ───────────────────────────────────────────
 select 'products'     as tabla, count(*) as filas from products

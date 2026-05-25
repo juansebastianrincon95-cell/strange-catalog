@@ -426,6 +426,12 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
         <input id="cfgWompi" type="text" placeholder="pub_test_xxxxxxxx" style="margin-top:5px;width:100%;padding:7px 10px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:11px;font-weight:500;color:var(--ink);outline:none" oninput="WOMPI_PK=this.value.trim();saveConfig()">
       </div>
     </div>
+    <div class="trow" style="background:#fff3e0">
+      <div style="flex:1;margin-right:10px">
+        <div class="trow-lbl">🔑 Clave Admin API <span title="Pega aquí el valor de ADMIN_API_KEY configurado en Vercel. Solo se ingresa una vez. Sin esta clave los cambios del panel Admin no se guardan en la base de datos." style="font-size:10px;color:var(--blue);cursor:help">ⓘ</span></div>
+        <input id="cfgAdminKey" type="password" placeholder="Tu clave ADMIN_API_KEY de Vercel" style="margin-top:5px;width:100%;padding:7px 10px;background:#fff;border:1.5px solid #ff9800;border-radius:8px;font-family:var(--font);font-size:11px;font-weight:500;color:var(--ink);outline:none" oninput="ADMIN_API_KEY=this.value.trim();localStorage.setItem('ss_akey',ADMIN_API_KEY)">
+      </div>
+    </div>
     <div style="display:flex;gap:8px;padding:10px 14px">
       <button onclick="exportMetaCatalog()" style="flex:1;padding:9px;background:#0066FF;color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📦 Catálogo Meta</button>
       <button onclick="exportCatalog()" style="flex:1;padding:9px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">⬇ Exportar backup</button>
@@ -533,6 +539,22 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 const SUPABASE_URL  = 'https://ayogbrpqezutzfdktsok.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_ZjVLucKCxH2RM2CycRhkhQ_Gw95sl7s';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+let ADMIN_API_KEY = localStorage.getItem('ss_akey') || '';
+
+async function adminWrite(action, payload = {}) {
+  if (!ADMIN_API_KEY) {
+    alert('⚠️ Configura la Clave Admin en el panel de Configuración antes de guardar cambios.');
+    throw new Error('ADMIN_API_KEY not set');
+  }
+  const r = await fetch('/api/admin', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ADMIN_API_KEY },
+    body: JSON.stringify({ action, ...payload })
+  });
+  if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || 'Admin error'); }
+  return r.json();
+}
 
 let WA='573122672336';
 let STORE_NAME='STRANGE';
@@ -878,6 +900,7 @@ function _showAdmin(){
   const cfgS=$('cfgSheets');if(cfgS)cfgS.value=SHEETS_URL;
   const cfgPx=$('cfgPixel');if(cfgPx)cfgPx.value=PIXEL_ID;
   const cfgWo=$('cfgWompi');if(cfgWo)cfgWo.value=WOMPI_PK;
+  const cfgAk=$('cfgAdminKey');if(cfgAk)cfgAk.value=ADMIN_API_KEY;
   checkStorageQuota();
   $('ascrim').classList.add('on');$('apanel').classList.add('on');document.body.style.overflow='hidden';
 }
@@ -904,8 +927,8 @@ function changePin(){
   alert('PIN actualizado ✓');
 }
 function closeAdmin(){$('ascrim').classList.remove('on');$('apanel').classList.remove('on');document.body.style.overflow='';}
-async function toggleBanner(on){bannerOn=on;$('banner').classList.toggle('off',!on);await sb.from('settings').upsert({key:'banner_on',value:String(on)});}
-async function toggleGlobal(on){promoG=on;renderGrid();renderAdmin();await sb.from('settings').upsert({key:'promo_global',value:String(on)});}
+async function toggleBanner(on){bannerOn=on;$('banner').classList.toggle('off',!on);await adminWrite('upsert_settings',{data:{key:'banner_on',value:String(on)}});}
+async function toggleGlobal(on){promoG=on;renderGrid();renderAdmin();await adminWrite('upsert_settings',{data:{key:'promo_global',value:String(on)}});}
 function setAdminTab(n){
   aTab=n;
   $('panCat').style.display=n===0?'flex':'none';
@@ -1030,14 +1053,14 @@ async function saveEP(id,type){
   const list=type==='liq'?liqs:prods;
   const p=list.find(x=>x.id===id);if(p)p.price=val;
   renderGrid();type==='liq'?renderLiqAdmin():renderAdmin();
-  await sb.from(type==='liq'?'liq_products':'products').update({price:val}).eq('id',id);
+  await adminWrite('update_product',{table:type==='liq'?'liq_products':'products',id,data:{price:val}});
 }
 function cancelEP(){document.querySelectorAll('.ep-row').forEach(r=>r.style.display='none');}
 async function delProd(id,type){
   if(type==='liq'){liqs=liqs.filter(p=>p.id!==id);delete cart['L'+id];}
   else{prods=prods.filter(p=>p.id!==id);delete cart[id];}
   syncDot();renderGrid();renderAdmin();if(type==='liq')renderLiqAdmin();
-  await sb.from(type==='liq'?'liq_products':'products').delete().eq('id',id);
+  await adminWrite('delete_product',{table:type==='liq'?'liq_products':'products',id});
 }
 async function togSold(id,type){
   const list=type==='liq'?liqs:prods;
@@ -1046,7 +1069,7 @@ async function togSold(id,type){
   const key=type==='liq'?'L'+id:id;
   if(p.sold)delete cart[key];
   syncDot();renderGrid();renderAdmin();if(type==='liq')renderLiqAdmin();
-  await sb.from(type==='liq'?'liq_products':'products').update({sold:p.sold}).eq('id',id);
+  await adminWrite('update_product',{table:type==='liq'?'liq_products':'products',id,data:{sold:p.sold}});
 }
 
 /* ── SUBIR FOTOS ── */
@@ -1073,7 +1096,7 @@ async function handleAIFile(file, dest){
   if(btn){btn.disabled=true;btn.firstChild.textContent='⏳ Procesando con IA (~10s)…';}
   try{
     const base64=await new Promise((res,rej)=>{compressImg(file,res);});
-    const r=await fetch('/api/ai-photo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imageBase64:base64})});
+    const r=await fetch('/api/ai-photo',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+ADMIN_API_KEY},body:JSON.stringify({imageBase64:base64})});
     if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||'Error del servidor');}
     const {url}=await r.json();
     const q=dest==='liq'?qL:qC;
@@ -1185,33 +1208,24 @@ async function _commitQueue(dest,isC,urls){
   if(isC){
     const g=$('qGen').value,price=Math.max(1000,parseInt($('qPrc').value)||P_DEF),was=Math.max(0,parseInt($('qAnt').value)||P_ANT);
     if(is360Cat&&urls.length>=2){
-      const {data,error}=await sb.from('products').insert({
-        gender:g,price,price_before:was,promo:false,sold:false,
-        img_url:urls[0],imgs_360:JSON.stringify(urls)
-      }).select().single();
-      if(!error&&data)prods.push({id:data.id,g,img:urls[0],imgs360:urls,price,was,promo:false,sold:false});
+      const r=await adminWrite('insert_product',{table:'products',data:{gender:g,price,price_before:was,promo:false,sold:false,img_url:urls[0],imgs_360:JSON.stringify(urls)}}).catch(()=>null);
+      if(r?.id)prods.push({id:r.id,g,img:urls[0],imgs360:urls,price,was,promo:false,sold:false});
     }else{
       for(let i=0;i<urls.length;i++){
-        const {data,error}=await sb.from('products').insert({
-          gender:g,price,price_before:was,promo:false,sold:false,img_url:urls[i],imgs_360:'[]'
-        }).select().single();
-        if(!error&&data)prods.push({id:data.id,g,img:urls[i],imgs360:[],price,was,promo:false,sold:false});
+        const r=await adminWrite('insert_product',{table:'products',data:{gender:g,price,price_before:was,promo:false,sold:false,img_url:urls[i],imgs_360:'[]'}}).catch(()=>null);
+        if(r?.id)prods.push({id:r.id,g,img:urls[i],imgs360:[],price,was,promo:false,sold:false});
       }
     }
     qC=[];
   }else{
     const price=Math.max(1000,parseInt($('lPrc').value)||99000),was=Math.max(0,parseInt($('lAnt').value)||P_ANT);
     if(is360Liq&&urls.length>=2){
-      const {data,error}=await sb.from('liq_products').insert({
-        price,price_before:was,sold:false,img_url:urls[0],imgs_360:JSON.stringify(urls)
-      }).select().single();
-      if(!error&&data)liqs.push({id:data.id,img:urls[0],imgs360:urls,price,was,sold:false});
+      const r=await adminWrite('insert_product',{table:'liq_products',data:{price,price_before:was,sold:false,img_url:urls[0],imgs_360:JSON.stringify(urls)}}).catch(()=>null);
+      if(r?.id)liqs.push({id:r.id,img:urls[0],imgs360:urls,price,was,sold:false});
     }else{
       for(let i=0;i<urls.length;i++){
-        const {data,error}=await sb.from('liq_products').insert({
-          price,price_before:was,sold:false,img_url:urls[i],imgs_360:'[]'
-        }).select().single();
-        if(!error&&data)liqs.push({id:data.id,img:urls[i],imgs360:[],price,was,sold:false});
+        const r=await adminWrite('insert_product',{table:'liq_products',data:{price,price_before:was,sold:false,img_url:urls[i],imgs_360:'[]'}}).catch(()=>null);
+        if(r?.id)liqs.push({id:r.id,img:urls[i],imgs360:[],price,was,sold:false});
       }
     }
     qL=[];renderLiqAdmin();
@@ -1474,13 +1488,13 @@ function importCatalog(file){
 /* ── CONFIGURACIÓN ── */
 async function saveConfig(){
   localStorage.setItem('ss_config',JSON.stringify({wa:WA,nombre:STORE_NAME,sheetsUrl:SHEETS_URL,pixelId:PIXEL_ID,wompiPk:WOMPI_PK}));
-  await sb.from('settings').upsert([
+  await adminWrite('upsert_settings',{data:[
     {key:'store_name', value:STORE_NAME},
     {key:'wa',         value:WA},
     {key:'pixel_id',   value:PIXEL_ID},
     {key:'sheets_url', value:SHEETS_URL},
     {key:'wompi_pk',   value:WOMPI_PK}
-  ]);
+  ]});
 }
 function loadConfig(){
   try{

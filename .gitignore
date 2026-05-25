@@ -1,4 +1,5 @@
 .env
+.env.upload
 node_modules/
 .vercel/
 
