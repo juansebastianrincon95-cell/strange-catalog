@@ -1,6 +1,9 @@
 .env
+.env.local
 .env.upload
 node_modules/
 .vercel/
 
 .vercel
+
+.env*.local
