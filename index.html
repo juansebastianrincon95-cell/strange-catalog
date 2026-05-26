@@ -904,17 +904,26 @@ function _showAdmin(){
   checkStorageQuota();
   $('ascrim').classList.add('on');$('apanel').classList.add('on');document.body.style.overflow='hidden';
 }
-function openAdmin(){
+async function _fetchAdminKey(pin){
+  if(ADMIN_API_KEY)return;
+  try{
+    const r=await fetch('/api/admin-setup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pin})});
+    if(r.ok){const {key}=await r.json();if(key){ADMIN_API_KEY=key;localStorage.setItem('ss_akey',key);}}
+  }catch(e){}
+}
+async function openAdmin(){
   const pin=localStorage.getItem('ss_pin');
   if(!pin){
     const nuevo=prompt('Primera vez: crea tu PIN de Admin (mínimo 4 caracteres):');
     if(!nuevo||nuevo.length<4){alert('PIN demasiado corto. Debe tener al menos 4 caracteres.');return;}
     localStorage.setItem('ss_pin',nuevo);
+    await _fetchAdminKey(nuevo);
     _showAdmin();
   }else{
     const input=prompt('PIN de administrador:');
     if(input===null)return;
     if(input!==pin){alert('PIN incorrecto ❌');return;}
+    await _fetchAdminKey(pin);
     _showAdmin();
   }
 }
