@@ -11,15 +11,22 @@ module.exports = async (req, res) => {
     ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY)
     : null;
 
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+
   const ordersQuery = sbSvc
     ? sbSvc.from('orders').select('id,fecha,total,pares,pago,ciudad,status,items,created_at').order('created_at', { ascending: false }).limit(50)
     : Promise.resolve({ data: [] });
 
-  const [{ data: prods }, { data: liqs }, { data: settings }, { data: orders }] = await Promise.all([
+  const eventsQuery = sbSvc
+    ? sbSvc.from('events').select('*').gte('created_at', sevenDaysAgo)
+    : Promise.resolve({ data: [] });
+
+  const [{ data: prods }, { data: liqs }, { data: settings }, { data: orders }, { data: evts }] = await Promise.all([
     sbAnon.from('products').select('*'),
     sbAnon.from('liq_products').select('*'),
     sbAnon.from('settings').select('*'),
-    ordersQuery
+    ordersQuery,
+    eventsQuery
   ]);
 
   const cfg = Object.fromEntries((settings || []).map(r => [r.key, r.value]));
@@ -38,6 +45,58 @@ module.exports = async (req, res) => {
   });
 
   const avail = (prods || []).filter(p => !p.sold);
+
+  // ── Behavioral analytics ─────────────────────────────────────
+  const allEvts = evts || [];
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+  const oneDayAgo  = new Date(Date.now() - 24 * 3600 * 1000);
+
+  // Agrupar eventos por sesión
+  const sessions = {};
+  allEvts.forEach(e => {
+    if (!sessions[e.session_id]) sessions[e.session_id] = new Set();
+    sessions[e.session_id].add(e.type);
+  });
+  const sessionList = Object.values(sessions);
+
+  // Tasa de abandono
+  const didCart     = sessionList.filter(s => s.has('add_to_cart'));
+  const abandoned   = didCart.filter(s => !s.has('purchase'));
+
+  // Sesiones abandonadas últimas 24h (session_ids únicos)
+  const abandonedIds24h = new Set(
+    allEvts
+      .filter(e => e.type === 'add_to_cart' && new Date(e.created_at) >= oneDayAgo)
+      .map(e => e.session_id)
+      .filter(sid => !sessions[sid]?.has('purchase'))
+  );
+
+  // Fuentes de tráfico
+  const sources = {};
+  allEvts.filter(e => e.type === 'page_view' && e.utm_source)
+    .forEach(e => { sources[e.utm_source] = (sources[e.utm_source] || 0) + 1; });
+
+  // Productos más vistos
+  const productViews = {};
+  allEvts.filter(e => e.type === 'view_product' && e.product_id)
+    .forEach(e => { productViews[e.product_id] = (productViews[e.product_id] || 0) + 1; });
+
+  const behavior = {
+    sessions_7d:            sessionList.length,
+    sessions_today:         new Set(allEvts.filter(e => new Date(e.created_at) >= todayStart).map(e => e.session_id)).size,
+    funnel_7d: {
+      page_views:        allEvts.filter(e => e.type === 'page_view').length,
+      product_views:     allEvts.filter(e => e.type === 'view_product').length,
+      add_to_cart:       allEvts.filter(e => e.type === 'add_to_cart').length,
+      checkout_started:  allEvts.filter(e => e.type === 'initiate_checkout').length,
+      purchases:         allEvts.filter(e => e.type === 'purchase').length,
+    },
+    cart_abandonment_rate:  didCart.length ? +(abandoned.length / didCart.length).toFixed(2) : 0,
+    abandoned_sessions_24h: abandonedIds24h.size,
+    traffic_sources:        Object.entries(sources).sort((a, b) => b[1] - a[1]).slice(0, 5),
+    top_viewed_products:    Object.entries(productViews).sort((a, b) => b[1] - a[1]).slice(0, 5)
+                              .map(([id, views]) => ({ id, views })),
+  };
 
   res.json({
     store: {
@@ -69,6 +128,7 @@ module.exports = async (req, res) => {
       top_cities:  Object.entries(cities).sort((a, b) => b[1] - a[1]).slice(0, 5),
       top_payment: Object.entries(pays).sort((a, b) => b[1] - a[1])[0]?.[0] || null,
       recent:      allOrders
-    }
+    },
+    behavior
   });
 };

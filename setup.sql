@@ -86,10 +86,65 @@ create policy "anon upload images"
 
 -- Sin policy de delete anónimo: borrar imágenes requiere service_role
 
+-- ─── TABLA: orders ──────────────────────────────────────────
+create table if not exists orders (
+  id         bigserial primary key,
+  created_at timestamptz default now(),
+  fecha      text,
+  nombre     text,
+  cedula     text,
+  tel        text,
+  ciudad     text,
+  barrio     text,
+  direccion  text,
+  pago       text,
+  total      integer,
+  pares      integer,
+  items      jsonb,
+  status     text default 'pending',
+  reference  text,
+  utm        jsonb,
+  referrer   text,
+  seccion    text
+);
+
+alter table orders enable row level security;
+
+create policy "anon insert orders"
+  on orders for insert to anon with check (true);
+create policy "service all orders"
+  on orders for all to service_role using (true) with check (true);
+
+-- ─── TABLA: events ──────────────────────────────────────────
+create table if not exists events (
+  id           bigserial primary key,
+  created_at   timestamptz default now(),
+  session_id   text not null,
+  type         text not null,
+  product_id   text,
+  price        integer,
+  gender       text check (gender in ('h','m')),
+  utm_source   text,
+  utm_medium   text,
+  utm_campaign text,
+  referrer     text
+);
+
+alter table events enable row level security;
+
+create policy "anon insert events"
+  on events for insert to anon with check (true);
+create policy "service all events"
+  on events for all to service_role using (true) with check (true);
+
 -- ─── VERIFICACIÓN ───────────────────────────────────────────
 select 'products'     as tabla, count(*) as filas from products
 union all
 select 'liq_products' as tabla, count(*) as filas from liq_products
 union all
-select 'settings'     as tabla, count(*) as filas from settings;
--- Resultado esperado: products=0, liq_products=0, settings=4
+select 'settings'     as tabla, count(*) as filas from settings
+union all
+select 'orders'       as tabla, count(*) as filas from orders
+union all
+select 'events'       as tabla, count(*) as filas from events;
+-- Resultado esperado: products=0, liq_products=0, settings=4, orders=0, events=0

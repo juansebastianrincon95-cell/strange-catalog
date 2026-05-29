@@ -1,6 +1,13 @@
 const { createClient } = require('@supabase/supabase-js');
+const crypto = require('crypto');
 
 const ALLOWED_TABLES = ['products', 'liq_products', 'settings'];
+
+function safeEq(a, b) {
+  const ab = Buffer.from(String(a || '')), bb = Buffer.from(String(b || ''));
+  if (ab.length !== bb.length) return false;
+  try { return crypto.timingSafeEqual(ab, bb); } catch { return false; }
+}
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -11,7 +18,7 @@ module.exports = async (req, res) => {
 
   const auth = req.headers['authorization'] || '';
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
-  if (!token || token !== process.env.ADMIN_API_KEY) {
+  if (!token || !process.env.ADMIN_API_KEY || !safeEq(token, process.env.ADMIN_API_KEY)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
@@ -57,6 +64,16 @@ module.exports = async (req, res) => {
     const { error } = await sb.from(table).delete().eq('id', id);
     if (error) return res.status(500).json({ error: error.message });
     return res.json({ ok: true });
+  }
+
+  if (action === 'list_orders') {
+    const { data: rows, error } = await sb
+      .from('orders')
+      .select('id,created_at,fecha,nombre,tel,ciudad,barrio,pago,total,pares,items,status,reference,seccion')
+      .order('created_at', { ascending: false })
+      .limit(500);
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json({ ok: true, orders: rows || [] });
   }
 
   return res.status(400).json({ error: 'unknown action' });

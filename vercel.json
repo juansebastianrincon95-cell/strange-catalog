@@ -14,16 +14,7 @@
       ]
     }
   ],
-  "routes": [
-    {"src": "/api/feed",        "dest": "/api/feed.js"},
-    {"src": "/api/wompi-sign",  "dest": "/api/wompi-sign.js"},
-    {"src": "/api/orders",      "dest": "/api/orders.js"},
-    {"src": "/api/catalog",     "dest": "/api/catalog.js"},
-    {"src": "/api/meta",        "dest": "/api/meta.js"},
-    {"src": "/api/ai-photo",    "dest": "/api/ai-photo.js"},
-    {"src": "/api/admin",       "dest": "/api/admin.js"},
-    {"src": "/api/admin-setup", "dest": "/api/admin-setup.js"},
-    {"src": "/api/_auth",       "dest": "/404"},
-    {"src": "/(.*)",            "dest": "/index.html"}
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

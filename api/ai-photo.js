@@ -1,4 +1,11 @@
 const https = require('https');
+const crypto = require('crypto');
+
+function safeEq(a, b) {
+  const ab = Buffer.from(String(a || '')), bb = Buffer.from(String(b || ''));
+  if (ab.length !== bb.length) return false;
+  try { return crypto.timingSafeEqual(ab, bb); } catch { return false; }
+}
 
 const PROMPT = 'Transform this shoe photo into a professional e-commerce product photo. Pure white background, clean studio lighting, sharp focus on all shoe details, no shadows, shoe perfectly centered. Preserve ALL original details: colors, textures, logos, sole pattern, laces. Remove any background, floor, furniture, hands or distractions. Result must look like a professional product photographer took it for an online store.';
 
@@ -24,7 +31,7 @@ module.exports = async (req, res) => {
 
   const auth = req.headers['authorization'] || '';
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
-  if (!token || token !== process.env.ADMIN_API_KEY) {
+  if (!token || !process.env.ADMIN_API_KEY || !safeEq(token, process.env.ADMIN_API_KEY)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
@@ -36,6 +43,7 @@ module.exports = async (req, res) => {
   const SUPABASE_SVC = process.env.SUPABASE_SERVICE_KEY;
 
   if (!GEMINI_KEY)   return res.status(500).json({ error: 'GEMINI_API_KEY no configurada' });
+  if (!SUPABASE_URL) return res.status(500).json({ error: 'SUPABASE_URL no configurada' });
   if (!SUPABASE_SVC) return res.status(500).json({ error: 'SUPABASE_SERVICE_KEY no configurada' });
 
   // Limpiar prefijo data-URL si viene del browser
@@ -57,7 +65,7 @@ module.exports = async (req, res) => {
 
   const geminiRes = await httpsPost(
     'generativelanguage.googleapis.com',
-    '/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent',
+    '/v1beta/models/gemini-3.1-flash-image-preview:generateContent',
     { 'Content-Type': 'application/json', 'Content-Length': geminiBody.length, 'x-goog-api-key': GEMINI_KEY },
     geminiBody
   );
@@ -67,7 +75,9 @@ module.exports = async (req, res) => {
     return res.status(502).json({ error: 'Gemini error', detail });
   }
 
-  const geminiJson = JSON.parse(geminiRes.body.toString('utf8'));
+  let geminiJson;
+  try { geminiJson = JSON.parse(geminiRes.body.toString('utf8')); }
+  catch { return res.status(502).json({ error: 'Gemini devolvió respuesta inválida' }); }
   // Buscar la parte con imagen en la respuesta
   const parts = geminiJson?.candidates?.[0]?.content?.parts || [];
   const imgPart = parts.find(p => p.inline_data?.mime_type?.startsWith('image/'));

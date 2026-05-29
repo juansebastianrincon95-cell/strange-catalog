@@ -426,6 +426,12 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
         <input id="cfgWompi" type="text" placeholder="pub_test_xxxxxxxx" style="margin-top:5px;width:100%;padding:7px 10px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:11px;font-weight:500;color:var(--ink);outline:none" oninput="WOMPI_PK=this.value.trim();saveConfig()">
       </div>
     </div>
+    <div class="trow" style="background:#e8f5e9">
+      <div style="flex:1;margin-right:10px">
+        <div class="trow-lbl">📊 Microsoft Clarity ID <span title="clarity.microsoft.com → New project → copia el ID (ej: abc123xyz0)" style="font-size:10px;color:var(--blue);cursor:help">ⓘ</span></div>
+        <input id="cfgClarity" type="text" placeholder="ej: abc123xyz0" style="margin-top:5px;width:100%;padding:7px 10px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:11px;font-weight:500;color:var(--ink);outline:none" oninput="CLARITY_ID=this.value.trim();saveConfig()">
+      </div>
+    </div>
     <div class="trow" style="background:#fff3e0">
       <div style="flex:1;margin-right:10px">
         <div class="trow-lbl">🔑 Clave Admin API <span title="Pega aquí el valor de ADMIN_API_KEY configurado en Vercel. Solo se ingresa una vez. Sin esta clave los cambios del panel Admin no se guardan en la base de datos." style="font-size:10px;color:var(--blue);cursor:help">ⓘ</span></div>
@@ -588,6 +594,7 @@ let orders=[];
 let SHEETS_URL='';
 let PIXEL_ID='';
 let WOMPI_PK='';
+let CLARITY_ID='';
 const SESSION_ID=(()=>{
   let sid=sessionStorage.getItem('ss_sid');
   if(!sid){sid=Date.now().toString(36)+Math.random().toString(36).slice(2);sessionStorage.setItem('ss_sid',sid);}
@@ -612,8 +619,20 @@ function initPixel(){
   fbq('init',PIXEL_ID);
   fbq('track','PageView');
 }
+function _injectClarity(id){
+  if(document.getElementById('clarity-script'))return;
+  const s=document.createElement('script');
+  s.id='clarity-script';
+  s.type='text/javascript';
+  s.textContent=`(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","${id}");`;
+  document.head.appendChild(s);
+}
 function px(event,params,eid){
   if(typeof fbq==='function')fbq('track',event,params||{},{eventID:eid||SESSION_ID+'_'+event});
+}
+function trackEvent(type,extra={}){
+  const utm=getUTM();
+  fetch('/api/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:SESSION_ID,type,utm_source:utm.utm_source||null,utm_medium:utm.utm_medium||null,utm_campaign:utm.utm_campaign||null,referrer:getReferrer()||null,...extra})}).catch(()=>{});
 }
 
 /* ── UTM ── */
@@ -723,6 +742,7 @@ function togCard(id,type){
     const _acat=type==='liq'?'liquidacion':p.g;
     const _anm=type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer');
     px('AddToCart',{content_ids:[String(key)],content_type:'product',content_category:_acat,content_name:_anm,value:p.price,currency:'COP',...getUTM()});
+    trackEvent('add_to_cart',{product_id:String(key),price:p.price,gender:type==='liq'?null:p.g});
   }
   const el=$(type==='liq'?'lk'+id:'k'+id);
   if(el){
@@ -760,6 +780,7 @@ function openPhoto(id,type){
   const _vcat=type==='liq'?'liquidacion':p.g;
   const _vnm=type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer');
   px('ViewContent',{content_ids:[String(id)],content_type:'product',content_category:_vcat,content_name:_vnm,value:p.price,currency:'COP',...getUTM()});
+  trackEvent('view_product',{product_id:String(id),price:p.price,gender:type==='liq'?null:p.g||null});
   $('photoModal').classList.add('on');
   document.body.style.overflow='hidden';
 }
@@ -891,8 +912,24 @@ function sync360Btn(){
 }
 
 /* ── ADMIN ── */
+async function loadOrders(){
+  if(!ADMIN_API_KEY)return;
+  try{
+    const r=await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+ADMIN_API_KEY},body:JSON.stringify({action:'list_orders'})});
+    if(!r.ok)return;
+    const j=await r.json();
+    if(Array.isArray(j.orders)){
+      orders=j.orders.map(o=>({
+        id:o.id,fecha:o.fecha||o.created_at,total:o.total||0,pares:o.pares,
+        pago:o.pago,ciudad:o.ciudad,barrio:o.barrio,nombre:o.nombre,tel:o.tel,
+        items:o.items,status:o.status,reference:o.reference,seccion:o.seccion
+      }));
+    }
+  }catch(e){}
+}
 function _showAdmin(){
   renderAdmin();
+  loadOrders().then(()=>{if(aTab===2)renderStatsTab();});
   const swP=$('swPromo');if(swP)swP.checked=promoG;
   const swB=$('swBanner');if(swB)swB.checked=bannerOn;
   const cfgN=$('cfgNombre');if(cfgN)cfgN.value=STORE_NAME;
@@ -900,22 +937,23 @@ function _showAdmin(){
   const cfgS=$('cfgSheets');if(cfgS)cfgS.value=SHEETS_URL;
   const cfgPx=$('cfgPixel');if(cfgPx)cfgPx.value=PIXEL_ID;
   const cfgWo=$('cfgWompi');if(cfgWo)cfgWo.value=WOMPI_PK;
-  const cfgAk=$('cfgAdminKey');if(cfgAk)cfgAk.value=ADMIN_API_KEY;
+  const cfgCl=$('cfgClarity');if(cfgCl)cfgCl.value=CLARITY_ID;
+  const cfgAk=$('cfgAdminKey');if(cfgAk){cfgAk.value=ADMIN_API_KEY;cfgAk.style.borderColor=ADMIN_API_KEY?'#4caf50':'#f44336';}
   checkStorageQuota();
   $('ascrim').classList.add('on');$('apanel').classList.add('on');document.body.style.overflow='hidden';
 }
 async function _fetchAdminKey(pin){
-  if(ADMIN_API_KEY)return;
   try{
     const r=await fetch('/api/admin-setup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pin})});
     if(r.ok){const {key}=await r.json();if(key){ADMIN_API_KEY=key;localStorage.setItem('ss_akey',key);}}
+    else{ADMIN_API_KEY='';localStorage.removeItem('ss_akey');}
   }catch(e){}
 }
 async function openAdmin(){
   const pin=localStorage.getItem('ss_pin');
   if(!pin){
-    const nuevo=prompt('Primera vez: crea tu PIN de Admin (mínimo 4 caracteres):');
-    if(!nuevo||nuevo.length<4){alert('PIN demasiado corto. Debe tener al menos 4 caracteres.');return;}
+    const nuevo=prompt('Primera vez: crea tu PIN de Admin (mínimo 6 caracteres):');
+    if(!nuevo||nuevo.length<6){alert('PIN demasiado corto. Mínimo 6 caracteres.');return;}
     localStorage.setItem('ss_pin',nuevo);
     await _fetchAdminKey(nuevo);
     _showAdmin();
@@ -930,8 +968,8 @@ async function openAdmin(){
 function changePin(){
   const pin=localStorage.getItem('ss_pin');
   if(pin){const actual=prompt('PIN actual:');if(actual!==pin){alert('PIN incorrecto ❌');return;}}
-  const nuevo=prompt('Nuevo PIN (mínimo 4 caracteres):');
-  if(!nuevo||nuevo.length<4){alert('PIN demasiado corto.');return;}
+  const nuevo=prompt('Nuevo PIN (mínimo 6 caracteres):');
+  if(!nuevo||nuevo.length<6){alert('PIN demasiado corto. Mínimo 6 caracteres.');return;}
   localStorage.setItem('ss_pin',nuevo);
   alert('PIN actualizado ✓');
 }
@@ -947,7 +985,7 @@ function setAdminTab(n){
   $('atab1').style.cssText=`background:${n===1?'#E8200A':'#F2F1EE'};color:${n===1?'#fff':'#6B6B67'}`;
   $('atab2').style.cssText=`background:${n===2?'#0066FF':'#F2F1EE'};color:${n===2?'#fff':'#6B6B67'}`;
   if(n===1)renderLiqAdmin();
-  if(n===2)renderStatsTab();
+  if(n===2){renderStatsTab();loadOrders().then(()=>{if(aTab===2)renderStatsTab();});}
 }
 
 function renderAdmin(){
@@ -1252,7 +1290,13 @@ async function addQueue(dest){
     await _commitQueue(dest,isC,urls);
   }catch(e){
     console.error('Upload error:',e);
-    alert('Error al subir las fotos. Revisa tu conexión e intenta de nuevo.');
+    if(!ADMIN_API_KEY){
+      alert('⚠️ La clave Admin no está activa.\n\nCierra el panel, vuelve a entrar con tu PIN e intenta de nuevo.');
+    }else if(e.message&&(e.message.includes('storage')||e.message.includes('upload')||e.message.includes('bucket'))){
+      alert('❌ Error subiendo la foto al servidor.\nRevisa tu conexión e intenta de nuevo.');
+    }else{
+      alert('❌ Error guardando el producto:\n'+e.message);
+    }
   }finally{
     if(btnEl){btnEl.disabled=false;btnEl.textContent=isC?'➕ Añadir al catálogo':'🔥 Añadir a liquidación';}
   }
@@ -1267,6 +1311,7 @@ function openCart(){
     const icTotal=cartVals.reduce((s,{p,qty})=>s+p.price*qty,0);
     const icItems=cartVals.reduce((s,{qty})=>s+qty,0);
     px('InitiateCheckout',{num_items:icItems,value:icTotal,currency:'COP'});
+    trackEvent('initiate_checkout',{price:icTotal});
   }
 }
 function closeCart(){$('cscrim').classList.remove('on');$('csheet').classList.remove('on');document.body.style.overflow='';}
@@ -1299,11 +1344,6 @@ function rCart(){
   body.innerHTML+=`<div class="csubb"><span class="csubl">${tot} par${tot>1?'es':''}</span><span class="csubv">${fmt(sub)}</span></div><div class="cenvio">✓ Envío gratis incluido</div>`;
   foot.innerHTML=`<button class="btnmain" onclick="goStep(1)">Continuar &nbsp;→</button>`;
 }
-function rPay(){
-  $('cbody').innerHTML=`<div class="paysec"><div class="paytit">¿Cómo quieres pagar?</div><div class="paygrid">${PAYS.map(p=>`<button class="paycard ${payM===p.id?'on':''}" onclick="selPay('${p.id}')"><div class="paylogo">${LOGOS[p.id]}</div><div class="paynm">${p.name}</div><div class="paydesc">${p.desc}</div>${p.badge?`<div class="paybadge ${p.bc}">${p.badge}</div>`:''}</button>`).join('')}</div></div>`;
-  $('cfoot').innerHTML=`<button class="btnmain" onclick="goStep(2)" ${!payM?'disabled':''}>Continuar &nbsp;→</button><button class="btnback" onclick="goStep(0)">← Volver</button>`;
-}
-function selPay(id){payM=id;rPay();}
 function rForm(){
   $('cbody').innerHTML=`<div class="formsec"><div class="formtit">¿A dónde enviamos tu pedido?</div>
     <div class="fld"><label>Nombre completo</label><input id="fn" type="text" placeholder="Juan García" value="${cData.nombre||''}"></div>
@@ -1353,6 +1393,7 @@ function enviarWA(){
   }
   const _pids=rows.map(({p,type})=>String(type==='liq'?'L'+p.id:p.id));
   px('Purchase',{content_ids:_pids,content_type:'product',value:tot,currency:'COP',num_items:totalPares,...getUTM()},SESSION_ID+'_purchase');
+  trackEvent('purchase',{price:tot});
   orders.push(orderObj);
   saveState();
   fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(orderObj)}).catch(()=>{});
@@ -1403,14 +1444,22 @@ async function pagarWompi(){
   }
 }
 
-function checkWompiReturn(){
+async function checkWompiReturn(){
   const params=new URLSearchParams(location.search);
   if(!params.get('wompi'))return;
-  const status=params.get('status');
+  const txId=params.get('id')||'';
   const reference=localStorage.getItem('wompi_ref')||'';
   localStorage.removeItem('wompi_ref');
   history.replaceState({},'',location.pathname);
-  if(status==='APPROVED'){
+  // Verificación server-side: NO confiar en ?status= de la URL (es falsificable).
+  let verified=false,status=params.get('status')||'';
+  if(txId){
+    try{
+      const vr=await fetch('/api/wompi-verify?id='+encodeURIComponent(txId));
+      if(vr.ok){const t=await vr.json();status=t.status||status;verified=(t.status==='APPROVED');}
+    }catch(e){}
+  }
+  if(verified){
     const order=orders.find(o=>o.reference===reference)||
                 orders.filter(o=>o.pago==='wompi'&&o.status==='pending').pop();
     if(order){
@@ -1426,6 +1475,9 @@ function checkWompiReturn(){
     }else{
       setTimeout(()=>alert('✅ ¡Pago confirmado con Wompi!\nTu pedido está en camino. Pronto te contactamos.'),300);
     }
+  }else if(status==='APPROVED'){
+    // Wompi (vía URL) dice aprobado pero no pudimos verificarlo server-side.
+    setTimeout(()=>alert('⏳ Estamos confirmando tu pago.\nApenas se confirme te contactaremos por WhatsApp.'),300);
   }else if(status){
     setTimeout(()=>alert('❌ El pago no fue completado.\nPuedes intentar de nuevo o elegir otro método de pago.'),300);
   }
@@ -1469,40 +1521,58 @@ function exportCatalog(){
   a.download=`catalogo-${STORE_NAME.toLowerCase()}-${new Date().toISOString().slice(0,10)}.json`;
   a.click();URL.revokeObjectURL(a.href);
 }
-function importCatalog(file){
+async function importCatalog(file){
   if(!file)return;
-  const r=new FileReader();
-  r.onload=e=>{
-    try{
-      const data=JSON.parse(e.target.result);
-      if(!data.prods||!data.liqs)throw new Error('Formato inválido');
-      if(!confirm(`¿Reemplazar el catálogo actual con ${data.prods.length} productos de catálogo y ${data.liqs.length} de liquidación?`))return;
-      prods=data.prods;liqs=data.liqs;
-      if(data.orders)orders=data.orders;
-      if(data.config){
-        if(data.config.wa)WA=data.config.wa;
-        if(data.config.nombre)STORE_NAME=data.config.nombre;
-        if(data.config.sheetsUrl)SHEETS_URL=data.config.sheetsUrl;
-        if(data.config.pixelId)PIXEL_ID=data.config.pixelId;
-      }
-      const maxId=Math.max(0,...prods.map(p=>p.id),...liqs.map(p=>p.id));
-      nid=maxId+1;
-      saveState();saveConfig();applyStoreName();renderGrid();renderAdmin();
-      alert(`✓ Catálogo importado: ${prods.length} productos + ${liqs.length} liquidación`);
-    }catch(err){alert('Error al importar: '+err.message);}
-  };
-  r.readAsText(file);
+  if(!ADMIN_API_KEY){alert('⚠️ Configura la Clave Admin en Configuración antes de importar.');return;}
+  let text;try{text=await file.text();}catch{alert('No se pudo leer el archivo.');return;}
+  let data;try{data=JSON.parse(text);}catch{alert('Archivo JSON inválido.');return;}
+  if(!data.prods||!data.liqs){alert('Formato inválido: el backup debe tener prods y liqs.');return;}
+  if(!confirm(`¿Importar a la base de datos ${data.prods.length} productos de catálogo y ${data.liqs.length} de liquidación?\n\nSe AÑADIRÁN al catálogo actual (no lo reemplaza).`))return;
+  let okC=0,okL=0,fail=0;
+  for(const p of data.prods){
+    const r=await adminWrite('insert_product',{table:'products',data:{
+      gender:(p.g||p.gender)==='m'?'m':'h',
+      price:Math.max(1000,parseInt(p.price)||P_DEF),
+      price_before:Math.max(0,parseInt(p.was??p.price_before)||0),
+      promo:!!p.promo,sold:!!p.sold,
+      img_url:p.img||p.img_url||'',
+      imgs_360:JSON.stringify(p.imgs360||[])
+    }}).catch(()=>null);
+    if(r?.id)okC++;else fail++;
+  }
+  for(const p of data.liqs){
+    const r=await adminWrite('insert_product',{table:'liq_products',data:{
+      price:Math.max(1000,parseInt(p.price)||99000),
+      price_before:Math.max(0,parseInt(p.was??p.price_before)||0),
+      sold:!!p.sold,
+      img_url:p.img||p.img_url||'',
+      imgs_360:JSON.stringify(p.imgs360||[])
+    }}).catch(()=>null);
+    if(r?.id)okL++;else fail++;
+  }
+  if(data.config){
+    if(data.config.wa)WA=data.config.wa;
+    if(data.config.nombre)STORE_NAME=data.config.nombre;
+    if(data.config.sheetsUrl)SHEETS_URL=data.config.sheetsUrl;
+    if(data.config.pixelId)PIXEL_ID=data.config.pixelId;
+    await saveConfig().catch(()=>{});
+  }
+  applyStoreName();
+  await loadState();
+  renderGrid();renderAdmin();renderLiqAdmin();
+  alert(`✓ Importado a la base de datos:\n• Catálogo: ${okC}\n• Liquidación: ${okL}${fail?`\n• Fallidos: ${fail}`:''}`);
 }
 
 /* ── CONFIGURACIÓN ── */
 async function saveConfig(){
-  localStorage.setItem('ss_config',JSON.stringify({wa:WA,nombre:STORE_NAME,sheetsUrl:SHEETS_URL,pixelId:PIXEL_ID,wompiPk:WOMPI_PK}));
+  localStorage.setItem('ss_config',JSON.stringify({wa:WA,nombre:STORE_NAME,sheetsUrl:SHEETS_URL,pixelId:PIXEL_ID,wompiPk:WOMPI_PK,clarityId:CLARITY_ID}));
   await adminWrite('upsert_settings',{data:[
     {key:'store_name', value:STORE_NAME},
     {key:'wa',         value:WA},
     {key:'pixel_id',   value:PIXEL_ID},
     {key:'sheets_url', value:SHEETS_URL},
-    {key:'wompi_pk',   value:WOMPI_PK}
+    {key:'wompi_pk',   value:WOMPI_PK},
+    {key:'clarity_id', value:CLARITY_ID}
   ]});
 }
 function loadConfig(){
@@ -1513,6 +1583,7 @@ function loadConfig(){
     if(c.sheetsUrl)SHEETS_URL=c.sheetsUrl;
     if(c.pixelId)PIXEL_ID=c.pixelId;
     if(c.wompiPk)WOMPI_PK=c.wompiPk;
+    if(c.clarityId)CLARITY_ID=c.clarityId;
     applyStoreName();
     const setMeta=(id,val)=>{const el=document.getElementById(id);if(el)el.content=val;};
     setMeta('ogSite',STORE_NAME);
@@ -1522,7 +1593,9 @@ function loadConfig(){
     const cfgS=$('cfgSheets');if(cfgS)cfgS.value=SHEETS_URL;
     const cfgPx=$('cfgPixel');if(cfgPx)cfgPx.value=PIXEL_ID;
     const cfgWo=$('cfgWompi');if(cfgWo)cfgWo.value=WOMPI_PK;
+    const cfgCl=$('cfgClarity');if(cfgCl)cfgCl.value=CLARITY_ID;
     initPixel();
+    if(CLARITY_ID)_injectClarity(CLARITY_ID);
   }catch(e){}
 }
 function applyStoreName(){
@@ -1562,6 +1635,7 @@ async function loadState(){
     if(cfg.pixel_id)PIXEL_ID=cfg.pixel_id;
     if(cfg.sheets_url)SHEETS_URL=cfg.sheets_url;
     if(cfg.wompi_pk)WOMPI_PK=cfg.wompi_pk;
+    if(cfg.clarity_id)CLARITY_ID=cfg.clarity_id;
     applyStoreName();
     const firstImg=(prods.find(p=>p.img)||liqs.find(p=>p.img))?.img;
     if(firstImg){const el=document.getElementById('ogImg');if(el)el.content=firstImg;}
@@ -1569,7 +1643,9 @@ async function loadState(){
     const cfgPx=$('cfgPixel');if(cfgPx)cfgPx.value=PIXEL_ID;
     const cfgS=$('cfgSheets');if(cfgS)cfgS.value=SHEETS_URL;
     const cfgWo=$('cfgWompi');if(cfgWo)cfgWo.value=WOMPI_PK;
+    const cfgCl=$('cfgClarity');if(cfgCl)cfgCl.value=CLARITY_ID;
     initPixel();
+    if(CLARITY_ID)_injectClarity(CLARITY_ID);
   }catch(e){console.warn('loadState error:',e);}
 }
 function checkDeepLink(){
@@ -1578,8 +1654,13 @@ function checkDeepLink(){
   if(akey&&akey.length>=32){
     ADMIN_API_KEY=akey;
     localStorage.setItem('ss_akey',akey);
-    history.replaceState(null,'',location.pathname);
   }
+  const newPin=params.get('pin');
+  if(newPin&&newPin.length>=8){
+    localStorage.setItem('ss_pin',newPin);
+  }
+  if(akey||newPin)history.replaceState(null,'',location.pathname);
+  if(params.get('wompi'))return; // el ?id= en el retorno de Wompi es una transacción, no un producto
   const id=parseInt(params.get('id'));
   if(!id)return;
   const inLiq=liqs.find(x=>x.id===id);
@@ -1661,6 +1742,7 @@ if(uzLiqEl){
 
 captureUTM();
 captureReferrer();
+trackEvent('page_view');
 loadConfig();
 (async()=>{
   await loadState();
