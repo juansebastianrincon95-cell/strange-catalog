@@ -14,7 +14,7 @@ module.exports = async (req, res) => {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
 
   const ordersQuery = sbSvc
-    ? sbSvc.from('orders').select('id,fecha,total,pares,pago,ciudad,status,items,created_at').order('created_at', { ascending: false }).limit(50)
+    ? sbSvc.from('orders').select('id,fecha,total,pares,pago,ciudad,barrio,tel,utm,status,items,created_at').order('created_at', { ascending: false }).limit(50)
     : Promise.resolve({ data: [] });
 
   const eventsQuery = sbSvc
@@ -37,6 +37,12 @@ module.exports = async (req, res) => {
   const allOrders = orders || [];
   const now = Date.now();
   const thirtyDays = allOrders.filter(o => now - new Date(o.created_at) < 30 * 24 * 3600 * 1000);
+
+  // Revenue real = solo pedidos marcados como 'venta' (no pending ni no_venta)
+  const ventas       = allOrders.filter(o => o.status === 'venta');
+  const ventas30     = ventas.filter(o => now - new Date(o.created_at) < 30 * 24 * 3600 * 1000);
+  const revenueTotal = ventas.reduce((s, o) => s + (o.total || 0), 0);
+  const noVenta      = allOrders.filter(o => o.status === 'no_venta');
 
   const cities = {}, pays = {};
   allOrders.forEach(o => {
@@ -121,13 +127,21 @@ module.exports = async (req, res) => {
     orders: {
       total:          allOrders.length,
       last_30_days:   thirtyDays.length,
-      revenue_total:  allOrders.reduce((s, o) => s + (o.total || 0), 0),
-      revenue_30_days: thirtyDays.reduce((s, o) => s + (o.total || 0), 0),
-      avg_order:      allOrders.length
-        ? Math.round(allOrders.reduce((s, o) => s + (o.total || 0), 0) / allOrders.length) : 0,
+      revenue_total:  revenueTotal,
+      revenue_30_days: ventas30.reduce((s, o) => s + (o.total || 0), 0),
+      avg_order:      ventas.length ? Math.round(revenueTotal / ventas.length) : 0,
       top_cities:  Object.entries(cities).sort((a, b) => b[1] - a[1]).slice(0, 5),
       top_payment: Object.entries(pays).sort((a, b) => b[1] - a[1])[0]?.[0] || null,
       recent:      allOrders
+    },
+    leads: {
+      pending:  allOrders.filter(o => o.status !== 'venta' && o.status !== 'no_venta').length,
+      venta:    ventas.length,
+      no_venta: noVenta.length,
+      // Contactos de interesados que NO compraron → audiencia de remarketing (subir a Meta Custom Audience)
+      no_venta_contacts: noVenta.map(o => ({
+        tel: o.tel, ciudad: o.ciudad, total: o.total, items: o.items, utm: o.utm, fecha: o.fecha
+      }))
     },
     behavior
   });

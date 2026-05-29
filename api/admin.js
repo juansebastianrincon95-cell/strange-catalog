@@ -2,6 +2,7 @@ const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
 
 const ALLOWED_TABLES = ['products', 'liq_products', 'settings'];
+const ALLOWED_ORDER_STATUS = ['pending', 'venta', 'no_venta'];
 
 function safeEq(a, b) {
   const ab = Buffer.from(String(a || '')), bb = Buffer.from(String(b || ''));
@@ -62,6 +63,15 @@ module.exports = async (req, res) => {
     if (!table || !ALLOWED_TABLES.includes(table)) return res.status(400).json({ error: 'invalid table' });
     if (!id) return res.status(400).json({ error: 'id required' });
     const { error } = await sb.from(table).delete().eq('id', id);
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json({ ok: true });
+  }
+
+  if (action === 'update_order') {
+    if (!id) return res.status(400).json({ error: 'id required' });
+    const status = data && data.status;
+    if (!ALLOWED_ORDER_STATUS.includes(status)) return res.status(400).json({ error: 'invalid status' });
+    const { error } = await sb.from('orders').update({ status }).eq('id', id);
     if (error) return res.status(500).json({ error: error.message });
     return res.json({ ok: true });
   }

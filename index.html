@@ -450,6 +450,7 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
     <button class="atab" id="atab0" onclick="setAdminTab(0)" style="background:#0E0E0C;color:#fff">📦 Catálogo</button>
     <button class="atab" id="atab1" onclick="setAdminTab(1)" style="background:#F2F1EE;color:#6B6B67">🔥 Liq.</button>
     <button class="atab" id="atab2" onclick="setAdminTab(2)" style="background:#F2F1EE;color:#6B6B67">📊 Stats</button>
+    <button class="atab" id="atab3" onclick="setAdminTab(3)" style="background:#F2F1EE;color:#6B6B67">🎯 Leads</button>
   </div>
   <div id="panCat" style="display:flex;flex-direction:column;flex:1;overflow:hidden;min-height:0">
     <div class="mode-row" id="modeRowCat">
@@ -495,6 +496,7 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
     <div class="alist" id="listLiq"></div>
   </div>
   <div id="panStats" style="display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0"></div>
+  <div id="panLeads" style="display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0"></div>
 </div>
 
 <!-- CART -->
@@ -981,11 +983,14 @@ function setAdminTab(n){
   $('panCat').style.display=n===0?'flex':'none';
   $('panLiq').style.display=n===1?'flex':'none';
   $('panStats').style.display=n===2?'flex':'none';
+  $('panLeads').style.display=n===3?'flex':'none';
   $('atab0').style.cssText=`background:${n===0?'#0E0E0C':'#F2F1EE'};color:${n===0?'#fff':'#6B6B67'}`;
   $('atab1').style.cssText=`background:${n===1?'#E8200A':'#F2F1EE'};color:${n===1?'#fff':'#6B6B67'}`;
   $('atab2').style.cssText=`background:${n===2?'#0066FF':'#F2F1EE'};color:${n===2?'#fff':'#6B6B67'}`;
+  $('atab3').style.cssText=`background:${n===3?'#0E0E0C':'#F2F1EE'};color:${n===3?'#fff':'#6B6B67'}`;
   if(n===1)renderLiqAdmin();
   if(n===2){renderStatsTab();loadOrders().then(()=>{if(aTab===2)renderStatsTab();});}
+  if(n===3){renderLeadsTab();loadOrders().then(()=>{if(aTab===3)renderLeadsTab();});}
 }
 
 function renderAdmin(){
@@ -1086,6 +1091,59 @@ function exportOrders(){
 function clearOrders(){
   if(!confirm(`¿Borrar los ${orders.length} pedidos del historial? Esta acción no se puede deshacer.`))return;
   orders=[];saveState();renderStatsTab();
+}
+
+/* ── LEADS (Venta / No venta) ── */
+let leadFilter='pending';
+const _isClasificado=o=>o.status==='venta'||o.status==='no_venta';
+function setLeadFilter(f){leadFilter=f;renderLeadsTab();}
+function renderLeadsTab(){
+  const el=$('panLeads');if(!el)return;
+  if(!orders.length){
+    el.innerHTML=`<div style="padding:32px 20px;text-align:center;color:var(--ink3);font-size:13px;line-height:1.7">
+      🎯 Aún no hay leads.<br>Cada pedido que un cliente envíe<br>aparecerá aquí para marcarlo.
+    </div>`;
+    return;
+  }
+  const nPend=orders.filter(o=>!_isClasificado(o)).length;
+  const nVta =orders.filter(o=>o.status==='venta').length;
+  const nNo  =orders.filter(o=>o.status==='no_venta').length;
+  const lista=orders.filter(o=>leadFilter==='all'?true:leadFilter==='pending'?!_isClasificado(o):o.status===leadFilter);
+  const chip=(f,txt,n,col)=>`<button onclick="setLeadFilter('${f}')" style="flex:1;padding:7px 4px;border:none;border-radius:9px;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;background:${leadFilter===f?col:'#F2F1EE'};color:${leadFilter===f?'#fff':'#6B6B67'}">${txt} ${n}</button>`;
+  const pagoLabels={nequi:'Nequi',bancolombia:'Bancolombia',addi:'Addi',sistecredito:'Sistecrédito',bold:'Bold',wompi:'Wompi'};
+  const itemsTxt=o=>Array.isArray(o.items)?o.items.map(it=>`${it.label||'?'}${it.qty?` x${it.qty}`:''}`).join(', '):'';
+  const badge=o=>o.status==='venta'?`<span style="background:var(--green);color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px">✓ VENTA</span>`
+    :o.status==='no_venta'?`<span style="background:#E8200A;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px">✕ NO VENTA</span>`
+    :`<span style="background:#F2A900;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px">⏳ PENDIENTE</span>`;
+  el.innerHTML=`<div style="display:flex;gap:6px;padding:12px 14px 8px">
+      ${chip('pending','⏳',nPend,'#F2A900')}${chip('venta','✓',nVta,'#1BA94C')}${chip('no_venta','✕',nNo,'#E8200A')}${chip('all','Todos',orders.length,'#0E0E0C')}
+    </div>
+    <div style="overflow-y:auto;flex:1;min-height:0;padding:0 14px 16px">
+    ${lista.length?lista.map(o=>`
+      <div style="background:var(--bg);border-radius:12px;padding:12px 14px;margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:14px;font-weight:700">${o.nombre||'Sin nombre'}</span>
+          ${badge(o)}
+        </div>
+        <div style="font-size:12px;color:var(--ink2);line-height:1.6">
+          ${o.tel?`📱 <a href="https://wa.me/57${String(o.tel).replace(/\D/g,'').slice(-10)}" target="_blank" style="color:var(--blue);text-decoration:none">${o.tel}</a><br>`:''}
+          ${o.ciudad?`📍 ${o.ciudad}${o.barrio?', '+o.barrio:''}<br>`:''}
+          ${itemsTxt(o)?`👟 ${itemsTxt(o)}<br>`:''}
+          💰 <b>${fmt(o.total||0)}</b>${o.pago?` · ${pagoLabels[o.pago]||o.pago}`:''}
+          ${o.fecha?`<br><span style="color:var(--ink3);font-size:10px">${new Date(o.fecha).toLocaleString('es-CO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</span>`:''}
+        </div>
+        <div style="display:flex;gap:6px;margin-top:9px">
+          <button onclick="updateOrderStatus(${o.id},'venta')" style="flex:1;padding:9px;border:none;border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;background:${o.status==='venta'?'#1BA94C':'#E7F6EC'};color:${o.status==='venta'?'#fff':'#1BA94C'}">✓ Venta</button>
+          <button onclick="updateOrderStatus(${o.id},'no_venta')" style="flex:1;padding:9px;border:none;border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;background:${o.status==='no_venta'?'#E8200A':'#FDEAE8'};color:${o.status==='no_venta'?'#fff':'#E8200A'}">✕ No venta</button>
+        </div>
+      </div>`).join(''):`<div style="padding:24px;text-align:center;color:var(--ink3);font-size:12px">No hay leads en esta categoría.</div>`}
+    </div>`;
+}
+async function updateOrderStatus(id,status){
+  const o=orders.find(x=>x.id===id);if(!o)return;
+  const prev=o.status;o.status=status;renderLeadsTab();
+  try{await adminWrite('update_order',{id,data:{status}});}
+  catch(e){o.status=prev;renderLeadsTab();alert('No se pudo guardar: '+e.message);}
 }
 
 function startEP(id,type){
