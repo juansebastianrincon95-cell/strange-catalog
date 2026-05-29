@@ -29,6 +29,7 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
 
+  try {
   const auth = req.headers['authorization'] || '';
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
   if (!token || !process.env.ADMIN_API_KEY || !safeEq(token, process.env.ADMIN_API_KEY)) {
@@ -38,9 +39,9 @@ module.exports = async (req, res) => {
   const { imageBase64 } = req.body || {};
   if (!imageBase64) return res.status(400).json({ error: 'imageBase64 requerido' });
 
-  const GEMINI_KEY  = process.env.GEMINI_API_KEY;
-  const SUPABASE_URL = process.env.SUPABASE_URL;
-  const SUPABASE_SVC = process.env.SUPABASE_SERVICE_KEY;
+  const GEMINI_KEY  = (process.env.GEMINI_API_KEY || '').trim();
+  const SUPABASE_URL = (process.env.SUPABASE_URL || '').trim();
+  const SUPABASE_SVC = (process.env.SUPABASE_SERVICE_KEY || '').trim();
 
   if (!GEMINI_KEY)   return res.status(500).json({ error: 'GEMINI_API_KEY no configurada' });
   if (!SUPABASE_URL) return res.status(500).json({ error: 'SUPABASE_URL no configurada' });
@@ -109,4 +110,7 @@ module.exports = async (req, res) => {
 
   const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/product-images/${filename}`;
   res.json({ url: publicUrl });
+  } catch (err) {
+    res.status(500).json({ error: 'ai-photo failed', detail: String((err && err.message) || err) });
+  }
 };
