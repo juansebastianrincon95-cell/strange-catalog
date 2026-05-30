@@ -1,6 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 
-const ALLOWED_TYPES   = ['page_view', 'view_product', 'add_to_cart', 'initiate_checkout', 'purchase'];
+const ALLOWED_TYPES   = ['page_view', 'view_product', 'add_to_cart', 'initiate_checkout', 'lead', 'purchase'];
 const ALLOWED_ORIGINS = ['https://catalogo.strangesneakers.com', 'https://strange-catalog.vercel.app'];
 
 module.exports = async (req, res) => {

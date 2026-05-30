@@ -14,7 +14,7 @@ module.exports = async (req, res) => {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
 
   const ordersQuery = sbSvc
-    ? sbSvc.from('orders').select('id,fecha,total,pares,pago,ciudad,barrio,tel,utm,status,items,created_at').order('created_at', { ascending: false }).limit(50)
+    ? sbSvc.from('orders').select('id,fecha,total,subtotal,envio,pares,pago,ciudad,barrio,tel,nombre,utm,status,reference,session_id,items,created_at').order('created_at', { ascending: false }).limit(50)
     : Promise.resolve({ data: [] });
 
   const eventsQuery = sbSvc
@@ -38,10 +38,12 @@ module.exports = async (req, res) => {
   const now = Date.now();
   const thirtyDays = allOrders.filter(o => now - new Date(o.created_at) < 30 * 24 * 3600 * 1000);
 
-  // Revenue real = solo pedidos marcados como 'venta' (no pending ni no_venta)
+  // Revenue real = solo pedidos 'venta', y solo el valor de PRODUCTO (subtotal, sin flete).
+  // El flete (envio) no es ingreso del negocio, así que no debe inflar el ROAS.
+  const prodValue    = o => (o.subtotal != null ? o.subtotal : (o.total || 0));
   const ventas       = allOrders.filter(o => o.status === 'venta');
   const ventas30     = ventas.filter(o => now - new Date(o.created_at) < 30 * 24 * 3600 * 1000);
-  const revenueTotal = ventas.reduce((s, o) => s + (o.total || 0), 0);
+  const revenueTotal = ventas.reduce((s, o) => s + prodValue(o), 0);
   const noVenta      = allOrders.filter(o => o.status === 'no_venta');
 
   const cities = {}, pays = {};
@@ -95,7 +97,10 @@ module.exports = async (req, res) => {
       product_views:     allEvts.filter(e => e.type === 'view_product').length,
       add_to_cart:       allEvts.filter(e => e.type === 'add_to_cart').length,
       checkout_started:  allEvts.filter(e => e.type === 'initiate_checkout').length,
-      purchases:         allEvts.filter(e => e.type === 'purchase').length,
+      // 'leads' = clientes que abrieron WhatsApp (incluye 'purchase' viejo por compat).
+      leads:             allEvts.filter(e => e.type === 'lead' || e.type === 'purchase').length,
+      // 'purchases' = ventas REALES confirmadas (desde orders, no desde eventos del navegador).
+      purchases:         ventas.length,
     },
     cart_abandonment_rate:  didCart.length ? +(abandoned.length / didCart.length).toFixed(2) : 0,
     abandoned_sessions_24h: abandonedIds24h.size,
@@ -128,7 +133,7 @@ module.exports = async (req, res) => {
       total:          allOrders.length,
       last_30_days:   thirtyDays.length,
       revenue_total:  revenueTotal,
-      revenue_30_days: ventas30.reduce((s, o) => s + (o.total || 0), 0),
+      revenue_30_days: ventas30.reduce((s, o) => s + prodValue(o), 0),
       avg_order:      ventas.length ? Math.round(revenueTotal / ventas.length) : 0,
       top_cities:  Object.entries(cities).sort((a, b) => b[1] - a[1]).slice(0, 5),
       top_payment: Object.entries(pays).sort((a, b) => b[1] - a[1])[0]?.[0] || null,
@@ -140,7 +145,8 @@ module.exports = async (req, res) => {
       no_venta: noVenta.length,
       // Contactos de interesados que NO compraron → audiencia de remarketing (subir a Meta Custom Audience)
       no_venta_contacts: noVenta.map(o => ({
-        tel: o.tel, ciudad: o.ciudad, total: o.total, items: o.items, utm: o.utm, fecha: o.fecha
+        nombre: o.nombre, tel: o.tel, ciudad: o.ciudad,
+        subtotal: prodValue(o), items: o.items, utm: o.utm, fecha: o.fecha
       }))
     },
     behavior

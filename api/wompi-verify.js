@@ -1,4 +1,6 @@
 const https = require('https');
+const { createClient } = require('@supabase/supabase-js');
+const { sendEvent } = require('./_capi');
 
 // Consulta pública de transacción Wompi: permite verificar el estado real
 // server-side en vez de confiar en el parámetro ?status= de la URL de retorno.
@@ -29,6 +31,28 @@ module.exports = async (req, res) => {
 
   const t = r.body && r.body.data;
   if (!t) return res.status(404).json({ error: 'transaction not found' });
+
+  // Pago aprobado: marcar el pedido como 'venta' en la BD y enviar Purchase a Meta (CAPI).
+  // Esto cierra el loop sin depender del navegador del cliente.
+  if (t.status === 'APPROVED' && t.reference && process.env.SUPABASE_SERVICE_KEY) {
+    try {
+      const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+      const { data: order } = await sb.from('orders')
+        .select('id,subtotal,total,tel,ciudad,nombre,status')
+        .eq('reference', t.reference).single();
+      if (order && order.status !== 'venta') {
+        await sb.from('orders').update({ status: 'venta' }).eq('id', order.id);
+        sendEvent({
+          eventName: 'Purchase',
+          value: order.subtotal != null ? order.subtotal : order.total,
+          currency: t.currency || 'COP',
+          phone: order.tel, city: order.ciudad, name: order.nombre,
+          eventId: t.reference + '_purchase',   // mismo id que el Pixel del navegador → dedup
+          actionSource: 'website'
+        }).catch(() => {});
+      }
+    } catch (e) { /* no romper la respuesta de verificación */ }
+  }
 
   return res.json({
     id:              t.id,

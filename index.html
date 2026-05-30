@@ -589,7 +589,7 @@ let prods=[],liqs=[],nid=1;
 let qC=[],qL=[];
 let cart={};
 let gSel='all',promoG=false,bannerOn=false,aTab=0;
-let step=0,payM='',cData={};
+let step=0,cData={};
 let pmId=null,pmType=null;
 let is360Cat=false,is360Liq=false,v360Id=null,v360Type=null,v360Frame=0,v360Pos=0,v360Dragging=false,v360StartX=0,v360LastX=0,_preview360Frames=null,_v360Images=[];
 let orders=[];
@@ -1046,7 +1046,7 @@ function renderStatsTab(){
   const pagoMap={};
   orders.forEach(o=>{pagoMap[o.pago]=(pagoMap[o.pago]||0)+1;});
   const topPago=Object.entries(pagoMap).sort((a,b)=>b[1]-a[1])[0];
-  const pagoLabels={nequi:'Nequi',bancolombia:'Bancolombia',addi:'Addi',sistecredito:'Sistecrédito',bold:'Bold'};
+  const pagoLabels={contra_entrega:'Contra entrega',pago_anticipado:'Pago anticipado',wompi:'Wompi',nequi:'Nequi',bancolombia:'Bancolombia',addi:'Addi',sistecredito:'Sistecrédito',bold:'Bold'};
   el.innerHTML=`<div style="padding:14px 16px 24px;overflow-y:auto;flex:1;min-height:0">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
       <div style="background:var(--bg);border-radius:12px;padding:12px 14px">
@@ -1110,7 +1110,7 @@ function renderLeadsTab(){
   const nNo  =orders.filter(o=>o.status==='no_venta').length;
   const lista=orders.filter(o=>leadFilter==='all'?true:leadFilter==='pending'?!_isClasificado(o):o.status===leadFilter);
   const chip=(f,txt,n,col)=>`<button onclick="setLeadFilter('${f}')" style="flex:1;padding:7px 4px;border:none;border-radius:9px;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;background:${leadFilter===f?col:'#F2F1EE'};color:${leadFilter===f?'#fff':'#6B6B67'}">${txt} ${n}</button>`;
-  const pagoLabels={nequi:'Nequi',bancolombia:'Bancolombia',addi:'Addi',sistecredito:'Sistecrédito',bold:'Bold',wompi:'Wompi'};
+  const pagoLabels={contra_entrega:'Contra entrega',pago_anticipado:'Pago anticipado',wompi:'Wompi',nequi:'Nequi',bancolombia:'Bancolombia',addi:'Addi',sistecredito:'Sistecrédito',bold:'Bold'};
   const itemsTxt=o=>Array.isArray(o.items)?o.items.map(it=>`${it.label||'?'}${it.qty?` x${it.qty}`:''}`).join(', '):'';
   const badge=o=>o.status==='venta'?`<span style="background:var(--green);color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px">✓ VENTA</span>`
     :o.status==='no_venta'?`<span style="background:#E8200A;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px">✕ NO VENTA</span>`
@@ -1362,7 +1362,7 @@ async function addQueue(dest){
 
 /* ── CART SHEET ── */
 function openCart(){
-  step=0;payM='';renderStep();
+  step=0;renderStep();
   $('cscrim').classList.add('on');$('csheet').classList.add('on');document.body.style.overflow='hidden';
   const cartVals=Object.values(cart);
   if(cartVals.length){
@@ -1449,17 +1449,20 @@ function enviarWA(tipo){
   const orderObj={
     id:Date.now(),fecha:new Date().toISOString(),
     items:rows.map(({p,qty,type})=>({label:type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer'),qty,precio:p.price*qty})),
-    total:tot,pares:totalPares,pago:tipo,
+    subtotal:sub,envio:flete,total:tot,pares:totalPares,pago:tipo,session_id:SESSION_ID,
     nombre:d.nombre,cedula:d.cedula,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,direccion:d.direccion,
     utm:getUTM(),referrer:getReferrer(),seccion:gSel
   };
+  // Advanced Matching para mejor calidad de match en Meta (el Pixel lo hashea client-side).
   if(PIXEL_ID&&typeof fbq==='function'){
     const np=d.nombre.trim().toLowerCase().split(' ');
     fbq('init',PIXEL_ID,{ph:d.celular.replace(/\D/g,''),fn:np[0]||'',ln:np.slice(1).join(' ')||'',ct:d.ciudad.trim().toLowerCase(),country:'co'});
   }
   const _pids=rows.map(({p,type})=>String(type==='liq'?'L'+p.id:p.id));
-  px('Purchase',{content_ids:_pids,content_type:'product',value:tot,currency:'COP',num_items:totalPares,...getUTM()},SESSION_ID+'_purchase');
-  trackEvent('purchase',{price:tot});
+  // Esto es un LEAD (abrió WhatsApp), NO una compra. El Purchase real se dispara al
+  // confirmar la venta (panel Leads → CAPI). value = subtotal de producto, sin flete.
+  px('Lead',{content_ids:_pids,content_type:'product',value:sub,currency:'COP',num_items:totalPares,...getUTM()},SESSION_ID+'_lead');
+  trackEvent('lead',{price:sub});
   orders.push(orderObj);
   saveState();
   fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(orderObj)}).catch(()=>{});
@@ -1482,7 +1485,7 @@ async function pagarWompi(){
   const wOrder={
     id:Date.now(),fecha:new Date().toISOString(),
     items:rows.map(({p,qty,type})=>({label:type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer'),qty,precio:p.price*qty})),
-    total:tot,pares:totalPares,pago:'wompi',status:'pending',
+    subtotal:tot,envio:0,total:tot,pares:totalPares,pago:'wompi',status:'pending',session_id:SESSION_ID,
     nombre:d.nombre,cedula:d.cedula,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,direccion:d.direccion,
     reference,utm:getUTM(),referrer:getReferrer(),seccion:gSel
   };
@@ -1521,7 +1524,8 @@ async function checkWompiReturn(){
   let verified=false,status=params.get('status')||'';
   if(txId){
     try{
-      const vr=await fetch('/api/wompi-verify?id='+encodeURIComponent(txId));
+      // Pasar la reference: el server marca la venta en BD y dispara Purchase vía CAPI.
+      const vr=await fetch('/api/wompi-verify?id='+encodeURIComponent(txId)+(reference?'&reference='+encodeURIComponent(reference):''));
       if(vr.ok){const t=await vr.json();status=t.status||status;verified=(t.status==='APPROVED');}
     }catch(e){}
   }
@@ -1529,8 +1533,16 @@ async function checkWompiReturn(){
     const order=orders.find(o=>o.reference===reference)||
                 orders.filter(o=>o.pago==='wompi'&&o.status==='pending').pop();
     if(order){
-      order.status='paid';
+      order.status='venta';
       saveState();
+      // Purchase REAL (pago confirmado server-side). Mismo event_id que el CAPI → dedup.
+      if(PIXEL_ID&&typeof fbq==='function'){
+        const np=String(order.nombre||'').trim().toLowerCase().split(' ');
+        fbq('init',PIXEL_ID,{ph:String(order.tel||'').replace(/\D/g,''),fn:np[0]||'',ln:np.slice(1).join(' ')||'',ct:String(order.ciudad||'').trim().toLowerCase(),country:'co'});
+      }
+      const _wpids=(order.items||[]).map((_,i)=>String(order.id)+'_'+i);
+      px('Purchase',{value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',num_items:order.pares||1,...getUTM()},(order.reference||order.id)+'_purchase');
+      trackEvent('purchase',{price:order.subtotal!=null?order.subtotal:order.total});
       let items='';
       order.items.forEach(it=>{items+=`  • ${it.label} x${it.qty} — ${fmt(it.precio)}\n`;});
       const msg=`✅ *PAGO CONFIRMADO — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n📦 *Envío: GRATIS ✓*\n💰 *TOTAL: ${fmt(order.total)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${order.nombre}\n• Cédula: ${order.cedula||'-'}\n• Celular: ${order.tel}\n• Dirección: ${order.direccion||'-'}\n• Barrio: ${order.barrio}\n• Ciudad: ${order.ciudad}\n• Ref: ${reference}\n━━━━━━━━━━━━━━━━━━━━\n💜 *Pago Wompi:* Confirmado ✓\n━━━━━━━━━━━━━━━━━━━━\n¡Gracias por tu compra! Tu pedido está siendo procesado 🙏`;

@@ -1,5 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
+const { sendEvent } = require('./_capi');
 
 const ALLOWED_TABLES = ['products', 'liq_products', 'settings'];
 const ALLOWED_ORDER_STATUS = ['pending', 'venta', 'no_venta'];
@@ -71,8 +72,27 @@ module.exports = async (req, res) => {
     if (!id) return res.status(400).json({ error: 'id required' });
     const status = data && data.status;
     if (!ALLOWED_ORDER_STATUS.includes(status)) return res.status(400).json({ error: 'invalid status' });
+
+    // Leer el pedido antes de actualizar (para CAPI y para no re-disparar si ya era venta)
+    const { data: order } = await sb.from('orders')
+      .select('subtotal,total,tel,ciudad,nombre,reference,status')
+      .eq('id', id).single();
+
     const { error } = await sb.from('orders').update({ status }).eq('id', id);
     if (error) return res.status(500).json({ error: error.message });
+
+    // Si pasa a 'venta' (y no lo era ya), enviar Purchase real a Meta vía CAPI.
+    // event_id idempotente por pedido → dedup con cualquier Pixel previo.
+    if (status === 'venta' && order && order.status !== 'venta') {
+      sendEvent({
+        eventName: 'Purchase',
+        value: order.subtotal != null ? order.subtotal : order.total,
+        currency: 'COP',
+        phone: order.tel, city: order.ciudad, name: order.nombre,
+        eventId: 'order_' + id + '_purchase',
+        actionSource: 'business_messaging'
+      }).catch(() => {});
+    }
     return res.json({ ok: true });
   }
 
