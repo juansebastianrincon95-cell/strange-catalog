@@ -27,9 +27,11 @@ module.exports = async (req, res) => {
   const pares = Number.isFinite(parseInt(d.pares)) ? Math.min(Math.max(0, parseInt(d.pares)), 1000) : null;
   const items = Array.isArray(d.items) ? d.items.slice(0, 50) : null;
   const utm   = (d.utm && typeof d.utm === 'object' && !Array.isArray(d.utm)) ? d.utm : null;
+  const subtotal = Number.isFinite(parseInt(d.subtotal)) ? parseInt(d.subtotal) : null;
+  const envio    = Number.isFinite(parseInt(d.envio))    ? parseInt(d.envio)    : null;
 
-  const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
-  const { error } = await sb.from('orders').insert({
+  // Campos base (siempre existen en la tabla)
+  const base = {
     fecha:     String(d.fecha).slice(0, 50),
     nombre:    d.nombre ? String(d.nombre).slice(0, 200) : null,
     cedula:    d.cedula ? String(d.cedula).slice(0, 30) : null,
@@ -46,7 +48,22 @@ module.exports = async (req, res) => {
     utm,
     referrer:  d.referrer ? String(d.referrer).slice(0, 300) : null,
     seccion:   d.seccion ? String(d.seccion).slice(0, 20) : null
-  });
+  };
+  // Campos nuevos (requieren migración: subtotal/envio/session_id)
+  const extra = {
+    subtotal,
+    envio,
+    session_id: d.session_id ? String(d.session_id).slice(0, 64) : null
+  };
+
+  const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+  let { error } = await sb.from('orders').insert({ ...base, ...extra });
+
+  // Resiliencia: si las columnas nuevas aún no existen (migración pendiente),
+  // reintentar solo con los campos base para no perder el pedido.
+  if (error && /column .* does not exist|schema cache/i.test(error.message || '')) {
+    ({ error } = await sb.from('orders').insert(base));
+  }
 
   if (error) return res.status(500).json({ error: error.message });
   res.status(201).json({ ok: true });
