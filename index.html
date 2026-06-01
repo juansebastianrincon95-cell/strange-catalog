@@ -386,7 +386,10 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
     <div class="ast"><div class="astn" id="aM">0</div><div class="astl">Mujer</div></div>
     <div class="ast"><div class="astn" id="aSold">0</div><div class="astl">Agotados</div></div>
   </div>
-  <div style="overflow-y:auto;flex-shrink:0;max-height:40vh;-webkit-overflow-scrolling:touch;border-bottom:1px solid var(--line)">
+  <button id="cfgToggle" onclick="toggleCfg()" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:11px 16px;background:var(--bg);border:none;border-bottom:1px solid var(--line);font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer;flex-shrink:0">
+    <span>⚙ Configuración de la tienda</span><span id="cfgChevron" style="font-size:11px;transition:transform .2s">▼</span>
+  </button>
+  <div id="cfgBlock" style="display:none;overflow-y:auto;flex-shrink:0;max-height:40vh;-webkit-overflow-scrolling:touch;border-bottom:1px solid var(--line)">
     <div class="trow">
       <div><div class="trow-lbl">🏷 Promoción global</div><div class="trow-sub">Muestra descuento en todos los pares</div></div>
       <label class="sw"><input type="checkbox" id="swPromo" onchange="toggleGlobal(this.checked)"><div class="sw-tr"></div><div class="sw-th"></div></label>
@@ -994,6 +997,13 @@ function setAdminTab(n){
   if(n===3){renderLeadsTab();loadOrders().then(()=>{if(aTab===3)renderLeadsTab();});}
 }
 
+function toggleCfg(){
+  const b=$('cfgBlock'),c=$('cfgChevron');
+  if(!b)return;
+  const abierto=b.style.display!=='none';
+  b.style.display=abierto?'none':'block';
+  if(c)c.style.transform=abierto?'rotate(0deg)':'rotate(180deg)';
+}
 function renderAdmin(){
   $('aTot').textContent=prods.length;
   $('aH').textContent=prods.filter(p=>p.g==='h').length;
