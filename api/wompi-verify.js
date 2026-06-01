@@ -38,17 +38,23 @@ module.exports = async (req, res) => {
     try {
       const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
       const { data: order } = await sb.from('orders')
-        .select('id,subtotal,total,tel,ciudad,nombre,status')
+        .select('id,subtotal,total,tel,ciudad,nombre,status,utm')
         .eq('reference', t.reference).single();
       if (order && order.status !== 'venta') {
         await sb.from('orders').update({ status: 'venta' }).eq('id', order.id);
+        const utm = order.utm || {};
+        // En Wompi el retorno lo hace el navegador del cliente → IP/UA son los suyos (válidos para CAPI).
+        const clientIp = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || undefined;
         sendEvent({
           eventName: 'Purchase',
           value: order.subtotal != null ? order.subtotal : order.total,
           currency: t.currency || 'COP',
           phone: order.tel, city: order.ciudad, name: order.nombre,
+          fbp: utm.fbp, fbc: utm.fbc,
+          clientIp, clientUserAgent: req.headers['user-agent'],
           eventId: t.reference + '_purchase',   // mismo id que el Pixel del navegador → dedup
-          actionSource: 'website'
+          actionSource: 'website',
+          eventSourceUrl: 'https://catalogo.strangesneakers.com/'
         }).catch(() => {});
       }
     } catch (e) { /* no romper la respuesta de verificación */ }

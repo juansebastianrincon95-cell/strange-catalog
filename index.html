@@ -626,10 +626,28 @@ function captureUTM(){
   const keys=['utm_source','utm_medium','utm_campaign','utm_content','utm_term'];
   const utm={};
   keys.forEach(k=>{if(p.get(k))utm[k]=p.get(k);});
+  // fbclid: clic desde un anuncio de Meta. Se persiste para atribución (cookie _fbc la deriva el Pixel).
+  const fbclid=p.get('fbclid');
+  if(fbclid)localStorage.setItem('ss_fbclid',fbclid);
   if(Object.keys(utm).length)localStorage.setItem('ss_utm',JSON.stringify(utm));
 }
 function getUTM(){
   try{return JSON.parse(localStorage.getItem('ss_utm')||'{}');}catch(e){return {};}
+}
+// Lee una cookie por nombre (para _fbp/_fbc que setea el Meta Pixel)
+function getCookie(name){
+  const m=document.cookie.match(new RegExp('(?:^|; )'+name.replace(/([.$?*|{}()[\]\\/+^])/g,'\\$1')+'=([^;]*)'));
+  return m?decodeURIComponent(m[1]):'';
+}
+// Identificadores de atribución de Meta para enviar al backend (CAPI).
+function getFbAttribution(){
+  const a={};
+  const fbp=getCookie('_fbp'); if(fbp)a.fbp=fbp;
+  let fbc=getCookie('_fbc');
+  // Si no hay cookie _fbc pero sí un fbclid guardado, construir el _fbc en formato Meta.
+  if(!fbc){const id=localStorage.getItem('ss_fbclid');if(id)fbc='fb.1.'+Date.now()+'.'+id;}
+  if(fbc)a.fbc=fbc;
+  return a;
 }
 function captureReferrer(){
   if(document.referrer&&!localStorage.getItem('ss_ref'))
@@ -1434,7 +1452,7 @@ function enviarWA(tipo){
     items:rows.map(({p,qty,type})=>({label:type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer'),qty,precio:p.price*qty})),
     subtotal:sub,envio:flete,total:tot,pares:totalPares,pago:tipo,session_id:SESSION_ID,
     nombre:d.nombre,cedula:d.cedula,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,direccion:d.direccion,
-    utm:getUTM(),referrer:getReferrer(),seccion:gSel
+    utm:{...getUTM(),...getFbAttribution()},referrer:getReferrer(),seccion:gSel
   };
   // Advanced Matching para mejor calidad de match en Meta (el Pixel lo hashea client-side).
   if(PIXEL_ID&&typeof fbq==='function'){
@@ -1470,7 +1488,7 @@ async function pagarWompi(){
     items:rows.map(({p,qty,type})=>({label:type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer'),qty,precio:p.price*qty})),
     subtotal:tot,envio:0,total:tot,pares:totalPares,pago:'wompi',status:'pending',session_id:SESSION_ID,
     nombre:d.nombre,cedula:d.cedula,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,direccion:d.direccion,
-    reference,utm:getUTM(),referrer:getReferrer(),seccion:gSel
+    reference,utm:{...getUTM(),...getFbAttribution()},referrer:getReferrer(),seccion:gSel
   };
   orders.push(wOrder);
   saveState();

@@ -75,7 +75,7 @@ module.exports = async (req, res) => {
 
     // Leer el pedido antes de actualizar (para CAPI y para no re-disparar si ya era venta)
     const { data: order } = await sb.from('orders')
-      .select('subtotal,total,tel,ciudad,nombre,reference,status')
+      .select('subtotal,total,tel,ciudad,nombre,reference,status,utm')
       .eq('id', id).single();
 
     const { error } = await sb.from('orders').update({ status }).eq('id', id);
@@ -83,12 +83,15 @@ module.exports = async (req, res) => {
 
     // Si pasa a 'venta' (y no lo era ya), enviar Purchase real a Meta vía CAPI.
     // event_id idempotente por pedido → dedup con cualquier Pixel previo.
+    // Nota: IP/UA NO se envían aquí (serían los del vendedor, no del cliente); sí fbp/fbc del pedido.
     if (status === 'venta' && order && order.status !== 'venta') {
+      const utm = order.utm || {};
       sendEvent({
         eventName: 'Purchase',
         value: order.subtotal != null ? order.subtotal : order.total,
         currency: 'COP',
         phone: order.tel, city: order.ciudad, name: order.nombre,
+        fbp: utm.fbp, fbc: utm.fbc,
         eventId: 'order_' + id + '_purchase',
         actionSource: 'business_messaging'
       }).catch(() => {});

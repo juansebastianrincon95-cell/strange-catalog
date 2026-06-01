@@ -48,7 +48,7 @@ function post(path, body) {
  */
 async function sendEvent({ eventName, value, currency = 'COP', phone, city, name,
                            eventId, actionSource = 'website', eventSourceUrl,
-                           contentIds }) {
+                           contentIds, fbp, fbc, clientIp, clientUserAgent }) {
   const PIXEL = (process.env.META_PIXEL_ID || '').trim();
   const TOKEN = (process.env.META_CAPI_TOKEN || process.env.META_USER_TOKEN || '').trim();
   if (!PIXEL || !TOKEN || !eventName) return false;
@@ -60,6 +60,11 @@ async function sendEvent({ eventName, value, currency = 'COP', phone, city, name
   const fn = hash(np[0]);       if (fn) user_data.fn = [fn];
   const ln = hash(np.slice(1).join(' ')); if (ln) user_data.ln = [ln];
   user_data.country = [hash('co')];
+  // Identificadores de atribución de Meta (NO se hashean: van en crudo)
+  if (fbp) user_data.fbp = String(fbp);
+  if (fbc) user_data.fbc = String(fbc);
+  if (clientIp) user_data.client_ip_address = String(clientIp);
+  if (clientUserAgent) user_data.client_user_agent = String(clientUserAgent);
 
   const custom_data = { currency };
   if (value != null) custom_data.value = Number(value);
