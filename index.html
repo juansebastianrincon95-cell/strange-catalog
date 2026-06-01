@@ -568,23 +568,6 @@ let WA='573122672336';
 let STORE_NAME='STRANGE';
 const P_DEF=180000, P_ANT=240000;
 
-const LOGOS={
-  nequi:`<svg viewBox="0 0 160 44" fill="none"><g transform="translate(2,4)"><rect x="2" y="8" width="22" height="22" rx="4" fill="#00D4D8" opacity=".85" transform="rotate(45 13 19)"/><rect x="8" y="2" width="22" height="22" rx="4" fill="#E91E8C" opacity=".75" transform="rotate(45 19 13)"/><rect x="5" y="5" width="22" height="22" rx="4" fill="#1B0F5E" opacity=".55" transform="rotate(45 16 16)"/></g><text x="48" y="30" font-family="Arial Black,sans-serif" font-weight="900" font-size="20" fill="#1B0F5E" letter-spacing="1">NEQUI</text></svg>`,
-  bancolombia:`<svg viewBox="0 0 44 44" fill="none"><rect x="4" y="4" width="34" height="10" rx="5" fill="#003DA5" transform="rotate(-8 21 9)"/><rect x="3" y="17" width="36" height="10" rx="5" fill="#FFD100" transform="rotate(-8 21 22)"/><rect x="8" y="30" width="32" height="10" rx="5" fill="#E4002B" transform="rotate(-8 24 35)"/></svg>`,
-  addi:`<svg viewBox="0 0 110 44" fill="none"><text x="8" y="32" font-family="Arial Rounded MT Bold,Arial,sans-serif" font-weight="800" font-size="30" fill="#4D7EF7" letter-spacing="-1">Addi</text><circle cx="93" cy="10" r="3.5" fill="#4D7EF7"/></svg>`,
-  sistecredito:`<svg viewBox="0 0 220 44" fill="none"><text x="4" y="30" font-family="Arial Rounded MT Bold,Arial,sans-serif" font-weight="800" font-size="22" fill="#1B2BB5">siste</text><text x="74" y="30" font-family="Arial Rounded MT Bold,Arial,sans-serif" font-weight="800" font-size="22" fill="#3CC527">crédito</text></svg>`,
-  bold:`<svg viewBox="0 0 100 44" fill="none"><text x="4" y="32" font-family="Arial Rounded MT Bold,sans-serif" font-weight="900" font-size="30" fill="#1C2B6E">b</text><text x="24" y="32" font-family="Arial Rounded MT Bold,sans-serif" font-weight="900" font-size="30" fill="#7B3FA0">o</text><text x="44" y="32" font-family="Arial Rounded MT Bold,sans-serif" font-weight="900" font-size="30" fill="#1C2B6E">l</text><text x="55" y="32" font-family="Arial Rounded MT Bold,sans-serif" font-weight="900" font-size="30" fill="#E8341A">d</text></svg>`,
-  wompi:`<svg viewBox="0 0 120 44" fill="none"><rect width="120" height="44" rx="10" fill="#5D2D91"/><text x="14" y="30" font-family="Arial Black,sans-serif" font-size="20" font-weight="900" fill="#fff">Wompi</text></svg>`,
-};
-const PAYS=[
-  {id:'nequi',name:'Nequi',desc:'Transferencia inmediata',badge:'Sin costo',bc:'bg'},
-  {id:'bancolombia',name:'Bancolombia',desc:'Transferencia · QR',badge:'',bc:''},
-  {id:'addi',name:'Addi',desc:'Compra hoy, paga después',badge:'Hasta 24 cuotas',bc:'bb'},
-  {id:'sistecredito',name:'Sistecrédito',desc:'Crédito fácil',badge:'Aprobación rápida',bc:'bg'},
-  {id:'bold',name:'Bold',desc:'Datáfono · Link de pago',badge:'Tarjeta crédito/débito',bc:'bb'},
-  {id:'wompi',name:'Wompi',desc:'Tarjeta · PSE · Nequi · Bancolombia',badge:'Pago en línea',bc:'bb'},
-];
-
 let prods=[],liqs=[],nid=1;
 let qC=[],qL=[];
 let cart={};
@@ -1540,7 +1523,6 @@ async function checkWompiReturn(){
         const np=String(order.nombre||'').trim().toLowerCase().split(' ');
         fbq('init',PIXEL_ID,{ph:String(order.tel||'').replace(/\D/g,''),fn:np[0]||'',ln:np.slice(1).join(' ')||'',ct:String(order.ciudad||'').trim().toLowerCase(),country:'co'});
       }
-      const _wpids=(order.items||[]).map((_,i)=>String(order.id)+'_'+i);
       px('Purchase',{value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',num_items:order.pares||1,...getUTM()},(order.reference||order.id)+'_purchase');
       trackEvent('purchase',{price:order.subtotal!=null?order.subtotal:order.total});
       let items='';
