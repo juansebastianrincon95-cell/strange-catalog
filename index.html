@@ -330,7 +330,6 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 <nav>
   <div class="logo">STRANGE<sup>®</sup></div>
   <div class="nav-r">
-    <button class="admin-pill" onclick="openAdmin()">⚙ Admin</button>
     <button class="bag-btn" onclick="openCart()">
       <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
       <span class="bdot" id="bdot">0</span>
@@ -958,8 +957,8 @@ async function _fetchAdminKey(pin){
 async function openAdmin(){
   const pin=localStorage.getItem('ss_pin');
   if(!pin){
-    const nuevo=prompt('Primera vez: crea tu PIN de Admin (mínimo 6 caracteres):');
-    if(!nuevo||nuevo.length<6){alert('PIN demasiado corto. Mínimo 6 caracteres.');return;}
+    const nuevo=prompt('Primera vez: crea tu PIN de Admin (mínimo 8 caracteres):');
+    if(!nuevo||nuevo.length<8){alert('PIN demasiado corto. Mínimo 8 caracteres.');return;}
     localStorage.setItem('ss_pin',nuevo);
     await _fetchAdminKey(nuevo);
     _showAdmin();
@@ -974,8 +973,8 @@ async function openAdmin(){
 function changePin(){
   const pin=localStorage.getItem('ss_pin');
   if(pin){const actual=prompt('PIN actual:');if(actual!==pin){alert('PIN incorrecto ❌');return;}}
-  const nuevo=prompt('Nuevo PIN (mínimo 6 caracteres):');
-  if(!nuevo||nuevo.length<6){alert('PIN demasiado corto. Mínimo 6 caracteres.');return;}
+  const nuevo=prompt('Nuevo PIN (mínimo 8 caracteres):');
+  if(!nuevo||nuevo.length<8){alert('PIN demasiado corto. Mínimo 8 caracteres.');return;}
   localStorage.setItem('ss_pin',nuevo);
   alert('PIN actualizado ✓');
 }
@@ -1769,6 +1768,12 @@ function checkDeepLink(){
     localStorage.setItem('ss_pin',newPin);
   }
   if(akey||newPin)history.replaceState(null,'',location.pathname);
+  // Entrada secreta al panel: ?admin abre el admin (pide PIN como siempre) y limpia la URL.
+  if(params.has('admin')){
+    history.replaceState(null,'',location.pathname);
+    setTimeout(()=>openAdmin(),200);
+    return;
+  }
   if(params.get('wompi'))return; // el ?id= en el retorno de Wompi es una transacción, no un producto
   const id=parseInt(params.get('id'));
   if(!id)return;
