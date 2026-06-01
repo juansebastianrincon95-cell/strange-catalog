@@ -1106,18 +1106,20 @@ function renderLeadsTab(){
     </div>`;
     return;
   }
-  const nPend=orders.filter(o=>!_isClasificado(o)).length;
+  const nPend=orders.filter(o=>!_isClasificado(o)&&o.status!=='abandoned').length;
   const nVta =orders.filter(o=>o.status==='venta').length;
   const nNo  =orders.filter(o=>o.status==='no_venta').length;
-  const lista=orders.filter(o=>leadFilter==='all'?true:leadFilter==='pending'?!_isClasificado(o):o.status===leadFilter);
+  const nAban=orders.filter(o=>o.status==='abandoned').length;
+  const lista=orders.filter(o=>leadFilter==='all'?true:leadFilter==='pending'?(!_isClasificado(o)&&o.status!=='abandoned'):o.status===leadFilter);
   const chip=(f,txt,n,col)=>`<button onclick="setLeadFilter('${f}')" style="flex:1;padding:7px 4px;border:none;border-radius:9px;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;background:${leadFilter===f?col:'#F2F1EE'};color:${leadFilter===f?'#fff':'#6B6B67'}">${txt} ${n}</button>`;
   const pagoLabels={contra_entrega:'Contra entrega',pago_anticipado:'Pago anticipado',wompi:'Wompi',nequi:'Nequi',bancolombia:'Bancolombia',addi:'Addi',sistecredito:'Sistecrédito',bold:'Bold'};
   const itemsTxt=o=>Array.isArray(o.items)?o.items.map(it=>`${it.label||'?'}${it.qty?` x${it.qty}`:''}`).join(', '):'';
   const badge=o=>o.status==='venta'?`<span style="background:var(--green);color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px">✓ VENTA</span>`
     :o.status==='no_venta'?`<span style="background:#E8200A;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px">✕ NO VENTA</span>`
+    :o.status==='abandoned'?`<span style="background:#8A6D00;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px">🛒 ABANDONÓ</span>`
     :`<span style="background:#F2A900;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px">⏳ PENDIENTE</span>`;
-  el.innerHTML=`<div style="display:flex;gap:6px;padding:12px 14px 8px">
-      ${chip('pending','⏳',nPend,'#F2A900')}${chip('venta','✓',nVta,'#1BA94C')}${chip('no_venta','✕',nNo,'#E8200A')}${chip('all','Todos',orders.length,'#0E0E0C')}
+  el.innerHTML=`<div style="display:flex;gap:5px;padding:12px 14px 8px;flex-wrap:wrap">
+      ${chip('pending','⏳',nPend,'#F2A900')}${chip('venta','✓',nVta,'#1BA94C')}${chip('no_venta','✕',nNo,'#E8200A')}${chip('abandoned','🛒',nAban,'#8A6D00')}${chip('all','Todos',orders.length,'#0E0E0C')}
     </div>
     <div style="overflow-y:auto;flex:1;min-height:0;padding:0 14px 16px">
     ${lista.length?lista.map(o=>`
@@ -1417,7 +1419,26 @@ function saveFormAndNext(){
   let ok=true;const d={};
   Object.entries(m).forEach(([k,id])=>{const v=($( id)||{}).value||'';d[k]=v.trim();if(!v.trim())ok=false;});
   if(!ok){const e=$('ferr');if(e)e.classList.add('show');return;}
-  cData=d;goStep(2);
+  cData=d;
+  captureLead(d);   // guarda el contacto YA (antes de pagar) por si abandona → remarketing
+  goStep(2);
+}
+// Guarda el lead apenas completa datos. status='abandoned' hasta que confirme el pedido.
+// Una sola vez por sesión (flag) para no duplicar si va y vuelve entre pasos.
+function captureLead(d){
+  if(sessionStorage.getItem('ss_lead_saved')===SESSION_ID)return;
+  const rows=Object.values(cart);
+  const sub=rows.reduce((s,{p,qty})=>s+p.price*qty,0);
+  const totalPares=rows.reduce((s,{qty})=>s+qty,0);
+  const lead={
+    id:Date.now(),fecha:new Date().toISOString(),
+    items:rows.map(({p,qty,type})=>({label:type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer'),qty,precio:p.price*qty})),
+    subtotal:sub,envio:0,total:sub,pares:totalPares,pago:null,status:'abandoned',session_id:SESSION_ID,
+    nombre:d.nombre,cedula:d.cedula,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,direccion:d.direccion,
+    utm:{...getUTM(),...getFbAttribution()},referrer:getReferrer(),seccion:gSel
+  };
+  fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(lead)})
+    .then(()=>sessionStorage.setItem('ss_lead_saved',SESSION_ID)).catch(()=>{});
 }
 function calcFlete(pares){return 25000+Math.max(0,pares-1)*15000;}
 function rPayChoice(){

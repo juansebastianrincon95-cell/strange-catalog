@@ -45,6 +45,8 @@ module.exports = async (req, res) => {
   const ventas30     = ventas.filter(o => now - new Date(o.created_at) < 30 * 24 * 3600 * 1000);
   const revenueTotal = ventas.reduce((s, o) => s + prodValue(o), 0);
   const noVenta      = allOrders.filter(o => o.status === 'no_venta');
+  // Carritos abandonados: llenaron datos pero no confirmaron el pedido → remarketing caliente.
+  const abandonados  = allOrders.filter(o => o.status === 'abandoned');
 
   const cities = {}, pays = {};
   allOrders.forEach(o => {
@@ -140,11 +142,18 @@ module.exports = async (req, res) => {
       recent:      allOrders
     },
     leads: {
-      pending:  allOrders.filter(o => o.status !== 'venta' && o.status !== 'no_venta').length,
-      venta:    ventas.length,
-      no_venta: noVenta.length,
-      // Contactos de interesados que NO compraron → audiencia de remarketing (subir a Meta Custom Audience)
+      // 'pending' = pedidos reales sin clasificar (excluye abandonados, que tienen su propio bucket)
+      pending:    allOrders.filter(o => o.status !== 'venta' && o.status !== 'no_venta' && o.status !== 'abandoned').length,
+      venta:      ventas.length,
+      no_venta:   noVenta.length,
+      abandoned:  abandonados.length,
+      // Interesados que NO compraron → audiencia de remarketing (subir a Meta Custom Audience)
       no_venta_contacts: noVenta.map(o => ({
+        nombre: o.nombre, tel: o.tel, ciudad: o.ciudad,
+        subtotal: prodValue(o), items: o.items, utm: o.utm, fecha: o.fecha
+      })),
+      // Carritos abandonados: llenaron datos pero no confirmaron → remarketing más caliente aún
+      abandoned_contacts: abandonados.map(o => ({
         nombre: o.nombre, tel: o.tel, ciudad: o.ciudad,
         subtotal: prodValue(o), items: o.items, utm: o.utm, fecha: o.fecha
       }))

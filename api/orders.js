@@ -57,6 +57,18 @@ module.exports = async (req, res) => {
   };
 
   const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+
+  // Si este es un pedido REAL (no el lead 'abandoned' que se guarda al llenar el form),
+  // borrar el 'abandoned' previo de la misma sesión para no duplicar. Requiere service_role
+  // (la RLS solo deja insertar al anon). Acotado a status='abandoned' + esa session_id.
+  if (base.status !== 'abandoned' && extra.session_id && process.env.SUPABASE_SERVICE_KEY) {
+    try {
+      const sbSvc = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+      await sbSvc.from('orders').delete()
+        .eq('session_id', extra.session_id).eq('status', 'abandoned');
+    } catch (e) { /* si falla, peor caso queda un abandoned huérfano; no rompe el pedido */ }
+  }
+
   let { error } = await sb.from('orders').insert({ ...base, ...extra });
 
   // Resiliencia: si las columnas nuevas aún no existen (migración pendiente),
