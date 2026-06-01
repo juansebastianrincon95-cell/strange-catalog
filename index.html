@@ -452,7 +452,7 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
     <button class="atab" id="atab2" onclick="setAdminTab(2)" style="background:#F2F1EE;color:#6B6B67">📊 Stats</button>
     <button class="atab" id="atab3" onclick="setAdminTab(3)" style="background:#F2F1EE;color:#6B6B67">🎯 Leads</button>
   </div>
-  <div id="panCat" style="display:flex;flex-direction:column;flex:1;overflow:hidden;min-height:0">
+  <div id="panCat" style="display:flex;flex-direction:column;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0">
     <div class="mode-row" id="modeRowCat">
       <button class="mode-btn on" id="mBtnNormCat" onclick="set360('cat',false)">📸 Una por una</button>
       <button class="mode-btn" id="mBtnSpinCat" onclick="set360('cat',true)">🔄 360° Spin</button>
@@ -474,7 +474,7 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
     <div class="alist-hdr"><span>Foto</span><span>Género</span><span>Precio</span><span>Agotado</span><span></span></div>
     <div class="alist" id="listCat"></div>
   </div>
-  <div id="panLiq" style="display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0">
+  <div id="panLiq" style="display:none;flex-direction:column;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0">
     <div class="mode-row" id="modeRowLiq">
       <button class="mode-btn on" id="mBtnNormLiq" onclick="set360('liq',false)">📸 Una por una</button>
       <button class="mode-btn" id="mBtnSpinLiq" onclick="set360('liq',true)">🔄 360° Spin</button>
