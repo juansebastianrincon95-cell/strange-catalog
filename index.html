@@ -193,9 +193,6 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .cup-box input::placeholder{text-transform:none;font-weight:500;color:var(--ink3)}
 .cup-btn{padding:10px 16px;background:var(--ink);color:#fff;border:none;border-radius:10px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0}
 .cup-err{font-size:11px;font-weight:600;color:var(--red);margin-top:5px;padding-left:2px}
-.store-foot{display:flex;justify-content:center;padding:24px 16px 90px}
-.foot-link{background:var(--bg);border:1.5px solid var(--line);border-radius:30px;padding:11px 20px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink2);cursor:pointer;transition:all .15s}
-.foot-link:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
 .pm-add:active{transform:scale(.96)}
 .pm-add.in{background:var(--blue);color:#fff}
 .pm-scrim{position:absolute;inset:0;z-index:-1;cursor:pointer}
@@ -435,10 +432,6 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
     <div class="liq-badge"><div class="liq-badge-n" id="liqN">0</div><div class="liq-badge-l">modelos</div></div>
   </div>
   <div class="liq-grid" id="liqGrid"></div>
-</div>
-
-<div class="store-foot">
-  <button class="foot-link" onclick="openGuia()">📘 Guía de cuidado de tus sneakers</button>
 </div>
 
 <!-- ADMIN -->
@@ -1758,7 +1751,7 @@ function enviarWA(tipo){
   const descLinea=desc>0?`🏷️ *Descuento ${CUPON}:* -${fmt(desc)}\n`:'';
   const pagoLbl=tipo==='contra_entrega'?'Contra entrega 📦':'Pago anticipado 💸';
   const instruccion=tipo==='contra_entrega'?'Confirmar disponibilidad y coordinar entrega 🙏':'Enviar comprobante de pago para procesar el envío 🙏';
-  const msg=`🛍️ *NUEVO PEDIDO — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n💰 *Subtotal: ${fmt(subBruto)}*\n${descLinea}${envioLinea}\n💰 *TOTAL: ${fmt(tot)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${d.nombre}\n• Cédula: ${d.cedula}\n• Celular: ${d.celular}\n• Dirección: ${d.direccion}\n• Barrio: ${d.barrio}\n• Ciudad: ${d.ciudad}\n━━━━━━━━━━━━━━━━━━━━\n💳 *Pago:* ${pagoLbl}\n━━━━━━━━━━━━━━━━━━━━\n${instruccion}\n\n📘 *Guía de cuidado de tus sneakers:*\nhttps://catalogo.strangesneakers.com/?guia`;
+  const msg=`🛍️ *NUEVO PEDIDO — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n💰 *Subtotal: ${fmt(subBruto)}*\n${descLinea}${envioLinea}\n💰 *TOTAL: ${fmt(tot)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${d.nombre}\n• Cédula: ${d.cedula}\n• Celular: ${d.celular}\n• Dirección: ${d.direccion}\n• Barrio: ${d.barrio}\n• Ciudad: ${d.ciudad}\n━━━━━━━━━━━━━━━━━━━━\n💳 *Pago:* ${pagoLbl}\n━━━━━━━━━━━━━━━━━━━━\n${instruccion}\n\n🎁 *Tu regalo — Guía de cuidado de tus sneakers:*\nhttps://catalogo.strangesneakers.com/?regalo=cuidado`;
   const orderObj={
     id:Date.now(),fecha:new Date().toISOString(),
     items:rows.map(({p,qty,type})=>({label:type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer'),qty,precio:p.price*qty})),
@@ -1859,7 +1852,7 @@ async function checkWompiReturn(){
       trackEvent('purchase',{price:order.subtotal!=null?order.subtotal:order.total});
       let items='';
       order.items.forEach(it=>{items+=`  • ${it.label} x${it.qty} — ${fmt(it.precio)}\n`;});
-      const msg=`✅ *PAGO CONFIRMADO — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n📦 *Envío: GRATIS ✓*\n💰 *TOTAL: ${fmt(order.total)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${order.nombre}\n• Cédula: ${order.cedula||'-'}\n• Celular: ${order.tel}\n• Dirección: ${order.direccion||'-'}\n• Barrio: ${order.barrio}\n• Ciudad: ${order.ciudad}\n• Ref: ${reference}\n━━━━━━━━━━━━━━━━━━━━\n💜 *Pago Wompi:* Confirmado ✓\n━━━━━━━━━━━━━━━━━━━━\n¡Gracias por tu compra! Tu pedido está siendo procesado 🙏\n\n📘 *Guía de cuidado de tus sneakers:*\nhttps://catalogo.strangesneakers.com/?guia`;
+      const msg=`✅ *PAGO CONFIRMADO — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n📦 *Envío: GRATIS ✓*\n💰 *TOTAL: ${fmt(order.total)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${order.nombre}\n• Cédula: ${order.cedula||'-'}\n• Celular: ${order.tel}\n• Dirección: ${order.direccion||'-'}\n• Barrio: ${order.barrio}\n• Ciudad: ${order.ciudad}\n• Ref: ${reference}\n━━━━━━━━━━━━━━━━━━━━\n💜 *Pago Wompi:* Confirmado ✓\n━━━━━━━━━━━━━━━━━━━━\n¡Gracias por tu compra! Tu pedido está siendo procesado 🙏\n\n🎁 *Tu regalo — Guía de cuidado de tus sneakers:*\nhttps://catalogo.strangesneakers.com/?regalo=cuidado`;
       setTimeout(()=>{
         alert('✅ ¡Pago confirmado!\nEn un momento recibirás confirmación por WhatsApp.');
         window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,'_blank');
@@ -2058,8 +2051,9 @@ function checkDeepLink(){
     setTimeout(()=>openAdmin(),200);
     return;
   }
-  // Guía de cuidado: ?guia abre la guía (link del ticket de WhatsApp) y limpia la URL.
-  if(params.has('guia')){
+  // Guía de cuidado: REGALO EXCLUSIVO de compradores. Solo se abre con el token del ticket
+  // de WhatsApp (?regalo=cuidado). No hay acceso público en la tienda.
+  if(params.get('regalo')==='cuidado'){
     history.replaceState(null,'',location.pathname);
     setTimeout(()=>openGuia(),200);
     return;
