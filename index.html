@@ -620,13 +620,13 @@ let WA='573122672336';
 let STORE_NAME='STRANGE';
 const P_DEF=180000, P_ANT=240000;
 
-let prods=[],liqs=[],nid=1;
+let prods=[],liqs=[];
 let qC=[],qL=[];
 let cart={};
 let gSel='all',promoG=false,bannerOn=false,aTab=0;
 let step=0,cData={};
 let pmId=null,pmType=null;
-let is360Cat=false,is360Liq=false,v360Id=null,v360Type=null,v360Frame=0,v360Pos=0,v360Dragging=false,v360StartX=0,v360LastX=0,_preview360Frames=null,_v360Images=[];
+let is360Cat=false,is360Liq=false,v360Id=null,v360Type=null,v360Pos=0,v360Dragging=false,v360LastX=0,_preview360Frames=null,_v360Images=[];
 let orders=[];
 let SHEETS_URL='';
 let PIXEL_ID='';
@@ -2026,8 +2026,8 @@ captureReferrer();
 trackEvent('page_view');
 loadConfig();
 loadViews();   // prueba social: traer vistas reales por producto
-// Si quedó una reserva activa de una visita anterior, retomar el contador
-if(localStorage.getItem('ss_reserve_until')){_reserveTimer=setInterval(tickReserva,1000);tickReserva();}
+// Si quedó una reserva activa de una visita anterior, retomar el contador (guard: no duplicar timer)
+if(localStorage.getItem('ss_reserve_until')&&!_reserveTimer){_reserveTimer=setInterval(tickReserva,1000);tickReserva();}
 (async()=>{
   await loadState();
   if(bannerOn)$('banner').classList.remove('off');
