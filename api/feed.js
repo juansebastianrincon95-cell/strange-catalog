@@ -17,20 +17,27 @@ module.exports = async (req, res) => {
   const cfg = Object.fromEntries((settings || []).map(r => [r.key, r.value]));
   const brand = cfg.store_name || 'Strange Sneakers';
 
+  // Etiquetas legibles de marca para el feed de Meta
+  const BRAND_LABELS = { adidas:'Adidas', nike:'Nike', reebok:'Reebok', new_balance:'New Balance', on_cloud:'On Cloud', puma:'Puma', lecoq_sportif:'Le Coq Sportif', jordan:'Jordan' };
+  const brandLabel = b => BRAND_LABELS[b] || null;
+
   const all = [
-    ...(cats || []).map(p => ({
+    ...(cats || []).map(p => {
+      const bl = brandLabel(p.brand);                 // marca real del zapato (o null)
+      const gen = p.gender === 'h' ? 'Hombre' : 'Mujer';
+      return {
       id:           'cat_' + p.id,
-      title:        (p.gender === 'h' ? 'Par Hombre' : 'Par Mujer') + ' — ' + brand,
-      description:  brand + ' - Calzado de calidad',
+      title:        (bl ? bl + ' ' : '') + 'Par ' + gen + ' — ' + brand,
+      description:  (bl ? bl + ' - ' : '') + brand + ' - Calzado de calidad',
       availability: 'in stock',
       condition:    'new',
       price:        (p.price_before || p.price) + ' COP',
       ...(p.price_before && p.price_before > p.price ? { sale_price: p.price + ' COP' } : {}),
       link:         storeUrl + '/?id=' + p.id,
       image_link:   p.img_url || '',
-      brand:        brand,
+      brand:        bl || brand,                       // marca real si existe; si no, la tienda
       google_product_category: '187'
-    })),
+    };}),
     ...(liqs || []).map(p => ({
       id:           'liq_' + p.id,
       title:        'Liquidación — ' + brand,

@@ -68,6 +68,11 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .tabs{display:flex;gap:4px;padding:0 10px 14px;background:#F2F1EE}
 .tab{flex:1;padding:10px 4px;background:#fff;border:1.5px solid var(--line);border-radius:10px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink2);cursor:pointer;transition:all .16s;text-align:center}
 .tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.brandbar{display:flex;gap:6px;padding:0 10px 12px;background:#F2F1EE;overflow-x:auto;scrollbar-width:none}
+.brandbar::-webkit-scrollbar{display:none}
+.brandbar:empty{display:none}
+.bchip{flex:0 0 auto;padding:6px 13px;background:#fff;border:1.5px solid var(--line);border-radius:20px;font-family:var(--font);font-size:11px;font-weight:600;color:var(--ink2);cursor:pointer;transition:all .16s;white-space:nowrap}
+.bchip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .secbar{display:flex;align-items:center;justify-content:space-between;padding:0 14px 10px;background:#F2F1EE}
 .secn{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3)}
 .seccn{font-size:11px;color:var(--ink3)}
@@ -90,6 +95,7 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .bsold{position:absolute;inset:0;background:rgba(255,255,255,.82);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--ink3);letter-spacing:.08em;text-transform:uppercase;pointer-events:none}
 .bchk{position:absolute;top:6px;right:6px;width:22px;height:22px;background:var(--blue);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;opacity:0;transform:scale(.2);transition:all .26s cubic-bezier(.34,1.56,.64,1)}
 .card.picked .bchk{opacity:1;transform:scale(1)}
+.cbrand{font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:3px}
 .cprice{font-size:15px;font-weight:700;letter-spacing:-.04em;color:var(--ink);line-height:1}
 .cprice.sale{color:var(--red)}
 .cwas{font-size:10px;color:var(--ink3);text-decoration:line-through;margin-top:2px}
@@ -367,6 +373,7 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
   <button class="tab"    onclick="setG('m',this)">Mujer</button>
   <button class="tab"    onclick="setG('liq',this)">🔥 Liq.</button>
 </div>
+<div class="brandbar" id="brandbar"></div>
 <div class="secbar">
   <span class="secn" id="secName">Todos</span>
   <span class="seccn" id="secCt"></span>
@@ -477,6 +484,7 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
     <div class="q360-count" id="cnt360Cat"></div>
     <div class="uopts" id="optCat" style="display:none">
       <div class="uopt"><label>Género</label><select id="qGen"><option value="h">👨 Hombre</option><option value="m">👩 Mujer</option></select></div>
+      <div class="uopt"><label>Marca</label><select id="qBrand"><option value="">Sin marca</option><option value="adidas">Adidas</option><option value="nike">Nike</option><option value="reebok">Reebok</option><option value="new_balance">New Balance</option><option value="on_cloud">On Cloud</option><option value="puma">Puma</option><option value="lecoq_sportif">Le Coq Sportif</option><option value="jordan">Jordan</option></select></div>
       <div class="uopt"><label>Precio</label><input id="qPrc" type="number" value="180000"></div>
       <div class="uopt"><label>Antes</label><input id="qAnt" type="number" value="240000"></div>
     </div>
@@ -680,6 +688,7 @@ function renderGrid(){
   if(gSel==='liq'){
     $('grid').innerHTML='';
     $('grid').style.display='none';
+    const bb=$('brandbar');if(bb)bb.innerHTML='';   // liquidación no tiene filtro de marca
     $('statN').textContent=prods.length;
     $('secName').textContent='🔥 Liquidación';
     $('secCt').textContent=liqs.length+' modelos';
@@ -690,9 +699,11 @@ function renderGrid(){
     return;
   }
   $('grid').style.display='';
-  const items=gSel==='all'?prods:prods.filter(p=>p.g===gSel);
+  renderBrandBar();
+  let items=gSel==='all'?prods:prods.filter(p=>p.g===gSel);
+  if(brandSel!=='all')items=items.filter(p=>p.brand===brandSel);
   $('statN').textContent=prods.length;
-  $('secName').textContent=gSel==='all'?'Todos':gSel==='h'?'Hombre':'Mujer';
+  $('secName').textContent=(gSel==='all'?'Todos':gSel==='h'?'Hombre':'Mujer')+(brandSel!=='all'?' · '+brandLabel(brandSel):'');
   $('secCt').textContent=items.length+' modelos';
   $('grid').innerHTML=items.map((p,i)=>{
     const on=!!cart[p.id]&&!p.sold;
@@ -708,7 +719,7 @@ function renderGrid(){
         <div class="bchk">✓</div>
         <button class="add-circle" onclick="event.stopPropagation();togCard(${p.id},'cat')">${on?'✓':'+'}</button>
       </div>
-      <div class="cfoot-card"><div class="cprice ${sp?'sale':''}">${fmt(p.price)}</div>${sp&&p.was?`<div class="cwas">${fmt(p.was)}</div>`:''}</div>
+      <div class="cfoot-card">${p.brand?`<div class="cbrand">${brandLabel(p.brand)}</div>`:''}<div class="cprice ${sp?'sale':''}">${fmt(p.price)}</div>${sp&&p.was?`<div class="cwas">${fmt(p.was)}</div>`:''}</div>
     </div>`;
   }).join('');
   if(liqs.length&&gSel==='all'){
@@ -782,8 +793,30 @@ function syncDot(){
 }
 function setG(v,btn){
   gSel=v;
+  brandSel='all';   // al cambiar de sección, resetear el filtro de marca
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
   btn.classList.add('on');
+  renderGrid();
+}
+/* ── FILTRO POR MARCA ── */
+const BRAND_LABELS={adidas:'Adidas',nike:'Nike',reebok:'Reebok',new_balance:'New Balance',on_cloud:'On Cloud',puma:'Puma',lecoq_sportif:'Le Coq Sportif',jordan:'Jordan'};
+let brandSel='all';
+function brandLabel(b){return BRAND_LABELS[b]||b;}
+function renderBrandBar(){
+  const bar=$('brandbar');if(!bar)return;
+  // Marcas presentes en el inventario disponible (no agotado)
+  const set=new Set();
+  prods.forEach(p=>{if(p.brand&&!p.sold)set.add(p.brand);});
+  // Mantener el orden de BRAND_LABELS y solo mostrar las que existen
+  const marcas=Object.keys(BRAND_LABELS).filter(b=>set.has(b));
+  if(!marcas.length){bar.innerHTML='';return;}  // sin marcas → barra oculta (CSS :empty)
+  const chip=(v,txt)=>`<button class="bchip ${brandSel===v?'on':''}" onclick="setBrand('${v}',this)">${txt}</button>`;
+  bar.innerHTML=chip('all','Todas las marcas')+marcas.map(b=>chip(b,brandLabel(b))).join('');
+}
+function setBrand(v,btn){
+  brandSel=v;
+  document.querySelectorAll('.bchip').forEach(c=>c.classList.remove('on'));
+  if(btn)btn.classList.add('on');
   renderGrid();
 }
 
@@ -1340,14 +1373,14 @@ async function uploadToStorage(base64, idx, isAI){
 }
 async function _commitQueue(dest,isC,urls){
   if(isC){
-    const g=$('qGen').value,price=Math.max(1000,parseInt($('qPrc').value)||P_DEF),was=Math.max(0,parseInt($('qAnt').value)||P_ANT);
+    const g=$('qGen').value,brand=($('qBrand')?.value)||'',price=Math.max(1000,parseInt($('qPrc').value)||P_DEF),was=Math.max(0,parseInt($('qAnt').value)||P_ANT);
     if(is360Cat&&urls.length>=2){
-      const r=await adminWrite('insert_product',{table:'products',data:{gender:g,price,price_before:was,promo:false,sold:false,img_url:urls[0],imgs_360:JSON.stringify(urls)}}).catch(()=>null);
-      if(r?.id)prods.push({id:r.id,g,img:urls[0],imgs360:urls,price,was,promo:false,sold:false});
+      const r=await adminWrite('insert_product',{table:'products',data:{gender:g,brand:brand||null,price,price_before:was,promo:false,sold:false,img_url:urls[0],imgs_360:JSON.stringify(urls)}}).catch(()=>null);
+      if(r?.id)prods.push({id:r.id,g,brand,img:urls[0],imgs360:urls,price,was,promo:false,sold:false});
     }else{
       for(let i=0;i<urls.length;i++){
-        const r=await adminWrite('insert_product',{table:'products',data:{gender:g,price,price_before:was,promo:false,sold:false,img_url:urls[i],imgs_360:'[]'}}).catch(()=>null);
-        if(r?.id)prods.push({id:r.id,g,img:urls[i],imgs360:[],price,was,promo:false,sold:false});
+        const r=await adminWrite('insert_product',{table:'products',data:{gender:g,brand:brand||null,price,price_before:was,promo:false,sold:false,img_url:urls[i],imgs_360:'[]'}}).catch(()=>null);
+        if(r?.id)prods.push({id:r.id,g,brand,img:urls[i],imgs360:[],price,was,promo:false,sold:false});
       }
     }
     qC=[];
@@ -1743,7 +1776,7 @@ async function loadState(){
       sb.from('settings').select('*')
     ]);
     prods=(pRows||[]).map(r=>({
-      id:r.id, g:r.gender, img:r.img_url,
+      id:r.id, g:r.gender, brand:r.brand||'', img:r.img_url,
       imgs360:r.imgs_360?JSON.parse(r.imgs_360):[],
       price:r.price, was:r.price_before, promo:r.promo, sold:r.sold
     }));
