@@ -175,6 +175,18 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .pm-trust-item{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);border-radius:11px;padding:9px 11px;font-size:11px;font-weight:600;color:#fff}
 .pm-trust-item span{line-height:1.2}
 @media(max-width:380px){.pm-trust{grid-template-columns:1fr}}
+.pm-meta{margin-top:12px;display:flex;flex-direction:column;gap:7px;width:100%}
+.pm-chip{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;border-radius:10px;padding:8px 12px}
+.pm-chip.social{background:rgba(255,255,255,.1);color:#fff}
+.pm-chip.reserve{background:rgba(255,107,92,.16);color:#ffb3a8;border:1px solid rgba(255,107,92,.3)}
+.pm-chip.reserve b{color:#ff8a7a;font-variant-numeric:tabular-nums}
+.pm-chip.gift{background:rgba(255,255,255,.08);color:rgba(255,255,255,.85)}
+.pm-save{font-size:11px;font-weight:700;color:#5fd38a;margin-top:3px}
+.cart-line{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;border-radius:10px;padding:9px 12px;margin-top:8px}
+.cart-reserva{background:#fff1ef;color:#d9492f;border:1px solid #ffd9d2}
+.cart-reserva b{font-variant-numeric:tabular-nums}
+.cart-ahorro{background:#eaf8ef;color:#1ba94c}
+.cart-regalo{background:var(--bg);color:var(--ink2)}
 .pm-add:active{transform:scale(.96)}
 .pm-add.in{background:var(--blue);color:#fff}
 .pm-scrim{position:absolute;inset:0;z-index:-1;cursor:pointer}
@@ -538,6 +550,11 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
   <div class="pm-wrap">
     <button class="pm-close" onclick="closePhotoBtn()">✕</button>
     <img class="pm-img" id="pmImg" src="" alt="par">
+    <div class="pm-meta">
+      <div class="pm-chip social" id="pmSocial" style="display:none"></div>
+      <div class="pm-chip reserve" id="pmReserve" style="display:none">⏰ <span>Reservado para ti por <b id="pmReserveT">15:00</b></span></div>
+      <div class="pm-chip gift">🎁 <span>Tu compra incluye guía de cuidado + 5% en tu próximo par</span></div>
+    </div>
     <div class="pm-trust">
       <div class="pm-trust-item">🚚 <span>Envío GRATIS a todo el país</span></div>
       <div class="pm-trust-item">📦 <span>Pago contra entrega</span></div>
@@ -545,7 +562,7 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
       <div class="pm-trust-item">⭐ <span>100% Garantía</span></div>
     </div>
     <div class="pm-bar">
-      <div><div class="pm-label" id="pmLabel">Hombre</div><div class="pm-price" id="pmPrice">$180.000</div></div>
+      <div><div class="pm-label" id="pmLabel">Hombre</div><div class="pm-price" id="pmPrice">$180.000</div><div class="pm-save" id="pmSave" style="display:none"></div></div>
       <button class="pm-add" id="pmAdd" onclick="addFromModal()">+ Agregar</button>
     </div>
   </div>
@@ -624,6 +641,38 @@ const SESSION_ID=(()=>{
 const $=id=>document.getElementById(id);
 const fmt=n=>'$'+n.toLocaleString('es-CO');
 const dsc=p=>p.was&&p.was>p.price?Math.round((1-p.price/p.was)*100):0;
+
+/* ── NEUROMARKETING ── */
+// Prueba social real: vistas por producto (de la tabla events, vía /api/product-views)
+let _views={};
+function loadViews(){
+  fetch('/api/product-views').then(r=>r.json()).then(j=>{_views=j.views||{};}).catch(()=>{});
+}
+// Contador de reserva persistente: nunca borra el carrito, al expirar reinicia (urgencia sin castigo)
+const RESERVE_MS=15*60*1000;
+let _reserveTimer=null;
+function startReserva(){
+  if(!localStorage.getItem('ss_reserve_until')){
+    localStorage.setItem('ss_reserve_until',String(Date.now()+RESERVE_MS));
+  }
+  if(!_reserveTimer)_reserveTimer=setInterval(tickReserva,1000);
+  tickReserva();
+}
+function reserveRemaining(){
+  let until=parseInt(localStorage.getItem('ss_reserve_until')||'0');
+  let rem=until-Date.now();
+  if(rem<=0){ until=Date.now()+RESERVE_MS; localStorage.setItem('ss_reserve_until',String(until)); rem=RESERVE_MS; }
+  return rem;
+}
+function tickReserva(){
+  const rem=reserveRemaining();
+  const mm=String(Math.floor(rem/60000)).padStart(2,'0');
+  const ss=String(Math.floor((rem%60000)/1000)).padStart(2,'0');
+  const txt=mm+':'+ss;
+  const t1=$('pmReserveT');if(t1)t1.textContent=txt;
+  const pr=$('pmReserve');if(pr&&Object.keys(cart).length)pr.style.display='flex';
+  const t2=$('cartReserveT');if(t2)t2.textContent=txt;
+}
 
 /* ── META PIXEL ── */
 function initPixel(){
@@ -793,6 +842,7 @@ function togCard(id,type){
     const _anm=type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer');
     px('AddToCart',{content_ids:[String(key)],content_type:'product',content_category:_acat,content_name:_anm,value:p.price,currency:'COP',...getUTM()});
     trackEvent('add_to_cart',{product_id:String(key),price:p.price,gender:type==='liq'?null:p.g});
+    startReserva();   // arranca/continúa el contador de reserva al agregar al carrito
   }
   const el=$(type==='liq'?'lk'+id:'k'+id);
   if(el){
@@ -848,6 +898,24 @@ function openPhoto(id,type){
   $('pmImg').src=p.img;
   $('pmLabel').textContent=type==='liq'?'🔥 Liquidación':(p.g==='h'?'Hombre':'Mujer');
   $('pmPrice').textContent=fmt(p.price);
+  // Anclaje de ahorro: "Ahorras $X (Y%)" si tiene precio antes
+  const sv=$('pmSave');
+  if(sv){
+    const pct=dsc(p);
+    if(p.was&&p.was>p.price){sv.textContent=`Ahorras ${fmt(p.was-p.price)} (${pct}%)`;sv.style.display='block';}
+    else sv.style.display='none';
+  }
+  // Prueba social real: vistas de este producto (oculto si 0)
+  const so=$('pmSocial');
+  if(so){
+    const n=_views[String(id)]||0;
+    if(n>=3){so.textContent=`👀 ${n} personas vieron este modelo esta semana`;so.style.display='flex';}
+    else so.style.display='none';
+  }
+  // Reserva: solo mostrar si ya hay algo en el carrito
+  const pr=$('pmReserve');
+  if(pr)pr.style.display=Object.keys(cart).length?'flex':'none';
+  if(Object.keys(cart).length)tickReserva();
   syncPmBtn();
   const _vcat=type==='liq'?'liquidacion':p.g;
   const _vnm=type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer');
@@ -1478,7 +1546,7 @@ function openCart(){
   }
 }
 function closeCart(){$('cscrim').classList.remove('on');$('csheet').classList.remove('on');document.body.style.overflow='';}
-function updDots(){[0,1,2].forEach(i=>{const d=$('cs'+i);d.className='csd'+(i===step?' active':i<step?' done':'');});$('cttl').textContent=['Tu pedido','Tus datos','Pagar'][step];}
+function updDots(){[0,1,2].forEach(i=>{const d=$('cs'+i);d.className='csd'+(i===step?' active':i<step?' done':'');});$('cttl').textContent=['Tu pedido','Tus datos','Pagar'][step]+`  ·  Paso ${step+1} de 3`;}
 function renderStep(){updDots();[rCart,rForm,rPayChoice][step]();}
 function goStep(n){step=n;renderStep();$('cbody').scrollTop=0;}
 function chQty(key,d){if(!cart[key])return;cart[key].qty=Math.max(1,cart[key].qty+d);syncDot();renderStep();}
@@ -1504,8 +1572,14 @@ function rCart(){
     return `<div class="crow"><div class="crimg">${m}</div><div class="crinfo"><div class="crname">${lbl}</div><div class="crprice">${fmt(p.price)} c/u</div></div><div class="cqc"><button class="cqb" onclick="chQty('${key}',-1)">−</button><span class="cqv">${qty}</span><button class="cqb" onclick="chQty('${key}',1)">+</button></div><button class="crm" onclick="rmItem('${key}')">✕</button></div>`;
   }).join('');
   const sub=rows.reduce((s,{p,qty})=>s+p.price*qty,0),tot=rows.reduce((s,{qty})=>s+qty,0);
-  body.innerHTML+=`<div class="csubb"><span class="csubl">${tot} par${tot>1?'es':''}</span><span class="csubv">${fmt(sub)}</span></div><div class="cenvio">📦 Envío gratis · Contra entrega desde ${fmt(calcFlete(1))}</div>`;
+  const ahorro=rows.reduce((s,{p,qty})=>s+((p.was&&p.was>p.price)?(p.was-p.price)*qty:0),0);
+  body.innerHTML+=`<div class="csubb"><span class="csubl">${tot} par${tot>1?'es':''}</span><span class="csubv">${fmt(sub)}</span></div>`
+    +`<div class="cart-line cart-reserva">⏰ Reservado para ti por <b id="cartReserveT">15:00</b></div>`
+    +(ahorro>0?`<div class="cart-line cart-ahorro">💰 Ahorras ${fmt(ahorro)} en esta compra</div>`:'')
+    +`<div class="cart-line cart-regalo">🎁 Incluye guía de cuidado + 5% en tu próximo par</div>`
+    +`<div class="cenvio">📦 Envío gratis · Contra entrega desde ${fmt(calcFlete(1))}</div>`;
   foot.innerHTML=`<button class="btnmain" onclick="goStep(1)">Continuar &nbsp;→</button>`;
+  tickReserva();   // pintar el tiempo en el contador del carrito recién creado
 }
 function rForm(){
   $('cbody').innerHTML=`<div class="formsec"><div class="formtit">¿A dónde enviamos tu pedido?</div>
@@ -1951,6 +2025,9 @@ captureUTM();
 captureReferrer();
 trackEvent('page_view');
 loadConfig();
+loadViews();   // prueba social: traer vistas reales por producto
+// Si quedó una reserva activa de una visita anterior, retomar el contador
+if(localStorage.getItem('ss_reserve_until')){_reserveTimer=setInterval(tickReserva,1000);tickReserva();}
 (async()=>{
   await loadState();
   if(bannerOn)$('banner').classList.remove('off');
