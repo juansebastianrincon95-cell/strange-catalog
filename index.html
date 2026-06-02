@@ -238,7 +238,8 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .epbtn{background:none;border:none;color:var(--blue);font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font);padding:2px 0;text-decoration:underline;text-underline-offset:2px}
 .ep-row{grid-column:1/-1;display:flex;gap:6px;align-items:center;padding:6px 0 2px;animation:fadeIn .15s ease}
 @keyframes fadeIn{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:translateY(0)}}
-.ep-row input{flex:1;padding:8px 10px;background:var(--bg);border:1.5px solid var(--blue);border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;color:var(--ink);outline:none}
+.ep-row input{flex:1;min-width:0;padding:8px 10px;background:var(--bg);border:1.5px solid var(--blue);border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;color:var(--ink);outline:none}
+.ep-brand{flex:1;min-width:0;padding:8px 6px;background:var(--bg);border:1.5px solid var(--blue);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink);outline:none;cursor:pointer}
 .ep-save{padding:8px 14px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer}
 .ep-cancel{padding:8px 10px;background:none;color:var(--ink3);border:1px solid var(--line);border-radius:9px;font-family:var(--font);font-size:12px;cursor:pointer}
 .sold-btn{padding:4px 6px;border-radius:8px;border:1.5px solid var(--line);background:var(--bg);font-family:var(--font);font-size:9px;font-weight:700;color:var(--ink2);cursor:pointer;transition:all .15s;white-space:nowrap;text-transform:uppercase}
@@ -1067,7 +1068,7 @@ function renderAdmin(){
       <div><div class="arow-price ${sp?'sale':''}">${fmt(p.price)}</div><button class="epbtn" onclick="startEP(${p.id},'cat')">Editar</button></div>
       <button class="sold-btn ${p.sold?'on':''}" onclick="togSold(${p.id},'cat')">${p.sold?'✓ Agot.':'Agotado'}</button>
       <button class="adel" onclick="delProd(${p.id},'cat')">✕</button>
-      <div class="ep-row" id="ep${p.id}" style="display:none"><input id="epi${p.id}" type="number" value="${p.price}"><button class="ep-save" onclick="saveEP(${p.id},'cat')">Guardar</button><button class="ep-cancel" onclick="cancelEP()">✕</button></div>
+      <div class="ep-row" id="ep${p.id}" style="display:none"><input id="epi${p.id}" type="number" value="${p.price}"><select id="epb${p.id}" class="ep-brand"><option value=""${!p.brand?' selected':''}>Sin marca</option>${Object.keys(BRAND_LABELS).map(b=>`<option value="${b}"${p.brand===b?' selected':''}>${BRAND_LABELS[b]}</option>`).join('')}</select><button class="ep-save" onclick="saveEP(${p.id},'cat')">Guardar</button><button class="ep-cancel" onclick="cancelEP()">✕</button></div>
     </div>`;
   }).join('');
 }
@@ -1218,9 +1219,18 @@ async function saveEP(id,type){
   const val=parseInt($(iid).value);
   if(!val||val<1000)return;
   const list=type==='liq'?liqs:prods;
-  const p=list.find(x=>x.id===id);if(p)p.price=val;
+  const p=list.find(x=>x.id===id);
+  const data={price:val};
+  // La marca solo aplica a productos del catálogo (no liquidación)
+  if(type==='cat'){
+    const sel=$('epb'+id);
+    const brand=sel?sel.value:'';
+    if(p)p.brand=brand;
+    data.brand=brand||null;
+  }
+  if(p)p.price=val;
   renderGrid();type==='liq'?renderLiqAdmin():renderAdmin();
-  await adminWrite('update_product',{table:type==='liq'?'liq_products':'products',id,data:{price:val}});
+  await adminWrite('update_product',{table:type==='liq'?'liq_products':'products',id,data});
 }
 function cancelEP(){document.querySelectorAll('.ep-row').forEach(r=>r.style.display='none');}
 async function delProd(id,type){
