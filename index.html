@@ -171,6 +171,10 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .pm-label{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.5)}
 .pm-price{font-size:24px;font-weight:700;color:#fff;letter-spacing:-.04em;line-height:1;margin-top:2px}
 .pm-add{background:#fff;color:var(--ink);border:none;padding:12px 22px;border-radius:40px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .18s;flex-shrink:0}
+.pm-trust{margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+.pm-trust-item{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);border-radius:11px;padding:9px 11px;font-size:11px;font-weight:600;color:#fff}
+.pm-trust-item span{line-height:1.2}
+@media(max-width:380px){.pm-trust{grid-template-columns:1fr}}
 .pm-add:active{transform:scale(.96)}
 .pm-add.in{background:var(--blue);color:#fff}
 .pm-scrim{position:absolute;inset:0;z-index:-1;cursor:pointer}
@@ -534,6 +538,12 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
   <div class="pm-wrap">
     <button class="pm-close" onclick="closePhotoBtn()">✕</button>
     <img class="pm-img" id="pmImg" src="" alt="par">
+    <div class="pm-trust">
+      <div class="pm-trust-item">🚚 <span>Envío GRATIS a todo el país</span></div>
+      <div class="pm-trust-item">📦 <span>Pago contra entrega</span></div>
+      <div class="pm-trust-item">🔄 <span>Cambios por talla</span></div>
+      <div class="pm-trust-item">⭐ <span>100% original · Garantía</span></div>
+    </div>
     <div class="pm-bar">
       <div><div class="pm-label" id="pmLabel">Hombre</div><div class="pm-price" id="pmPrice">$180.000</div></div>
       <button class="pm-add" id="pmAdd" onclick="addFromModal()">+ Agregar</button>
@@ -550,6 +560,12 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
       <canvas class="v360-img" id="v360Canvas"></canvas>
       <div class="v360-hint" id="v360Hint">← Arrastra para girar →</div>
       <div class="v360-counter" id="v360Counter">1/12</div>
+    </div>
+    <div class="pm-trust">
+      <div class="pm-trust-item">🚚 <span>Envío GRATIS a todo el país</span></div>
+      <div class="pm-trust-item">📦 <span>Pago contra entrega</span></div>
+      <div class="pm-trust-item">🔄 <span>Cambios por talla</span></div>
+      <div class="pm-trust-item">⭐ <span>100% original · Garantía</span></div>
     </div>
     <div class="pm-bar" style="margin-top:16px;width:100%">
       <div>
