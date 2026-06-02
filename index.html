@@ -342,23 +342,51 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .guia-modal{position:fixed;inset:0;z-index:520;display:none}
 .guia-modal.on{display:block}
 .guia-scrim{position:absolute;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(6px)}
-.guia-wrap{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(94vw,520px);max-height:90vh;overflow-y:auto;background:#fff;border-radius:22px;box-shadow:0 24px 70px rgba(0,0,0,.35);animation:pmIn .3s cubic-bezier(.16,1,.3,1) both;-webkit-overflow-scrolling:touch}
-.guia-close{position:sticky;top:12px;float:right;margin:12px 12px 0 0;width:32px;height:32px;background:var(--bg);border:1px solid var(--line);border-radius:50%;font-size:13px;cursor:pointer;z-index:2}
-.guia-head{padding:24px 24px 16px;border-bottom:1px solid var(--line)}
-.guia-kicker{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--blue)}
-.guia-title{font-size:23px;font-weight:800;letter-spacing:-.03em;margin:6px 0 4px;line-height:1.1}
-.guia-sub{font-size:13px;color:var(--ink2);line-height:1.5}
-.guia-body{padding:8px 24px 24px}
-.guia-sec{margin-top:18px}
-.guia-h{font-size:14px;font-weight:700;margin-bottom:7px}
-.guia-sec ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
-.guia-sec li{font-size:13px;line-height:1.5;color:var(--ink)}
-.guia-no{background:#fdecea;border:1px solid #f8d4cf;border-radius:14px;padding:14px 16px 14px 6px}
-.guia-no .guia-h{color:#d9492f;padding-left:16px}
-.guia-tip{background:#eaf6ef;border:1px solid #cdebd8;border-radius:14px;padding:14px 16px 14px 6px}
-.guia-tip .guia-h{color:#1ba94c;padding-left:16px}
-.guia-foot{margin-top:22px;padding-top:16px;border-top:1px solid var(--line);text-align:center;font-size:13px;font-weight:600;color:var(--ink);line-height:1.7}
-.guia-foot span{font-size:12px;color:var(--ink3);font-weight:500}
+.guia-wrap{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(94vw,540px);max-height:92vh;overflow-y:auto;background:#fff;border-radius:24px;box-shadow:0 24px 70px rgba(0,0,0,.35);animation:pmIn .3s cubic-bezier(.16,1,.3,1) both;-webkit-overflow-scrolling:touch}
+.guia-close{position:sticky;top:12px;float:right;margin:12px 12px 0 0;width:32px;height:32px;background:rgba(255,255,255,.85);border:1px solid var(--line);border-radius:50%;font-size:13px;cursor:pointer;z-index:3}
+.guia-head{padding:28px 24px 22px;text-align:center;background:linear-gradient(160deg,#1a1a18,#2c2c28);color:#fff;border-radius:24px 24px 0 0}
+.guia-logo{font-size:15px;font-weight:800;letter-spacing:-.02em;opacity:.9;margin-bottom:14px}
+.guia-logo sup{font-size:8px}
+.guia-kicker{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#1a1a18;background:#f2c94c;padding:4px 12px;border-radius:20px}
+.guia-title{font-size:24px;font-weight:800;letter-spacing:-.03em;margin:12px 0 6px;line-height:1.15;color:#fff}
+.guia-sub{font-size:13px;color:rgba(255,255,255,.7);line-height:1.5}
+.guia-body{padding:20px 22px 8px}
+.guia-step{display:flex;align-items:center;gap:10px;margin:22px 0 12px}
+.guia-step:first-child{margin-top:4px}
+.guia-num{width:26px;height:26px;flex-shrink:0;background:var(--ink);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800}
+.guia-step-h{font-size:15px;font-weight:700;letter-spacing:-.02em}
+.guia-mats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.guia-mat{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:12px 10px;text-align:center}
+.guia-mat-ico{font-size:26px;line-height:1}
+.guia-mat-t{font-size:12px;font-weight:800;margin:6px 0 4px}
+.guia-mat-d{font-size:10.5px;line-height:1.4;color:var(--ink2)}
+.guia-card{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.guia-card-h{font-size:14px;font-weight:800;margin-bottom:2px}
+.guia-row{display:flex;align-items:flex-start;gap:10px;font-size:13px;line-height:1.45;color:var(--ink)}
+.guia-ic{font-size:18px;line-height:1.2;flex-shrink:0}
+.guia-no{background:#fdecea;border-color:#f8d4cf}
+.guia-no .guia-card-h{color:#d9492f}
+.guia-pills{display:flex;flex-wrap:wrap;gap:7px}
+.guia-pill{background:#fff;border:1px solid #f3c7c0;color:#b53d28;font-size:11.5px;font-weight:600;padding:7px 11px;border-radius:20px}
+.guia-tip{background:#eaf6ef;border-color:#cdebd8}
+.guia-tip .guia-card-h{color:#1ba94c}
+.guia-cupon{margin-top:14px;background:#eef4ff;border:1px dashed #9cc0ff;color:#0052cc;border-radius:12px;padding:12px 14px;font-size:12.5px;font-weight:600;text-align:center;line-height:1.5}
+.guia-foot{margin-top:20px;padding-top:18px;border-top:1px solid var(--line);text-align:center;font-size:13px;font-weight:600;color:var(--ink);line-height:1.7}
+.guia-wa{display:inline-block;margin:8px 0;background:#25D366;color:#fff;text-decoration:none;font-size:13px;font-weight:700;padding:10px 20px;border-radius:30px}
+.guia-foot span{display:block;font-size:12px;color:var(--ink3);font-weight:500;margin-top:8px}
+.guia-actions{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--line);padding:14px 22px;border-radius:0 0 24px 24px}
+.guia-dl{width:100%;background:var(--ink);color:#fff;border:none;border-radius:12px;padding:13px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer}
+.guia-mats{grid-template-columns:1fr 1fr 1fr}
+@media(max-width:400px){.guia-mats{grid-template-columns:1fr;gap:7px}.guia-mat{display:flex;align-items:center;gap:10px;text-align:left;padding:10px 12px}.guia-mat-ico{font-size:22px}.guia-mat-t{margin:0}.guia-mat-d{font-size:11px}}
+/* Impresión / Descargar PDF: solo la guía, limpia */
+@media print{
+  body.printing-guia>*{display:none!important}
+  body.printing-guia #guiaModal{display:block!important;position:static}
+  body.printing-guia .guia-scrim,body.printing-guia .guia-close,body.printing-guia .guia-actions{display:none!important}
+  body.printing-guia .guia-wrap{position:static;transform:none;max-height:none;width:100%;box-shadow:none;border-radius:0;overflow:visible}
+  body.printing-guia .guia-head{border-radius:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body.printing-guia .guia-mat,body.printing-guia .guia-card,body.printing-guia .guia-pill,body.printing-guia .guia-cupon,body.printing-guia .guia-wa{-webkit-print-color-adjust:exact;print-color-adjust:exact;break-inside:avoid}
+}
 
 /* VISOR 360° */
 .viewer360{position:fixed;inset:0;z-index:500;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.93);padding:20px}
@@ -599,57 +627,83 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 <!-- GUÍA DE CUIDADO -->
 <div class="guia-modal" id="guiaModal">
   <div class="guia-scrim" onclick="closeGuia()"></div>
-  <div class="guia-wrap">
+  <div class="guia-wrap" id="guiaWrap">
     <button class="guia-close" onclick="closeGuia()">✕</button>
     <div class="guia-head">
+      <div class="guia-logo">STRANGE<sup>®</sup></div>
       <div class="guia-kicker">🎁 Regalo de tu compra</div>
       <h2 class="guia-title">Guía de cuidado de tus sneakers</h2>
-      <p class="guia-sub">Cuídalos bien y te durarán como nuevos. Síguela en 5 minutos.</p>
+      <p class="guia-sub">Cuídalos bien y te durarán como nuevos.<br>Síguela en 5 minutos.</p>
     </div>
     <div class="guia-body">
-      <div class="guia-sec">
-        <div class="guia-h">🧼 Limpieza según el material</div>
-        <ul>
-          <li><b>Malla / tela:</b> cepillo suave con agua tibia y jabón neutro. Movimientos suaves, sin frotar fuerte.</li>
-          <li><b>Cuero / sintético:</b> paño húmedo y jabón neutro. Nunca los sumerjas en agua. Seca con paño seco.</li>
-          <li><b>Gamuza / nobuk:</b> cepillo seco especial para gamuza. <b>Nunca uses agua</b> directamente; usa borrador de gamuza para manchas.</li>
-        </ul>
+
+      <div class="guia-step">
+        <div class="guia-num">1</div>
+        <div class="guia-step-h">🧼 Limpieza según el material</div>
       </div>
-      <div class="guia-sec">
-        <div class="guia-h">💧 Secado correcto</div>
-        <ul>
-          <li>Siempre <b>a la sombra</b> y en lugar ventilado. Nunca al sol directo ni en secadora (deforman y amarillean).</li>
-          <li>Rellénalos con <b>papel</b> para que mantengan su forma mientras secan.</li>
-        </ul>
+      <div class="guia-mats">
+        <div class="guia-mat">
+          <div class="guia-mat-ico">🕸️</div>
+          <div class="guia-mat-t">Malla / Tela</div>
+          <div class="guia-mat-d">Cepillo suave con agua tibia y jabón neutro. Sin frotar fuerte.</div>
+        </div>
+        <div class="guia-mat">
+          <div class="guia-mat-ico">🟤</div>
+          <div class="guia-mat-t">Cuero / Sintético</div>
+          <div class="guia-mat-d">Paño húmedo y jabón neutro. <b>Nunca sumergir</b>. Seca con paño.</div>
+        </div>
+        <div class="guia-mat">
+          <div class="guia-mat-ico">🦫</div>
+          <div class="guia-mat-t">Gamuza / Nobuk</div>
+          <div class="guia-mat-d">Cepillo seco especial. <b>Nunca agua</b>. Borrador para manchas.</div>
+        </div>
       </div>
-      <div class="guia-sec">
-        <div class="guia-h">👟 Almacenamiento</div>
-        <ul>
-          <li>Guárdalos en lugar <b>seco y ventilado</b>, lejos de humedad.</li>
-          <li>Usa horma o papel dentro para conservar la forma.</li>
-          <li><b>Alterna entre 2 pares:</b> dejarlos descansar un día alarga mucho su vida.</li>
-        </ul>
+
+      <div class="guia-step">
+        <div class="guia-num">2</div>
+        <div class="guia-step-h">💧 Secado correcto</div>
       </div>
-      <div class="guia-sec guia-no">
-        <div class="guia-h">🚫 Lo que NUNCA debes hacer</div>
-        <ul>
-          <li>Lavadora o secadora</li>
-          <li>Sol directo por horas</li>
-          <li>Blanqueador / cloro</li>
-          <li>Guardarlos húmedos (salen hongos y mal olor)</li>
-        </ul>
+      <div class="guia-card">
+        <div class="guia-row"><span class="guia-ic">🌤️</span><div>Siempre <b>a la sombra</b> y ventilado. Nunca al sol directo ni secadora (deforman y amarillean).</div></div>
+        <div class="guia-row"><span class="guia-ic">📰</span><div>Rellénalos con <b>papel</b> para que mantengan su forma mientras secan.</div></div>
       </div>
-      <div class="guia-sec guia-tip">
-        <div class="guia-h">💡 Tip de experto</div>
-        <ul>
-          <li>Aplica <b>impermeabilizante</b> a la gamuza apenas los estrenes: repele agua y manchas.</li>
-          <li>Rotar entre pares + limpieza suave cada semana = sneakers como nuevos por años.</li>
-        </ul>
+
+      <div class="guia-step">
+        <div class="guia-num">3</div>
+        <div class="guia-step-h">👟 Almacenamiento</div>
       </div>
+      <div class="guia-card">
+        <div class="guia-row"><span class="guia-ic">🏠</span><div>Lugar <b>seco y ventilado</b>, lejos de humedad.</div></div>
+        <div class="guia-row"><span class="guia-ic">🧦</span><div>Usa horma o papel dentro para conservar la forma.</div></div>
+        <div class="guia-row"><span class="guia-ic">🔄</span><div><b>Alterna entre 2 pares:</b> dejarlos descansar un día alarga mucho su vida.</div></div>
+      </div>
+
+      <div class="guia-card guia-no">
+        <div class="guia-card-h">🚫 Lo que NUNCA debes hacer</div>
+        <div class="guia-pills">
+          <span class="guia-pill">🧺 Lavadora / secadora</span>
+          <span class="guia-pill">☀️ Sol directo</span>
+          <span class="guia-pill">🧪 Blanqueador</span>
+          <span class="guia-pill">💦 Guardarlos húmedos</span>
+        </div>
+      </div>
+
+      <div class="guia-card guia-tip">
+        <div class="guia-card-h">💡 Tips de experto</div>
+        <div class="guia-row"><span class="guia-ic">🛡️</span><div>Aplica <b>impermeabilizante</b> a la gamuza desde el estreno: repele agua y manchas.</div></div>
+        <div class="guia-row"><span class="guia-ic">⭐</span><div>Rotar entre pares + limpieza suave semanal = sneakers como nuevos por años.</div></div>
+      </div>
+
+      <div class="guia-cupon">🎁 Recuerda: usa el código <b>GRACIAS5</b> y obtén <b>5% en tu próxima compra</b></div>
+
       <div class="guia-foot">
-        ¿Dudas sobre tu par? Escríbenos por WhatsApp 💬<br>
+        ¿Dudas sobre tu par?<br>
+        <a class="guia-wa" id="guiaWa" href="#" target="_blank">💬 Escríbenos por WhatsApp</a>
         <span>— El equipo de Strange Sneakers 👟</span>
       </div>
+    </div>
+    <div class="guia-actions">
+      <button class="guia-dl" onclick="descargarGuia()">⬇ Descargar guía</button>
     </div>
   </div>
 </div>
@@ -1032,8 +1086,18 @@ function closePhotoBtn(){
   setTimeout(()=>{$('pmImg').src='';pmId=null;pmType=null;},300);
 }
 /* ── GUÍA DE CUIDADO ── */
-function openGuia(){$('guiaModal').classList.add('on');document.body.style.overflow='hidden';}
+function openGuia(){
+  // WhatsApp clickeable con el número de la tienda
+  const wa=$('guiaWa');
+  if(wa)wa.href=`https://wa.me/${WA}?text=${encodeURIComponent('¡Hola '+STORE_NAME+'! Tengo una duda sobre el cuidado de mis sneakers 👟')}`;
+  $('guiaModal').classList.add('on');document.body.style.overflow='hidden';
+}
 function closeGuia(){$('guiaModal').classList.remove('on');document.body.style.overflow='';}
+// Descargar la guía: abre el diálogo de impresión con SOLO la guía (Guardar como PDF).
+function descargarGuia(){
+  document.body.classList.add('printing-guia');
+  setTimeout(()=>{ window.print(); document.body.classList.remove('printing-guia'); },80);
+}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closePhotoBtn();close360();closeGuia();}});
 
 /* ── VISOR 360° ── */
