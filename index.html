@@ -88,7 +88,7 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .card.sold{opacity:.55;cursor:not-allowed}
 @keyframes cardUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 .cphoto{position:relative;width:100%;padding-bottom:100%;background:#EEECEA;overflow:hidden;display:block}
-.cphoto img,.cphoto .noimg{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;object-position:center top;display:block;transition:transform .35s cubic-bezier(.16,1,.3,1)}
+.cphoto img,.cphoto .noimg{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;object-position:center center;display:block;transition:transform .35s cubic-bezier(.16,1,.3,1)}
 .cphoto .noimg{display:flex;align-items:center;justify-content:center;font-size:52px}
 .card:not(.sold):hover .cphoto img{transform:scale(1.05)}
 .bdsc{position:absolute;top:6px;left:6px;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:3px 7px;border-radius:12px}
@@ -114,7 +114,7 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .liq-card.picked{border-color:var(--red);box-shadow:0 0 0 3px rgba(232,32,10,.1)}
 .liq-card.sold{opacity:.55;cursor:not-allowed}
 .lphoto{position:relative;width:100%;padding-bottom:100%;background:#f5f0ee;overflow:hidden;display:block}
-.lphoto img,.lphoto .noimg{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;object-position:center top;display:block;transition:transform .35s cubic-bezier(.16,1,.3,1)}
+.lphoto img,.lphoto .noimg{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;object-position:center center;display:block;transition:transform .35s cubic-bezier(.16,1,.3,1)}
 .lphoto .noimg{display:flex;align-items:center;justify-content:center;font-size:52px}
 .liq-card:not(.sold):hover .lphoto img{transform:scale(1.05)}
 .lbdsc{position:absolute;top:6px;left:6px;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:3px 7px;border-radius:12px}
@@ -1250,12 +1250,25 @@ async function togSold(id,type){
 }
 
 /* ── SUBIR FOTOS ── */
-function compressImg(file,cb){
+function compressImg(file,cb,square=false){
   const r=new FileReader();
   r.onload=e=>{
     const img=new Image();
     img.onload=()=>{
       const MAX=800;
+      if(square){
+        // Lienzo cuadrado 800x800 con relleno blanco; el zapato se centra "contain" (sin recorte).
+        const SIZE=800;
+        const c=document.createElement('canvas');c.width=SIZE;c.height=SIZE;
+        const ctx=c.getContext('2d');
+        ctx.fillStyle='#fff';ctx.fillRect(0,0,SIZE,SIZE);
+        const s=Math.min(SIZE/img.width,SIZE/img.height,1); // no ampliar fotos pequeñas
+        const w=Math.round(img.width*s),h=Math.round(img.height*s);
+        ctx.drawImage(img,Math.round((SIZE-w)/2),Math.round((SIZE-h)/2),w,h);
+        cb(c.toDataURL('image/webp',0.72));
+        return;
+      }
+      // Comportamiento original: conservar proporción (usado por 360° y la IA).
       let w=img.width,h=img.height;
       if(w>MAX||h>MAX){const s=MAX/Math.max(w,h);w=Math.round(w*s);h=Math.round(h*s);}
       const c=document.createElement('canvas');c.width=w;c.height=h;
@@ -1297,7 +1310,7 @@ function handleFiles(files,dest){
   const q=dest==='liq'?qL:qC;
   if(q.length+nuevas.length>20){alert('Máximo 20 fotos por sección. Agrega las actuales primero.');return;}
   nuevas.forEach(f=>{
-    compressImg(f,src=>{q.push({id:Date.now()+Math.random(),src});renderQ(dest);});
+    compressImg(f,src=>{q.push({id:Date.now()+Math.random(),src});renderQ(dest);},!is360);
   });
 }
 function extractFramesFromVideo(file,dest,count){
