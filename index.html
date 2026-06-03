@@ -514,7 +514,7 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 <body>
 
 <nav>
-  <div class="logo">STRANGE<sup>®</sup></div>
+  <div class="logo">Strange Sneakers<sup>®</sup></div>
   <div class="nav-r">
     <button class="bag-btn" onclick="openCart()">
       <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
@@ -1009,7 +1009,7 @@ async function adminWrite(action, payload = {}) {
 }
 
 let WA='573122672336';
-let STORE_NAME='STRANGE';
+let STORE_NAME='Strange Sneakers';
 const P_DEF=180000, P_ANT=240000;
 
 let prods=[],liqs=[];
@@ -2693,7 +2693,7 @@ function loadConfig(){
 function applyStoreName(){
   const logo=document.querySelector('.logo');
   if(logo)logo.innerHTML=STORE_NAME+'<sup>®</sup>';
-  document.title=STORE_NAME+' Sneakers';
+  document.title=STORE_NAME;   // STORE_NAME ya es "Strange Sneakers" (evita "...Sneakers Sneakers")
 }
 
 /* ── PERSISTENCIA ── */
