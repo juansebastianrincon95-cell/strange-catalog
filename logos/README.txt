@@ -1,32 +1,26 @@
 CARPETA DE LOGOS — Strange Sneakers
 ====================================
 
-Sube aquí los logos OFICIALES de las marcas/medios de pago.
-La ficha de producto los muestra automáticamente; si un archivo no existe,
-se muestra el texto de respaldo (no se rompe nada).
+La ficha de producto muestra estos logos automaticamente.
+Si un archivo NO existe, se muestra el texto de respaldo (no se rompe nada).
 
-FORMATO RECOMENDADO
+INSTALADOS (Fase 9)
 -------------------
-- PNG con fondo transparente (o SVG renombrado a .png si prefieres).
-- Alto util ~60-120px; el sitio los reescala solo (logos ~26-30px de alto).
-- Fondo transparente para que se vean bien sobre fondo blanco/claro.
+  addi.png          (Addi)          - convertido de .avif
+  sistecredito.png  (Sistecredito)
+  nequi.png         (Nequi)         - convertido de .avif
+  wompi.png         (Wompi)
+  bancolombia.jpg   (Bancolombia)
+  pse.png           (PSE)
+  visa.png          (Visa)
+  mastercard.png    (Mastercard)
 
-NOMBRES EXACTOS DE ARCHIVO (en minuscula, sin espacios ni tildes)
------------------------------------------------------------------
-Financiacion:
-  addi.png          -> Addi (pago a cuotas)
-  sistecredito.png  -> Sistecredito
+FALTA (hoy cae a texto de respaldo)
+-----------------------------------
+  contraentrega.png (Pago contra entrega)  -> sube este si quieres su logo.
 
-Medios de pago:
-  contraentrega.png -> Pago contra entrega
-  wompi.png         -> Wompi
-  nequi.png         -> Nequi
-  bancolombia.png   -> Bancolombia
-  pse.png           -> PSE
-  visa.png          -> Visa
-  mastercard.png    -> Mastercard
-
-IMPORTANTE
-----------
-- Usa el nombre EXACTO de la lista (ej. "addi.png", no "Addi.PNG").
-- Tras subirlos, avisa para hacer commit + push y verificar que se vean.
+NOTAS
+-----
+- Nombres EXACTOS en minuscula, sin espacios ni tildes.
+- PNG con fondo transparente se ve mejor (Addi viene con fondo azul; Bancolombia con su fondo).
+- Si reemplazas un logo, conserva el mismo nombre de archivo.

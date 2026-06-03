@@ -167,7 +167,10 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 @keyframes pmUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 @keyframes pmIn{from{opacity:0;transform:scale(.9) translateY(16px)}to{opacity:1;transform:scale(1) translateY(0)}}
 .pm-img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block;background:var(--bg)}
-.pm-close{position:fixed;top:12px;right:12px;width:36px;height:36px;background:rgba(0,0,0,.45);border:none;border-radius:50%;color:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2}
+/* Barra de logotipo arriba de la ficha (sticky): la foto ya no queda pegada al borde superior */
+.pm-head{position:sticky;top:0;z-index:4;background:#fff;display:flex;align-items:center;justify-content:center;padding:14px 16px;border-bottom:1px solid var(--line);border-radius:20px 20px 0 0}
+.pm-logo{font-size:15px;font-weight:700;color:var(--ink);letter-spacing:-.02em}
+.pm-x{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:32px;height:32px;background:var(--bg);border:none;border-radius:50%;color:var(--ink2);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .pm-body{padding:18px 18px 26px}
 .pm-title{font-size:18px;font-weight:700;color:var(--ink);letter-spacing:-.01em}
 .pm-stars{margin-top:6px;font-size:14px;color:#f5a623;letter-spacing:1px}
@@ -202,21 +205,26 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .pm-fin-logo{max-height:30px;max-width:100%;object-fit:contain}
 .pm-pay-i{display:inline-flex;align-items:center}
 .pm-pay-row img{height:26px;max-width:62px;object-fit:contain;display:block}
-/* Reseñas de ejemplo en la ficha */
-.pm-reviews{margin-top:18px;border-top:1px solid var(--line);padding-top:14px}
-.pm-rev-t{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);margin-bottom:10px}
+/* Reseñas de ejemplo en la ficha — bloque "Dejamos que nuestros clientes hablen" (estilo elena) */
+.pm-reviews{margin-top:20px;border-top:1px solid var(--line);padding-top:18px}
+.pm-rev-head{text-align:center;margin-bottom:14px}
+.pm-rev-head h4{font-size:16px;font-weight:700;color:var(--ink);letter-spacing:-.02em;margin:0}
+.pm-rev-bigstars{font-size:20px;color:#f5a623;letter-spacing:3px;margin-top:6px}
+.pm-rev-count{font-size:12px;font-weight:600;color:var(--ink2);margin-top:3px}
 .pm-rev{background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:11px 12px;margin-bottom:8px}
 .pm-rev-h{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .pm-rev-h b{font-size:12.5px;font-weight:700;color:var(--ink)}
 .pm-rev-v{font-size:10px;font-weight:600;color:var(--green)}
 .pm-rev-s{font-size:12px;color:#f5a623;letter-spacing:1px;margin-top:2px}
 .pm-rev-x{font-size:12px;color:var(--ink2);line-height:1.5;margin-top:4px}
-@media(min-width:560px){.photo-modal.on{display:flex;align-items:center;justify-content:center;padding:24px}.pm-wrap{position:relative;left:auto;right:auto;bottom:auto;margin:0;border-radius:18px;max-height:92vh;animation:none}.pm-close{position:absolute}}
-/* 8c — ESCRITORIO: ficha a 2 columnas (foto izq + info der). El móvil (hoja inferior) NO cambia. */
+@media(min-width:560px){.photo-modal.on{display:flex;align-items:center;justify-content:center;padding:24px}.pm-wrap{position:relative;left:auto;right:auto;bottom:auto;margin:0;border-radius:18px;max-height:92vh;animation:none}}
+/* 8c/9a — ESCRITORIO: ficha a 2 columnas (foto izq + info der), foto CUADRADA sin recorte.
+   La barra de logotipo ocupa todo el ancho arriba (flex-wrap). El móvil (hoja inferior) NO cambia. */
 @media(min-width:700px){
-  .pm-wrap{max-width:880px;display:flex;align-items:stretch;overflow:hidden}
-  .pm-img{width:46%;height:auto;align-self:stretch;aspect-ratio:auto;object-fit:cover}
-  .pm-body{width:54%;overflow-y:auto;max-height:90vh;-webkit-overflow-scrolling:touch}
+  .pm-wrap{max-width:880px;display:flex;flex-wrap:wrap;align-items:flex-start;overflow:hidden}
+  .pm-head{width:100%;border-radius:18px 18px 0 0}
+  .pm-img{width:46%;align-self:flex-start;aspect-ratio:1/1;height:auto;object-fit:cover}
+  .pm-body{width:54%;overflow-y:auto;max-height:84vh;-webkit-overflow-scrolling:touch}
 }
 .cart-line{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;border-radius:10px;padding:9px 12px;margin-top:8px}
 .cart-reserva{background:#fff1ef;color:#d9492f;border:1px solid #ffd9d2}
@@ -984,7 +992,7 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 <div class="photo-modal" id="photoModal">
   <div class="pm-scrim" onclick="closePhotoBtn()"></div>
   <div class="pm-wrap">
-    <button class="pm-close" onclick="closePhotoBtn()">✕</button>
+    <div class="pm-head"><span class="pm-logo">Strange Sneakers</span><button class="pm-x" onclick="closePhotoBtn()">✕</button></div>
     <img class="pm-img" id="pmImg" src="" alt="par">
     <div class="pm-body">
       <div class="pm-title" id="pmTitle">Sneakers</div>
@@ -1004,7 +1012,7 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
           <span class="pm-pay-i"><img src="logos/contraentrega.png" alt="Contra entrega" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="pm-pay-txt" style="display:none">📦 Contra entrega</span></span>
           <span class="pm-pay-i"><img src="logos/wompi.png" alt="Wompi" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="pm-pay-txt" style="display:none">💜 Wompi</span></span>
           <span class="pm-pay-i"><img src="logos/nequi.png" alt="Nequi" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="pm-pay-txt" style="display:none">📱 Nequi</span></span>
-          <span class="pm-pay-i"><img src="logos/bancolombia.png" alt="Bancolombia" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="pm-pay-txt" style="display:none">🏦 Bancolombia</span></span>
+          <span class="pm-pay-i"><img src="logos/bancolombia.jpg" alt="Bancolombia" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="pm-pay-txt" style="display:none">🏦 Bancolombia</span></span>
           <span class="pm-pay-i"><img src="logos/pse.png" alt="PSE" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="pm-pay-txt" style="display:none">🏦 PSE</span></span>
           <span class="pm-pay-i"><img src="logos/visa.png" alt="Visa" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="pm-pay-txt" style="display:none">💳 Visa</span></span>
           <span class="pm-pay-i"><img src="logos/mastercard.png" alt="Mastercard" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="pm-pay-txt" style="display:none">💳 Mastercard</span></span>
@@ -1016,8 +1024,6 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
         <div class="pm-chip gift">🎁 <span>Tu compra incluye guía de cuidado + 5% en tu próximo par</span></div>
       </div>
       <div class="pm-trust">
-        <div class="pm-trust-item">🚚 <span>Envío GRATIS a todo el país</span></div>
-        <div class="pm-trust-item">📦 <span>Pago contra entrega</span></div>
         <div class="pm-trust-item">🔄 <span>Cambios por talla</span></div>
         <div class="pm-trust-item">⭐ <span>100% Garantía</span></div>
       </div>
@@ -1927,7 +1933,8 @@ function openPhoto(id,type){
   $('pmImg').src=p.img;
   const _mk=BRAND_LABELS[p.brand]||'';
   $('pmTitle').textContent=(_mk?_mk+' · ':'')+(type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer'));
-  {const rv=$('pmReviews');if(rv)rv.textContent=reviewsCount>0?`(${reviewsCount.toLocaleString('es-CO')} reseñas)`:'';}
+  pmReviewN=reviewsForProduct(id);   // nº de reseñas estable por producto (paso 4)
+  {const rv=$('pmReviews');if(rv)rv.textContent=`(${pmReviewN.toLocaleString('es-CO')} reseñas)`;}
   {const dd=$('pmDesc');if(dd)dd.textContent=genDescripcion(p,type);}
   {const wa=$('pmWas');if(wa){if(p.was&&p.was>p.price){wa.textContent=fmt(p.was);wa.style.display='';}else wa.style.display='none';}}
   $('pmPrice').textContent=fmt(p.price);
@@ -1978,9 +1985,17 @@ const FICHA_REVIEWS=[
   {nombre:'Laura G.',texto:'Me encantaron, la talla quedó perfecta y el material se siente original. Repito sin duda.'},
   {nombre:'Camilo R.',texto:'Excelente atención y pagué contra entrega sin problema. 100% recomendados.'}
 ];
+// Nº de reseñas por producto: pseudo-aleatorio pero ESTABLE por id (mismo valor siempre), rango ~80–399.
+let pmReviewN=0;
+function reviewsForProduct(id){
+  let h=0,s=String(id);
+  for(let i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))>>>0;}
+  return 80+(h%320);
+}
 function renderFichaReviews(){
   const c=$('pmRevList');if(!c)return;
-  c.innerHTML='<div class="pm-rev-t">Lo que dicen los clientes</div>'+FICHA_REVIEWS.map(r=>
+  const cnt=pmReviewN>0?`${pmReviewN.toLocaleString('es-CO')} reseñas`:'';
+  c.innerHTML=`<div class="pm-rev-head"><h4>Dejamos que nuestros clientes hablen</h4><div class="pm-rev-bigstars">★★★★★</div>${cnt?`<div class="pm-rev-count">${cnt}</div>`:''}</div>`+FICHA_REVIEWS.map(r=>
     `<div class="pm-rev"><div class="pm-rev-h"><b>${escHtml(r.nombre)}</b><span class="pm-rev-v">✓ Compra verificada</span></div><div class="pm-rev-s">★★★★★</div><div class="pm-rev-x">${escHtml(r.texto)}</div></div>`
   ).join('');
 }
