@@ -405,7 +405,7 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .wm{position:fixed;inset:0;z-index:600;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(14,14,12,.62);backdrop-filter:blur(3px)}
 .wm.on{display:flex}
 .wm-card{position:relative;width:100%;max-width:360px;background:var(--white);border-radius:22px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.45);animation:pmIn .34s cubic-bezier(.16,1,.3,1) both;max-height:94vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
-.wm-close{position:absolute;top:11px;right:11px;width:30px;height:30px;border:none;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2}
+.wm-close{position:absolute;top:10px;right:10px;width:38px;height:38px;border:none;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2}
 .wm-close:hover{background:rgba(255,255,255,.32)}
 .wm-head{background:var(--ink);color:#fff;padding:26px 22px 22px;text-align:center}
 .wm-kick{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--orange);margin-bottom:8px}
@@ -416,7 +416,7 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .wm-intro{font-size:12.5px;color:var(--ink2);line-height:1.5;text-align:center;margin-bottom:14px}
 .wm-fld{margin-bottom:10px}
 .wm-fld label{display:block;font-size:11px;font-weight:700;color:var(--ink2);margin-bottom:5px}
-.wm-fld input{width:100%;padding:11px 13px;background:var(--bg);border:1.5px solid var(--line);border-radius:11px;font-family:var(--font);font-size:14px;font-weight:600;color:var(--ink);outline:none;-webkit-appearance:none}
+.wm-fld input{width:100%;padding:13px 14px;background:var(--bg);border:1.5px solid var(--line);border-radius:11px;font-family:var(--font);font-size:16px;font-weight:600;color:var(--ink);outline:none;-webkit-appearance:none}
 .wm-fld input:focus{border-color:var(--ink)}
 .wm-err{display:none;font-size:11.5px;color:var(--red);font-weight:600;margin:2px 0 8px}
 .wm-err.show{display:block}
@@ -506,8 +506,8 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
       <div class="wm-intro">Déjanos tus datos y te damos un código de descuento para estrenar tu primer par.</div>
       <div class="wm-fld"><label>Nombre completo</label><input id="wmNombre" type="text" placeholder="Juan García" autocomplete="name"></div>
       <div class="wm-fld"><label>WhatsApp</label><input id="wmWa" type="tel" inputmode="numeric" placeholder="300 000 0000" autocomplete="tel"></div>
-      <div class="wm-fld"><label>Cumpleaños</label><input id="wmCumple" type="date"></div>
-      <div class="wm-err" id="wmErr">Completa tu nombre y WhatsApp 🙏</div>
+      <div class="wm-fld"><label>Cumpleaños</label><input id="wmCumple" type="text" inputmode="numeric" placeholder="dd/mm/aaaa" maxlength="10" autocomplete="bday" oninput="fmtCumple(this)"></div>
+      <div class="wm-err" id="wmErr">Completa tu nombre, WhatsApp y cumpleaños (dd/mm/aaaa) 🙏</div>
       <button class="wm-btn" id="wmBtn" onclick="submitWelcome()">Quiero mi descuento</button>
       <div class="wm-fine">Te escribiremos solo con novedades y promos. Sin spam.</div>
     </div>
@@ -883,12 +883,33 @@ function maybeWelcome(){
     openWelcome();
   },2200);
 }
+// Formatea el cumpleaños mientras se escribe: solo dígitos + "/" automáticas (12081992 → 12/08/1992).
+function fmtCumple(el){
+  const v=el.value.replace(/\D/g,'').slice(0,8);   // ddmmaaaa
+  let out=v;
+  if(v.length>4) out=v.slice(0,2)+'/'+v.slice(2,4)+'/'+v.slice(4);
+  else if(v.length>2) out=v.slice(0,2)+'/'+v.slice(2);
+  el.value=out;
+}
+// Valida dd/mm/aaaa real y devuelve aaaa-mm-dd (formato estándar para remarketing), o null si es inválida.
+function parseCumple(s){
+  const m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec((s||'').trim());
+  if(!m)return null;
+  const d=+m[1],mo=+m[2],y=+m[3],yNow=new Date().getFullYear();
+  if(mo<1||mo>12||d<1||d>31||y<1900||y>yNow)return null;
+  const dt=new Date(y,mo-1,d);
+  if(dt.getFullYear()!==y||dt.getMonth()!==mo-1||dt.getDate()!==d)return null;   // descarta 31/02, 31/04, etc.
+  return y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+}
 function submitWelcome(){
   const nombre=($('wmNombre').value||'').trim();
   const whatsapp=($('wmWa').value||'').replace(/\D/g,'');
-  const cumple=($('wmCumple').value||'').trim()||null;
+  const cumple=parseCumple($('wmCumple').value);   // aaaa-mm-dd o null (obligatorio)
   const err=$('wmErr');
-  if(!nombre||whatsapp.length<7){if(err)err.classList.add('show');return;}
+  if(!nombre||whatsapp.length<7||!cumple){
+    if(err){err.textContent='Completa tu nombre, WhatsApp y cumpleaños (dd/mm/aaaa) 🙏';err.classList.add('show');}
+    return;
+  }
   if(err)err.classList.remove('show');
   const btn=$('wmBtn');if(btn){btn.disabled=true;btn.textContent='Enviando…';}
   fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},
