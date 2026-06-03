@@ -137,6 +137,23 @@ create policy "anon insert events"
 create policy "service all events"
   on events for all to service_role using (true) with check (true);
 
+-- ─── SUBSCRIBERS (popup de bienvenida $20.000 OFF) ───────────
+-- Leads capturados por el popup. Se escribe/lee SOLO con service_role
+-- (api/subscribe.js y api/catalog.js); RLS sin policy pública = el anon no ve datos personales.
+create table if not exists subscribers (
+  id         bigserial primary key,
+  created_at timestamptz default now(),
+  nombre     text,
+  whatsapp   text,
+  cumple     text,            -- YYYY-MM-DD, para promos de cumpleaños
+  utm        jsonb,
+  session_id text,
+  source     text default 'popup_bienvenida'
+);
+
+alter table subscribers enable row level security;
+-- (sin policies anon: solo service_role puede leer/escribir)
+
 -- ─── VERIFICACIÓN ───────────────────────────────────────────
 select 'products'     as tabla, count(*) as filas from products
 union all

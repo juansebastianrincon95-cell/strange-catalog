@@ -21,13 +21,20 @@ module.exports = async (req, res) => {
     ? sbSvc.from('events').select('*').gte('created_at', sevenDaysAgo)
     : Promise.resolve({ data: [] });
 
-  const [{ data: prods }, { data: liqs }, { data: settings }, { data: orders }, { data: evts }] = await Promise.all([
+  // Suscriptores del popup de bienvenida (nombre/whatsapp/cumple) → audiencia de remarketing.
+  const subsQuery = sbSvc
+    ? sbSvc.from('subscribers').select('nombre,whatsapp,cumple,utm,created_at').order('created_at', { ascending: false }).limit(500)
+    : Promise.resolve({ data: [] });
+
+  const [{ data: prods }, { data: liqs }, { data: settings }, { data: orders }, { data: evts }, subsRes] = await Promise.all([
     sbAnon.from('products').select('*'),
     sbAnon.from('liq_products').select('*'),
     sbAnon.from('settings').select('*'),
     ordersQuery,
-    eventsQuery
+    eventsQuery,
+    subsQuery
   ]);
+  const subs = (subsRes && subsRes.data) || [];   // [] si la migración aún no creó la tabla
 
   const cfg = Object.fromEntries((settings || []).map(r => [r.key, r.value]));
 
@@ -156,6 +163,13 @@ module.exports = async (req, res) => {
       abandoned_contacts: abandonados.map(o => ({
         nombre: o.nombre, tel: o.tel, ciudad: o.ciudad,
         subtotal: prodValue(o), items: o.items, utm: o.utm, fecha: o.fecha
+      }))
+    },
+    // Suscriptores del popup de bienvenida ($20.000 OFF) → audiencia de remarketing / promos de cumpleaños.
+    subscribers: {
+      total:    subs.length,
+      contacts: subs.map(s => ({
+        nombre: s.nombre, whatsapp: s.whatsapp, cumple: s.cumple, utm: s.utm, fecha: s.created_at
       }))
     },
     behavior

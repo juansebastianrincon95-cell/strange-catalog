@@ -401,6 +401,37 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .v360-close:hover{background:rgba(255,255,255,.35)}
 .v360-scrim{position:absolute;inset:0;z-index:-1;cursor:pointer}
 
+/* POPUP DE BIENVENIDA ($20.000 OFF) */
+.wm{position:fixed;inset:0;z-index:600;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(14,14,12,.62);backdrop-filter:blur(3px)}
+.wm.on{display:flex}
+.wm-card{position:relative;width:100%;max-width:360px;background:var(--white);border-radius:22px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.45);animation:pmIn .34s cubic-bezier(.16,1,.3,1) both;max-height:94vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.wm-close{position:absolute;top:11px;right:11px;width:30px;height:30px;border:none;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2}
+.wm-close:hover{background:rgba(255,255,255,.32)}
+.wm-head{background:var(--ink);color:#fff;padding:26px 22px 22px;text-align:center}
+.wm-kick{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--orange);margin-bottom:8px}
+.wm-off{font-size:46px;font-weight:700;line-height:1;letter-spacing:-.02em}
+.wm-off span{color:var(--red)}
+.wm-sub{font-size:13px;font-weight:600;opacity:.82;margin-top:7px}
+.wm-body{padding:18px 20px 22px}
+.wm-intro{font-size:12.5px;color:var(--ink2);line-height:1.5;text-align:center;margin-bottom:14px}
+.wm-fld{margin-bottom:10px}
+.wm-fld label{display:block;font-size:11px;font-weight:700;color:var(--ink2);margin-bottom:5px}
+.wm-fld input{width:100%;padding:11px 13px;background:var(--bg);border:1.5px solid var(--line);border-radius:11px;font-family:var(--font);font-size:14px;font-weight:600;color:var(--ink);outline:none;-webkit-appearance:none}
+.wm-fld input:focus{border-color:var(--ink)}
+.wm-err{display:none;font-size:11.5px;color:var(--red);font-weight:600;margin:2px 0 8px}
+.wm-err.show{display:block}
+.wm-btn{width:100%;padding:14px;background:var(--red);color:#fff;border:none;border-radius:13px;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;margin-top:4px;transition:transform .12s,opacity .12s}
+.wm-btn:active{transform:scale(.98)}
+.wm-btn[disabled]{opacity:.6;cursor:default}
+.wm-fine{font-size:10px;color:var(--ink3);text-align:center;margin-top:10px;line-height:1.4}
+.wm-ok{text-align:center;padding:6px 4px 4px}
+.wm-ok-ico{font-size:40px}
+.wm-ok-t{font-size:18px;font-weight:700;margin:6px 0 4px}
+.wm-ok-d{font-size:12.5px;color:var(--ink2);line-height:1.5;margin-bottom:14px}
+.wm-code{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--bg);border:2px dashed var(--red);border-radius:13px;padding:12px 16px;margin-bottom:6px}
+.wm-code b{font-size:19px;font-weight:700;letter-spacing:.06em;color:var(--ink)}
+.wm-copy{border:none;background:var(--ink);color:#fff;font-family:var(--font);font-size:12px;font-weight:700;padding:8px 13px;border-radius:9px;cursor:pointer}
+
 /* RESPONSIVE */
 @media(min-width:420px){.grid,.liq-grid{grid-template-columns:repeat(4,1fr);gap:7px}}
 @media(min-width:600px){.grid{padding:0 12px 24px}.grid,.liq-grid{grid-template-columns:repeat(5,1fr);gap:8px}.liq-grid{padding:0 12px}}
@@ -462,6 +493,35 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
   <div class="liq-grid" id="liqGrid"></div>
 </div>
 
+<!-- POPUP DE BIENVENIDA -->
+<div class="wm" id="welcomeModal">
+  <div class="wm-card">
+    <button class="wm-close" onclick="closeWelcome()" aria-label="Cerrar">✕</button>
+    <div class="wm-head">
+      <div class="wm-kick">Regalo de bienvenida</div>
+      <div class="wm-off"><span>$20.000</span> OFF</div>
+      <div class="wm-sub">en tu primera compra</div>
+    </div>
+    <div class="wm-body" id="wmForm">
+      <div class="wm-intro">Déjanos tus datos y te damos un código de descuento para estrenar tu primer par.</div>
+      <div class="wm-fld"><label>Nombre completo</label><input id="wmNombre" type="text" placeholder="Juan García" autocomplete="name"></div>
+      <div class="wm-fld"><label>WhatsApp</label><input id="wmWa" type="tel" inputmode="numeric" placeholder="300 000 0000" autocomplete="tel"></div>
+      <div class="wm-fld"><label>Cumpleaños</label><input id="wmCumple" type="date"></div>
+      <div class="wm-err" id="wmErr">Completa tu nombre y WhatsApp 🙏</div>
+      <button class="wm-btn" id="wmBtn" onclick="submitWelcome()">Quiero mi descuento</button>
+      <div class="wm-fine">Te escribiremos solo con novedades y promos. Sin spam.</div>
+    </div>
+    <div class="wm-body wm-ok" id="wmOk" style="display:none">
+      <div class="wm-ok-ico">🎉</div>
+      <div class="wm-ok-t">¡Tu descuento está listo!</div>
+      <div class="wm-ok-d">Usa este código en el carrito y descuenta <b>$20.000</b> de tu primera compra.</div>
+      <div class="wm-code"><b id="wmCode">BIENVENIDO20</b><button class="wm-copy" onclick="copyWelcomeCode()">Copiar</button></div>
+      <div class="wm-fine">El código se aplica solo sobre el valor del producto.</div>
+      <button class="wm-btn" style="margin-top:14px" onclick="closeWelcome()">Ver el catálogo</button>
+    </div>
+  </div>
+</div>
+
 <!-- ADMIN -->
 <div class="ascrim" id="ascrim" onclick="closeAdmin()"></div>
 <div class="apanel" id="apanel">
@@ -484,6 +544,10 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
     <div class="trow" style="background:#fff8f0">
       <div><div class="trow-lbl">🔥 Banner precio especial</div><div class="trow-sub">Muestra el banner negro arriba</div></div>
       <label class="sw"><input type="checkbox" id="swBanner" onchange="toggleBanner(this.checked)"><div class="sw-tr"></div><div class="sw-th"></div></label>
+    </div>
+    <div class="trow" style="background:#fff0f0">
+      <div><div class="trow-lbl">🎁 Popup de bienvenida</div><div class="trow-sub">$20.000 OFF (código BIENVENIDO20) al dejar datos</div></div>
+      <label class="sw"><input type="checkbox" id="swWelcome" onchange="toggleWelcome(this.checked)"><div class="sw-tr"></div><div class="sw-th"></div></label>
     </div>
     <div id="storageWarn" style="display:none;margin:8px 14px;padding:8px 12px;background:#fff8e1;border:1px solid #ffc107;border-radius:8px;font-size:11px;color:#7a5800;font-weight:600"></div>
     <div class="trow" style="background:#f8f8f6">
@@ -782,13 +846,70 @@ const $=id=>document.getElementById(id);
 const fmt=n=>'$'+n.toLocaleString('es-CO');
 const dsc=p=>p.was&&p.was>p.price?Math.round((1-p.price/p.was)*100):0;
 
-/* ── CUPÓN ── */
-const CUPON='GRACIAS5', CUPON_PCT=0.05;   // 5% sobre el subtotal de producto (no sobre el flete)
-let cuponAplicado=false;
+/* ── CUPONES ── */
+// Cada cupón aplica SOBRE el subtotal de producto (nunca sobre el flete).
+// 'pct' = porcentaje (val=0.05 → 5%); 'fijo' = monto en pesos (val=20000 → -$20.000).
+const CUPONES={
+  GRACIAS5:     {tipo:'pct', val:0.05,  lbl:'5%'},          // regalo post-compra
+  BIENVENIDO20: {tipo:'fijo',val:20000, lbl:'$20.000'}      // popup de bienvenida (primera compra)
+};
+let cuponAplicado=null;   // null o el CÓDIGO aplicado (string)
+// Descuento real para un subtotal dado, según el cupón aplicado. Nunca deja el subtotal negativo.
+function cuponDesc(sub){
+  const c=cuponAplicado&&CUPONES[cuponAplicado];if(!c)return 0;
+  return c.tipo==='pct'?Math.round(sub*c.val):Math.min(c.val,sub);
+}
 function aplicarCupon(){
   const inp=$('cupInput');if(!inp)return;
-  if(inp.value.trim().toUpperCase()===CUPON){cuponAplicado=true;rCart();}
+  const code=inp.value.trim().toUpperCase();
+  if(CUPONES[code]){cuponAplicado=code;localStorage.setItem('ss_cupon',code);rCart();}
   else{const e=$('cupErr');if(e){e.style.display='block';setTimeout(()=>{e.style.display='none';},2500);}}
+}
+
+/* ── POPUP DE BIENVENIDA ($20.000 OFF) ── */
+let WELCOME_ON=true;                 // se sobreescribe desde settings (welcome_popup)
+const WELCOME_CODE='BIENVENIDO20';   // debe coincidir con CUPONES y api/subscribe.js
+function openWelcome(){const m=$('welcomeModal');if(m)m.classList.add('on');}
+function closeWelcome(){const m=$('welcomeModal');if(m)m.classList.remove('on');localStorage.setItem('ss_welcome_seen','1');}
+// Muestra el popup una sola vez por visitante, si está activo y no hay otro modal abierto.
+function maybeWelcome(){
+  if(!WELCOME_ON)return;
+  if(localStorage.getItem('ss_welcome_seen')||localStorage.getItem('ss_subscribed'))return;
+  setTimeout(()=>{
+    if(localStorage.getItem('ss_welcome_seen'))return;
+    const open=document.querySelector('.photo-modal.on,.guia-modal.on,.csheet.on,.apanel.on,.viewer360.on');
+    if(open)return;   // no interrumpir si el usuario ya está en otra cosa (deep link, etc.)
+    openWelcome();
+  },2200);
+}
+function submitWelcome(){
+  const nombre=($('wmNombre').value||'').trim();
+  const whatsapp=($('wmWa').value||'').replace(/\D/g,'');
+  const cumple=($('wmCumple').value||'').trim()||null;
+  const err=$('wmErr');
+  if(!nombre||whatsapp.length<7){if(err)err.classList.add('show');return;}
+  if(err)err.classList.remove('show');
+  const btn=$('wmBtn');if(btn){btn.disabled=true;btn.textContent='Enviando…';}
+  fetch('/api/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({nombre,whatsapp,cumple,utm:{...getUTM(),...getFbAttribution()},session_id:SESSION_ID})})
+    .then(r=>r.ok?r.json():Promise.reject(new Error('http')))
+    .then(j=>{
+      const code=(j&&j.codigo)||WELCOME_CODE;
+      localStorage.setItem('ss_cupon',code);
+      localStorage.setItem('ss_subscribed','1');
+      localStorage.setItem('ss_welcome_seen','1');
+      const cEl=$('wmCode');if(cEl)cEl.textContent=code;
+      $('wmForm').style.display='none';$('wmOk').style.display='block';
+      if(typeof px==='function')px('Lead',{content_name:'popup_bienvenida',...getUTM()},SESSION_ID+'_subscribe');
+      trackEvent('lead',{});
+    })
+    .catch(()=>{if(btn){btn.disabled=false;btn.textContent='Quiero mi descuento';}if(err){err.textContent='No se pudo enviar, revisa tu conexión y reintenta.';err.classList.add('show');}});
+}
+function copyWelcomeCode(){
+  const code=($('wmCode').textContent||WELCOME_CODE).trim();
+  const done=()=>{const b=document.querySelector('.wm-copy');if(b){const t=b.textContent;b.textContent='¡Copiado!';setTimeout(()=>b.textContent=t,1600);}};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(code).then(done).catch(done);
+  else done();
 }
 
 /* ── NEUROMARKETING ── */
@@ -1278,6 +1399,7 @@ function changePin(){
 function closeAdmin(){$('ascrim').classList.remove('on');$('apanel').classList.remove('on');document.body.style.overflow='';}
 async function toggleBanner(on){bannerOn=on;$('banner').classList.toggle('off',!on);await adminWrite('upsert_settings',{data:{key:'banner_on',value:String(on)}});}
 async function toggleGlobal(on){promoG=on;renderGrid();renderAdmin();await adminWrite('upsert_settings',{data:{key:'promo_global',value:String(on)}});}
+async function toggleWelcome(on){WELCOME_ON=on;await adminWrite('upsert_settings',{data:{key:'welcome_popup',value:String(on)}});}
 function setAdminTab(n){
   aTab=n;
   $('panCat').style.display=n===0?'flex':'none';
@@ -1735,10 +1857,12 @@ function rCart(){
   }).join('');
   const sub=rows.reduce((s,{p,qty})=>s+p.price*qty,0),tot=rows.reduce((s,{qty})=>s+qty,0);
   const ahorro=rows.reduce((s,{p,qty})=>s+((p.was&&p.was>p.price)?(p.was-p.price)*qty:0),0);
-  const desc=cuponAplicado?Math.round(sub*CUPON_PCT):0;   // 5% sobre subtotal de producto
+  // Auto-aplicar el cupón que el visitante ya ganó (ej. BIENVENIDO20 del popup), si no hay otro puesto.
+  if(!cuponAplicado){const sc=localStorage.getItem('ss_cupon');if(sc&&CUPONES[sc])cuponAplicado=sc;}
+  const desc=cuponDesc(sub);
   const subFinal=sub-desc;
   const cupHtml=cuponAplicado
-    ? `<div class="cart-line cart-cupon">🏷️ Cupón ${CUPON}: -${fmt(desc)} (5%)</div>`
+    ? `<div class="cart-line cart-cupon">🏷️ Cupón ${cuponAplicado}: -${fmt(desc)}</div>`
     : `<div class="cup-box"><input id="cupInput" placeholder="¿Tienes un código de descuento?" autocomplete="off"><button class="cup-btn" onclick="aplicarCupon()">Aplicar</button></div><div class="cup-err" id="cupErr" style="display:none">Código no válido</div>`;
   body.innerHTML+=`<div class="csubb"><span class="csubl">${tot} par${tot>1?'es':''}</span><span class="csubv">${fmt(subFinal)}</span></div>`
     +cupHtml
@@ -1788,7 +1912,7 @@ function calcFlete(pares){return 25000+Math.max(0,pares-1)*15000;}
 function rPayChoice(){
   const rows=Object.values(cart);
   const subBruto=rows.reduce((s,{p,qty})=>s+p.price*qty,0);
-  const sub=subBruto-(cuponAplicado?Math.round(subBruto*CUPON_PCT):0);   // subtotal con cupón
+  const sub=subBruto-cuponDesc(subBruto);   // subtotal con cupón
   const pares=rows.reduce((s,{qty})=>s+qty,0);
   const flete=calcFlete(pares);
   const card=(fn,bg,col,ico,tit,desc,tot)=>`<button onclick="${fn}" style="width:100%;text-align:left;background:${bg};color:${col};border:none;border-radius:14px;padding:16px 18px;cursor:pointer;font-family:var(--font);display:flex;flex-direction:column;gap:2px"><div style="font-size:15px;font-weight:700">${ico} ${tit}</div><div style="font-size:11px;opacity:.75;margin-top:1px">${desc}</div><div style="font-size:14px;font-weight:700;margin-top:6px;opacity:.9">Total a pagar: ${tot}</div></button>`;
@@ -1804,22 +1928,22 @@ function enviarWA(tipo){
   cData=d;
   const rows=Object.values(cart);
   const subBruto=rows.reduce((s,{p,qty})=>s+p.price*qty,0);
-  const desc=cuponAplicado?Math.round(subBruto*CUPON_PCT):0;   // 5% sobre producto
-  const sub=subBruto-desc;                                     // subtotal real (con cupón)
+  const desc=cuponDesc(subBruto);          // descuento del cupón sobre producto
+  const sub=subBruto-desc;                 // subtotal real (con cupón)
   const totalPares=rows.reduce((s,{qty})=>s+qty,0);
   const flete=tipo==='contra_entrega'?calcFlete(totalPares):0;
   const tot=sub+flete;
   let items='';
   rows.forEach(({p,qty,type})=>{const s=p.price*qty;const lbl=type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer');items+=`  • Par ${lbl} x${qty} — ${fmt(s)}\n`;});
   const envioLinea=tipo==='contra_entrega'?`🚚 *Envío contra entrega:* ${fmt(flete)}`:`📦 *Envío: GRATIS ✓*`;
-  const descLinea=desc>0?`🏷️ *Descuento ${CUPON}:* -${fmt(desc)}\n`:'';
+  const descLinea=desc>0?`🏷️ *Descuento ${cuponAplicado}:* -${fmt(desc)}\n`:'';
   const pagoLbl=tipo==='contra_entrega'?'Contra entrega 📦':'Pago anticipado 💸';
   const instruccion=tipo==='contra_entrega'?'Confirmar disponibilidad y coordinar entrega 🙏':'Enviar comprobante de pago para procesar el envío 🙏';
   const msg=`🛍️ *NUEVO PEDIDO — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n💰 *Subtotal: ${fmt(subBruto)}*\n${descLinea}${envioLinea}\n💰 *TOTAL: ${fmt(tot)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${d.nombre}\n• Cédula: ${d.cedula}\n• Celular: ${d.celular}\n• Dirección: ${d.direccion}\n• Barrio: ${d.barrio}\n• Ciudad: ${d.ciudad}\n━━━━━━━━━━━━━━━━━━━━\n💳 *Pago:* ${pagoLbl}\n━━━━━━━━━━━━━━━━━━━━\n${instruccion}\n\n🎁 *Tu regalo — Guía de cuidado de tus sneakers:*\nhttps://catalogo.strangesneakers.com/?regalo=cuidado`;
   const orderObj={
     id:Date.now(),fecha:new Date().toISOString(),
     items:rows.map(({p,qty,type})=>({label:type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer'),qty,precio:p.price*qty})),
-    subtotal:sub,envio:flete,total:tot,pares:totalPares,pago:tipo,session_id:SESSION_ID,cupon:cuponAplicado?CUPON:null,
+    subtotal:sub,envio:flete,total:tot,pares:totalPares,pago:tipo,session_id:SESSION_ID,cupon:cuponAplicado||null,
     nombre:d.nombre,cedula:d.cedula,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,direccion:d.direccion,
     utm:{...getUTM(),...getFbAttribution()},referrer:getReferrer(),seccion:gSel
   };
@@ -1849,7 +1973,7 @@ async function pagarWompi(){
   cData=d;
   const rows=Object.values(cart);
   const subBruto=rows.reduce((s,{p,qty})=>s+p.price*qty,0);
-  const desc=cuponAplicado?Math.round(subBruto*CUPON_PCT):0;
+  const desc=cuponDesc(subBruto);
   const tot=subBruto-desc;                 // Wompi cobra el subtotal con cupón (envío gratis)
   const amountCents=tot*100;
   const reference='STR-'+Date.now();
@@ -1857,7 +1981,7 @@ async function pagarWompi(){
   const wOrder={
     id:Date.now(),fecha:new Date().toISOString(),
     items:rows.map(({p,qty,type})=>({label:type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer'),qty,precio:p.price*qty})),
-    subtotal:tot,envio:0,total:tot,pares:totalPares,pago:'wompi',status:'pending',session_id:SESSION_ID,cupon:cuponAplicado?CUPON:null,
+    subtotal:tot,envio:0,total:tot,pares:totalPares,pago:'wompi',status:'pending',session_id:SESSION_ID,cupon:cuponAplicado||null,
     nombre:d.nombre,cedula:d.cedula,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,direccion:d.direccion,
     reference,utm:{...getUTM(),...getFbAttribution()},referrer:getReferrer(),seccion:gSel
   };
@@ -2079,6 +2203,8 @@ async function loadState(){
     const cfg=Object.fromEntries((sRows||[]).map(r=>[r.key,r.value]));
     promoG=cfg.promo_global==='true';
     bannerOn=cfg.banner_on==='true';
+    WELCOME_ON=cfg.welcome_popup!=='false';   // activo por defecto; admin puede apagarlo
+    {const sw=$('swWelcome');if(sw)sw.checked=WELCOME_ON;}
     if(cfg.store_name)STORE_NAME=cfg.store_name;
     if(cfg.wa)WA=cfg.wa;
     if(cfg.pixel_id)PIXEL_ID=cfg.pixel_id;
@@ -2215,6 +2341,7 @@ if(localStorage.getItem('ss_reserve_until')&&!_reserveTimer){_reserveTimer=setIn
   renderGrid();
   checkDeepLink();
   checkWompiReturn();
+  maybeWelcome();   // popup de bienvenida ($20.000 OFF), una vez por visitante
 })();
 </script>
 </body>
