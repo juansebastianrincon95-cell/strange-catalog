@@ -562,7 +562,7 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 </section>
 
 <!-- FOOTER (redes + newsletter) -->
-<footer class="ftr" id="siteFooter">
+<footer class="ftr" id="siteFooter" style="display:none">
   <div class="ftr-top">
     <div class="ftr-social">
       <div class="ftr-h">Síguenos</div>
@@ -1406,6 +1406,7 @@ function renderFooter(){
   }
   const logo=$('ftrLogo');if(logo)logo.textContent=(STORE_NAME||'STRANGE')+'®';
   const yr=$('ftrYear');if(yr)yr.textContent=new Date().getFullYear();
+  const f=$('siteFooter');if(f)f.style.display='';   // se muestra solo cuando ya cargó todo (evita verlo al inicio)
 }
 function subscribeFooter(){
   const inp=$('ftrEmail'),msg=$('ftrMsg'),btn=$('ftrBtn');
