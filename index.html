@@ -476,6 +476,7 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .preview-t{font-size:18px;font-weight:700;letter-spacing:-.01em;color:var(--ink)}
 .preview-all{border:none;background:none;color:var(--ink);font-family:var(--font);font-size:12.5px;font-weight:700;cursor:pointer;padding:6px 2px}
 .preview-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:0 16px}
+@media(max-width:699px){.preview-grid .card:nth-child(n+7){display:none}}   /* móvil: solo 6 (escritorio muestra 8) */
 @media(min-width:700px){.preview-grid{grid-template-columns:repeat(4,1fr);gap:10px}}
 
 /* CATÁLOGO COMPLETO (vista a pantalla completa) */
@@ -484,6 +485,10 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .catview-bar{position:sticky;top:0;z-index:3;display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--white);border-bottom:1px solid var(--line)}
 .catview-back{width:34px;height:34px;border:none;border-radius:50%;background:var(--bg);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink);flex-shrink:0}
 .catview-title{font-size:15px;font-weight:700;color:var(--ink)}
+
+/* TOAST */
+.toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:24px;font-size:13px;font-weight:600;z-index:700;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;box-shadow:0 6px 24px rgba(0,0,0,.32);max-width:90vw;text-align:center}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* FOOTER (redes + newsletter) */
 .ftr{background:var(--bg);border-top:1px solid var(--line);margin-top:6px}
@@ -875,6 +880,9 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
     </div>
   </div>
 </div>
+
+<!-- TOAST (confirmación carrito) -->
+<div class="toast" id="toast"></div>
 
 <!-- GUÍA DE CUIDADO -->
 <div class="guia-modal" id="guiaModal">
@@ -1379,7 +1387,7 @@ function closeCatalog(){const v=$('catView');if(v)v.classList.remove('on');docum
 // Preview del inicio: 6 modelos disponibles más recientes (prods viene ordenado por id asc).
 function renderPreview(){
   const sec=$('preview'),grid=$('previewGrid');if(!grid)return;
-  const items=prods.filter(p=>!p.sold).slice(-6).reverse();
+  const items=prods.filter(p=>!p.sold).slice(-8).reverse();   // 8 en escritorio; móvil oculta 7º/8º (CSS)
   if(!items.length){if(sec)sec.style.display='none';grid.innerHTML='';return;}
   if(sec)sec.style.display='';
   grid.innerHTML=items.map((p,i)=>cardHTML(p,i,'kp')).join('');
@@ -1632,6 +1640,9 @@ function togCard(id,type){
     px('AddToCart',{content_ids:[String(key)],content_type:'product',content_category:_acat,content_name:_anm,value:p.price,currency:'COP',...getUTM()});
     trackEvent('add_to_cart',{product_id:String(key),price:p.price,gender:type==='liq'?null:p.g});
     startReserva();   // arranca/continúa el contador de reserva al agregar al carrito
+    toast('✓ Agregado al carrito');
+  }else if(wasInCart&&!inCart){
+    toast('Quitado del carrito');
   }
   // sincroniza la tarjeta en el grid Y en "Últimos lanzamientos" (mismo producto, dos lugares)
   const els=type==='liq'?[$('lk'+id)]:[$('k'+id),$('kl'+id),$('kp'+id)];
@@ -1647,6 +1658,12 @@ function togCard(id,type){
 function syncDot(){
   const n=Object.values(cart).reduce((s,i)=>s+i.qty,0);
   [$('bdot'),$('bdot2')].forEach(d=>{if(d){d.textContent=n;d.classList.toggle('show',n>0);}});
+}
+let _toastT=null;
+function toast(msg){
+  const t=$('toast');if(!t)return;
+  t.textContent=msg;t.classList.add('on');
+  clearTimeout(_toastT);_toastT=setTimeout(()=>t.classList.remove('on'),2000);
 }
 function setG(v,btn){
   gSel=v;
