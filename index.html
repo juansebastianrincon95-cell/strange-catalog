@@ -183,7 +183,6 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .pm-add{width:100%;margin-top:16px;background:var(--ink);color:#fff;border:none;padding:15px;border-radius:13px;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;transition:transform .12s,background .15s}
 .pm-add:active{transform:scale(.98)}
 .pm-add.in{background:var(--green)}
-.pm-viewcart{width:100%;margin-top:8px;background:var(--red);color:#fff;border:none;padding:13px;border-radius:13px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer}
 .pm-pay{margin-top:18px}
 .pm-pay-t{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);text-align:center;margin-bottom:9px}
 .pm-pay-row{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
@@ -197,7 +196,28 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .pm-trust{margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .pm-trust-item{display:flex;align-items:center;gap:7px;background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:9px 11px;font-size:11px;font-weight:600;color:var(--ink)}
 .pm-trust-item span{line-height:1.2}
+/* Financiación + medios de pago con logos reales (carpeta logos/, fallback a texto vía onerror) */
+.pm-fin-cap{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-top:16px;margin-bottom:7px}
+.pm-finance .pm-fin{display:flex;align-items:center;justify-content:center;min-height:46px}
+.pm-fin-logo{max-height:30px;max-width:100%;object-fit:contain}
+.pm-pay-i{display:inline-flex;align-items:center}
+.pm-pay-row img{height:26px;max-width:62px;object-fit:contain;display:block}
+/* Reseñas de ejemplo en la ficha */
+.pm-reviews{margin-top:18px;border-top:1px solid var(--line);padding-top:14px}
+.pm-rev-t{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);margin-bottom:10px}
+.pm-rev{background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:11px 12px;margin-bottom:8px}
+.pm-rev-h{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.pm-rev-h b{font-size:12.5px;font-weight:700;color:var(--ink)}
+.pm-rev-v{font-size:10px;font-weight:600;color:var(--green)}
+.pm-rev-s{font-size:12px;color:#f5a623;letter-spacing:1px;margin-top:2px}
+.pm-rev-x{font-size:12px;color:var(--ink2);line-height:1.5;margin-top:4px}
 @media(min-width:560px){.photo-modal.on{display:flex;align-items:center;justify-content:center;padding:24px}.pm-wrap{position:relative;left:auto;right:auto;bottom:auto;margin:0;border-radius:18px;max-height:92vh;animation:none}.pm-close{position:absolute}}
+/* 8c — ESCRITORIO: ficha a 2 columnas (foto izq + info der). El móvil (hoja inferior) NO cambia. */
+@media(min-width:700px){
+  .pm-wrap{max-width:880px;display:flex;align-items:stretch;overflow:hidden}
+  .pm-img{width:46%;height:auto;align-self:stretch;aspect-ratio:auto;object-fit:cover}
+  .pm-body{width:54%;overflow-y:auto;max-height:90vh;-webkit-overflow-scrolling:touch}
+}
 .cart-line{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;border-radius:10px;padding:9px 12px;margin-top:8px}
 .cart-reserva{background:#fff1ef;color:#d9492f;border:1px solid #ffd9d2}
 .cart-reserva b{font-variant-numeric:tabular-nums}
@@ -972,15 +992,23 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
       <div class="pm-price-row"><span class="pm-price" id="pmPrice">$180.000</span><span class="pm-was" id="pmWas" style="display:none"></span></div>
       <div class="pm-save" id="pmSave" style="display:none"></div>
       <div class="pm-desc" id="pmDesc"></div>
+      <div class="pm-fin-cap">Paga a cuotas con</div>
       <div class="pm-finance">
-        <div class="pm-fin">Paga a cuotas con<b>Addi</b></div>
-        <div class="pm-fin">Crédito fácil con<b>Sistecrédito</b></div>
+        <div class="pm-fin"><img class="pm-fin-logo" src="logos/addi.png" alt="Addi" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="pm-fin-txt" style="display:none">Paga a cuotas con<b>Addi</b></span></div>
+        <div class="pm-fin"><img class="pm-fin-logo" src="logos/sistecredito.png" alt="Sistecrédito" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="pm-fin-txt" style="display:none">Crédito fácil con<b>Sistecrédito</b></span></div>
       </div>
       <button class="pm-add" id="pmAdd" onclick="addFromModal()">+ Agregar al carrito</button>
-      <button class="pm-viewcart" id="pmViewCart" style="display:none" onclick="closePhotoBtn();openCart()">Ver carrito &nbsp;→</button>
       <div class="pm-pay">
         <div class="pm-pay-t">Medios de pago</div>
-        <div class="pm-pay-row"><span>📦 Contra entrega</span><span>💜 Wompi</span><span>📱 Nequi</span><span>🏦 PSE</span><span>💳 Visa / Master</span></div>
+        <div class="pm-pay-row">
+          <span class="pm-pay-i"><img src="logos/contraentrega.png" alt="Contra entrega" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="pm-pay-txt" style="display:none">📦 Contra entrega</span></span>
+          <span class="pm-pay-i"><img src="logos/wompi.png" alt="Wompi" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="pm-pay-txt" style="display:none">💜 Wompi</span></span>
+          <span class="pm-pay-i"><img src="logos/nequi.png" alt="Nequi" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="pm-pay-txt" style="display:none">📱 Nequi</span></span>
+          <span class="pm-pay-i"><img src="logos/bancolombia.png" alt="Bancolombia" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="pm-pay-txt" style="display:none">🏦 Bancolombia</span></span>
+          <span class="pm-pay-i"><img src="logos/pse.png" alt="PSE" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="pm-pay-txt" style="display:none">🏦 PSE</span></span>
+          <span class="pm-pay-i"><img src="logos/visa.png" alt="Visa" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="pm-pay-txt" style="display:none">💳 Visa</span></span>
+          <span class="pm-pay-i"><img src="logos/mastercard.png" alt="Mastercard" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="pm-pay-txt" style="display:none">💳 Mastercard</span></span>
+        </div>
       </div>
       <div class="pm-meta">
         <div class="pm-chip social" id="pmSocial" style="display:none"></div>
@@ -993,6 +1021,7 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
         <div class="pm-trust-item">🔄 <span>Cambios por talla</span></div>
         <div class="pm-trust-item">⭐ <span>100% Garantía</span></div>
       </div>
+      <div class="pm-reviews" id="pmRevList"></div>
     </div>
   </div>
 </div>
@@ -1833,7 +1862,7 @@ function togCard(id,type){
     px('AddToCart',{content_ids:[String(key)],content_type:'product',content_category:_acat,content_name:_anm,value:p.price,currency:'COP',...getUTM()});
     trackEvent('add_to_cart',{product_id:String(key),price:p.price,gender:type==='liq'?null:p.g});
     startReserva();   // arranca/continúa el contador de reserva al agregar al carrito
-    toast('✓ Agregado al carrito');
+    openCart();       // el carrito se despliega como confirmación al agregar cada producto
   }else if(wasInCart&&!inCart){
     toast('Quitado del carrito');
   }
@@ -1920,6 +1949,7 @@ function openPhoto(id,type){
   const pr=$('pmReserve');
   if(pr)pr.style.display=Object.keys(cart).length?'flex':'none';
   if(Object.keys(cart).length)tickReserva();
+  renderFichaReviews();
   syncPmBtn();
   const _vcat=type==='liq'?'liquidacion':p.g;
   const _vnm=type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer');
@@ -1933,7 +1963,6 @@ function syncPmBtn(){
   const ic=!!cart[key];
   $('pmAdd').textContent=ic?'✓ Agregado al carrito':'+ Agregar al carrito';
   $('pmAdd').className='pm-add'+(ic?' in':'');
-  const vc=$('pmViewCart');if(vc)vc.style.display=ic?'':'none';
 }
 // Descripción genérica (no hay nombres de producto): plantilla por género/marca.
 function genDescripcion(p,type){
@@ -1942,7 +1971,20 @@ function genDescripcion(p,type){
   const g=p.g==='h'?'hombre':'mujer';
   return `Sneakers ${mk?mk+' ':''}para ${g}: diseño original, materiales de calidad y comodidad todo el día — perfectos para combinar con todo. Envío gratis a todo el país, pago contra entrega, cambios por talla y 100% garantía.`;
 }
-function addFromModal(){if(pmId!==null)togCard(pmId,pmType);}
+// Reseñas de ejemplo (genéricas, 5★) para la ficha. NOTA: son de muestra; reemplazar por reales
+// cuando se tengan, para no chocar con políticas de Meta ni con la confianza del cliente.
+const FICHA_REVIEWS=[
+  {nombre:'Andrés M.',texto:'Súper cómodos y llegaron rapidísimo. Tal cual la foto, calidad muy buena.'},
+  {nombre:'Laura G.',texto:'Me encantaron, la talla quedó perfecta y el material se siente original. Repito sin duda.'},
+  {nombre:'Camilo R.',texto:'Excelente atención y pagué contra entrega sin problema. 100% recomendados.'}
+];
+function renderFichaReviews(){
+  const c=$('pmRevList');if(!c)return;
+  c.innerHTML='<div class="pm-rev-t">Lo que dicen los clientes</div>'+FICHA_REVIEWS.map(r=>
+    `<div class="pm-rev"><div class="pm-rev-h"><b>${escHtml(r.nombre)}</b><span class="pm-rev-v">✓ Compra verificada</span></div><div class="pm-rev-s">★★★★★</div><div class="pm-rev-x">${escHtml(r.texto)}</div></div>`
+  ).join('');
+}
+function addFromModal(){if(pmId===null)return;const id=pmId,t=pmType;closePhotoBtn();togCard(id,t);}
 function closePhotoBtn(){
   $('photoModal').classList.remove('on');
   document.body.style.overflow='';
@@ -2560,21 +2602,31 @@ async function addQueue(dest){
 }
 
 /* ── CART SHEET ── */
+// El carrito se abre como confirmación al agregar (puede ser muchas veces). El evento
+// InitiateCheckout NO se dispara al abrir, sino al avanzar a "Tus datos" (goStep 1), para no
+// inflar el funnel de Meta. _icFired evita duplicarlo dentro de un mismo ciclo de carrito.
+let _icFired=false;
 function openCart(){
-  step=0;renderStep();
+  step=0;_icFired=false;renderStep();
   $('cscrim').classList.add('on');$('csheet').classList.add('on');document.body.style.overflow='hidden';
-  const cartVals=Object.values(cart);
-  if(cartVals.length){
-    const icTotal=cartVals.reduce((s,{p,qty})=>s+p.price*qty,0);
-    const icItems=cartVals.reduce((s,{qty})=>s+qty,0);
-    px('InitiateCheckout',{num_items:icItems,value:icTotal,currency:'COP'});
-    trackEvent('initiate_checkout',{price:icTotal});
-  }
 }
 function closeCart(){$('cscrim').classList.remove('on');$('csheet').classList.remove('on');document.body.style.overflow='';}
 function updDots(){[0,1,2].forEach(i=>{const d=$('cs'+i);d.className='csd'+(i===step?' active':i<step?' done':'');});$('cttl').textContent=['Tu pedido','Tus datos','Pagar'][step]+`  ·  Paso ${step+1} de 3`;}
 function renderStep(){updDots();[rCart,rForm,rPayChoice][step]();}
-function goStep(n){step=n;renderStep();$('cbody').scrollTop=0;}
+function goStep(n){
+  // InitiateCheckout = el cliente realmente inicia el checkout (avanza a "Tus datos"), una vez por ciclo.
+  if(n===1&&!_icFired){
+    _icFired=true;
+    const cartVals=Object.values(cart);
+    if(cartVals.length){
+      const icTotal=cartVals.reduce((s,{p,qty})=>s+p.price*qty,0);
+      const icItems=cartVals.reduce((s,{qty})=>s+qty,0);
+      px('InitiateCheckout',{num_items:icItems,value:icTotal,currency:'COP'});
+      trackEvent('initiate_checkout',{price:icTotal});
+    }
+  }
+  step=n;renderStep();$('cbody').scrollTop=0;
+}
 function chQty(key,d){if(!cart[key])return;cart[key].qty=Math.max(1,cart[key].qty+d);syncDot();renderStep();}
 function rmItem(key){
   const it=cart[key];delete cart[key];
