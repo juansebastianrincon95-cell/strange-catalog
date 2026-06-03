@@ -452,6 +452,7 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
   .hero-ov{padding:0 0 56px 60px;max-width:640px;text-align:left}
   .hero-tit{font-size:50px}
   .hero-sub{font-size:13px}
+  .hero-slide img{object-position:center var(--pos,50%)}   /* encuadre escritorio por slide */
 }
 
 /* ÚLTIMOS LANZAMIENTOS */
@@ -1135,7 +1136,8 @@ function renderHero(){
   }
   if(hdr)hdr.style.display='none';             // el carrusel reemplaza el encabezado
   hero.classList.add('on');
-  track.innerHTML=slides.map(s=>`<div class="hero-slide"><picture>${s.img_desktop?`<source media="(min-width:700px)" srcset="${escHtml(s.img_desktop)}">`:''}<img src="${escHtml(s.img)}" alt="${escHtml(s.titulo)}" loading="lazy"></picture><div class="hero-ov">${s.titulo?`<div class="hero-tit">${escHtml(s.titulo)}</div>`:''}${s.subtitulo?`<div class="hero-sub">${escHtml(s.subtitulo)}</div>`:''}<button class="hero-cta" onclick="heroCTA(${slides.indexOf(s)})">Comprar ahora</button></div></div>`).join('');
+  const posMap={top:'18%',center:'50%',bottom:'82%'};
+  track.innerHTML=slides.map(s=>`<div class="hero-slide"><picture>${s.img_desktop?`<source media="(min-width:700px)" srcset="${escHtml(s.img_desktop)}">`:''}<img src="${escHtml(s.img)}" alt="${escHtml(s.titulo)}" loading="lazy" style="--pos:${posMap[s.pos]||'50%'}"></picture><div class="hero-ov">${s.titulo?`<div class="hero-tit">${escHtml(s.titulo)}</div>`:''}${s.subtitulo?`<div class="hero-sub">${escHtml(s.subtitulo)}</div>`:''}<button class="hero-cta" onclick="heroCTA(${slides.indexOf(s)})">Comprar ahora</button></div></div>`).join('');
   dots.innerHTML=slides.length>1?slides.map((_,i)=>`<span class="hero-dot${i===0?' on':''}" onclick="heroGoStop(${i})"></span>`).join(''):'';
   heroCur=0;heroApply();
   if(_heroTimer)clearInterval(_heroTimer);
@@ -1234,10 +1236,16 @@ function renderHeroAdmin(){
   box.innerHTML=heroSlides.map((s,i)=>`<div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:9px;padding:6px">
     <img src="${escHtml(s.img)}" style="width:38px;height:48px;object-fit:cover;border-radius:6px;flex-shrink:0">
     <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(s.titulo)||'(sin título)'}</div><div style="font-size:10px;color:var(--ink3)">${escHtml(heroDestLabel(s))}</div></div>
+    <button onclick="heroPos(${i})" title="Encuadre escritorio: ${s.pos==='bottom'?'Abajo (tenis)':s.pos==='top'?'Arriba':'Centro'} — toca para cambiar" style="border:none;background:var(--bg);border-radius:6px;width:32px;height:26px;cursor:pointer;font-size:11px">${s.pos==='bottom'?'🖥▼':s.pos==='top'?'🖥▲':'🖥■'}</button>
     <button onclick="heroMove(${i},-1)" ${i===0?'disabled':''} style="border:none;background:var(--bg);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;${i===0?'opacity:.3':''}">↑</button>
     <button onclick="heroMove(${i},1)" ${i===heroSlides.length-1?'disabled':''} style="border:none;background:var(--bg);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;${i===heroSlides.length-1?'opacity:.3':''}">↓</button>
     <button onclick="heroDel(${i})" style="border:none;background:#ffe9e6;color:var(--red);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px">🗑</button>
   </div>`).join('');
+}
+async function heroPos(i){
+  const order=['center','bottom','top'];
+  heroSlides[i].pos=order[(order.indexOf(heroSlides[i].pos||'center')+1)%order.length];
+  await saveHeroSlides();
 }
 async function heroMove(i,dir){
   const j=i+dir;if(j<0||j>=heroSlides.length)return;
