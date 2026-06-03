@@ -437,6 +437,7 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .hero.on{display:block}
 .hero-track{display:flex;height:100%;transition:transform .5s cubic-bezier(.16,1,.3,1)}
 .hero-slide{position:relative;min-width:100%;height:100%}
+.hero-slide picture{display:block;width:100%;height:100%}
 .hero-slide img{width:100%;height:100%;object-fit:cover;display:block;-webkit-user-drag:none;user-select:none}
 .hero-ov{position:absolute;left:0;right:0;bottom:0;padding:60px 22px 28px;background:linear-gradient(to top,rgba(0,0,0,.82) 8%,rgba(0,0,0,.35) 55%,transparent);color:#fff;text-align:center}
 .hero-tit{font-size:28px;font-weight:700;line-height:1.08;letter-spacing:.01em;text-transform:uppercase;text-shadow:0 2px 14px rgba(0,0,0,.45)}
@@ -580,8 +581,10 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
     <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#f3f1ff">
       <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">🖼 Banners del inicio (hero)</div>
       <div id="heroAdminList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>
-      <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">📷 <span id="heroFileLbl">Subir imagen del banner</span><input type="file" accept="image/*" id="heroFile" style="display:none" onchange="heroDraftImg(this.files[0]);this.value=''"></label>
-      <img id="heroDraftThumb" style="display:none;width:100%;max-height:160px;object-fit:cover;border-radius:9px;margin-top:8px">
+      <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">📱 <span id="heroFileLbl">Imagen móvil (vertical)</span><input type="file" accept="image/*" id="heroFile" style="display:none" onchange="heroDraftImg(this.files[0],'movil');this.value=''"></label>
+      <img id="heroDraftThumb" style="display:none;width:100%;max-height:140px;object-fit:cover;border-radius:9px;margin-top:8px">
+      <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;margin-top:8px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">🖥 <span id="heroFileLblD">Imagen escritorio (horizontal) — opcional</span><input type="file" accept="image/*" id="heroFileD" style="display:none" onchange="heroDraftImg(this.files[0],'escritorio');this.value=''"></label>
+      <img id="heroDraftThumbD" style="display:none;width:100%;max-height:110px;object-fit:cover;border-radius:9px;margin-top:8px">
       <input id="heroTit" type="text" placeholder="Título (ej. Lo nuevo de Nike)" style="margin-top:8px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
       <input id="heroSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
       <div style="display:flex;gap:6px;margin-top:6px">
@@ -990,7 +993,7 @@ function renderHero(){
   }
   if(hdr)hdr.style.display='none';             // el carrusel reemplaza el encabezado
   hero.classList.add('on');
-  track.innerHTML=slides.map(s=>`<div class="hero-slide"><img src="${escHtml(s.img)}" alt="${escHtml(s.titulo)}" loading="lazy"><div class="hero-ov">${s.titulo?`<div class="hero-tit">${escHtml(s.titulo)}</div>`:''}${s.subtitulo?`<div class="hero-sub">${escHtml(s.subtitulo)}</div>`:''}<button class="hero-cta" onclick="heroCTA(${slides.indexOf(s)})">Comprar ahora</button></div></div>`).join('');
+  track.innerHTML=slides.map(s=>`<div class="hero-slide"><picture>${s.img_desktop?`<source media="(min-width:700px)" srcset="${escHtml(s.img_desktop)}">`:''}<img src="${escHtml(s.img)}" alt="${escHtml(s.titulo)}" loading="lazy"></picture><div class="hero-ov">${s.titulo?`<div class="hero-tit">${escHtml(s.titulo)}</div>`:''}${s.subtitulo?`<div class="hero-sub">${escHtml(s.subtitulo)}</div>`:''}<button class="hero-cta" onclick="heroCTA(${slides.indexOf(s)})">Comprar ahora</button></div></div>`).join('');
   dots.innerHTML=slides.length>1?slides.map((_,i)=>`<span class="hero-dot${i===0?' on':''}" onclick="heroGoStop(${i})"></span>`).join(''):'';
   heroCur=0;heroApply();
   if(_heroTimer)clearInterval(_heroTimer);
@@ -1038,7 +1041,7 @@ function heroCTA(idx){
 }
 
 /* ── HERO: admin (gestionar banners) ── */
-let _heroDraftImg=null;
+let _heroDraft={img:null,img_desktop:null};
 function heroLinkTypeChange(){
   const t=($('heroLinkType')||{}).value,sel=$('heroLinkVal');if(!sel)return;
   if(t==='product'){
@@ -1049,32 +1052,39 @@ function heroLinkTypeChange(){
     sel.innerHTML='<option value="h">Hombre</option><option value="m">Mujer</option>';
   }
 }
-function heroDraftImg(file){
+function heroDraftImg(file,which){
   if(!file)return;
-  const lbl=$('heroFileLbl');if(lbl)lbl.textContent='Subiendo…';
+  const isD=(which==='escritorio');
+  const lbl=$(isD?'heroFileLblD':'heroFileLbl');
+  const baseLbl=isD?'Imagen escritorio (horizontal) — opcional':'Imagen móvil (vertical)';
+  if(lbl)lbl.textContent='Subiendo…';
   compressImg(file,async dataUrl=>{
     try{
       const url=await uploadToStorage(dataUrl,0,false);
-      _heroDraftImg=url;
-      const t=$('heroDraftThumb');if(t){t.src=url;t.style.display='block';}
-      if(lbl)lbl.textContent='Imagen lista ✓ (cambiar)';
-    }catch(e){if(lbl)lbl.textContent='Subir imagen del banner';alert('❌ No se pudo subir la imagen:\n'+(e.message||e));}
+      if(isD)_heroDraft.img_desktop=url; else _heroDraft.img=url;
+      const t=$(isD?'heroDraftThumbD':'heroDraftThumb');if(t){t.src=url;t.style.display='block';}
+      if(lbl)lbl.textContent=(isD?'Escritorio':'Móvil')+' lista ✓ (cambiar)';
+    }catch(e){if(lbl)lbl.textContent=baseLbl;alert('❌ No se pudo subir la imagen:\n'+(e.message||e));}
   },false);
 }
 async function heroAdd(){
-  if(!_heroDraftImg){alert('Primero sube una imagen para el banner.');return;}
-  heroSlides.push({
-    img:_heroDraftImg,
+  if(!_heroDraft.img){alert('Sube al menos la imagen móvil del banner.');return;}
+  const slide={
+    img:_heroDraft.img,
     titulo:($('heroTit').value||'').trim(),
     subtitulo:($('heroSub').value||'').trim(),
     link_type:($('heroLinkType')||{}).value||'product',
     link_value:($('heroLinkVal')||{}).value||''
-  });
+  };
+  if(_heroDraft.img_desktop)slide.img_desktop=_heroDraft.img_desktop;
+  heroSlides.push(slide);
   await saveHeroSlides();
-  _heroDraftImg=null;
+  _heroDraft={img:null,img_desktop:null};
   $('heroTit').value='';$('heroSub').value='';
   const t=$('heroDraftThumb');if(t){t.src='';t.style.display='none';}
-  const lbl=$('heroFileLbl');if(lbl)lbl.textContent='Subir imagen del banner';
+  const td=$('heroDraftThumbD');if(td){td.src='';td.style.display='none';}
+  const lbl=$('heroFileLbl');if(lbl)lbl.textContent='Imagen móvil (vertical)';
+  const lblD=$('heroFileLblD');if(lblD)lblD.textContent='Imagen escritorio (horizontal) — opcional';
 }
 function heroDestLabel(s){
   if(s.link_type==='product')return 'Producto #'+s.link_value;
