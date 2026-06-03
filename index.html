@@ -438,19 +438,20 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .hero-track{display:flex;height:100%;transition:transform .5s cubic-bezier(.16,1,.3,1)}
 .hero-slide{position:relative;min-width:100%;height:100%}
 .hero-slide img{width:100%;height:100%;object-fit:cover;display:block;-webkit-user-drag:none;user-select:none}
-.hero-ov{position:absolute;left:0;right:0;bottom:0;padding:60px 22px 26px;background:linear-gradient(to top,rgba(0,0,0,.82) 8%,rgba(0,0,0,.35) 55%,transparent);color:#fff;text-align:left}
-.hero-tit{font-size:30px;font-weight:700;line-height:1.05;letter-spacing:-.02em;text-shadow:0 2px 14px rgba(0,0,0,.4)}
-.hero-sub{font-size:13.5px;font-weight:500;opacity:.92;margin-top:6px;text-shadow:0 1px 8px rgba(0,0,0,.4)}
-.hero-cta{margin-top:14px;display:inline-block;background:var(--red);color:#fff;border:none;border-radius:12px;padding:12px 22px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;transition:transform .12s}
+.hero-ov{position:absolute;left:0;right:0;bottom:0;padding:60px 22px 28px;background:linear-gradient(to top,rgba(0,0,0,.82) 8%,rgba(0,0,0,.35) 55%,transparent);color:#fff;text-align:center}
+.hero-tit{font-size:28px;font-weight:700;line-height:1.08;letter-spacing:.01em;text-transform:uppercase;text-shadow:0 2px 14px rgba(0,0,0,.45)}
+.hero-sub{font-size:11.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;opacity:.9;margin-top:7px;text-shadow:0 1px 8px rgba(0,0,0,.4)}
+.hero-cta{margin-top:16px;display:inline-block;background:rgba(0,0,0,.18);color:#fff;border:1.6px solid #fff;border-radius:8px;padding:11px 26px;font-family:var(--font);font-size:12.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:transform .12s,background .15s}
+.hero-cta:hover{background:rgba(255,255,255,.15)}
 .hero-cta:active{transform:scale(.97)}
 .hero-dots{position:absolute;top:14px;left:0;right:0;display:flex;justify-content:center;gap:6px;z-index:2}
 .hero-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.45);transition:width .25s,background .25s}
 .hero-dot.on{width:20px;border-radius:5px;background:#fff}
 @media(min-width:700px){
-  .hero{aspect-ratio:21/9;max-height:74vh}
-  .hero-ov{padding:0 0 48px 56px;max-width:620px}
-  .hero-tit{font-size:48px}
-  .hero-sub{font-size:17px}
+  .hero{aspect-ratio:16/9;max-height:78vh}
+  .hero-ov{padding:0 0 48px 56px;max-width:620px;text-align:left}
+  .hero-tit{font-size:46px}
+  .hero-sub{font-size:13px}
 }
 
 /* RESPONSIVE */
@@ -989,7 +990,7 @@ function renderHero(){
   }
   if(hdr)hdr.style.display='none';             // el carrusel reemplaza el encabezado
   hero.classList.add('on');
-  track.innerHTML=slides.map(s=>`<div class="hero-slide"><img src="${escHtml(s.img)}" alt="${escHtml(s.titulo)}" loading="lazy"><div class="hero-ov">${s.titulo?`<div class="hero-tit">${escHtml(s.titulo)}</div>`:''}${s.subtitulo?`<div class="hero-sub">${escHtml(s.subtitulo)}</div>`:''}<button class="hero-cta" onclick="heroCTA(${slides.indexOf(s)})">Comprar ahora&nbsp;→</button></div></div>`).join('');
+  track.innerHTML=slides.map(s=>`<div class="hero-slide"><img src="${escHtml(s.img)}" alt="${escHtml(s.titulo)}" loading="lazy"><div class="hero-ov">${s.titulo?`<div class="hero-tit">${escHtml(s.titulo)}</div>`:''}${s.subtitulo?`<div class="hero-sub">${escHtml(s.subtitulo)}</div>`:''}<button class="hero-cta" onclick="heroCTA(${slides.indexOf(s)})">Comprar ahora</button></div></div>`).join('');
   dots.innerHTML=slides.length>1?slides.map((_,i)=>`<span class="hero-dot${i===0?' on':''}" onclick="heroGoStop(${i})"></span>`).join(''):'';
   heroCur=0;heroApply();
   if(_heroTimer)clearInterval(_heroTimer);
