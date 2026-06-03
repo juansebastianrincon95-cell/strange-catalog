@@ -870,13 +870,14 @@ function aplicarCupon(){
 let WELCOME_ON=true;                 // se sobreescribe desde settings (welcome_popup)
 const WELCOME_CODE='BIENVENIDO20';   // debe coincidir con CUPONES y api/subscribe.js
 function openWelcome(){const m=$('welcomeModal');if(m)m.classList.add('on');}
-function closeWelcome(){const m=$('welcomeModal');if(m)m.classList.remove('on');localStorage.setItem('ss_welcome_seen','1');}
-// Muestra el popup una sola vez por visitante, si está activo y no hay otro modal abierto.
+// Cerrar NO marca "visto": si no dejó sus datos, el popup vuelve a aparecer en la próxima visita.
+function closeWelcome(){const m=$('welcomeModal');if(m)m.classList.remove('on');}
+// Aparece en cada visita HASTA que el cliente se registre (ss_subscribed). Si está activo y sin otro modal abierto.
 function maybeWelcome(){
   if(!WELCOME_ON)return;
-  if(localStorage.getItem('ss_welcome_seen')||localStorage.getItem('ss_subscribed'))return;
+  if(localStorage.getItem('ss_subscribed'))return;
   setTimeout(()=>{
-    if(localStorage.getItem('ss_welcome_seen'))return;
+    if(localStorage.getItem('ss_subscribed'))return;
     const open=document.querySelector('.photo-modal.on,.guia-modal.on,.csheet.on,.apanel.on,.viewer360.on');
     if(open)return;   // no interrumpir si el usuario ya está en otra cosa (deep link, etc.)
     openWelcome();
@@ -895,9 +896,7 @@ function submitWelcome(){
     .then(r=>r.ok?r.json():Promise.reject(new Error('http')))
     .then(j=>{
       const code=(j&&j.codigo)||WELCOME_CODE;
-      localStorage.setItem('ss_cupon',code);
-      localStorage.setItem('ss_subscribed','1');
-      localStorage.setItem('ss_welcome_seen','1');
+      localStorage.setItem('ss_subscribed','1');   // ya se registró → el popup no vuelve a aparecer
       const cEl=$('wmCode');if(cEl)cEl.textContent=code;
       $('wmForm').style.display='none';$('wmOk').style.display='block';
       if(typeof px==='function')px('Lead',{content_name:'popup_bienvenida',...getUTM()},SESSION_ID+'_subscribe');
@@ -1857,8 +1856,7 @@ function rCart(){
   }).join('');
   const sub=rows.reduce((s,{p,qty})=>s+p.price*qty,0),tot=rows.reduce((s,{qty})=>s+qty,0);
   const ahorro=rows.reduce((s,{p,qty})=>s+((p.was&&p.was>p.price)?(p.was-p.price)*qty:0),0);
-  // Auto-aplicar el cupón que el visitante ya ganó (ej. BIENVENIDO20 del popup), si no hay otro puesto.
-  if(!cuponAplicado){const sc=localStorage.getItem('ss_cupon');if(sc&&CUPONES[sc])cuponAplicado=sc;}
+  // El cliente debe pegar su código en el campo del carrito (no se auto-aplica).
   const desc=cuponDesc(sub);
   const subFinal=sub-desc;
   const cupHtml=cuponAplicado
