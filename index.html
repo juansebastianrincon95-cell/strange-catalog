@@ -37,7 +37,7 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .admin-pill{background:#fff;border:1.5px solid var(--line);border-radius:20px;padding:7px 14px;font-family:var(--font);font-size:11px;font-weight:600;color:var(--ink2);cursor:pointer;transition:all .15s}
 .admin-pill:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
 .bag-btn{position:relative;width:40px;height:40px;background:var(--ink);border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .14s}
-.wa-fab{position:fixed;right:18px;bottom:max(18px,env(safe-area-inset-bottom));width:56px;height:56px;background:#25D366;border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:90;box-shadow:0 4px 16px rgba(37,211,102,.45);transition:transform .15s}
+.wa-fab{position:fixed;right:18px;bottom:max(18px,env(safe-area-inset-bottom));width:56px;height:56px;background:#25D366;border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:565;box-shadow:0 4px 16px rgba(37,211,102,.45);transition:transform .15s}
 .wa-fab svg{width:30px;height:30px}
 .wa-fab:hover{transform:scale(1.08)}
 .wa-fab:active{transform:scale(.95)}
@@ -270,9 +270,9 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .adel:hover{background:var(--red);border-color:var(--red);color:#fff}
 
 /* CART */
-.cscrim{position:fixed;inset:0;background:rgba(0,0,0,.3);backdrop-filter:blur(8px);z-index:100;display:none}
+.cscrim{position:fixed;inset:0;background:rgba(0,0,0,.3);backdrop-filter:blur(8px);z-index:600;display:none}
 .cscrim.on{display:block}
-.csheet{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:#fff;border-radius:22px 22px 0 0;z-index:110;transform:translateY(100%);transition:transform .34s cubic-bezier(.32,.72,0,1);max-height:90vh;display:flex;flex-direction:column;padding-bottom:max(16px,env(safe-area-inset-bottom));box-shadow:0 -2px 32px rgba(0,0,0,.09)}
+.csheet{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:#fff;border-radius:22px 22px 0 0;z-index:610;transform:translateY(100%);transition:transform .34s cubic-bezier(.32,.72,0,1);max-height:90vh;display:flex;flex-direction:column;padding-bottom:max(16px,env(safe-area-inset-bottom));box-shadow:0 -2px 32px rgba(0,0,0,.09)}
 .csheet.on{transform:translateY(0)}
 .cdrag{width:32px;height:3px;background:var(--line);border-radius:2px;margin:10px auto 0;flex-shrink:0}
 .ctop{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 8px;flex-shrink:0}
@@ -586,7 +586,7 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 
 <!-- CATÁLOGO COMPLETO (vista a pantalla completa; se abre con "Ver todo") -->
 <div class="catview" id="catView">
-  <div class="catview-bar"><button class="catview-back" onclick="closeCatalog()" aria-label="Volver">←</button><span class="catview-title">Catálogo</span></div>
+  <div class="catview-bar"><button class="catview-back" onclick="closeCatalog()" aria-label="Volver">←</button><span class="catview-title">Catálogo</span><button class="bag-btn" style="margin-left:auto" onclick="openCart()" aria-label="Ver carrito"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span class="bdot" id="bdot2">0</span></button></div>
 
   <div class="banner off" id="banner">
     <div><div class="ban-tag">🔥 Precio especial</div><div class="ban-txt">Todos los pares</div><div class="ban-sub">Colección completa</div></div>
@@ -1645,7 +1645,7 @@ function togCard(id,type){
 }
 function syncDot(){
   const n=Object.values(cart).reduce((s,i)=>s+i.qty,0);
-  const d=$('bdot');d.textContent=n;d.classList.toggle('show',n>0);
+  [$('bdot'),$('bdot2')].forEach(d=>{if(d){d.textContent=n;d.classList.toggle('show',n>0);}});
 }
 function setG(v,btn){
   gSel=v;
