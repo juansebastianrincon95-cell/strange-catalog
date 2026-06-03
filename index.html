@@ -454,6 +454,21 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
   .hero-sub{font-size:13px}
 }
 
+/* ÚLTIMOS LANZAMIENTOS */
+.lanz{padding:22px 0 8px;background:var(--bg)}
+.lanz-hdr{padding:0 16px 12px}
+.lanz-t{font-size:18px;font-weight:700;letter-spacing:-.01em;color:var(--ink)}
+.lanz-row{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding:0 16px 6px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.lanz-row::-webkit-scrollbar{display:none}
+.lanz-row .card{flex:0 0 44%;max-width:190px;scroll-snap-align:start}
+@media(min-width:700px){.lanz-row .card{flex:0 0 200px}}
+
+/* BANNERS DE COLECCIÓN (Mujer/Hombre) — reusan .hero-ov/.hero-tit/.hero-sub/.hero-cta */
+.cbanner{position:relative;width:100%;aspect-ratio:4/5;max-height:70vh;overflow:hidden;background:var(--ink)}
+.cbanner picture{display:block;width:100%;height:100%}
+.cbanner img{width:100%;height:100%;object-fit:cover;display:block;-webkit-user-drag:none}
+@media(min-width:700px){.cbanner{aspect-ratio:21/9;max-height:64vh}}
+
 /* RESPONSIVE */
 @media(min-width:420px){.grid,.liq-grid{grid-template-columns:repeat(4,1fr);gap:7px}}
 @media(min-width:600px){.grid{padding:0 12px 24px}.grid,.liq-grid{grid-template-columns:repeat(5,1fr);gap:8px}.liq-grid{padding:0 12px}}
@@ -482,6 +497,16 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
   <div class="hero-track" id="heroTrack"></div>
   <div class="hero-dots" id="heroDots"></div>
 </section>
+
+<!-- ÚLTIMOS LANZAMIENTOS (curado desde el admin) -->
+<section class="lanz" id="lanz" style="display:none">
+  <div class="lanz-hdr"><span class="lanz-t">Últimos lanzamientos</span></div>
+  <div class="lanz-row" id="lanzRow"></div>
+</section>
+
+<!-- BANNERS DE COLECCIÓN (se llenan desde settings; ocultos si no hay imagen) -->
+<section class="cbanner" id="bannerM" style="display:none"></section>
+<section class="cbanner" id="bannerH" style="display:none"></section>
 
 <div class="hdr">
   <div>
@@ -591,7 +616,36 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
         <select id="heroLinkVal" style="flex:1.4;padding:9px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"></select>
       </div>
       <button onclick="heroAdd()" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">➕ Agregar banner</button>
-      <div style="font-size:10px;color:var(--ink3);margin-top:6px;text-align:center">Imagen vertical recomendada: 1080×1350 (4:5).</div>
+      <div style="font-size:10px;color:var(--ink3);margin-top:6px;text-align:center">Imagen vertical recomendada: 1080×1920 (móvil) · 1920×1080 (escritorio).</div>
+    </div>
+    <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#eefcf3">
+      <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">🚀 Últimos lanzamientos</div>
+      <div id="featList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>
+      <div style="display:flex;gap:6px">
+        <select id="featSel" style="flex:1;padding:9px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"></select>
+        <button onclick="featAdd()" style="padding:9px 14px;background:var(--ink);color:#fff;border:none;border-radius:8px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">➕ Agregar</button>
+      </div>
+      <div style="font-size:10px;color:var(--ink3);margin-top:6px;text-align:center">Aparecen en la fila "Últimos lanzamientos" del inicio.</div>
+    </div>
+    <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#fdeef7">
+      <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">👩 Banner Colección Mujer</div>
+      <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">📱 <span id="colmLbl">Móvil (vertical)</span><input type="file" accept="image/*" id="colmFile" style="display:none" onchange="colDraftImg(this.files[0],'m','movil');this.value=''"></label>
+      <img id="colmThumb" style="display:none;width:100%;max-height:130px;object-fit:cover;border-radius:9px;margin-top:8px">
+      <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;margin-top:8px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">🖥 <span id="colmLblD">Escritorio (opcional)</span><input type="file" accept="image/*" id="colmFileD" style="display:none" onchange="colDraftImg(this.files[0],'m','escritorio');this.value=''"></label>
+      <img id="colmThumbD" style="display:none;width:100%;max-height:100px;object-fit:cover;border-radius:9px;margin-top:8px">
+      <input id="colmTit" type="text" placeholder="Título (ej. Colección Mujer)" style="margin-top:8px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
+      <input id="colmSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
+      <button onclick="saveColBanner('m')" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">💾 Guardar banner Mujer</button>
+    </div>
+    <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#eef3fd">
+      <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">👨 Banner Colección Hombre</div>
+      <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">📱 <span id="colhLbl">Móvil (vertical)</span><input type="file" accept="image/*" id="colhFile" style="display:none" onchange="colDraftImg(this.files[0],'h','movil');this.value=''"></label>
+      <img id="colhThumb" style="display:none;width:100%;max-height:130px;object-fit:cover;border-radius:9px;margin-top:8px">
+      <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;margin-top:8px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">🖥 <span id="colhLblD">Escritorio (opcional)</span><input type="file" accept="image/*" id="colhFileD" style="display:none" onchange="colDraftImg(this.files[0],'h','escritorio');this.value=''"></label>
+      <img id="colhThumbD" style="display:none;width:100%;max-height:100px;object-fit:cover;border-radius:9px;margin-top:8px">
+      <input id="colhTit" type="text" placeholder="Título (ej. Colección Hombre)" style="margin-top:8px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
+      <input id="colhSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
+      <button onclick="saveColBanner('h')" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">💾 Guardar banner Hombre</button>
     </div>
     <div id="storageWarn" style="display:none;margin:8px 14px;padding:8px 12px;background:#fff8e1;border:1px solid #ffc107;border-radius:8px;font-size:11px;color:#7a5800;font-weight:600"></div>
     <div class="trow" style="background:#f8f8f6">
@@ -1117,6 +1171,100 @@ async function saveHeroSlides(){
   renderHero();renderHeroAdmin();
 }
 
+/* ── ÚLTIMOS LANZAMIENTOS (curado) ── */
+let featuredIds=[];   // settings.featured_ids (orden = orden de aparición)
+function prodLabel(p){return (p.g==='h'?'Hombre':'Mujer')+' · '+(BRAND_LABELS[p.brand]||'—')+' · '+fmt(p.price)+' (#'+p.id+')';}
+function renderFeatured(){
+  const sec=$('lanz'),row=$('lanzRow');if(!row)return;
+  const items=featuredIds.map(id=>prods.find(p=>p.id===id)).filter(p=>p&&!p.sold);
+  if(!items.length){if(sec)sec.style.display='none';row.innerHTML='';return;}
+  if(sec)sec.style.display='';
+  row.innerHTML=items.map((p,i)=>cardHTML(p,i,'kl')).join('');
+}
+function renderFeaturedAdmin(){
+  const sel=$('featSel');
+  if(sel){
+    const disp=prods.filter(p=>!featuredIds.includes(p.id));
+    sel.innerHTML=disp.length?disp.map(p=>`<option value="${p.id}">${prodLabel(p)}</option>`).join(''):'<option value="">(todos ya están)</option>';
+  }
+  const box=$('featList');if(!box)return;
+  if(!featuredIds.length){box.innerHTML='<div style="font-size:11px;color:var(--ink3)">Aún no hay lanzamientos. Agrega modelos abajo 👇</div>';return;}
+  box.innerHTML=featuredIds.map((id,i)=>{
+    const p=prods.find(x=>x.id===id);if(!p)return '';
+    return `<div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:9px;padding:6px">
+      <img src="${escHtml(p.img||'')}" style="width:34px;height:42px;object-fit:cover;border-radius:6px;flex-shrink:0">
+      <div style="flex:1;min-width:0;font-size:11.5px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(prodLabel(p))}</div>
+      <button onclick="featMove(${i},-1)" ${i===0?'disabled':''} style="border:none;background:var(--bg);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;${i===0?'opacity:.3':''}">↑</button>
+      <button onclick="featMove(${i},1)" ${i===featuredIds.length-1?'disabled':''} style="border:none;background:var(--bg);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;${i===featuredIds.length-1?'opacity:.3':''}">↓</button>
+      <button onclick="featDel(${i})" style="border:none;background:#ffe9e6;color:var(--red);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px">🗑</button>
+    </div>`;
+  }).join('');
+}
+async function featAdd(){
+  const v=parseInt(($('featSel')||{}).value);
+  if(!v){alert('Elige un modelo para agregar.');return;}
+  if(!featuredIds.includes(v))featuredIds.push(v);
+  await saveFeatured();
+}
+async function featMove(i,dir){const j=i+dir;if(j<0||j>=featuredIds.length)return;[featuredIds[i],featuredIds[j]]=[featuredIds[j],featuredIds[i]];await saveFeatured();}
+async function featDel(i){featuredIds.splice(i,1);await saveFeatured();}
+async function saveFeatured(){
+  await adminWrite('upsert_settings',{data:{key:'featured_ids',value:JSON.stringify(featuredIds)}});
+  renderFeatured();renderFeaturedAdmin();
+}
+
+/* ── BANNERS DE COLECCIÓN (Mujer/Hombre) ── */
+let bannerMujer=null, bannerHombre=null;   // {img,img_desktop,titulo,subtitulo}
+let _colDraft={m:{img:null,img_desktop:null}, h:{img:null,img_desktop:null}};
+function colBannerHTML(b,g){
+  return `<picture>${b.img_desktop?`<source media="(min-width:700px)" srcset="${escHtml(b.img_desktop)}">`:''}<img src="${escHtml(b.img)}" alt="${escHtml(b.titulo||'')}" loading="lazy"></picture><div class="hero-ov">${b.titulo?`<div class="hero-tit">${escHtml(b.titulo)}</div>`:''}${b.subtitulo?`<div class="hero-sub">${escHtml(b.subtitulo)}</div>`:''}<button class="hero-cta" onclick="colCTA('${g}')">Comprar ahora</button></div>`;
+}
+function renderColBanners(){
+  const m=$('bannerM'),h=$('bannerH');
+  if(m){ if(bannerMujer&&bannerMujer.img){m.innerHTML=colBannerHTML(bannerMujer,'m');m.style.display='';}else{m.style.display='none';m.innerHTML='';} }
+  if(h){ if(bannerHombre&&bannerHombre.img){h.innerHTML=colBannerHTML(bannerHombre,'h');h.style.display='';}else{h.style.display='none';h.innerHTML='';} }
+}
+function colCTA(g){
+  const tabs=document.querySelectorAll('.tabs .tab');
+  setG(g==='m'?'m':'h', tabs[g==='m'?2:1]);
+  const tb=document.querySelector('.tabs');if(tb)tb.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function colDraftImg(file,g,which){
+  if(!file)return;
+  const isD=(which==='escritorio');
+  const lbl=$('col'+g+(isD?'LblD':'Lbl'));
+  const baseLbl=isD?'Escritorio (opcional)':'Móvil (vertical)';
+  if(lbl)lbl.textContent='Subiendo…';
+  compressImg(file,async dataUrl=>{
+    try{
+      const url=await uploadToStorage(dataUrl,0,false);
+      _colDraft[g][isD?'img_desktop':'img']=url;
+      const t=$('col'+g+(isD?'ThumbD':'Thumb'));if(t){t.src=url;t.style.display='block';}
+      if(lbl)lbl.textContent=(isD?'Escritorio':'Móvil')+' lista ✓ (cambiar)';
+    }catch(e){if(lbl)lbl.textContent=baseLbl;alert('❌ No se pudo subir:\n'+(e.message||e));}
+  },false);
+}
+async function saveColBanner(g){
+  const d=_colDraft[g], prev=(g==='m'?bannerMujer:bannerHombre);
+  const img=d.img||(prev&&prev.img);
+  if(!img){alert('Sube al menos la imagen móvil del banner.');return;}
+  const banner={img, img_desktop:d.img_desktop||(prev&&prev.img_desktop)||null, titulo:($('col'+g+'Tit').value||'').trim(), subtitulo:($('col'+g+'Sub').value||'').trim()};
+  if(g==='m')bannerMujer=banner; else bannerHombre=banner;
+  await adminWrite('upsert_settings',{data:{key:(g==='m'?'banner_mujer':'banner_hombre'),value:JSON.stringify(banner)}});
+  _colDraft[g]={img:null,img_desktop:null};
+  renderColBanners();
+  alert('✓ Banner de '+(g==='m'?'Mujer':'Hombre')+' guardado');
+}
+function renderColAdmin(){
+  [['m',bannerMujer],['h',bannerHombre]].forEach(([g,b])=>{
+    if(!b)return;
+    const tit=$('col'+g+'Tit');if(tit)tit.value=b.titulo||'';
+    const sub=$('col'+g+'Sub');if(sub)sub.value=b.subtitulo||'';
+    const t=$('col'+g+'Thumb');if(t&&b.img){t.src=b.img;t.style.display='block';}
+    const td=$('col'+g+'ThumbD');if(td&&b.img_desktop){td.src=b.img_desktop;td.style.display='block';}
+  });
+}
+
 /* ── NEUROMARKETING ── */
 // Prueba social real: vistas por producto (de la tabla events, vía /api/product-views)
 let _views={};
@@ -1224,6 +1372,26 @@ function openWA(){
 }
 
 /* ── GRID ── */
+// Markup de una tarjeta de producto (reusado por el grid y por "Últimos lanzamientos").
+// prefix: 'k' en el grid, 'kl' en lanzamientos (evita IDs duplicados).
+function cardHTML(p,i,prefix){
+  prefix=prefix||'k';
+  const on=!!cart[p.id]&&!p.sold;
+  const sp=p.promo||promoG;
+  const pct=sp?dsc(p):0;
+  const m=p.img?`<img src="${p.img}" alt="par" loading="lazy">`:`<div class="noimg">👟</div>`;
+  return `<div class="card ${on?'picked':''} ${p.sold?'sold':''}" id="${prefix}${p.id}" style="animation-delay:${Math.min(i*.02,.4)}s" onclick="cardClick(event,${p.id},'cat')">
+      <div class="cphoto">
+        ${m}
+        ${p.imgs360?.length>=2?`<div class="b360">360°</div>`:''}
+        ${pct?`<div class="bdsc"${p.imgs360?.length>=2?' style="top:30px"':''}>-${pct}%</div>`:''}
+        ${p.sold?`<div class="bsold">Agotado</div>`:''}
+        <div class="bchk">✓</div>
+        <button class="add-circle" onclick="event.stopPropagation();togCard(${p.id},'cat')">${on?'✓':'+'}</button>
+      </div>
+      <div class="cfoot-card">${p.brand?`<div class="cbrand">${brandLabel(p.brand)}</div>`:''}<div class="cprice ${sp?'sale':''}">${fmt(p.price)}</div>${sp&&p.was?`<div class="cwas">${fmt(p.was)}</div>`:''}</div>
+    </div>`;
+}
 function renderGrid(){
   const liqEl=$('liqSec');
   if(gSel==='liq'){
@@ -1246,23 +1414,7 @@ function renderGrid(){
   $('statN').textContent=prods.length;
   $('secName').textContent=(gSel==='all'?'Todos':gSel==='h'?'Hombre':'Mujer')+(brandSel!=='all'?' · '+brandLabel(brandSel):'');
   $('secCt').textContent=items.length+' modelos';
-  $('grid').innerHTML=items.map((p,i)=>{
-    const on=!!cart[p.id]&&!p.sold;
-    const sp=p.promo||promoG;
-    const pct=sp?dsc(p):0;
-    const m=p.img?`<img src="${p.img}" alt="par" loading="lazy">`:`<div class="noimg">👟</div>`;
-    return `<div class="card ${on?'picked':''} ${p.sold?'sold':''}" id="k${p.id}" style="animation-delay:${Math.min(i*.02,.4)}s" onclick="cardClick(event,${p.id},'cat')">
-      <div class="cphoto">
-        ${m}
-        ${p.imgs360?.length>=2?`<div class="b360">360°</div>`:''}
-        ${pct?`<div class="bdsc"${p.imgs360?.length>=2?' style="top:30px"':''}>-${pct}%</div>`:''}
-        ${p.sold?`<div class="bsold">Agotado</div>`:''}
-        <div class="bchk">✓</div>
-        <button class="add-circle" onclick="event.stopPropagation();togCard(${p.id},'cat')">${on?'✓':'+'}</button>
-      </div>
-      <div class="cfoot-card">${p.brand?`<div class="cbrand">${brandLabel(p.brand)}</div>`:''}<div class="cprice ${sp?'sale':''}">${fmt(p.price)}</div>${sp&&p.was?`<div class="cwas">${fmt(p.was)}</div>`:''}</div>
-    </div>`;
-  }).join('');
+  $('grid').innerHTML=items.map((p,i)=>cardHTML(p,i,'k')).join('');
   if(liqs.length&&gSel==='all'){
     liqEl.style.display='block';
     const lhdr=liqEl.querySelector('.liq-hdr');
@@ -1319,13 +1471,14 @@ function togCard(id,type){
     trackEvent('add_to_cart',{product_id:String(key),price:p.price,gender:type==='liq'?null:p.g});
     startReserva();   // arranca/continúa el contador de reserva al agregar al carrito
   }
-  const el=$(type==='liq'?'lk'+id:'k'+id);
-  if(el){
+  // sincroniza la tarjeta en el grid Y en "Últimos lanzamientos" (mismo producto, dos lugares)
+  const els=type==='liq'?[$('lk'+id)]:[$('k'+id),$('kl'+id)];
+  els.forEach(el=>{
+    if(!el)return;
     el.classList.toggle('picked',inCart);
-    // actualizar el texto del botón circular
     const circle=el.querySelector('.add-circle');
-    if(circle) circle.textContent=inCart?'✓':'+';
-  }
+    if(circle)circle.textContent=inCart?'✓':'+';
+  });
   syncDot();
   if(pmId===id&&pmType===type)syncPmBtn();
 }
@@ -2410,6 +2563,9 @@ async function loadState(){
     WELCOME_ON=cfg.welcome_popup!=='false';   // activo por defecto; admin puede apagarlo
     {const sw=$('swWelcome');if(sw)sw.checked=WELCOME_ON;}
     try{heroSlides=JSON.parse(cfg.hero_slides||'[]');}catch(e){heroSlides=[];}
+    try{featuredIds=JSON.parse(cfg.featured_ids||'[]');}catch(e){featuredIds=[];}
+    try{bannerMujer=cfg.banner_mujer?JSON.parse(cfg.banner_mujer):null;}catch(e){bannerMujer=null;}
+    try{bannerHombre=cfg.banner_hombre?JSON.parse(cfg.banner_hombre):null;}catch(e){bannerHombre=null;}
     if(cfg.store_name)STORE_NAME=cfg.store_name;
     if(cfg.wa)WA=cfg.wa;
     if(cfg.pixel_id)PIXEL_ID=cfg.pixel_id;
@@ -2545,6 +2701,9 @@ if(localStorage.getItem('ss_reserve_until')&&!_reserveTimer){_reserveTimer=setIn
   if(bannerOn)$('banner').classList.remove('off');
   renderHero();   // carrusel del inicio (reemplaza el encabezado si hay banners)
   renderHeroAdmin();   // pinta la lista de banners y el selector en el panel admin
+  renderFeatured();    // sección "Últimos lanzamientos"
+  renderColBanners();  // banners de colección Mujer/Hombre
+  renderFeaturedAdmin();renderColAdmin();   // estado en el panel admin
   renderGrid();
   checkDeepLink();
   checkWompiReturn();
