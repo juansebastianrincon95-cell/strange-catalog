@@ -467,7 +467,7 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .cbanner{position:relative;width:100%;aspect-ratio:4/5;max-height:70vh;overflow:hidden;background:var(--ink)}
 .cbanner picture{display:block;width:100%;height:100%}
 .cbanner img{width:100%;height:100%;object-fit:cover;display:block;-webkit-user-drag:none}
-@media(min-width:700px){.cbanner{aspect-ratio:21/9;max-height:64vh}}
+@media(min-width:700px){.cbanner{aspect-ratio:21/9;max-height:64vh}.cbanner img{object-position:center var(--pos,50%)}}
 
 /* PREVIEW (inicio): 2 columnas + "Ver todo" */
 .preview{padding:22px 0 12px;background:var(--bg)}
@@ -483,6 +483,25 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .catview-bar{position:sticky;top:0;z-index:3;display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--white);border-bottom:1px solid var(--line)}
 .catview-back{width:34px;height:34px;border:none;border-radius:50%;background:var(--bg);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink);flex-shrink:0}
 .catview-title{font-size:15px;font-weight:700;color:var(--ink)}
+
+/* FOOTER (redes + newsletter) */
+.ftr{background:var(--bg);border-top:1px solid var(--line);margin-top:6px}
+.ftr-top{display:flex;flex-direction:column;gap:24px;padding:28px 20px}
+.ftr-h{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);margin-bottom:12px}
+.ftr-icons{display:flex;gap:12px;flex-wrap:wrap}
+.ftr-icons a{width:42px;height:42px;border-radius:50%;background:var(--white);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--ink);transition:transform .12s}
+.ftr-icons a:active{transform:scale(.92)}
+.ftr-icons svg{width:20px;height:20px;fill:currentColor}
+.ftr-news-sub{font-size:12.5px;color:var(--ink2);margin-bottom:10px;line-height:1.5}
+.ftr-news-row{display:flex;gap:8px}
+.ftr-news-row input{flex:1;min-width:0;padding:12px 14px;background:var(--white);border:1.5px solid var(--line);border-radius:10px;font-family:var(--font);font-size:16px;color:var(--ink);outline:none}
+.ftr-news-row input:focus{border-color:var(--ink)}
+.ftr-news-row button{padding:12px 18px;background:var(--ink);color:#fff;border:none;border-radius:10px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+.ftr-news-msg{font-size:12px;font-weight:600;margin-top:8px;min-height:16px}
+.ftr-bottom{background:var(--ink);color:#fff;text-align:center;padding:22px 20px}
+.ftr-logo{font-size:20px;font-weight:700;letter-spacing:.02em}
+.ftr-copy{font-size:11px;opacity:.7;margin-top:6px}
+@media(min-width:700px){.ftr-top{flex-direction:row;justify-content:space-between;align-items:flex-start;max-width:1000px;margin:0 auto;padding:40px 24px}.ftr-news{max-width:430px;flex:1;margin-left:48px}}
 
 /* RESPONSIVE */
 @media(min-width:420px){.grid,.liq-grid{grid-template-columns:repeat(4,1fr);gap:7px}}
@@ -540,6 +559,29 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
   <div class="preview-hdr"><span class="preview-t">Nuestros modelos</span><button class="preview-all" onclick="openCatalog()">Ver todo →</button></div>
   <div class="preview-grid" id="previewGrid"></div>
 </section>
+
+<!-- FOOTER (redes + newsletter) -->
+<footer class="ftr" id="siteFooter">
+  <div class="ftr-top">
+    <div class="ftr-social">
+      <div class="ftr-h">Síguenos</div>
+      <div class="ftr-icons" id="ftrIcons"></div>
+    </div>
+    <div class="ftr-news">
+      <div class="ftr-h">Newsletter</div>
+      <div class="ftr-news-sub">Suscríbete y entérate de lanzamientos y promos antes que nadie.</div>
+      <div class="ftr-news-row">
+        <input id="ftrEmail" type="email" inputmode="email" placeholder="Tu correo electrónico" autocomplete="email">
+        <button id="ftrBtn" onclick="subscribeFooter()">Suscribirme</button>
+      </div>
+      <div class="ftr-news-msg" id="ftrMsg"></div>
+    </div>
+  </div>
+  <div class="ftr-bottom">
+    <div class="ftr-logo" id="ftrLogo">STRANGE®</div>
+    <div class="ftr-copy">© <span id="ftrYear"></span> · Hecho con 🤍 en Colombia</div>
+  </div>
+</footer>
 
 <!-- CATÁLOGO COMPLETO (vista a pantalla completa; se abre con "Ver todo") -->
 <div class="catview" id="catView">
@@ -662,6 +704,7 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
       <img id="colmThumbD" style="display:none;width:100%;max-height:100px;object-fit:cover;border-radius:9px;margin-top:8px">
       <input id="colmTit" type="text" placeholder="Título (ej. Colección Mujer)" style="margin-top:8px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
       <input id="colmSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
+      <select id="colmPos" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"><option value="center">🖥 Encuadre: Centro</option><option value="top">🖥 Encuadre: Arriba</option><option value="bottom">🖥 Encuadre: Abajo (mostrar tenis)</option></select>
       <button onclick="saveColBanner('m')" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">💾 Guardar banner Mujer</button>
     </div>
     <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#eef3fd">
@@ -672,6 +715,7 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
       <img id="colhThumbD" style="display:none;width:100%;max-height:100px;object-fit:cover;border-radius:9px;margin-top:8px">
       <input id="colhTit" type="text" placeholder="Título (ej. Colección Hombre)" style="margin-top:8px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
       <input id="colhSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
+      <select id="colhPos" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"><option value="center">🖥 Encuadre: Centro</option><option value="top">🖥 Encuadre: Arriba</option><option value="bottom">🖥 Encuadre: Abajo (mostrar tenis)</option></select>
       <button onclick="saveColBanner('h')" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">💾 Guardar banner Hombre</button>
     </div>
     <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#f3f1ff">
@@ -682,7 +726,15 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
       <img id="coluThumbD" style="display:none;width:100%;max-height:100px;object-fit:cover;border-radius:9px;margin-top:8px">
       <input id="coluTit" type="text" placeholder="Título (ej. Colección Unisex)" style="margin-top:8px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
       <input id="coluSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
+      <select id="coluPos" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"><option value="center">🖥 Encuadre: Centro</option><option value="top">🖥 Encuadre: Arriba</option><option value="bottom">🖥 Encuadre: Abajo (mostrar tenis)</option></select>
       <button onclick="saveColBanner('u')" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">💾 Guardar banner Unisex</button>
+    </div>
+    <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#eefcf6">
+      <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">📱 Redes sociales (footer)</div>
+      <input id="cfgIg" type="url" placeholder="Instagram (https://instagram.com/...)" onchange="saveSocials()" style="width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:500;color:var(--ink);outline:none">
+      <input id="cfgTiktok" type="url" placeholder="TikTok (https://tiktok.com/@...)" onchange="saveSocials()" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:500;color:var(--ink);outline:none">
+      <input id="cfgFb" type="url" placeholder="Facebook (https://facebook.com/...)" onchange="saveSocials()" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:500;color:var(--ink);outline:none">
+      <div style="font-size:10px;color:var(--ink3);margin-top:6px;text-align:center">WhatsApp usa el número que ya configuraste. Solo se muestran las redes con enlace.</div>
     </div>
     <div id="storageWarn" style="display:none;margin:8px 14px;padding:8px 12px;background:#fff8e1;border:1px solid #ffc107;border-radius:8px;font-size:11px;color:#7a5800;font-weight:600"></div>
     <div class="trow" style="background:#f8f8f6">
@@ -1248,7 +1300,9 @@ async function saveFeatured(){
 let bannerMujer=null, bannerHombre=null, bannerUnisex=null;   // {img,img_desktop,titulo,subtitulo}
 let _colDraft={m:{img:null,img_desktop:null}, h:{img:null,img_desktop:null}, u:{img:null,img_desktop:null}};
 function colBannerHTML(b,g){
-  return `<picture>${b.img_desktop?`<source media="(min-width:700px)" srcset="${escHtml(b.img_desktop)}">`:''}<img src="${escHtml(b.img)}" alt="${escHtml(b.titulo||'')}" loading="lazy"></picture><div class="hero-ov">${b.titulo?`<div class="hero-tit">${escHtml(b.titulo)}</div>`:''}${b.subtitulo?`<div class="hero-sub">${escHtml(b.subtitulo)}</div>`:''}<button class="hero-cta" onclick="colCTA('${g}')">Comprar ahora</button></div>`;
+  const posMap={top:'18%',center:'50%',bottom:'82%'};   // encuadre vertical en escritorio (var --pos)
+  const pos=posMap[b.pos]||'50%';
+  return `<picture>${b.img_desktop?`<source media="(min-width:700px)" srcset="${escHtml(b.img_desktop)}">`:''}<img src="${escHtml(b.img)}" alt="${escHtml(b.titulo||'')}" loading="lazy" style="--pos:${pos}"></picture><div class="hero-ov">${b.titulo?`<div class="hero-tit">${escHtml(b.titulo)}</div>`:''}${b.subtitulo?`<div class="hero-sub">${escHtml(b.subtitulo)}</div>`:''}<button class="hero-cta" onclick="colCTA('${g}')">Comprar ahora</button></div>`;
 }
 function renderColBanners(){
   const set=(el,b,g)=>{if(!el)return; if(b&&b.img){el.innerHTML=colBannerHTML(b,g);el.style.display='';}else{el.style.display='none';el.innerHTML='';}};
@@ -1277,7 +1331,7 @@ async function saveColBanner(g){
   const d=_colDraft[g], prev=(g==='m'?bannerMujer:g==='h'?bannerHombre:bannerUnisex);
   const img=d.img||(prev&&prev.img);
   if(!img){alert('Sube al menos la imagen móvil del banner.');return;}
-  const banner={img, img_desktop:d.img_desktop||(prev&&prev.img_desktop)||null, titulo:($('col'+g+'Tit').value||'').trim(), subtitulo:($('col'+g+'Sub').value||'').trim()};
+  const banner={img, img_desktop:d.img_desktop||(prev&&prev.img_desktop)||null, titulo:($('col'+g+'Tit').value||'').trim(), subtitulo:($('col'+g+'Sub').value||'').trim(), pos:(($('col'+g+'Pos')||{}).value)||'center'};
   if(g==='m')bannerMujer=banner; else if(g==='h')bannerHombre=banner; else bannerUnisex=banner;
   const key=g==='m'?'banner_mujer':g==='h'?'banner_hombre':'banner_unisex';
   await adminWrite('upsert_settings',{data:{key,value:JSON.stringify(banner)}});
@@ -1290,6 +1344,7 @@ function renderColAdmin(){
     if(!b)return;
     const tit=$('col'+g+'Tit');if(tit)tit.value=b.titulo||'';
     const sub=$('col'+g+'Sub');if(sub)sub.value=b.subtitulo||'';
+    const pos=$('col'+g+'Pos');if(pos)pos.value=b.pos||'center';
     const t=$('col'+g+'Thumb');if(t&&b.img){t.src=b.img;t.style.display='block';}
     const td=$('col'+g+'ThumbD');if(td&&b.img_desktop){td.src=b.img_desktop;td.style.display='block';}
   });
@@ -1320,6 +1375,47 @@ function renderPreview(){
   if(!items.length){if(sec)sec.style.display='none';grid.innerHTML='';return;}
   if(sec)sec.style.display='';
   grid.innerHTML=items.map((p,i)=>cardHTML(p,i,'kp')).join('');
+}
+
+/* ── FOOTER (redes sociales + newsletter) ── */
+let socials={ig:'',tiktok:'',fb:''};   // settings.socials (WhatsApp reusa WA)
+const SOC_SVG={
+  ig:'<svg viewBox="0 0 24 24"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23C2.17 15.58 2.16 15.2 2.16 12s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.17 8.8 2.16 12 2.16M12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.31-1.46.72-2.12 1.38C1.36 2.67.95 3.34.63 4.14.33 4.9.13 5.78.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.31.8.72 1.47 1.38 2.13.66.66 1.33 1.07 2.12 1.38.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56a5.86 5.86 0 0 0 2.13-1.38 5.86 5.86 0 0 0 1.38-2.13c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.86 5.86 0 0 0-1.38-2.12A5.86 5.86 0 0 0 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0Zm0 5.84A6.16 6.16 0 1 0 18.16 12 6.16 6.16 0 0 0 12 5.84M12 16a4 4 0 1 1 4-4 4 4 0 0 1-4 4Zm6.41-10.84a1.44 1.44 0 1 0 1.44 1.44 1.44 1.44 0 0 0-1.44-1.44Z"/></svg>',
+  tiktok:'<svg viewBox="0 0 24 24"><path d="M12.53.02C13.84 0 15.14.01 16.44 0c.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>',
+  fb:'<svg viewBox="0 0 24 24"><path d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07c0 6.02 4.39 11.01 10.13 11.93v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.69.24 2.69.24v2.97h-1.52c-1.49 0-1.96.93-1.96 1.89v2.25h3.33l-.53 3.49h-2.8V24C19.61 23.08 24 18.09 24 12.07z"/></svg>',
+  wa:'<svg viewBox="0 0 24 24"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.16-.17.2-.35.22-.64.07-.3-.15-1.26-.46-2.39-1.48-.88-.79-1.48-1.76-1.65-2.06-.17-.3-.02-.46.13-.6.13-.14.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.61-.92-2.21-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.21 3.07.15.2 2.1 3.2 5.08 4.49.71.3 1.26.49 1.69.62.71.23 1.36.2 1.87.12.57-.08 1.76-.72 2-1.41.25-.7.25-1.29.18-1.41-.07-.12-.27-.2-.57-.35M12.05 21.78h-.01a9.87 9.87 0 0 1-5.03-1.38l-.36-.21-3.74.98 1-3.65-.24-.37a9.86 9.86 0 0 1-1.51-5.26c0-5.45 4.44-9.88 9.89-9.88 2.64 0 5.12 1.03 6.99 2.9a9.82 9.82 0 0 1 2.89 6.99c0 5.45-4.44 9.88-9.88 9.88M20.46 3.49A11.81 11.81 0 0 0 12.05 0C5.5 0 .16 5.34.16 11.89c0 2.1.55 4.14 1.59 5.95L.06 24l6.3-1.65a11.88 11.88 0 0 0 5.68 1.45h.01c6.55 0 11.89-5.34 11.89-11.89 0-3.18-1.24-6.16-3.48-8.42z"/></svg>'
+};
+function renderFooter(){
+  const box=$('ftrIcons');
+  const icon=(href,svg,label)=>`<a href="${escHtml(href)}" target="_blank" rel="noopener" aria-label="${label}">${svg}</a>`;
+  if(box){
+    let h='';
+    if(socials.ig)h+=icon(socials.ig,SOC_SVG.ig,'Instagram');
+    if(socials.tiktok)h+=icon(socials.tiktok,SOC_SVG.tiktok,'TikTok');
+    if(socials.fb)h+=icon(socials.fb,SOC_SVG.fb,'Facebook');
+    if(WA)h+=icon('https://wa.me/'+WA,SOC_SVG.wa,'WhatsApp');
+    box.innerHTML=h||'<span style="font-size:12px;color:var(--ink3)">Pronto en redes</span>';
+  }
+  const logo=$('ftrLogo');if(logo)logo.textContent=(STORE_NAME||'STRANGE')+'®';
+  const yr=$('ftrYear');if(yr)yr.textContent=new Date().getFullYear();
+}
+function subscribeFooter(){
+  const inp=$('ftrEmail'),msg=$('ftrMsg'),btn=$('ftrBtn');
+  const email=((inp&&inp.value)||'').trim();
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){if(msg){msg.style.color='var(--red)';msg.textContent='Escribe un correo válido 🙏';}return;}
+  if(btn){btn.disabled=true;btn.textContent='…';}
+  fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({kind:'subscriber',source:'footer',email,utm:{...getUTM(),...getFbAttribution()},session_id:SESSION_ID})})
+    .then(r=>r.ok?r.json():Promise.reject(new Error('http')))
+    .then(()=>{if(msg){msg.style.color='var(--green)';msg.textContent='¡Listo! 🎉 Te avisaremos de novedades.';}if(inp)inp.value='';
+      if(typeof px==='function')px('Lead',{content_name:'newsletter_footer',...getUTM()},SESSION_ID+'_news');})
+    .catch(()=>{if(msg){msg.style.color='var(--red)';msg.textContent='No se pudo, reintenta.';}})
+    .finally(()=>{if(btn){btn.disabled=false;btn.textContent='Suscribirme';}});
+}
+async function saveSocials(){
+  socials={ig:(($('cfgIg')||{}).value||'').trim(), tiktok:(($('cfgTiktok')||{}).value||'').trim(), fb:(($('cfgFb')||{}).value||'').trim()};
+  await adminWrite('upsert_settings',{data:{key:'socials',value:JSON.stringify(socials)}});
+  renderFooter();
 }
 
 /* ── NEUROMARKETING ── */
@@ -2624,6 +2720,8 @@ async function loadState(){
     try{bannerMujer=cfg.banner_mujer?JSON.parse(cfg.banner_mujer):null;}catch(e){bannerMujer=null;}
     try{bannerHombre=cfg.banner_hombre?JSON.parse(cfg.banner_hombre):null;}catch(e){bannerHombre=null;}
     try{bannerUnisex=cfg.banner_unisex?JSON.parse(cfg.banner_unisex):null;}catch(e){bannerUnisex=null;}
+    try{socials=cfg.socials?JSON.parse(cfg.socials):{ig:'',tiktok:'',fb:''};}catch(e){socials={ig:'',tiktok:'',fb:''};}
+    {const a=$('cfgIg');if(a)a.value=socials.ig||'';const b=$('cfgTiktok');if(b)b.value=socials.tiktok||'';const c=$('cfgFb');if(c)c.value=socials.fb||'';}
     if(cfg.store_name)STORE_NAME=cfg.store_name;
     if(cfg.wa)WA=cfg.wa;
     if(cfg.pixel_id)PIXEL_ID=cfg.pixel_id;
@@ -2762,6 +2860,7 @@ if(localStorage.getItem('ss_reserve_until')&&!_reserveTimer){_reserveTimer=setIn
   renderFeatured();    // sección "Últimos lanzamientos"
   renderColBanners();  // banners de colección Mujer/Hombre/Unisex
   renderPreview();     // preview de 2 columnas del inicio
+  renderFooter();      // footer: redes + newsletter
   renderFeaturedAdmin();renderColAdmin();   // estado en el panel admin
   renderGrid();
   checkDeepLink();

@@ -9,18 +9,31 @@ const CODIGO_BIENVENIDA = 'BIENVENIDO20';
 // para no superar el límite de 12 funciones serverless del plan Hobby de Vercel.
 async function handleSubscribe(req, res) {
   const d = req.body || {};
+  const utm        = (d.utm && typeof d.utm === 'object' && !Array.isArray(d.utm)) ? d.utm : null;
+  const session_id = d.session_id ? String(d.session_id).slice(0, 64) : null;
+  const key = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
+  const sb = createClient(process.env.SUPABASE_URL, key);
+
+  // ── Newsletter del footer: solo correo (sin nombre/whatsapp) ──
+  const email = d.email ? String(d.email).trim().slice(0, 200) : '';
+  if (d.source === 'footer' || (email && !d.whatsapp)) {
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'email inválido' });
+    try {
+      const { data: prev } = await sb.from('subscribers').select('id').eq('email', email).limit(1);
+      if (!prev || !prev.length) {
+        const { error } = await sb.from('subscribers').insert({ email, utm, session_id, source: 'footer' });
+        if (error) return res.status(500).json({ error: error.message });
+      }
+    } catch (e) { return res.status(500).json({ error: e.message || 'error' }); }
+    return res.status(201).json({ ok: true });
+  }
+
+  // ── Popup de bienvenida: nombre + whatsapp (+ cumpleaños) ──
   const nombre   = d.nombre ? String(d.nombre).trim().slice(0, 200) : '';
   const whatsapp = d.whatsapp ? String(d.whatsapp).replace(/\D/g, '').slice(0, 20) : '';
   if (!nombre)             return res.status(400).json({ error: 'nombre requerido' });
   if (whatsapp.length < 7) return res.status(400).json({ error: 'whatsapp inválido' });
-
-  const cumple     = d.cumple ? String(d.cumple).slice(0, 20) : null;
-  const utm        = (d.utm && typeof d.utm === 'object' && !Array.isArray(d.utm)) ? d.utm : null;
-  const session_id = d.session_id ? String(d.session_id).slice(0, 64) : null;
-
-  // subscribers tiene RLS sin policy pública → se escribe con service_role.
-  const key = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
-  const sb = createClient(process.env.SUPABASE_URL, key);
+  const cumple = d.cumple ? String(d.cumple).slice(0, 20) : null;
   try {
     const { data: prev } = await sb.from('subscribers').select('id').eq('whatsapp', whatsapp).limit(1);
     if (!prev || !prev.length) {
