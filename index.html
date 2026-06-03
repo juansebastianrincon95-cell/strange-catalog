@@ -486,6 +486,11 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .catview-back{width:34px;height:34px;border:none;border-radius:50%;background:var(--bg);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink);flex-shrink:0}
 .catview-title{font-size:15px;font-weight:700;color:var(--ink)}
 
+/* TOGGLE Móvil/Escritorio (admin banners) */
+.dev-tog{display:flex;gap:6px;margin-bottom:8px}
+.dev-tog button{flex:1;padding:8px;border:1.5px solid var(--line);background:#fff;border-radius:8px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer}
+.dev-tog button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+
 /* TOAST */
 .toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:24px;font-size:13px;font-weight:600;z-index:700;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;box-shadow:0 6px 24px rgba(0,0,0,.32);max-width:90vw;text-align:center}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -680,10 +685,15 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
     <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#f3f1ff">
       <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">🖼 Banners del inicio (hero)</div>
       <div id="heroAdminList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>
-      <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">📱 <span id="heroFileLbl">Imagen móvil (vertical)</span><input type="file" accept="image/*" id="heroFile" style="display:none" onchange="heroDraftImg(this.files[0],'movil');this.value=''"></label>
-      <img id="heroDraftThumb" style="display:none;width:100%;max-height:140px;object-fit:cover;border-radius:9px;margin-top:8px">
-      <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;margin-top:8px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">🖥 <span id="heroFileLblD">Imagen escritorio (horizontal) — opcional</span><input type="file" accept="image/*" id="heroFileD" style="display:none" onchange="heroDraftImg(this.files[0],'escritorio');this.value=''"></label>
-      <img id="heroDraftThumbD" style="display:none;width:100%;max-height:110px;object-fit:cover;border-radius:9px;margin-top:8px">
+      <div class="dev-tog"><button type="button" id="hero_btnM" class="on" onclick="bannerDev('hero','m')">📱 Móvil</button><button type="button" id="hero_btnE" onclick="bannerDev('hero','e')">🖥 Escritorio</button></div>
+      <div id="hero_devM">
+        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">📱 <span id="heroFileLbl">Imagen móvil (vertical)</span><input type="file" accept="image/*" id="heroFile" style="display:none" onchange="heroDraftImg(this.files[0],'movil');this.value=''"></label>
+        <img id="heroDraftThumb" style="display:none;width:100%;max-height:140px;object-fit:cover;border-radius:9px;margin-top:8px">
+      </div>
+      <div id="hero_devE" style="display:none">
+        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">🖥 <span id="heroFileLblD">Imagen escritorio (horizontal)</span><input type="file" accept="image/*" id="heroFileD" style="display:none" onchange="heroDraftImg(this.files[0],'escritorio');this.value=''"></label>
+        <img id="heroDraftThumbD" style="display:none;width:100%;max-height:110px;object-fit:cover;border-radius:9px;margin-top:8px">
+      </div>
       <input id="heroTit" type="text" placeholder="Título (ej. Lo nuevo de Nike)" style="margin-top:8px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
       <input id="heroSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
       <div style="display:flex;gap:6px;margin-top:6px">
@@ -704,35 +714,50 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
     </div>
     <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#fdeef7">
       <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">👩 Banner Colección Mujer</div>
-      <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">📱 <span id="colmLbl">Móvil (vertical)</span><input type="file" accept="image/*" id="colmFile" style="display:none" onchange="colDraftImg(this.files[0],'m','movil');this.value=''"></label>
-      <img id="colmThumb" style="display:none;width:100%;max-height:130px;object-fit:cover;border-radius:9px;margin-top:8px">
-      <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;margin-top:8px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">🖥 <span id="colmLblD">Escritorio (opcional)</span><input type="file" accept="image/*" id="colmFileD" style="display:none" onchange="colDraftImg(this.files[0],'m','escritorio');this.value=''"></label>
-      <img id="colmThumbD" style="display:none;width:100%;max-height:100px;object-fit:cover;border-radius:9px;margin-top:8px">
+      <div class="dev-tog"><button type="button" id="colm_btnM" class="on" onclick="bannerDev('colm','m')">📱 Móvil</button><button type="button" id="colm_btnE" onclick="bannerDev('colm','e')">🖥 Escritorio</button></div>
+      <div id="colm_devM">
+        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">📱 <span id="colmLbl">Móvil (vertical)</span><input type="file" accept="image/*" id="colmFile" style="display:none" onchange="colDraftImg(this.files[0],'m','movil');this.value=''"></label>
+        <img id="colmThumb" style="display:none;width:100%;max-height:130px;object-fit:cover;border-radius:9px;margin-top:8px">
+      </div>
+      <div id="colm_devE" style="display:none">
+        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">🖥 <span id="colmLblD">Escritorio (horizontal)</span><input type="file" accept="image/*" id="colmFileD" style="display:none" onchange="colDraftImg(this.files[0],'m','escritorio');this.value=''"></label>
+        <img id="colmThumbD" style="display:none;width:100%;max-height:100px;object-fit:cover;border-radius:9px;margin-top:8px">
+        <select id="colmPos" style="margin-top:8px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"><option value="center">🖥 Encuadre: Centro</option><option value="top">🖥 Encuadre: Arriba</option><option value="bottom">🖥 Encuadre: Abajo (mostrar tenis)</option></select>
+      </div>
       <input id="colmTit" type="text" placeholder="Título (ej. Colección Mujer)" style="margin-top:8px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
       <input id="colmSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
-      <select id="colmPos" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"><option value="center">🖥 Encuadre: Centro</option><option value="top">🖥 Encuadre: Arriba</option><option value="bottom">🖥 Encuadre: Abajo (mostrar tenis)</option></select>
       <button onclick="saveColBanner('m')" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">💾 Guardar banner Mujer</button>
     </div>
     <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#eef3fd">
       <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">👨 Banner Colección Hombre</div>
-      <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">📱 <span id="colhLbl">Móvil (vertical)</span><input type="file" accept="image/*" id="colhFile" style="display:none" onchange="colDraftImg(this.files[0],'h','movil');this.value=''"></label>
-      <img id="colhThumb" style="display:none;width:100%;max-height:130px;object-fit:cover;border-radius:9px;margin-top:8px">
-      <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;margin-top:8px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">🖥 <span id="colhLblD">Escritorio (opcional)</span><input type="file" accept="image/*" id="colhFileD" style="display:none" onchange="colDraftImg(this.files[0],'h','escritorio');this.value=''"></label>
-      <img id="colhThumbD" style="display:none;width:100%;max-height:100px;object-fit:cover;border-radius:9px;margin-top:8px">
+      <div class="dev-tog"><button type="button" id="colh_btnM" class="on" onclick="bannerDev('colh','m')">📱 Móvil</button><button type="button" id="colh_btnE" onclick="bannerDev('colh','e')">🖥 Escritorio</button></div>
+      <div id="colh_devM">
+        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">📱 <span id="colhLbl">Móvil (vertical)</span><input type="file" accept="image/*" id="colhFile" style="display:none" onchange="colDraftImg(this.files[0],'h','movil');this.value=''"></label>
+        <img id="colhThumb" style="display:none;width:100%;max-height:130px;object-fit:cover;border-radius:9px;margin-top:8px">
+      </div>
+      <div id="colh_devE" style="display:none">
+        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">🖥 <span id="colhLblD">Escritorio (horizontal)</span><input type="file" accept="image/*" id="colhFileD" style="display:none" onchange="colDraftImg(this.files[0],'h','escritorio');this.value=''"></label>
+        <img id="colhThumbD" style="display:none;width:100%;max-height:100px;object-fit:cover;border-radius:9px;margin-top:8px">
+        <select id="colhPos" style="margin-top:8px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"><option value="center">🖥 Encuadre: Centro</option><option value="top">🖥 Encuadre: Arriba</option><option value="bottom">🖥 Encuadre: Abajo (mostrar tenis)</option></select>
+      </div>
       <input id="colhTit" type="text" placeholder="Título (ej. Colección Hombre)" style="margin-top:8px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
       <input id="colhSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
-      <select id="colhPos" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"><option value="center">🖥 Encuadre: Centro</option><option value="top">🖥 Encuadre: Arriba</option><option value="bottom">🖥 Encuadre: Abajo (mostrar tenis)</option></select>
       <button onclick="saveColBanner('h')" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">💾 Guardar banner Hombre</button>
     </div>
     <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#f3f1ff">
       <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">🧢 Banner Colección Unisex</div>
-      <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">📱 <span id="coluLbl">Móvil (vertical)</span><input type="file" accept="image/*" id="coluFile" style="display:none" onchange="colDraftImg(this.files[0],'u','movil');this.value=''"></label>
-      <img id="coluThumb" style="display:none;width:100%;max-height:130px;object-fit:cover;border-radius:9px;margin-top:8px">
-      <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;margin-top:8px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">🖥 <span id="coluLblD">Escritorio (opcional)</span><input type="file" accept="image/*" id="coluFileD" style="display:none" onchange="colDraftImg(this.files[0],'u','escritorio');this.value=''"></label>
-      <img id="coluThumbD" style="display:none;width:100%;max-height:100px;object-fit:cover;border-radius:9px;margin-top:8px">
+      <div class="dev-tog"><button type="button" id="colu_btnM" class="on" onclick="bannerDev('colu','m')">📱 Móvil</button><button type="button" id="colu_btnE" onclick="bannerDev('colu','e')">🖥 Escritorio</button></div>
+      <div id="colu_devM">
+        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">📱 <span id="coluLbl">Móvil (vertical)</span><input type="file" accept="image/*" id="coluFile" style="display:none" onchange="colDraftImg(this.files[0],'u','movil');this.value=''"></label>
+        <img id="coluThumb" style="display:none;width:100%;max-height:130px;object-fit:cover;border-radius:9px;margin-top:8px">
+      </div>
+      <div id="colu_devE" style="display:none">
+        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">🖥 <span id="coluLblD">Escritorio (horizontal)</span><input type="file" accept="image/*" id="coluFileD" style="display:none" onchange="colDraftImg(this.files[0],'u','escritorio');this.value=''"></label>
+        <img id="coluThumbD" style="display:none;width:100%;max-height:100px;object-fit:cover;border-radius:9px;margin-top:8px">
+        <select id="coluPos" style="margin-top:8px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"><option value="center">🖥 Encuadre: Centro</option><option value="top">🖥 Encuadre: Arriba</option><option value="bottom">🖥 Encuadre: Abajo (mostrar tenis)</option></select>
+      </div>
       <input id="coluTit" type="text" placeholder="Título (ej. Colección Unisex)" style="margin-top:8px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
       <input id="coluSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
-      <select id="coluPos" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"><option value="center">🖥 Encuadre: Centro</option><option value="top">🖥 Encuadre: Arriba</option><option value="bottom">🖥 Encuadre: Abajo (mostrar tenis)</option></select>
       <button onclick="saveColBanner('u')" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">💾 Guardar banner Unisex</button>
     </div>
     <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#eefcf6">
@@ -1364,6 +1389,16 @@ function renderColAdmin(){
     const t=$('col'+g+'Thumb');if(t&&b.img){t.src=b.img;t.style.display='block';}
     const td=$('col'+g+'ThumbD');if(td&&b.img_desktop){td.src=b.img_desktop;td.style.display='block';}
   });
+}
+
+// Toggle Móvil/Escritorio en el admin de banners: muestra el panel del dispositivo elegido.
+function bannerDev(scope,dev){
+  const esc=dev==='e';
+  const M=$(scope+'_devM'),E=$(scope+'_devE'),bM=$(scope+'_btnM'),bE=$(scope+'_btnE');
+  if(M)M.style.display=esc?'none':'';
+  if(E)E.style.display=esc?'':'none';
+  if(bM)bM.classList.toggle('on',!esc);
+  if(bE)bE.classList.toggle('on',esc);
 }
 
 /* ── CATÁLOGO COMPLETO (vista a pantalla completa) + PREVIEW del inicio ── */
