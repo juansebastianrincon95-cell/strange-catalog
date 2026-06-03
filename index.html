@@ -469,6 +469,21 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .cbanner img{width:100%;height:100%;object-fit:cover;display:block;-webkit-user-drag:none}
 @media(min-width:700px){.cbanner{aspect-ratio:21/9;max-height:64vh}}
 
+/* PREVIEW (inicio): 2 columnas + "Ver todo" */
+.preview{padding:22px 0 12px;background:var(--bg)}
+.preview-hdr{display:flex;align-items:center;justify-content:space-between;padding:0 16px 12px}
+.preview-t{font-size:18px;font-weight:700;letter-spacing:-.01em;color:var(--ink)}
+.preview-all{border:none;background:none;color:var(--ink);font-family:var(--font);font-size:12.5px;font-weight:700;cursor:pointer;padding:6px 2px}
+.preview-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:0 16px}
+@media(min-width:700px){.preview-grid{grid-template-columns:repeat(4,1fr);gap:10px}}
+
+/* CATÁLOGO COMPLETO (vista a pantalla completa) */
+.catview{position:fixed;inset:0;z-index:560;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;display:none}
+.catview.on{display:block}
+.catview-bar{position:sticky;top:0;z-index:3;display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--white);border-bottom:1px solid var(--line)}
+.catview-back{width:34px;height:34px;border:none;border-radius:50%;background:var(--bg);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink);flex-shrink:0}
+.catview-title{font-size:15px;font-weight:700;color:var(--ink)}
+
 /* RESPONSIVE */
 @media(min-width:420px){.grid,.liq-grid{grid-template-columns:repeat(4,1fr);gap:7px}}
 @media(min-width:600px){.grid{padding:0 12px 24px}.grid,.liq-grid{grid-template-columns:repeat(5,1fr);gap:8px}.liq-grid{padding:0 12px}}
@@ -507,6 +522,7 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 <!-- BANNERS DE COLECCIÓN (se llenan desde settings; ocultos si no hay imagen) -->
 <section class="cbanner" id="bannerM" style="display:none"></section>
 <section class="cbanner" id="bannerH" style="display:none"></section>
+<section class="cbanner" id="bannerU" style="display:none"></section>
 
 <div class="hdr">
   <div>
@@ -519,31 +535,42 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
   </div>
 </div>
 
-<div class="banner off" id="banner">
-  <div><div class="ban-tag">🔥 Precio especial</div><div class="ban-txt">Todos los pares</div><div class="ban-sub">Colección completa</div></div>
-  <div style="text-align:right"><div class="ban-val">$180.000</div><div class="ban-env">✓ Envío gratis</div></div>
-</div>
+<!-- PREVIEW (inicio): 2 columnas + "Ver todo" → abre el catálogo completo -->
+<section class="preview" id="preview" style="display:none">
+  <div class="preview-hdr"><span class="preview-t">Nuestros modelos</span><button class="preview-all" onclick="openCatalog()">Ver todo →</button></div>
+  <div class="preview-grid" id="previewGrid"></div>
+</section>
 
-<div class="tabs">
-  <button class="tab on" onclick="setG('all',this)">Todos</button>
-  <button class="tab"    onclick="setG('h',this)">Hombre</button>
-  <button class="tab"    onclick="setG('m',this)">Mujer</button>
-  <button class="tab"    onclick="setG('liq',this)">🔥 Liq.</button>
-</div>
-<div class="brandbar" id="brandbar"></div>
-<div class="secbar">
-  <span class="secn" id="secName">Todos</span>
-  <span class="seccn" id="secCt"></span>
-</div>
+<!-- CATÁLOGO COMPLETO (vista a pantalla completa; se abre con "Ver todo") -->
+<div class="catview" id="catView">
+  <div class="catview-bar"><button class="catview-back" onclick="closeCatalog()" aria-label="Volver">←</button><span class="catview-title">Catálogo</span></div>
 
-<div class="grid" id="grid"></div>
-
-<div class="liq-sec" id="liqSec">
-  <div class="liq-hdr">
-    <div><div style="font-size:24px;margin-bottom:4px">🔥</div><div class="liq-title">Liquidación</div><div class="liq-sub">Precios de locura · Solo por hoy</div></div>
-    <div class="liq-badge"><div class="liq-badge-n" id="liqN">0</div><div class="liq-badge-l">modelos</div></div>
+  <div class="banner off" id="banner">
+    <div><div class="ban-tag">🔥 Precio especial</div><div class="ban-txt">Todos los pares</div><div class="ban-sub">Colección completa</div></div>
+    <div style="text-align:right"><div class="ban-val">$180.000</div><div class="ban-env">✓ Envío gratis</div></div>
   </div>
-  <div class="liq-grid" id="liqGrid"></div>
+
+  <div class="tabs">
+    <button class="tab on" onclick="setG('all',this)">Todos</button>
+    <button class="tab"    onclick="setG('h',this)">Hombre</button>
+    <button class="tab"    onclick="setG('m',this)">Mujer</button>
+    <button class="tab"    onclick="setG('liq',this)">🔥 Liq.</button>
+  </div>
+  <div class="brandbar" id="brandbar"></div>
+  <div class="secbar">
+    <span class="secn" id="secName">Todos</span>
+    <span class="seccn" id="secCt"></span>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="liq-sec" id="liqSec">
+    <div class="liq-hdr">
+      <div><div style="font-size:24px;margin-bottom:4px">🔥</div><div class="liq-title">Liquidación</div><div class="liq-sub">Precios de locura · Solo por hoy</div></div>
+      <div class="liq-badge"><div class="liq-badge-n" id="liqN">0</div><div class="liq-badge-l">modelos</div></div>
+    </div>
+    <div class="liq-grid" id="liqGrid"></div>
+  </div>
 </div>
 
 <!-- POPUP DE BIENVENIDA -->
@@ -646,6 +673,16 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
       <input id="colhTit" type="text" placeholder="Título (ej. Colección Hombre)" style="margin-top:8px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
       <input id="colhSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
       <button onclick="saveColBanner('h')" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">💾 Guardar banner Hombre</button>
+    </div>
+    <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#f3f1ff">
+      <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">🧢 Banner Colección Unisex</div>
+      <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">📱 <span id="coluLbl">Móvil (vertical)</span><input type="file" accept="image/*" id="coluFile" style="display:none" onchange="colDraftImg(this.files[0],'u','movil');this.value=''"></label>
+      <img id="coluThumb" style="display:none;width:100%;max-height:130px;object-fit:cover;border-radius:9px;margin-top:8px">
+      <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;margin-top:8px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">🖥 <span id="coluLblD">Escritorio (opcional)</span><input type="file" accept="image/*" id="coluFileD" style="display:none" onchange="colDraftImg(this.files[0],'u','escritorio');this.value=''"></label>
+      <img id="coluThumbD" style="display:none;width:100%;max-height:100px;object-fit:cover;border-radius:9px;margin-top:8px">
+      <input id="coluTit" type="text" placeholder="Título (ej. Colección Unisex)" style="margin-top:8px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
+      <input id="coluSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
+      <button onclick="saveColBanner('u')" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">💾 Guardar banner Unisex</button>
     </div>
     <div id="storageWarn" style="display:none;margin:8px 14px;padding:8px 12px;background:#fff8e1;border:1px solid #ffc107;border-radius:8px;font-size:11px;color:#7a5800;font-weight:600"></div>
     <div class="trow" style="background:#f8f8f6">
@@ -1081,16 +1118,10 @@ function heroCTA(idx){
     if(p)openPhoto(id,inLiq?'liq':'cat');
     return;
   }
-  const tabs=document.querySelectorAll('.tabs .tab');
-  if(s.link_type==='gender'){
-    const g=s.link_value==='m'?'m':'h';
-    setG(g,tabs[g==='h'?1:2]);
-  }else if(s.link_type==='brand'){
-    gSel='all';brandSel=s.link_value||'all';
-    tabs.forEach((t,i)=>t.classList.toggle('on',i===0));
-    renderGrid();
-  }
-  const tb=document.querySelector('.tabs');if(tb)tb.scrollIntoView({behavior:'smooth',block:'start'});
+  // marca/género: abrir el catálogo completo (vista aparte) ya filtrado
+  if(s.link_type==='gender')openCatalog({gender:s.link_value==='m'?'m':'h'});
+  else if(s.link_type==='brand')openCatalog({brand:s.link_value||'all'});
+  else openCatalog();
 }
 
 /* ── HERO: admin (gestionar banners) ── */
@@ -1213,22 +1244,20 @@ async function saveFeatured(){
   renderFeatured();renderFeaturedAdmin();
 }
 
-/* ── BANNERS DE COLECCIÓN (Mujer/Hombre) ── */
-let bannerMujer=null, bannerHombre=null;   // {img,img_desktop,titulo,subtitulo}
-let _colDraft={m:{img:null,img_desktop:null}, h:{img:null,img_desktop:null}};
+/* ── BANNERS DE COLECCIÓN (Mujer/Hombre/Unisex) ── */
+let bannerMujer=null, bannerHombre=null, bannerUnisex=null;   // {img,img_desktop,titulo,subtitulo}
+let _colDraft={m:{img:null,img_desktop:null}, h:{img:null,img_desktop:null}, u:{img:null,img_desktop:null}};
 function colBannerHTML(b,g){
   return `<picture>${b.img_desktop?`<source media="(min-width:700px)" srcset="${escHtml(b.img_desktop)}">`:''}<img src="${escHtml(b.img)}" alt="${escHtml(b.titulo||'')}" loading="lazy"></picture><div class="hero-ov">${b.titulo?`<div class="hero-tit">${escHtml(b.titulo)}</div>`:''}${b.subtitulo?`<div class="hero-sub">${escHtml(b.subtitulo)}</div>`:''}<button class="hero-cta" onclick="colCTA('${g}')">Comprar ahora</button></div>`;
 }
 function renderColBanners(){
-  const m=$('bannerM'),h=$('bannerH');
-  if(m){ if(bannerMujer&&bannerMujer.img){m.innerHTML=colBannerHTML(bannerMujer,'m');m.style.display='';}else{m.style.display='none';m.innerHTML='';} }
-  if(h){ if(bannerHombre&&bannerHombre.img){h.innerHTML=colBannerHTML(bannerHombre,'h');h.style.display='';}else{h.style.display='none';h.innerHTML='';} }
+  const set=(el,b,g)=>{if(!el)return; if(b&&b.img){el.innerHTML=colBannerHTML(b,g);el.style.display='';}else{el.style.display='none';el.innerHTML='';}};
+  set($('bannerM'),bannerMujer,'m');
+  set($('bannerH'),bannerHombre,'h');
+  set($('bannerU'),bannerUnisex,'u');
 }
-function colCTA(g){
-  const tabs=document.querySelectorAll('.tabs .tab');
-  setG(g==='m'?'m':'h', tabs[g==='m'?2:1]);
-  const tb=document.querySelector('.tabs');if(tb)tb.scrollIntoView({behavior:'smooth',block:'start'});
-}
+// Los banners abren el catálogo completo (vista aparte) filtrado. Unisex = Todos por ahora.
+function colCTA(g){ openCatalog({gender: g==='m'?'m' : g==='h'?'h' : 'all'}); }
 function colDraftImg(file,g,which){
   if(!file)return;
   const isD=(which==='escritorio');
@@ -1245,24 +1274,52 @@ function colDraftImg(file,g,which){
   },false);
 }
 async function saveColBanner(g){
-  const d=_colDraft[g], prev=(g==='m'?bannerMujer:bannerHombre);
+  const d=_colDraft[g], prev=(g==='m'?bannerMujer:g==='h'?bannerHombre:bannerUnisex);
   const img=d.img||(prev&&prev.img);
   if(!img){alert('Sube al menos la imagen móvil del banner.');return;}
   const banner={img, img_desktop:d.img_desktop||(prev&&prev.img_desktop)||null, titulo:($('col'+g+'Tit').value||'').trim(), subtitulo:($('col'+g+'Sub').value||'').trim()};
-  if(g==='m')bannerMujer=banner; else bannerHombre=banner;
-  await adminWrite('upsert_settings',{data:{key:(g==='m'?'banner_mujer':'banner_hombre'),value:JSON.stringify(banner)}});
+  if(g==='m')bannerMujer=banner; else if(g==='h')bannerHombre=banner; else bannerUnisex=banner;
+  const key=g==='m'?'banner_mujer':g==='h'?'banner_hombre':'banner_unisex';
+  await adminWrite('upsert_settings',{data:{key,value:JSON.stringify(banner)}});
   _colDraft[g]={img:null,img_desktop:null};
   renderColBanners();
-  alert('✓ Banner de '+(g==='m'?'Mujer':'Hombre')+' guardado');
+  alert('✓ Banner de '+(g==='m'?'Mujer':g==='h'?'Hombre':'Unisex')+' guardado');
 }
 function renderColAdmin(){
-  [['m',bannerMujer],['h',bannerHombre]].forEach(([g,b])=>{
+  [['m',bannerMujer],['h',bannerHombre],['u',bannerUnisex]].forEach(([g,b])=>{
     if(!b)return;
     const tit=$('col'+g+'Tit');if(tit)tit.value=b.titulo||'';
     const sub=$('col'+g+'Sub');if(sub)sub.value=b.subtitulo||'';
     const t=$('col'+g+'Thumb');if(t&&b.img){t.src=b.img;t.style.display='block';}
     const td=$('col'+g+'ThumbD');if(td&&b.img_desktop){td.src=b.img_desktop;td.style.display='block';}
   });
+}
+
+/* ── CATÁLOGO COMPLETO (vista a pantalla completa) + PREVIEW del inicio ── */
+function openCatalog(opts){
+  opts=opts||{};
+  const v=$('catView');if(!v)return;
+  v.classList.add('on');document.body.style.overflow='hidden';
+  const tabs=document.querySelectorAll('#catView .tabs .tab');
+  if(opts.brand){
+    gSel='all';brandSel=opts.brand;
+    tabs.forEach((t,i)=>t.classList.toggle('on',i===0));
+    renderGrid();
+  }else{
+    const g=opts.gender||'all';
+    const idx=g==='h'?1:g==='m'?2:g==='liq'?3:0;
+    setG(g, tabs[idx]);   // setG hace renderGrid
+  }
+  v.scrollTop=0;
+}
+function closeCatalog(){const v=$('catView');if(v)v.classList.remove('on');document.body.style.overflow='';}
+// Preview del inicio: 6 modelos disponibles más recientes (prods viene ordenado por id asc).
+function renderPreview(){
+  const sec=$('preview'),grid=$('previewGrid');if(!grid)return;
+  const items=prods.filter(p=>!p.sold).slice(-6).reverse();
+  if(!items.length){if(sec)sec.style.display='none';grid.innerHTML='';return;}
+  if(sec)sec.style.display='';
+  grid.innerHTML=items.map((p,i)=>cardHTML(p,i,'kp')).join('');
 }
 
 /* ── NEUROMARKETING ── */
@@ -1472,7 +1529,7 @@ function togCard(id,type){
     startReserva();   // arranca/continúa el contador de reserva al agregar al carrito
   }
   // sincroniza la tarjeta en el grid Y en "Últimos lanzamientos" (mismo producto, dos lugares)
-  const els=type==='liq'?[$('lk'+id)]:[$('k'+id),$('kl'+id)];
+  const els=type==='liq'?[$('lk'+id)]:[$('k'+id),$('kl'+id),$('kp'+id)];
   els.forEach(el=>{
     if(!el)return;
     el.classList.toggle('picked',inCart);
@@ -2566,6 +2623,7 @@ async function loadState(){
     try{featuredIds=JSON.parse(cfg.featured_ids||'[]');}catch(e){featuredIds=[];}
     try{bannerMujer=cfg.banner_mujer?JSON.parse(cfg.banner_mujer):null;}catch(e){bannerMujer=null;}
     try{bannerHombre=cfg.banner_hombre?JSON.parse(cfg.banner_hombre):null;}catch(e){bannerHombre=null;}
+    try{bannerUnisex=cfg.banner_unisex?JSON.parse(cfg.banner_unisex):null;}catch(e){bannerUnisex=null;}
     if(cfg.store_name)STORE_NAME=cfg.store_name;
     if(cfg.wa)WA=cfg.wa;
     if(cfg.pixel_id)PIXEL_ID=cfg.pixel_id;
@@ -2702,7 +2760,8 @@ if(localStorage.getItem('ss_reserve_until')&&!_reserveTimer){_reserveTimer=setIn
   renderHero();   // carrusel del inicio (reemplaza el encabezado si hay banners)
   renderHeroAdmin();   // pinta la lista de banners y el selector en el panel admin
   renderFeatured();    // sección "Últimos lanzamientos"
-  renderColBanners();  // banners de colección Mujer/Hombre
+  renderColBanners();  // banners de colección Mujer/Hombre/Unisex
+  renderPreview();     // preview de 2 columnas del inicio
   renderFeaturedAdmin();renderColAdmin();   // estado en el panel admin
   renderGrid();
   checkDeepLink();
