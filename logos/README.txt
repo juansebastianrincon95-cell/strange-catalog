@@ -10,7 +10,7 @@ INSTALADOS (Fase 9)
   sistecredito.png  (Sistecredito)
   nequi.png         (Nequi)         - convertido de .avif
   wompi.png         (Wompi)
-  bancolombia.jpg   (Bancolombia)
+  bancolombia.png   (Bancolombia)
   pse.png           (PSE)
   visa.png          (Visa)
   mastercard.png    (Mastercard)

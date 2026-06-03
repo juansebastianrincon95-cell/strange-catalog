@@ -188,7 +188,7 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .pm-add.in{background:var(--green)}
 .pm-pay{margin-top:18px}
 .pm-pay-t{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);text-align:center;margin-bottom:9px}
-.pm-pay-row{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.pm-pay-row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
 .pm-pay-row span{font-size:10.5px;font-weight:600;color:var(--ink2);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:5px 9px}
 .pm-meta{margin-top:16px;display:flex;flex-direction:column;gap:7px}
 .pm-chip{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;border-radius:10px;padding:9px 12px}
@@ -201,10 +201,12 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .pm-trust-item span{line-height:1.2}
 /* Financiación + medios de pago con logos reales (carpeta logos/, fallback a texto vía onerror) */
 .pm-fin-cap{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-top:16px;margin-bottom:7px}
-.pm-finance .pm-fin{display:flex;align-items:center;justify-content:center;min-height:46px}
-.pm-fin-logo{max-height:30px;max-width:100%;object-fit:contain}
-.pm-pay-i{display:inline-flex;align-items:center}
-.pm-pay-row img{height:26px;max-width:62px;object-fit:contain;display:block}
+.pm-finance .pm-fin{display:flex;align-items:center;justify-content:center;min-height:50px;background:#fff}
+.pm-fin-logo{max-height:30px;max-width:88%;object-fit:contain}
+/* cada medio de pago en un chip blanco uniforme (mismo alto, mismo aire) */
+.pm-pay-i{display:inline-flex;align-items:center;justify-content:center;height:38px;min-width:56px;padding:6px 11px;background:#fff;border:1px solid var(--line);border-radius:9px}
+.pm-pay-row img{max-height:21px;max-width:58px;width:auto;object-fit:contain;display:block}
+.pm-pay-txt{font-size:10.5px;font-weight:600;color:var(--ink2)}
 /* Reseñas de ejemplo en la ficha — bloque "Dejamos que nuestros clientes hablen" (estilo elena) */
 .pm-reviews{margin-top:20px;border-top:1px solid var(--line);padding-top:18px}
 .pm-rev-head{text-align:center;margin-bottom:14px}
@@ -1012,7 +1014,7 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
           <span class="pm-pay-i"><img src="logos/contraentrega.png" alt="Contra entrega" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="pm-pay-txt" style="display:none">📦 Contra entrega</span></span>
           <span class="pm-pay-i"><img src="logos/wompi.png" alt="Wompi" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="pm-pay-txt" style="display:none">💜 Wompi</span></span>
           <span class="pm-pay-i"><img src="logos/nequi.png" alt="Nequi" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="pm-pay-txt" style="display:none">📱 Nequi</span></span>
-          <span class="pm-pay-i"><img src="logos/bancolombia.jpg" alt="Bancolombia" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="pm-pay-txt" style="display:none">🏦 Bancolombia</span></span>
+          <span class="pm-pay-i"><img src="logos/bancolombia.png" alt="Bancolombia" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="pm-pay-txt" style="display:none">🏦 Bancolombia</span></span>
           <span class="pm-pay-i"><img src="logos/pse.png" alt="PSE" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="pm-pay-txt" style="display:none">🏦 PSE</span></span>
           <span class="pm-pay-i"><img src="logos/visa.png" alt="Visa" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="pm-pay-txt" style="display:none">💳 Visa</span></span>
           <span class="pm-pay-i"><img src="logos/mastercard.png" alt="Mastercard" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span class="pm-pay-txt" style="display:none">💳 Mastercard</span></span>
