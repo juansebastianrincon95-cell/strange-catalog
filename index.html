@@ -163,8 +163,9 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .photo-modal{position:fixed;inset:0;z-index:620;display:none;background:rgba(0,0,0,.55)}
 .photo-modal.on{display:block}
 .pm-scrim{position:fixed;inset:0;cursor:pointer}
-.pm-wrap{position:absolute;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:#fff;border-radius:20px 20px 0 0;max-height:94vh;overflow-y:auto;-webkit-overflow-scrolling:touch;animation:pmIn .32s cubic-bezier(.32,.72,0,1) both}
-@keyframes pmIn{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.pm-wrap{position:absolute;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:#fff;border-radius:20px 20px 0 0;max-height:94vh;overflow-y:auto;-webkit-overflow-scrolling:touch;animation:pmUp .32s cubic-bezier(.32,.72,0,1) both}
+@keyframes pmUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes pmIn{from{opacity:0;transform:scale(.9) translateY(16px)}to{opacity:1;transform:scale(1) translateY(0)}}
 .pm-img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block;background:var(--bg)}
 .pm-close{position:fixed;top:12px;right:12px;width:36px;height:36px;background:rgba(0,0,0,.45);border:none;border-radius:50%;color:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2}
 .pm-body{padding:18px 18px 26px}
@@ -508,6 +509,39 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:24px;font-size:13px;font-weight:600;z-index:700;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;box-shadow:0 6px 24px rgba(0,0,0,.32);max-width:90vw;text-align:center}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
+/* CLIENTES FELICES (testimonios) */
+.testi{padding:24px 0 14px;background:var(--bg)}
+.testi-hdr{padding:0 16px 14px;text-align:center}
+.testi-t{font-size:19px;font-weight:700;color:var(--ink)}
+.testi-stars{color:#f5a623;font-size:15px;letter-spacing:1px;margin-top:5px}
+.testi-stars span{color:var(--ink2);font-size:12px;font-weight:600;letter-spacing:0;margin-left:5px}
+.testi-row{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding:0 16px 8px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.testi-row::-webkit-scrollbar{display:none}
+.testi-card{flex:0 0 80%;max-width:300px;scroll-snap-align:start;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;cursor:pointer}
+@media(min-width:700px){.testi-card{flex:0 0 320px}}
+.testi-card-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.testi-card-foto{width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--bg)}
+.testi-card-name{font-size:13px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:4px}
+.testi-card-verif{color:#1aad49;font-size:11px}
+.testi-card-date{font-size:10px;color:var(--ink3)}
+.testi-card-stars{color:#f5a623;font-size:12px;letter-spacing:1px}
+.testi-card-text{font-size:12.5px;color:var(--ink2);line-height:1.5;margin-top:6px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.testi-card-prod{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:9px;border-top:1px solid var(--line)}
+.testi-card-prod img{width:34px;height:34px;border-radius:7px;object-fit:cover}
+.testi-card-prod span{font-size:10.5px;color:var(--ink2);font-weight:600}
+.testi-modal{position:fixed;inset:0;z-index:640;display:none}
+.testi-modal.on{display:flex;align-items:center;justify-content:center;padding:20px}
+.tm-scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);cursor:pointer}
+.tm-card{position:relative;background:#fff;border-radius:18px;max-width:380px;width:100%;padding:22px;animation:pmIn .3s both;max-height:90vh;overflow-y:auto}
+.tm-close{position:absolute;top:10px;right:10px;width:32px;height:32px;border:none;background:var(--bg);border-radius:50%;font-size:14px;cursor:pointer}
+.tm-head{display:flex;align-items:center;gap:12px}
+.tm-foto{width:52px;height:52px;border-radius:50%;object-fit:cover}
+.tm-name{font-size:15px;font-weight:700;color:var(--ink)}
+.tm-date{font-size:11px;color:var(--ink3)}
+.tm-stars{color:#f5a623;font-size:16px;letter-spacing:2px;margin-top:12px}
+.tm-text{font-size:14px;color:var(--ink);line-height:1.6;margin-top:10px}
+.tm-prod{width:100%;margin-top:16px;background:var(--ink);color:#fff;border:none;padding:13px;border-radius:12px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer}
+
 /* FOOTER (redes + newsletter) */
 .ftr{background:var(--bg);border-top:1px solid var(--line);margin-top:6px}
 .ftr-top{display:flex;flex-direction:column;gap:24px;padding:28px 20px}
@@ -583,6 +617,25 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
   <div class="preview-hdr"><span class="preview-t">Nuestros modelos</span><button class="preview-all" onclick="openCatalog()">Ver todo →</button></div>
   <div class="preview-grid" id="previewGrid"></div>
 </section>
+
+<!-- CLIENTES FELICES (testimonios) -->
+<section class="testi" id="testimonios" style="display:none">
+  <div class="testi-hdr">
+    <div class="testi-t">Clientes felices</div>
+    <div class="testi-stars">★★★★★ <span id="testiCount"></span></div>
+  </div>
+  <div class="testi-row" id="testiRow"></div>
+</section>
+<div class="testi-modal" id="testiModal">
+  <div class="tm-scrim" onclick="closeTesti()"></div>
+  <div class="tm-card">
+    <button class="tm-close" onclick="closeTesti()">✕</button>
+    <div class="tm-head"><img id="tmFoto" class="tm-foto" style="display:none" alt=""><div><div class="tm-name" id="tmName"></div><div class="tm-date" id="tmDate"></div></div></div>
+    <div class="tm-stars">★★★★★</div>
+    <div class="tm-text" id="tmText"></div>
+    <button class="tm-prod" id="tmProd" style="display:none" onclick="testiVerProducto()">Ver el producto &nbsp;→</button>
+  </div>
+</div>
 
 <!-- FOOTER (redes + newsletter) -->
 <footer class="ftr" id="siteFooter" style="display:none">
@@ -779,6 +832,18 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
       <input id="cfgTiktok" type="url" placeholder="TikTok (https://tiktok.com/@...)" onchange="saveSocials()" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:500;color:var(--ink);outline:none">
       <input id="cfgFb" type="url" placeholder="Facebook (https://facebook.com/...)" onchange="saveSocials()" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:500;color:var(--ink);outline:none">
       <div style="font-size:10px;color:var(--ink3);margin-top:6px;text-align:center">WhatsApp usa el número que ya configuraste. Solo se muestran las redes con enlace.</div>
+    </div>
+    <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#fffbeb">
+      <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">⭐ Clientes felices (testimonios)</div>
+      <label style="font-size:11px;font-weight:600;color:var(--ink2)">Nº de reseñas a mostrar (marketing)</label>
+      <input id="cfgReviews" type="number" inputmode="numeric" placeholder="ej. 1562" onchange="saveReviews()" style="margin-top:4px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
+      <div id="testiList" style="display:flex;flex-direction:column;gap:6px;margin:10px 0"></div>
+      <input id="testiNombre" type="text" placeholder="Nombre del cliente (ej. Johanna M.)" style="width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
+      <input id="testiFecha" type="text" placeholder="Fecha (ej. 28/05/2026) — opcional" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
+      <textarea id="testiTexto" placeholder="Testimonio / recomendación del cliente" rows="2" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none;resize:vertical"></textarea>
+      <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:9px;margin-top:6px;background:#fff;border:1.5px dashed var(--ink3);border-radius:8px;font-family:var(--font);font-size:11.5px;font-weight:700;color:var(--ink2);cursor:pointer"><span id="testiFotoLbl">📷 Foto del cliente (opcional)</span><input type="file" accept="image/*" id="testiFoto" style="display:none" onchange="testiFotoUp(this.files[0]);this.value=''"></label>
+      <select id="testiProdSel" style="margin-top:6px;width:100%;padding:9px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"></select>
+      <button onclick="testiAdd()" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">➕ Agregar testimonio</button>
     </div>
     <div id="storageWarn" style="display:none;margin:8px 14px;padding:8px 12px;background:#fff8e1;border:1px solid #ffc107;border-radius:8px;font-size:11px;color:#7a5800;font-weight:600"></div>
     <div class="trow" style="background:#f8f8f6">
@@ -1496,6 +1561,72 @@ async function saveSocials(){
   await adminWrite('upsert_settings',{data:{key:'socials',value:JSON.stringify(socials)}});
   renderFooter();
 }
+
+/* ── CLIENTES FELICES (testimonios) ── */
+let testimonios=[];   // settings.testimonios [{nombre,fecha,texto,foto,productId}]
+let _tmProdId=null, _testiFoto=null;
+function renderTestimonios(){
+  const sec=$('testimonios'),row=$('testiRow'),cnt=$('testiCount');
+  const ts=Array.isArray(testimonios)?testimonios:[];
+  if(cnt)cnt.textContent=reviewsCount>0?`${reviewsCount.toLocaleString('es-CO')} reseñas`:(ts.length?`${ts.length} reseñas`:'');
+  if(!row)return;
+  if(!ts.length){if(sec)sec.style.display='none';row.innerHTML='';return;}
+  if(sec)sec.style.display='';
+  row.innerHTML=ts.map((t,i)=>{
+    const p=t.productId?prods.find(x=>x.id===t.productId):null;
+    const foto=t.foto?`<img class="testi-card-foto" src="${escHtml(t.foto)}" alt="">`:`<div class="testi-card-foto" style="display:flex;align-items:center;justify-content:center;font-size:16px">🙂</div>`;
+    const prod=p?`<div class="testi-card-prod"><img src="${escHtml(p.img)}" alt=""><span>${escHtml((BRAND_LABELS[p.brand]||'')+' '+(p.g==='h'?'Hombre':'Mujer'))}</span></div>`:'';
+    return `<div class="testi-card" onclick="openTesti(${i})">
+      <div class="testi-card-top">${foto}<div><div class="testi-card-name">${escHtml(t.nombre||'Cliente')} <span class="testi-card-verif">✓</span></div><div class="testi-card-date">${escHtml(t.fecha||'')}</div></div></div>
+      <div class="testi-card-stars">★★★★★</div>
+      <div class="testi-card-text">${escHtml(t.texto||'')}</div>
+      ${prod}
+    </div>`;
+  }).join('');
+}
+function openTesti(i){
+  const t=testimonios[i];if(!t)return;
+  $('tmName').textContent=t.nombre||'Cliente';
+  $('tmDate').textContent=t.fecha||'';
+  $('tmText').textContent=t.texto||'';
+  const f=$('tmFoto');if(f){if(t.foto){f.src=t.foto;f.style.display='';}else f.style.display='none';}
+  _tmProdId=(t.productId&&prods.find(x=>x.id===t.productId))?t.productId:null;
+  const pb=$('tmProd');if(pb)pb.style.display=_tmProdId?'':'none';
+  $('testiModal').classList.add('on');document.body.style.overflow='hidden';
+}
+function closeTesti(){$('testiModal').classList.remove('on');document.body.style.overflow='';}
+function testiVerProducto(){const id=_tmProdId;closeTesti();if(id)openPhoto(id,'cat');}
+function renderTestiAdmin(){
+  const sel=$('testiProdSel');
+  if(sel)sel.innerHTML='<option value="">(sin producto vinculado)</option>'+prods.map(p=>`<option value="${p.id}">${prodLabel(p)}</option>`).join('');
+  const box=$('testiList');if(!box)return;
+  if(!testimonios.length){box.innerHTML='<div style="font-size:11px;color:var(--ink3)">Aún no hay testimonios. Agrega el primero abajo 👇</div>';return;}
+  box.innerHTML=testimonios.map((t,i)=>`<div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:9px;padding:6px">
+    <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--ink)">${escHtml(t.nombre||'')}</div><div style="font-size:10px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(t.texto||'')}</div></div>
+    <button onclick="testiMove(${i},-1)" ${i===0?'disabled':''} style="border:none;background:var(--bg);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;${i===0?'opacity:.3':''}">↑</button>
+    <button onclick="testiMove(${i},1)" ${i===testimonios.length-1?'disabled':''} style="border:none;background:var(--bg);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;${i===testimonios.length-1?'opacity:.3':''}">↓</button>
+    <button onclick="testiDel(${i})" style="border:none;background:#ffe9e6;color:var(--red);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px">🗑</button>
+  </div>`).join('');
+}
+function testiFotoUp(file){
+  if(!file)return;
+  const lbl=$('testiFotoLbl');if(lbl)lbl.textContent='Subiendo…';
+  compressImg(file,async d=>{try{const u=await uploadToStorage(d,0,false);_testiFoto=u;if(lbl)lbl.textContent='Foto lista ✓ (cambiar)';}catch(e){if(lbl)lbl.textContent='📷 Foto del cliente (opcional)';alert('❌ No se pudo subir:\n'+(e.message||e));}},false);
+}
+async function testiAdd(){
+  const nombre=($('testiNombre').value||'').trim(), texto=($('testiTexto').value||'').trim();
+  if(!nombre||!texto){alert('Pon al menos el nombre y el testimonio.');return;}
+  const fecha=($('testiFecha').value||'').trim()||new Date().toLocaleDateString('es-CO');
+  const productId=parseInt(($('testiProdSel')||{}).value)||null;
+  testimonios.push({nombre,fecha,texto,foto:_testiFoto||null,productId});
+  await saveTestimonios();
+  _testiFoto=null;$('testiNombre').value='';$('testiTexto').value='';$('testiFecha').value='';
+  const lbl=$('testiFotoLbl');if(lbl)lbl.textContent='📷 Foto del cliente (opcional)';
+}
+async function testiMove(i,dir){const j=i+dir;if(j<0||j>=testimonios.length)return;[testimonios[i],testimonios[j]]=[testimonios[j],testimonios[i]];await saveTestimonios();}
+async function testiDel(i){testimonios.splice(i,1);await saveTestimonios();}
+async function saveTestimonios(){await adminWrite('upsert_settings',{data:{key:'testimonios',value:JSON.stringify(testimonios)}});renderTestimonios();renderTestiAdmin();}
+async function saveReviews(){reviewsCount=parseInt(($('cfgReviews')||{}).value)||0;await adminWrite('upsert_settings',{data:{key:'reviews_count',value:String(reviewsCount)}});renderTestimonios();}
 
 /* ── NEUROMARKETING ── */
 // Prueba social real: vistas por producto (de la tabla events, vía /api/product-views)
@@ -2823,6 +2954,7 @@ async function loadState(){
     try{socials=cfg.socials?JSON.parse(cfg.socials):{ig:'',tiktok:'',fb:''};}catch(e){socials={ig:'',tiktok:'',fb:''};}
     reviewsCount=parseInt(cfg.reviews_count)||0;
     {const r=$('cfgReviews');if(r)r.value=reviewsCount||'';}
+    try{testimonios=JSON.parse(cfg.testimonios||'[]');}catch(e){testimonios=[];}
     {const a=$('cfgIg');if(a)a.value=socials.ig||'';const b=$('cfgTiktok');if(b)b.value=socials.tiktok||'';const c=$('cfgFb');if(c)c.value=socials.fb||'';}
     if(cfg.store_name)STORE_NAME=cfg.store_name;
     if(cfg.wa)WA=cfg.wa;
@@ -2963,7 +3095,8 @@ if(localStorage.getItem('ss_reserve_until')&&!_reserveTimer){_reserveTimer=setIn
   renderColBanners();  // banners de colección Mujer/Hombre/Unisex
   renderPreview();     // preview de 2 columnas del inicio
   renderFooter();      // footer: redes + newsletter
-  renderFeaturedAdmin();renderColAdmin();   // estado en el panel admin
+  renderTestimonios(); // sección clientes felices
+  renderFeaturedAdmin();renderColAdmin();renderTestiAdmin();   // estado en el panel admin
   renderGrid();
   checkDeepLink();
   checkWompiReturn();
