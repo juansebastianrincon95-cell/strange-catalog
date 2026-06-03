@@ -139,7 +139,7 @@ create policy "service all events"
 
 -- ─── SUBSCRIBERS (popup de bienvenida $20.000 OFF) ───────────
 -- Leads capturados por el popup. Se escribe/lee SOLO con service_role
--- (api/subscribe.js y api/catalog.js); RLS sin policy pública = el anon no ve datos personales.
+-- (api/orders.js?kind=subscriber y api/catalog.js); RLS sin policy pública = el anon no ve datos personales.
 create table if not exists subscribers (
   id         bigserial primary key,
   created_at timestamptz default now(),

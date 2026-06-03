@@ -890,8 +890,8 @@ function submitWelcome(){
   if(!nombre||whatsapp.length<7){if(err)err.classList.add('show');return;}
   if(err)err.classList.remove('show');
   const btn=$('wmBtn');if(btn){btn.disabled=true;btn.textContent='Enviando…';}
-  fetch('/api/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({nombre,whatsapp,cumple,utm:{...getUTM(),...getFbAttribution()},session_id:SESSION_ID})})
+  fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({kind:'subscriber',nombre,whatsapp,cumple,utm:{...getUTM(),...getFbAttribution()},session_id:SESSION_ID})})
     .then(r=>r.ok?r.json():Promise.reject(new Error('http')))
     .then(j=>{
       const code=(j&&j.codigo)||WELCOME_CODE;
