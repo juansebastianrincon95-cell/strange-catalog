@@ -432,6 +432,27 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .wm-code b{font-size:19px;font-weight:700;letter-spacing:.06em;color:var(--ink)}
 .wm-copy{border:none;background:var(--ink);color:#fff;font-family:var(--font);font-size:12px;font-weight:700;padding:8px 13px;border-radius:9px;cursor:pointer}
 
+/* HERO CARRUSEL */
+.hero{position:relative;width:100%;aspect-ratio:4/5;overflow:hidden;background:var(--ink);display:none;touch-action:pan-y}
+.hero.on{display:block}
+.hero-track{display:flex;height:100%;transition:transform .5s cubic-bezier(.16,1,.3,1)}
+.hero-slide{position:relative;min-width:100%;height:100%}
+.hero-slide img{width:100%;height:100%;object-fit:cover;display:block;-webkit-user-drag:none;user-select:none}
+.hero-ov{position:absolute;left:0;right:0;bottom:0;padding:60px 22px 26px;background:linear-gradient(to top,rgba(0,0,0,.82) 8%,rgba(0,0,0,.35) 55%,transparent);color:#fff;text-align:left}
+.hero-tit{font-size:30px;font-weight:700;line-height:1.05;letter-spacing:-.02em;text-shadow:0 2px 14px rgba(0,0,0,.4)}
+.hero-sub{font-size:13.5px;font-weight:500;opacity:.92;margin-top:6px;text-shadow:0 1px 8px rgba(0,0,0,.4)}
+.hero-cta{margin-top:14px;display:inline-block;background:var(--red);color:#fff;border:none;border-radius:12px;padding:12px 22px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;transition:transform .12s}
+.hero-cta:active{transform:scale(.97)}
+.hero-dots{position:absolute;top:14px;left:0;right:0;display:flex;justify-content:center;gap:6px;z-index:2}
+.hero-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.45);transition:width .25s,background .25s}
+.hero-dot.on{width:20px;border-radius:5px;background:#fff}
+@media(min-width:700px){
+  .hero{aspect-ratio:21/9;max-height:74vh}
+  .hero-ov{padding:0 0 48px 56px;max-width:620px}
+  .hero-tit{font-size:48px}
+  .hero-sub{font-size:17px}
+}
+
 /* RESPONSIVE */
 @media(min-width:420px){.grid,.liq-grid{grid-template-columns:repeat(4,1fr);gap:7px}}
 @media(min-width:600px){.grid{padding:0 12px 24px}.grid,.liq-grid{grid-template-columns:repeat(5,1fr);gap:8px}.liq-grid{padding:0 12px}}
@@ -454,6 +475,12 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 <button class="wa-fab" id="waFab" onclick="openWA()" aria-label="Escríbenos por WhatsApp">
   <svg viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
 </button>
+
+<!-- HERO CARRUSEL (se llena desde settings.hero_slides; si no hay, queda oculto y se muestra .hdr) -->
+<section class="hero" id="hero" aria-label="Destacados">
+  <div class="hero-track" id="heroTrack"></div>
+  <div class="hero-dots" id="heroDots"></div>
+</section>
 
 <div class="hdr">
   <div>
@@ -548,6 +575,20 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
     <div class="trow" style="background:#fff0f0">
       <div><div class="trow-lbl">🎁 Popup de bienvenida</div><div class="trow-sub">$20.000 OFF (código BIENVENIDO20) al dejar datos</div></div>
       <label class="sw"><input type="checkbox" id="swWelcome" onchange="toggleWelcome(this.checked)"><div class="sw-tr"></div><div class="sw-th"></div></label>
+    </div>
+    <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#f3f1ff">
+      <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">🖼 Banners del inicio (hero)</div>
+      <div id="heroAdminList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>
+      <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">📷 <span id="heroFileLbl">Subir imagen del banner</span><input type="file" accept="image/*" id="heroFile" style="display:none" onchange="heroDraftImg(this.files[0]);this.value=''"></label>
+      <img id="heroDraftThumb" style="display:none;width:100%;max-height:160px;object-fit:cover;border-radius:9px;margin-top:8px">
+      <input id="heroTit" type="text" placeholder="Título (ej. Lo nuevo de Nike)" style="margin-top:8px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
+      <input id="heroSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
+      <div style="display:flex;gap:6px;margin-top:6px">
+        <select id="heroLinkType" onchange="heroLinkTypeChange()" style="flex:1;padding:9px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"><option value="product">📦 Producto</option><option value="brand">🏷 Marca</option><option value="gender">👥 Colección</option></select>
+        <select id="heroLinkVal" style="flex:1.4;padding:9px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"></select>
+      </div>
+      <button onclick="heroAdd()" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">➕ Agregar banner</button>
+      <div style="font-size:10px;color:var(--ink3);margin-top:6px;text-align:center">Imagen vertical recomendada: 1080×1350 (4:5).</div>
     </div>
     <div id="storageWarn" style="display:none;margin:8px 14px;padding:8px 12px;background:#fff8e1;border:1px solid #ffc107;border-radius:8px;font-size:11px;color:#7a5800;font-weight:600"></div>
     <div class="trow" style="background:#f8f8f6">
@@ -930,6 +971,140 @@ function copyWelcomeCode(){
   const done=()=>{const b=document.querySelector('.wm-copy');if(b){const t=b.textContent;b.textContent='¡Copiado!';setTimeout(()=>b.textContent=t,1600);}};
   if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(code).then(done).catch(done);
   else done();
+}
+
+/* ── HERO CARRUSEL ── */
+let heroSlides=[];        // [{img,titulo,subtitulo,link_type,link_value}] desde settings.hero_slides
+let heroCur=0,_heroTimer=null,_heroTouchX=null;
+const escHtml=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function renderHero(){
+  const hero=$('hero'),track=$('heroTrack'),dots=$('heroDots'),hdr=document.querySelector('.hdr');
+  if(!hero||!track)return;
+  const slides=Array.isArray(heroSlides)?heroSlides.filter(s=>s&&s.img):[];
+  if(!slides.length){                         // sin banners → fallback al encabezado clásico
+    hero.classList.remove('on');
+    if(hdr)hdr.style.display='';
+    if(_heroTimer){clearInterval(_heroTimer);_heroTimer=null;}
+    return;
+  }
+  if(hdr)hdr.style.display='none';             // el carrusel reemplaza el encabezado
+  hero.classList.add('on');
+  track.innerHTML=slides.map(s=>`<div class="hero-slide"><img src="${escHtml(s.img)}" alt="${escHtml(s.titulo)}" loading="lazy"><div class="hero-ov">${s.titulo?`<div class="hero-tit">${escHtml(s.titulo)}</div>`:''}${s.subtitulo?`<div class="hero-sub">${escHtml(s.subtitulo)}</div>`:''}<button class="hero-cta" onclick="heroCTA(${slides.indexOf(s)})">Comprar ahora&nbsp;→</button></div></div>`).join('');
+  dots.innerHTML=slides.length>1?slides.map((_,i)=>`<span class="hero-dot${i===0?' on':''}" onclick="heroGoStop(${i})"></span>`).join(''):'';
+  heroCur=0;heroApply();
+  if(_heroTimer)clearInterval(_heroTimer);
+  if(slides.length>1)_heroTimer=setInterval(()=>heroGo(heroCur+1),5000);
+  // swipe táctil (una sola vez)
+  if(!track._heroBound){
+    track._heroBound=true;
+    track.addEventListener('touchstart',e=>{_heroTouchX=e.touches[0].clientX;},{passive:true});
+    track.addEventListener('touchend',e=>{
+      if(_heroTouchX==null)return;
+      const dx=e.changedTouches[0].clientX-_heroTouchX;_heroTouchX=null;
+      if(Math.abs(dx)>40)heroGoStop(heroCur+(dx<0?1:-1));
+    },{passive:true});
+  }
+}
+function heroApply(){
+  const track=$('heroTrack'),n=(heroSlides||[]).filter(s=>s&&s.img).length;
+  if(!track||!n)return;
+  heroCur=((heroCur%n)+n)%n;                   // circular
+  track.style.transform=`translateX(${-heroCur*100}%)`;
+  document.querySelectorAll('#heroDots .hero-dot').forEach((d,i)=>d.classList.toggle('on',i===heroCur));
+}
+function heroGo(i){heroCur=i;heroApply();}
+function heroGoStop(i){heroGo(i);if(_heroTimer){clearInterval(_heroTimer);_heroTimer=setInterval(()=>heroGo(heroCur+1),5000);}} // navegación manual reinicia el timer
+function heroCTA(idx){
+  const slides=(heroSlides||[]).filter(s=>s&&s.img);
+  const s=slides[idx];if(!s)return;
+  if(s.link_type==='product'){
+    const id=parseInt(s.link_value);
+    const inLiq=liqs.find(x=>x.id===id);
+    const p=inLiq||prods.find(x=>x.id===id);
+    if(p)openPhoto(id,inLiq?'liq':'cat');
+    return;
+  }
+  const tabs=document.querySelectorAll('.tabs .tab');
+  if(s.link_type==='gender'){
+    const g=s.link_value==='m'?'m':'h';
+    setG(g,tabs[g==='h'?1:2]);
+  }else if(s.link_type==='brand'){
+    gSel='all';brandSel=s.link_value||'all';
+    tabs.forEach((t,i)=>t.classList.toggle('on',i===0));
+    renderGrid();
+  }
+  const tb=document.querySelector('.tabs');if(tb)tb.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+/* ── HERO: admin (gestionar banners) ── */
+let _heroDraftImg=null;
+function heroLinkTypeChange(){
+  const t=($('heroLinkType')||{}).value,sel=$('heroLinkVal');if(!sel)return;
+  if(t==='product'){
+    sel.innerHTML=prods.length?prods.map(p=>`<option value="${p.id}">${p.g==='h'?'Hombre':'Mujer'} · ${BRAND_LABELS[p.brand]||'—'} · ${fmt(p.price)} (#${p.id})</option>`).join(''):'<option value="">(no hay productos)</option>';
+  }else if(t==='brand'){
+    sel.innerHTML=Object.entries(BRAND_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+  }else{
+    sel.innerHTML='<option value="h">Hombre</option><option value="m">Mujer</option>';
+  }
+}
+function heroDraftImg(file){
+  if(!file)return;
+  const lbl=$('heroFileLbl');if(lbl)lbl.textContent='Subiendo…';
+  compressImg(file,async dataUrl=>{
+    try{
+      const url=await uploadToStorage(dataUrl,0,false);
+      _heroDraftImg=url;
+      const t=$('heroDraftThumb');if(t){t.src=url;t.style.display='block';}
+      if(lbl)lbl.textContent='Imagen lista ✓ (cambiar)';
+    }catch(e){if(lbl)lbl.textContent='Subir imagen del banner';alert('❌ No se pudo subir la imagen:\n'+(e.message||e));}
+  },false);
+}
+async function heroAdd(){
+  if(!_heroDraftImg){alert('Primero sube una imagen para el banner.');return;}
+  heroSlides.push({
+    img:_heroDraftImg,
+    titulo:($('heroTit').value||'').trim(),
+    subtitulo:($('heroSub').value||'').trim(),
+    link_type:($('heroLinkType')||{}).value||'product',
+    link_value:($('heroLinkVal')||{}).value||''
+  });
+  await saveHeroSlides();
+  _heroDraftImg=null;
+  $('heroTit').value='';$('heroSub').value='';
+  const t=$('heroDraftThumb');if(t){t.src='';t.style.display='none';}
+  const lbl=$('heroFileLbl');if(lbl)lbl.textContent='Subir imagen del banner';
+}
+function heroDestLabel(s){
+  if(s.link_type==='product')return 'Producto #'+s.link_value;
+  if(s.link_type==='brand')return 'Marca: '+(BRAND_LABELS[s.link_value]||s.link_value);
+  return 'Colección: '+(s.link_value==='m'?'Mujer':'Hombre');
+}
+function renderHeroAdmin(){
+  const box=$('heroAdminList');if(!box)return;
+  heroLinkTypeChange();   // refresca el selector de producto/marca con el inventario actual
+  if(!heroSlides.length){box.innerHTML='<div style="font-size:11px;color:var(--ink3)">Aún no hay banners. Agrega el primero abajo 👇</div>';return;}
+  box.innerHTML=heroSlides.map((s,i)=>`<div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:9px;padding:6px">
+    <img src="${escHtml(s.img)}" style="width:38px;height:48px;object-fit:cover;border-radius:6px;flex-shrink:0">
+    <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(s.titulo)||'(sin título)'}</div><div style="font-size:10px;color:var(--ink3)">${escHtml(heroDestLabel(s))}</div></div>
+    <button onclick="heroMove(${i},-1)" ${i===0?'disabled':''} style="border:none;background:var(--bg);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;${i===0?'opacity:.3':''}">↑</button>
+    <button onclick="heroMove(${i},1)" ${i===heroSlides.length-1?'disabled':''} style="border:none;background:var(--bg);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;${i===heroSlides.length-1?'opacity:.3':''}">↓</button>
+    <button onclick="heroDel(${i})" style="border:none;background:#ffe9e6;color:var(--red);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px">🗑</button>
+  </div>`).join('');
+}
+async function heroMove(i,dir){
+  const j=i+dir;if(j<0||j>=heroSlides.length)return;
+  [heroSlides[i],heroSlides[j]]=[heroSlides[j],heroSlides[i]];
+  await saveHeroSlides();
+}
+async function heroDel(i){
+  if(!confirm('¿Quitar este banner?'))return;
+  heroSlides.splice(i,1);
+  await saveHeroSlides();
+}
+async function saveHeroSlides(){
+  await adminWrite('upsert_settings',{data:{key:'hero_slides',value:JSON.stringify(heroSlides)}});
+  renderHero();renderHeroAdmin();
 }
 
 /* ── NEUROMARKETING ── */
@@ -2224,6 +2399,7 @@ async function loadState(){
     bannerOn=cfg.banner_on==='true';
     WELCOME_ON=cfg.welcome_popup!=='false';   // activo por defecto; admin puede apagarlo
     {const sw=$('swWelcome');if(sw)sw.checked=WELCOME_ON;}
+    try{heroSlides=JSON.parse(cfg.hero_slides||'[]');}catch(e){heroSlides=[];}
     if(cfg.store_name)STORE_NAME=cfg.store_name;
     if(cfg.wa)WA=cfg.wa;
     if(cfg.pixel_id)PIXEL_ID=cfg.pixel_id;
@@ -2357,6 +2533,8 @@ if(localStorage.getItem('ss_reserve_until')&&!_reserveTimer){_reserveTimer=setIn
 (async()=>{
   await loadState();
   if(bannerOn)$('banner').classList.remove('off');
+  renderHero();   // carrusel del inicio (reemplaza el encabezado si hay banners)
+  renderHeroAdmin();   // pinta la lista de banners y el selector en el panel admin
   renderGrid();
   checkDeepLink();
   checkWompiReturn();
