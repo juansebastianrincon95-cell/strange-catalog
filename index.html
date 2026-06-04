@@ -358,7 +358,8 @@ nav .nav-bag:active{transform:translateY(-50%) scale(.91)}
 /* CART */
 .cscrim{position:fixed;inset:0;background:rgba(0,0,0,.3);backdrop-filter:blur(8px);z-index:600;display:none}
 .cscrim.on{display:block}
-.csheet{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:var(--white);border-radius:22px 22px 0 0;z-index:610;transform:translateY(100%);transition:transform .34s cubic-bezier(.32,.72,0,1);max-height:90vh;display:flex;flex-direction:column;padding-bottom:max(16px,env(safe-area-inset-bottom));box-shadow:0 -2px 32px rgba(0,0,0,.09)}
+/* CARRITO = ventana a pantalla completa en móvil (no tarjeta): barra "Tu pedido"+✕ fija arriba */
+.csheet{position:fixed;inset:0;max-width:none;margin:0;background:var(--white);border-radius:0;z-index:610;transform:translateY(100%);transition:transform .34s cubic-bezier(.32,.72,0,1);height:100%;max-height:none;display:flex;flex-direction:column;padding-bottom:max(10px,env(safe-area-inset-bottom))}
 .csheet.on{transform:translateY(0)}
 /* ESCRITORIO: carrito como drawer lateral derecho (estilo Nike/Adidas). Móvil intacto. */
 @media(min-width:700px){
@@ -367,8 +368,8 @@ nav .nav-bag:active{transform:translateY(-50%) scale(.91)}
   .cdrag{display:none}
   .ctop{padding-top:22px}
 }
-.cdrag{width:32px;height:3px;background:var(--line);border-radius:2px;margin:10px auto 0;flex-shrink:0}
-.ctop{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 8px;flex-shrink:0}
+.cdrag{display:none}
+.ctop{display:flex;align-items:center;justify-content:space-between;padding:max(16px,env(safe-area-inset-top)) 18px 8px;flex-shrink:0}
 .cttl{font-size:19px;font-weight:700;letter-spacing:-.04em}
 .cx{width:26px;height:26px;background:var(--bg);border:none;border-radius:50%;font-size:12px;color:var(--ink2);cursor:pointer;display:flex;align-items:center;justify-content:center}
 .csteps{display:flex;align-items:center;justify-content:center;gap:5px;padding:8px 18px 14px;flex-shrink:0}
