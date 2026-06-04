@@ -571,10 +571,10 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
 .testi-t{font-size:19px;font-weight:700;color:var(--ink)}
 .testi-stars{color:#f5a623;font-size:15px;letter-spacing:1px;margin-top:5px}
 .testi-stars span{color:var(--ink2);font-size:12px;font-weight:600;letter-spacing:0;margin-left:5px}
-.testi-row{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding:0 16px 8px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-.testi-row::-webkit-scrollbar{display:none}
-.testi-card{flex:0 0 80%;max-width:300px;scroll-snap-align:start;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;cursor:pointer}
-@media(min-width:700px){.testi-card{flex:0 0 320px}}
+.testi-row{columns:2;column-gap:10px;padding:0 14px 8px}
+@media(min-width:700px){.testi-row{columns:4;column-gap:14px;max-width:1120px;margin:0 auto;padding:0 24px 10px}}
+.testi-card{break-inside:avoid;-webkit-column-break-inside:avoid;display:inline-block;width:100%;margin:0 0 10px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;cursor:pointer}
+@media(min-width:700px){.testi-card{margin-bottom:14px}}
 .testi-card-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
 .testi-card-foto{width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--bg)}
 .testi-card-name{font-size:13px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:4px}
@@ -1628,17 +1628,41 @@ async function saveSocials(){
 
 /* ── CLIENTES FELICES (testimonios) ── */
 let testimonios=[];   // settings.testimonios [{nombre,fecha,texto,foto,productId}]
-let _tmProdId=null, _testiFoto=null;
+let _tmProdId=null, _testiFoto=null, _testiList=[];
+// Testimonios de EJEMPLO (fallback cuando el admin aún no cargó reales). Reemplazar por reales.
+const DEFAULT_TESTIMONIOS=[
+  {nombre:'Valentina Ríos',fecha:'2025-09-12',texto:'Pedí mis tenis un viernes y el martes ya los tenía en Medellín. Calidad impecable y súper cómodos. 100% recomendados 🙌'},
+  {nombre:'Andrés Gómez',fecha:'2025-08-03',texto:'Llegaron tal cual la foto. Pagué contra entrega sin ningún problema y la atención fue muy buena.'},
+  {nombre:'Daniela Torres',fecha:'2025-10-21',texto:'Me encantaron 😍 la talla quedó perfecta y el material se siente original. Ya pedí otro par.'},
+  {nombre:'Juan David Martínez',fecha:'2025-07-18',texto:'Me asesoraron por WhatsApp para elegir la talla. Excelente servicio y los tenis son una nota.'},
+  {nombre:'Carolina Ramírez',fecha:'2025-11-05',texto:'Súper cómodos para caminar todo el día. Envío gratis y rapidísimo a Bogotá.'},
+  {nombre:'Sebastián Cardona',fecha:'2025-06-29',texto:'Tenía dudas de comprar online pero quedé feliz. Originales y a muy buen precio.'},
+  {nombre:'Laura Jiménez',fecha:'2025-09-30',texto:'Los compré para mi esposo y le fascinaron. Llegó bien empacado y a tiempo.'},
+  {nombre:'Mateo Herrera',fecha:'2025-08-22',texto:'Muy buena calidad, se ven aún mejor en persona. Volveré a comprar seguro.'},
+  {nombre:'Paola Castaño',fecha:'2025-10-10',texto:'Atención de 10. Me cambiaron la talla sin problema cuando pedí una más grande. Gracias!'},
+  {nombre:'Felipe Ospina',fecha:'2025-07-02',texto:'Llegaron en 2 días a Cali. Cómodos desde el primer día, no se sienten duros.'},
+  {nombre:'Manuela Vargas',fecha:'2025-11-18',texto:'La mejor compra que he hecho online: calidad, precio y rapidez. Repito sin duda.'},
+  {nombre:'Santiago León',fecha:'2025-09-08',texto:'Pedí dos pares y ambos perfectos, el de mi novia y el mío. Recomendadísimo 👟'}
+];
+const _AVCOL=['#E8200A','#0066FF','#1aad49','#FF7A00','#7b3fe4','#0aa6b8','#d6336c','#2b8a3e'];
+function _avatar(name){
+  const parts=String(name||'C').trim().split(/\s+/);
+  const ini=((parts[0]||'')[0]||'')+((parts[1]||'')[0]||'');
+  let h=0;for(let i=0;i<name.length;i++)h=(h*31+name.charCodeAt(i))>>>0;
+  const c=_AVCOL[h%_AVCOL.length];
+  return `<div class="testi-card-foto" style="display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;background:${c}">${escHtml(ini.toUpperCase())}</div>`;
+}
 function renderTestimonios(){
   const sec=$('testimonios'),row=$('testiRow'),cnt=$('testiCount');
-  const ts=Array.isArray(testimonios)?testimonios:[];
-  if(cnt)cnt.textContent=reviewsCount>0?`${reviewsCount.toLocaleString('es-CO')} reseñas`:(ts.length?`${ts.length} reseñas`:'');
+  const ts=(Array.isArray(testimonios)&&testimonios.length)?testimonios:DEFAULT_TESTIMONIOS;
+  _testiList=ts;
+  if(cnt)cnt.textContent=reviewsCount>0?`${reviewsCount.toLocaleString('es-CO')} reseñas`:`${ts.length} reseñas`;
   if(!row)return;
   if(!ts.length){if(sec)sec.style.display='none';row.innerHTML='';return;}
   if(sec)sec.style.display='';
   row.innerHTML=ts.map((t,i)=>{
     const p=t.productId?prods.find(x=>x.id===t.productId):null;
-    const foto=t.foto?`<img class="testi-card-foto" src="${escHtml(t.foto)}" alt="">`:`<div class="testi-card-foto" style="display:flex;align-items:center;justify-content:center;font-size:16px">🙂</div>`;
+    const foto=t.foto?`<img class="testi-card-foto" src="${escHtml(t.foto)}" alt="">`:_avatar(t.nombre);
     const prod=p?`<div class="testi-card-prod"><img src="${escHtml(p.img)}" alt=""><span>${escHtml((BRAND_LABELS[p.brand]||'')+' '+(p.g==='h'?'Hombre':'Mujer'))}</span></div>`:'';
     return `<div class="testi-card" onclick="openTesti(${i})">
       <div class="testi-card-top">${foto}<div><div class="testi-card-name">${escHtml(t.nombre||'Cliente')} <span class="testi-card-verif">✓</span></div><div class="testi-card-date">${escHtml(t.fecha||'')}</div></div></div>
@@ -1649,7 +1673,7 @@ function renderTestimonios(){
   }).join('');
 }
 function openTesti(i){
-  const t=testimonios[i];if(!t)return;
+  const t=_testiList[i];if(!t)return;
   $('tmName').textContent=t.nombre||'Cliente';
   $('tmDate').textContent=t.fecha||'';
   $('tmText').textContent=t.texto||'';
