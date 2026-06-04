@@ -1022,7 +1022,7 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
 <div class="photo-modal" id="photoModal">
   <div class="pm-scrim" onclick="closePhotoBtn()"></div>
   <div class="pm-wrap">
-    <div class="pm-head"><span class="pm-logo">Strange Sneakers</span><button class="pm-x" onclick="closePhotoBtn()">✕</button></div>
+    <div class="pm-head"><span class="pm-logo">CATALOGO SNEAKERS</span><button class="pm-x" onclick="closePhotoBtn()">✕</button></div>
     <img class="pm-img" id="pmImg" src="" alt="par">
     <div class="pm-body">
       <div class="pm-title" id="pmTitle">Sneakers</div>
@@ -3010,9 +3010,8 @@ function loadConfig(){
   }catch(e){}
 }
 function applyStoreName(){
-  const logo=document.querySelector('.logo');
-  if(logo)logo.innerHTML=STORE_NAME+'<sup>®</sup>';
-  document.title=STORE_NAME;   // STORE_NAME ya es "Strange Sneakers" (evita "...Sneakers Sneakers")
+  // El encabezado del nav es marca fija "CATALOGO SNEAKERS" (no se sobreescribe con store_name).
+  document.title=STORE_NAME;
 }
 
 /* ── PERSISTENCIA ── */
