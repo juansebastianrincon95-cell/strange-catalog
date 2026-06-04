@@ -26,8 +26,18 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 :root{color-scheme:light;--bg:#F2F1EE;--white:#FFF;--ink:#0E0E0C;--ink2:#5a5a56;--ink3:#9a9a95;--line:rgba(0,0,0,0.08);--red:#E8200A;--blue:#0066FF;--green:#1aad49;--orange:#FF7A00;--wa:#25D366;--font:'Space Grotesk',system-ui,sans-serif}
+/* ── MODO OSCURO (10.10) ── paleta + arreglos. Inicia claro; toggle en el nav guarda en ss_theme. */
+html[data-theme="dark"]{color-scheme:dark;--bg:#15151b;--white:#1f1f27;--ink:#f3f2ef;--ink2:#abaaa4;--ink3:#76766f;--line:rgba(255,255,255,.12)}
+/* Botones/acentos con fondo var(--ink): en oscuro el fondo queda claro → texto oscuro */
+html[data-theme="dark"] .tab.on,html[data-theme="dark"] .bchip.on,html[data-theme="dark"] .pm-add,html[data-theme="dark"] .cup-btn,html[data-theme="dark"] .uadd,html[data-theme="dark"] .ep-save,html[data-theme="dark"] .btnmain,html[data-theme="dark"] .mode-btn.on,html[data-theme="dark"] .guia-num,html[data-theme="dark"] .guia-dl,html[data-theme="dark"] .toast,html[data-theme="dark"] .tm-prod,html[data-theme="dark"] .wm-copy,html[data-theme="dark"] .admin-pill:hover,html[data-theme="dark"] .ftr-news-row button{color:var(--bg)}
+html[data-theme="dark"] .bag-btn svg{stroke:var(--bg)}
+/* Superficies que deben quedarse oscuras (texto blanco encima) aunque var(--ink) se aclare */
+html[data-theme="dark"] .wm-head,html[data-theme="dark"] .ftr-bottom{background:#101014}
+/* Los logos de pago/financiación se mantienen sobre blanco también en oscuro (evita rectángulos) */
+html[data-theme="dark"] .pm-pay-strip,html[data-theme="dark"] .pm-fin{background:#fff}
+html[data-theme="dark"] .theme-tog{background:var(--white)}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{background:#F2F1EE!important;color:#0E0E0C;font-family:var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+html,body{background:var(--bg)!important;color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
 
 /* NAV */
 nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:center;justify-content:center;padding:8px 58px;background:var(--bg);border-bottom:1px solid var(--line)}
@@ -40,7 +50,7 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
 .nav-bag:active{transform:translateY(-50%) scale(.91)}
 .logo sup{font-size:8px;font-weight:500;color:var(--ink3);vertical-align:super;margin-left:2px}
 .nav-r{display:flex;align-items:center;gap:8px}
-.admin-pill{background:#fff;border:1.5px solid var(--line);border-radius:20px;padding:7px 14px;font-family:var(--font);font-size:11px;font-weight:600;color:var(--ink2);cursor:pointer;transition:all .15s}
+.admin-pill{background:var(--white);border:1.5px solid var(--line);border-radius:20px;padding:7px 14px;font-family:var(--font);font-size:11px;font-weight:600;color:var(--ink2);cursor:pointer;transition:all .15s}
 .admin-pill:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
 .bag-btn{position:relative;width:40px;height:40px;background:var(--ink);border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .14s}
 .wa-fab{position:fixed;right:18px;bottom:max(18px,env(safe-area-inset-bottom));width:56px;height:56px;background:#25D366;border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:565;box-shadow:0 4px 16px rgba(37,211,102,.45);transition:transform .15s}
@@ -53,7 +63,7 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
 .bdot.show{opacity:1;transform:scale(1)}
 
 /* HERO */
-.hdr{padding:32px 16px 20px;display:flex;align-items:flex-end;justify-content:space-between;background:#F2F1EE}
+.hdr{padding:32px 16px 20px;display:flex;align-items:flex-end;justify-content:space-between;background:var(--bg)}
 .hdr-tag{font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);margin-bottom:8px}
 .hdr-h{font-size:clamp(34px,9vw,56px);font-weight:700;letter-spacing:-.05em;line-height:.95;color:var(--ink)}
 .hdr-h span{color:var(--ink3);font-weight:400}
@@ -62,7 +72,7 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
 .sl{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
 
 /* BANNER */
-.banner{margin:0 10px 14px;padding:16px 18px;background:#0E0E0C;border-radius:16px;display:flex;align-items:center;justify-content:space-between}
+.banner{margin:0 10px 14px;padding:16px 18px;background:var(--ink);border-radius:16px;display:flex;align-items:center;justify-content:space-between}
 .banner.off{display:none}
 .ban-tag{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--orange);margin-bottom:4px}
 .ban-txt{font-size:16px;font-weight:700;color:#fff;letter-spacing:-.03em}
@@ -71,24 +81,24 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
 .ban-env{font-size:11px;color:var(--green);font-weight:600;margin-top:4px}
 
 /* TABS */
-.tabs{display:flex;gap:4px;padding:18px 10px 14px;background:#F2F1EE}
-.tab{flex:1;padding:10px 4px;background:#fff;border:1.5px solid var(--line);border-radius:10px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink2);cursor:pointer;transition:all .16s;text-align:center}
+.tabs{display:flex;gap:4px;padding:18px 10px 14px;background:var(--bg)}
+.tab{flex:1;padding:10px 4px;background:var(--white);border:1.5px solid var(--line);border-radius:10px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink2);cursor:pointer;transition:all .16s;text-align:center}
 .tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
-.brandbar{display:flex;gap:6px;padding:0 10px 12px;background:#F2F1EE;overflow-x:auto;scrollbar-width:none}
+.brandbar{display:flex;gap:6px;padding:0 10px 12px;background:var(--bg);overflow-x:auto;scrollbar-width:none}
 .brandbar::-webkit-scrollbar{display:none}
 .brandbar:empty{display:none}
-.bchip{flex:0 0 auto;padding:6px 13px;background:#fff;border:1.5px solid var(--line);border-radius:20px;font-family:var(--font);font-size:11px;font-weight:600;color:var(--ink2);cursor:pointer;transition:all .16s;white-space:nowrap}
+.bchip{flex:0 0 auto;padding:6px 13px;background:var(--white);border:1.5px solid var(--line);border-radius:20px;font-family:var(--font);font-size:11px;font-weight:600;color:var(--ink2);cursor:pointer;transition:all .16s;white-space:nowrap}
 .bchip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
-.secbar{display:flex;align-items:center;justify-content:space-between;padding:0 14px 10px;background:#F2F1EE}
+.secbar{display:flex;align-items:center;justify-content:space-between;padding:0 14px 10px;background:var(--bg)}
 .secn{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3)}
 .seccn{font-size:11px;color:var(--ink3)}
 
 /* GRID */
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:0 8px 24px;background:#F2F1EE;align-items:start}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:0 8px 24px;background:var(--bg);align-items:start}
 
 /* CARD */
-.cfoot-card{padding:8px 9px 10px;background:#fff;cursor:pointer}
-.card{background:#fff;border-radius:13px;overflow:hidden;cursor:pointer;border:1.5px solid transparent;transition:border-color .18s,box-shadow .18s,transform .15s;animation:cardUp .38s cubic-bezier(.16,1,.3,1) both;position:relative}
+.cfoot-card{padding:8px 9px 10px;background:var(--white);cursor:pointer}
+.card{background:var(--white);border-radius:13px;overflow:hidden;cursor:pointer;border:1.5px solid transparent;transition:border-color .18s,box-shadow .18s,transform .15s;animation:cardUp .38s cubic-bezier(.16,1,.3,1) both;position:relative}
 .card:active{transform:scale(.96)}
 .card.picked{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,255,.1)}
 .card.sold{opacity:.55;cursor:not-allowed}
@@ -115,7 +125,7 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
 .liq-badge-n{font-size:22px;font-weight:700;color:#fff;letter-spacing:-.04em}
 .liq-badge-l{font-size:9px;color:rgba(255,255,255,.7);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
 .liq-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:0 8px;align-items:start}
-.liq-card{background:#fff;border-radius:13px;overflow:hidden;cursor:pointer;border:1.5px solid transparent;transition:border-color .18s,transform .15s;animation:cardUp .38s cubic-bezier(.16,1,.3,1) both;position:relative}
+.liq-card{background:var(--white);border-radius:13px;overflow:hidden;cursor:pointer;border:1.5px solid transparent;transition:border-color .18s,transform .15s;animation:cardUp .38s cubic-bezier(.16,1,.3,1) both;position:relative}
 .liq-card:active{transform:scale(.96)}
 .liq-card.picked{border-color:var(--red);box-shadow:0 0 0 3px rgba(232,32,10,.1)}
 .liq-card.sold{opacity:.55;cursor:not-allowed}
@@ -127,10 +137,10 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
 .lbsold{position:absolute;inset:0;background:rgba(255,255,255,.82);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--ink3);letter-spacing:.08em;text-transform:uppercase;pointer-events:none}
 .lbchk{position:absolute;top:6px;right:6px;width:22px;height:22px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;opacity:0;transform:scale(.2);transition:all .26s cubic-bezier(.34,1.56,.64,1)}
 .liq-card.picked .lbchk{opacity:1;transform:scale(1)}
-.lfoot{padding:8px 9px 10px;background:#fff;cursor:pointer}
+.lfoot{padding:8px 9px 10px;background:var(--white);cursor:pointer}
 .lpnow{font-size:15px;font-weight:700;letter-spacing:-.04em;color:var(--red);line-height:1}
 .lpwas{font-size:10px;color:var(--ink3);text-decoration:line-through;margin-top:2px}
-.lsave{display:inline-block;margin-top:3px;background:#fff5f5;color:var(--red);font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px}
+.lsave{display:inline-block;margin-top:3px;background:var(--white)5f5;color:var(--red);font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px}
 .liq-empty{padding:32px;text-align:center;color:var(--ink3);font-size:13px;grid-column:1/-1}
 
 /* BOTÓN CIRCULAR + en la foto */
@@ -138,7 +148,7 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
   position:absolute;
   bottom:8px; right:8px;
   width:30px; height:30px;
-  background:#fff;
+  background:var(--white);
   border:none;
   border-radius:50%;
   display:flex; align-items:center; justify-content:center;
@@ -169,12 +179,12 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
 .photo-modal{position:fixed;inset:0;z-index:620;display:none;background:rgba(0,0,0,.55)}
 .photo-modal.on{display:block}
 .pm-scrim{position:fixed;inset:0;cursor:pointer}
-.pm-wrap{position:absolute;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:#fff;border-radius:20px 20px 0 0;max-height:94vh;overflow-y:auto;-webkit-overflow-scrolling:touch;animation:pmUp .32s cubic-bezier(.32,.72,0,1) both}
+.pm-wrap{position:absolute;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:var(--white);border-radius:20px 20px 0 0;max-height:94vh;overflow-y:auto;-webkit-overflow-scrolling:touch;animation:pmUp .32s cubic-bezier(.32,.72,0,1) both}
 @keyframes pmUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 @keyframes pmIn{from{opacity:0;transform:scale(.9) translateY(16px)}to{opacity:1;transform:scale(1) translateY(0)}}
 .pm-img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block;background:var(--bg)}
 /* Barra de logotipo arriba de la ficha (sticky): la foto ya no queda pegada al borde superior */
-.pm-head{position:sticky;top:0;z-index:4;background:#fff;display:flex;align-items:center;justify-content:center;padding:14px 16px;border-bottom:1px solid var(--line);border-radius:20px 20px 0 0}
+.pm-head{position:sticky;top:0;z-index:4;background:var(--white);display:flex;align-items:center;justify-content:center;padding:14px 16px;border-bottom:1px solid var(--line);border-radius:20px 20px 0 0}
 .pm-logo{font-size:15px;font-weight:700;color:var(--ink);letter-spacing:-.02em}
 .pm-x{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:32px;height:32px;background:var(--bg);border:none;border-radius:50%;color:var(--ink2);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .pm-body{padding:18px 18px 26px}
@@ -202,7 +212,7 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
 .pm-meta{margin-top:16px;display:flex;flex-direction:column;gap:7px}
 .pm-chip{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;border-radius:10px;padding:9px 12px}
 .pm-chip.social{background:#f0f0ee;color:var(--ink2)}
-.pm-chip.reserve{background:#fff1ef;color:#d9492f;border:1px solid #ffd9d2}
+.pm-chip.reserve{background:var(--white)1ef;color:#d9492f;border:1px solid #ffd9d2}
 .pm-chip.reserve b{color:#d9492f;font-variant-numeric:tabular-nums}
 .pm-chip.gift{background:var(--bg);color:var(--ink2)}
 .pm-trust{margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -242,7 +252,7 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
   .pm-price{font-size:30px}
 }
 .cart-line{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;border-radius:10px;padding:9px 12px;margin-top:8px}
-.cart-reserva{background:#fff1ef;color:#d9492f;border:1px solid #ffd9d2}
+.cart-reserva{background:var(--white)1ef;color:#d9492f;border:1px solid #ffd9d2}
 .cart-reserva b{font-variant-numeric:tabular-nums}
 .cart-ahorro{background:#eaf8ef;color:#1ba94c}
 .cart-regalo{background:var(--bg);color:var(--ink2)}
@@ -257,7 +267,7 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
 /* ADMIN */
 .ascrim{position:fixed;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(6px);z-index:200;display:none}
 .ascrim.on{display:block}
-.apanel{position:fixed;bottom:0;left:0;right:0;max-width:500px;margin:0 auto;background:#fff;border-radius:22px 22px 0 0;z-index:210;transform:translateY(100%);transition:transform .36s cubic-bezier(.32,.72,0,1);height:92vh;max-height:92vh;display:flex;flex-direction:column;padding-bottom:max(16px,env(safe-area-inset-bottom));box-shadow:0 -4px 40px rgba(0,0,0,.13)}
+.apanel{position:fixed;bottom:0;left:0;right:0;max-width:500px;margin:0 auto;background:var(--white);border-radius:22px 22px 0 0;z-index:210;transform:translateY(100%);transition:transform .36s cubic-bezier(.32,.72,0,1);height:92vh;max-height:92vh;display:flex;flex-direction:column;padding-bottom:max(16px,env(safe-area-inset-bottom));box-shadow:0 -4px 40px rgba(0,0,0,.13)}
 .apanel.on{transform:translateY(0)}
 /* ESCRITORIO: panel admin como modal grande centrado. Móvil intacto. */
 @media(min-width:700px){
@@ -280,7 +290,7 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
 .sw input{opacity:0;width:0;height:0;position:absolute}
 .sw-tr{position:absolute;inset:0;background:#e0e0e0;border-radius:13px;transition:background .2s}
 .sw input:checked~.sw-tr{background:var(--orange)}
-.sw-th{position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.2);transition:transform .2s;pointer-events:none}
+.sw-th{position:absolute;top:3px;left:3px;width:20px;height:20px;background:var(--white);border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.2);transition:transform .2s;pointer-events:none}
 .sw input:checked~.sw-tr~.sw-th{transform:translateX(18px)}
 .atabs{display:flex;border-bottom:1px solid var(--line);flex-shrink:0}
 .atab{flex:1;padding:10px;border:none;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s}
@@ -334,7 +344,7 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
 /* CART */
 .cscrim{position:fixed;inset:0;background:rgba(0,0,0,.3);backdrop-filter:blur(8px);z-index:600;display:none}
 .cscrim.on{display:block}
-.csheet{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:#fff;border-radius:22px 22px 0 0;z-index:610;transform:translateY(100%);transition:transform .34s cubic-bezier(.32,.72,0,1);max-height:90vh;display:flex;flex-direction:column;padding-bottom:max(16px,env(safe-area-inset-bottom));box-shadow:0 -2px 32px rgba(0,0,0,.09)}
+.csheet{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:var(--white);border-radius:22px 22px 0 0;z-index:610;transform:translateY(100%);transition:transform .34s cubic-bezier(.32,.72,0,1);max-height:90vh;display:flex;flex-direction:column;padding-bottom:max(16px,env(safe-area-inset-bottom));box-shadow:0 -2px 32px rgba(0,0,0,.09)}
 .csheet.on{transform:translateY(0)}
 /* ESCRITORIO: carrito como drawer lateral derecho (estilo Nike/Adidas). Móvil intacto. */
 @media(min-width:700px){
@@ -373,7 +383,7 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
 .paysec{padding:4px 0 16px}
 .paytit{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:12px}
 .paygrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-.paycard{background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:13px 11px 11px;cursor:pointer;transition:all .2s;text-align:left;display:flex;flex-direction:column}
+.paycard{background:var(--white);border:1.5px solid var(--line);border-radius:14px;padding:13px 11px 11px;cursor:pointer;transition:all .2s;text-align:left;display:flex;flex-direction:column}
 .paycard.on{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,255,.08);background:#fafcff}
 .paylogo{height:30px;width:100%;display:flex;align-items:center;margin-bottom:9px;overflow:hidden}
 .paylogo svg{height:100%;width:auto;max-width:100%;display:block}
@@ -411,7 +421,7 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
 .guia-modal{position:fixed;inset:0;z-index:520;display:none}
 .guia-modal.on{display:block}
 .guia-scrim{position:absolute;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(6px)}
-.guia-wrap{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(94vw,540px);max-height:92vh;overflow-y:auto;background:#fff;border-radius:24px;box-shadow:0 24px 70px rgba(0,0,0,.35);animation:pmIn .3s cubic-bezier(.16,1,.3,1) both;-webkit-overflow-scrolling:touch}
+.guia-wrap{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(94vw,540px);max-height:92vh;overflow-y:auto;background:var(--white);border-radius:24px;box-shadow:0 24px 70px rgba(0,0,0,.35);animation:pmIn .3s cubic-bezier(.16,1,.3,1) both;-webkit-overflow-scrolling:touch}
 .guia-close{position:sticky;top:12px;float:right;margin:12px 12px 0 0;width:32px;height:32px;background:rgba(255,255,255,.85);border:1px solid var(--line);border-radius:50%;font-size:13px;cursor:pointer;z-index:3}
 .guia-head{padding:28px 24px 22px;text-align:center;background:linear-gradient(160deg,#1a1a18,#2c2c28);color:#fff;border-radius:24px 24px 0 0}
 .guia-logo{font-size:15px;font-weight:800;letter-spacing:-.02em;opacity:.9;margin-bottom:14px}
@@ -436,14 +446,14 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
 .guia-no{background:#fdecea;border-color:#f8d4cf}
 .guia-no .guia-card-h{color:#d9492f}
 .guia-pills{display:flex;flex-wrap:wrap;gap:7px}
-.guia-pill{background:#fff;border:1px solid #f3c7c0;color:#b53d28;font-size:11.5px;font-weight:600;padding:7px 11px;border-radius:20px}
+.guia-pill{background:var(--white);border:1px solid #f3c7c0;color:#b53d28;font-size:11.5px;font-weight:600;padding:7px 11px;border-radius:20px}
 .guia-tip{background:#eaf6ef;border-color:#cdebd8}
 .guia-tip .guia-card-h{color:#1ba94c}
 .guia-cupon{margin-top:14px;background:#eef4ff;border:1px dashed #9cc0ff;color:#0052cc;border-radius:12px;padding:12px 14px;font-size:12.5px;font-weight:600;text-align:center;line-height:1.5}
 .guia-foot{margin-top:20px;padding-top:18px;border-top:1px solid var(--line);text-align:center;font-size:13px;font-weight:600;color:var(--ink);line-height:1.7}
 .guia-wa{display:inline-block;margin:8px 0;background:#25D366;color:#fff;text-decoration:none;font-size:13px;font-weight:700;padding:10px 20px;border-radius:30px}
 .guia-foot span{display:block;font-size:12px;color:var(--ink3);font-weight:500;margin-top:8px}
-.guia-actions{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--line);padding:14px 22px;border-radius:0 0 24px 24px}
+.guia-actions{position:sticky;bottom:0;background:var(--white);border-top:1px solid var(--line);padding:14px 22px;border-radius:0 0 24px 24px}
 .guia-dl{width:100%;background:var(--ink);color:#fff;border:none;border-radius:12px;padding:13px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer}
 .guia-mats{grid-template-columns:1fr 1fr 1fr}
 @media(max-width:400px){.guia-mats{grid-template-columns:1fr;gap:7px}.guia-mat{display:flex;align-items:center;gap:10px;text-align:left;padding:10px 12px}.guia-mat-ico{font-size:22px}.guia-mat-t{margin:0}.guia-mat-d{font-size:11px}}
@@ -529,7 +539,7 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
 .hero-cta:active{transform:scale(.97)}
 .hero-dots{position:absolute;top:14px;left:0;right:0;display:flex;justify-content:center;gap:6px;z-index:2}
 .hero-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.45);transition:width .25s,background .25s}
-.hero-dot.on{width:20px;border-radius:5px;background:#fff}
+.hero-dot.on{width:20px;border-radius:5px;background:var(--white)}
 @media(min-width:700px){
   .hero-ov{padding:24px}   /* título + botón centrados (vertical y horizontal) en escritorio */
   .hero-tit{font-size:40px}
@@ -571,7 +581,7 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
 
 /* TOGGLE Móvil/Escritorio (admin banners) */
 .dev-tog{display:flex;gap:6px;margin-bottom:8px}
-.dev-tog button{flex:1;padding:8px;border:1.5px solid var(--line);background:#fff;border-radius:8px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer}
+.dev-tog button{flex:1;padding:8px;border:1.5px solid var(--line);background:var(--white);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer}
 .dev-tog button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 
 /* TOAST */
@@ -586,7 +596,7 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
 .testi-stars span{color:var(--ink2);font-size:12px;font-weight:600;letter-spacing:0;margin-left:5px}
 .testi-row{columns:2;column-gap:10px;padding:0 14px 8px}
 @media(min-width:700px){.testi-row{columns:4;column-gap:14px;max-width:1120px;margin:0 auto;padding:0 24px 10px}}
-.testi-card{break-inside:avoid;-webkit-column-break-inside:avoid;display:inline-block;width:100%;margin:0 0 10px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;cursor:pointer}
+.testi-card{break-inside:avoid;-webkit-column-break-inside:avoid;display:inline-block;width:100%;margin:0 0 10px;background:var(--white);border:1px solid var(--line);border-radius:14px;padding:14px;cursor:pointer}
 @media(min-width:700px){.testi-card{margin-bottom:14px}}
 .testi-card-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
 .testi-card-foto{width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--bg)}
@@ -601,7 +611,7 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
 .testi-modal{position:fixed;inset:0;z-index:640;display:none}
 .testi-modal.on{display:flex;align-items:center;justify-content:center;padding:20px}
 .tm-scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);cursor:pointer}
-.tm-card{position:relative;background:#fff;border-radius:18px;max-width:380px;width:100%;padding:22px;animation:pmIn .3s both;max-height:90vh;overflow-y:auto}
+.tm-card{position:relative;background:var(--white);border-radius:18px;max-width:380px;width:100%;padding:22px;animation:pmIn .3s both;max-height:90vh;overflow-y:auto}
 .tm-close{position:absolute;top:10px;right:10px;width:32px;height:32px;border:none;background:var(--bg);border-radius:50%;font-size:14px;cursor:pointer}
 .tm-head{display:flex;align-items:center;gap:12px}
 .tm-foto{width:52px;height:52px;border-radius:50%;object-fit:cover}
@@ -638,8 +648,10 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
 </style>
 </head>
 <body>
+<script>try{if(localStorage.getItem('ss_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 
 <nav>
+  <button class="theme-tog" id="themeTog" onclick="toggleTheme()" aria-label="Cambiar tema">🌙</button>
   <div class="brand">
     <div class="logo">CATALOGO SNEAKERS</div>
     <div class="brand-sub">Tu estilo. Tu par.</div>
@@ -813,11 +825,11 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
       <div><div class="trow-lbl">🏷 Promoción global</div><div class="trow-sub">Muestra descuento en todos los pares</div></div>
       <label class="sw"><input type="checkbox" id="swPromo" onchange="toggleGlobal(this.checked)"><div class="sw-tr"></div><div class="sw-th"></div></label>
     </div>
-    <div class="trow" style="background:#fff8f0">
+    <div class="trow" style="background:var(--white)8f0">
       <div><div class="trow-lbl">🔥 Banner precio especial</div><div class="trow-sub">Muestra el banner negro arriba</div></div>
       <label class="sw"><input type="checkbox" id="swBanner" onchange="toggleBanner(this.checked)"><div class="sw-tr"></div><div class="sw-th"></div></label>
     </div>
-    <div class="trow" style="background:#fff0f0">
+    <div class="trow" style="background:var(--white)0f0">
       <div><div class="trow-lbl">🎁 Popup de bienvenida</div><div class="trow-sub">$20.000 OFF (código BIENVENIDO20) al dejar datos</div></div>
       <label class="sw"><input type="checkbox" id="swWelcome" onchange="toggleWelcome(this.checked)"><div class="sw-tr"></div><div class="sw-th"></div></label>
     </div>
@@ -826,18 +838,18 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
       <div id="heroAdminList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>
       <div class="dev-tog"><button type="button" id="hero_btnM" class="on" onclick="bannerDev('hero','m')">📱 Móvil</button><button type="button" id="hero_btnE" onclick="bannerDev('hero','e')">🖥 Escritorio</button></div>
       <div id="hero_devM">
-        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">📱 <span id="heroFileLbl">Imagen móvil (vertical)</span><input type="file" accept="image/*" id="heroFile" style="display:none" onchange="heroDraftImg(this.files[0],'movil');this.value=''"></label>
+        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:var(--white);border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">📱 <span id="heroFileLbl">Imagen móvil (vertical)</span><input type="file" accept="image/*" id="heroFile" style="display:none" onchange="heroDraftImg(this.files[0],'movil');this.value=''"></label>
         <img id="heroDraftThumb" style="display:none;width:100%;max-height:140px;object-fit:cover;border-radius:9px;margin-top:8px">
       </div>
       <div id="hero_devE" style="display:none">
-        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">🖥 <span id="heroFileLblD">Imagen escritorio (horizontal)</span><input type="file" accept="image/*" id="heroFileD" style="display:none" onchange="heroDraftImg(this.files[0],'escritorio');this.value=''"></label>
+        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:var(--white);border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">🖥 <span id="heroFileLblD">Imagen escritorio (horizontal)</span><input type="file" accept="image/*" id="heroFileD" style="display:none" onchange="heroDraftImg(this.files[0],'escritorio');this.value=''"></label>
         <img id="heroDraftThumbD" style="display:none;width:100%;max-height:110px;object-fit:cover;border-radius:9px;margin-top:8px">
       </div>
-      <input id="heroTit" type="text" placeholder="Título (ej. Lo nuevo de Nike)" style="margin-top:8px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
-      <input id="heroSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
+      <input id="heroTit" type="text" placeholder="Título (ej. Lo nuevo de Nike)" style="margin-top:8px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
+      <input id="heroSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
       <div style="display:flex;gap:6px;margin-top:6px">
-        <select id="heroLinkType" onchange="heroLinkTypeChange()" style="flex:1;padding:9px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"><option value="product">📦 Producto</option><option value="brand">🏷 Marca</option><option value="gender">👥 Colección</option></select>
-        <select id="heroLinkVal" style="flex:1.4;padding:9px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"></select>
+        <select id="heroLinkType" onchange="heroLinkTypeChange()" style="flex:1;padding:9px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"><option value="product">📦 Producto</option><option value="brand">🏷 Marca</option><option value="gender">👥 Colección</option></select>
+        <select id="heroLinkVal" style="flex:1.4;padding:9px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"></select>
       </div>
       <button onclick="heroAdd()" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">➕ Agregar banner</button>
       <div style="font-size:10px;color:var(--ink3);margin-top:6px;text-align:center">Imagen vertical recomendada: 1080×1920 (móvil) · 1920×1080 (escritorio).</div>
@@ -846,7 +858,7 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
       <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">🚀 Últimos lanzamientos</div>
       <div id="featList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>
       <div style="display:flex;gap:6px">
-        <select id="featSel" style="flex:1;padding:9px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"></select>
+        <select id="featSel" style="flex:1;padding:9px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"></select>
         <button onclick="featAdd()" style="padding:9px 14px;background:var(--ink);color:#fff;border:none;border-radius:8px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">➕ Agregar</button>
       </div>
       <div style="font-size:10px;color:var(--ink3);margin-top:6px;text-align:center">Aparecen en la fila "Últimos lanzamientos" del inicio.</div>
@@ -855,73 +867,73 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
       <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">👩 Banner Colección Mujer</div>
       <div class="dev-tog"><button type="button" id="colm_btnM" class="on" onclick="bannerDev('colm','m')">📱 Móvil</button><button type="button" id="colm_btnE" onclick="bannerDev('colm','e')">🖥 Escritorio</button></div>
       <div id="colm_devM">
-        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">📱 <span id="colmLbl">Móvil (vertical)</span><input type="file" accept="image/*" id="colmFile" style="display:none" onchange="colDraftImg(this.files[0],'m','movil');this.value=''"></label>
+        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:var(--white);border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">📱 <span id="colmLbl">Móvil (vertical)</span><input type="file" accept="image/*" id="colmFile" style="display:none" onchange="colDraftImg(this.files[0],'m','movil');this.value=''"></label>
         <img id="colmThumb" style="display:none;width:100%;max-height:130px;object-fit:cover;border-radius:9px;margin-top:8px">
       </div>
       <div id="colm_devE" style="display:none">
-        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">🖥 <span id="colmLblD">Escritorio (horizontal)</span><input type="file" accept="image/*" id="colmFileD" style="display:none" onchange="colDraftImg(this.files[0],'m','escritorio');this.value=''"></label>
+        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:var(--white);border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">🖥 <span id="colmLblD">Escritorio (horizontal)</span><input type="file" accept="image/*" id="colmFileD" style="display:none" onchange="colDraftImg(this.files[0],'m','escritorio');this.value=''"></label>
         <img id="colmThumbD" style="display:none;width:100%;max-height:100px;object-fit:cover;border-radius:9px;margin-top:8px">
         <div style="margin-top:9px;font-size:11px;font-weight:700;color:var(--ink2)">🖥 Encuadre escritorio (arriba ←→ abajo): <span id="colmPosV">50%</span></div>
         <input type="range" id="colmPos" min="0" max="100" value="50" oninput="document.getElementById('colmPosV').textContent=this.value+'%'" style="width:100%;margin-top:5px">
       </div>
-      <input id="colmTit" type="text" placeholder="Título (ej. Colección Mujer)" style="margin-top:8px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
-      <input id="colmSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
+      <input id="colmTit" type="text" placeholder="Título (ej. Colección Mujer)" style="margin-top:8px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
+      <input id="colmSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
       <button onclick="saveColBanner('m')" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">💾 Guardar banner Mujer</button>
     </div>
     <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#eef3fd">
       <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">👨 Banner Colección Hombre</div>
       <div class="dev-tog"><button type="button" id="colh_btnM" class="on" onclick="bannerDev('colh','m')">📱 Móvil</button><button type="button" id="colh_btnE" onclick="bannerDev('colh','e')">🖥 Escritorio</button></div>
       <div id="colh_devM">
-        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">📱 <span id="colhLbl">Móvil (vertical)</span><input type="file" accept="image/*" id="colhFile" style="display:none" onchange="colDraftImg(this.files[0],'h','movil');this.value=''"></label>
+        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:var(--white);border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">📱 <span id="colhLbl">Móvil (vertical)</span><input type="file" accept="image/*" id="colhFile" style="display:none" onchange="colDraftImg(this.files[0],'h','movil');this.value=''"></label>
         <img id="colhThumb" style="display:none;width:100%;max-height:130px;object-fit:cover;border-radius:9px;margin-top:8px">
       </div>
       <div id="colh_devE" style="display:none">
-        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">🖥 <span id="colhLblD">Escritorio (horizontal)</span><input type="file" accept="image/*" id="colhFileD" style="display:none" onchange="colDraftImg(this.files[0],'h','escritorio');this.value=''"></label>
+        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:var(--white);border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">🖥 <span id="colhLblD">Escritorio (horizontal)</span><input type="file" accept="image/*" id="colhFileD" style="display:none" onchange="colDraftImg(this.files[0],'h','escritorio');this.value=''"></label>
         <img id="colhThumbD" style="display:none;width:100%;max-height:100px;object-fit:cover;border-radius:9px;margin-top:8px">
         <div style="margin-top:9px;font-size:11px;font-weight:700;color:var(--ink2)">🖥 Encuadre escritorio (arriba ←→ abajo): <span id="colhPosV">50%</span></div>
         <input type="range" id="colhPos" min="0" max="100" value="50" oninput="document.getElementById('colhPosV').textContent=this.value+'%'" style="width:100%;margin-top:5px">
       </div>
-      <input id="colhTit" type="text" placeholder="Título (ej. Colección Hombre)" style="margin-top:8px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
-      <input id="colhSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
+      <input id="colhTit" type="text" placeholder="Título (ej. Colección Hombre)" style="margin-top:8px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
+      <input id="colhSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
       <button onclick="saveColBanner('h')" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">💾 Guardar banner Hombre</button>
     </div>
     <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#f3f1ff">
       <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">🧢 Banner Colección Unisex</div>
       <div class="dev-tog"><button type="button" id="colu_btnM" class="on" onclick="bannerDev('colu','m')">📱 Móvil</button><button type="button" id="colu_btnE" onclick="bannerDev('colu','e')">🖥 Escritorio</button></div>
       <div id="colu_devM">
-        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">📱 <span id="coluLbl">Móvil (vertical)</span><input type="file" accept="image/*" id="coluFile" style="display:none" onchange="colDraftImg(this.files[0],'u','movil');this.value=''"></label>
+        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:var(--white);border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">📱 <span id="coluLbl">Móvil (vertical)</span><input type="file" accept="image/*" id="coluFile" style="display:none" onchange="colDraftImg(this.files[0],'u','movil');this.value=''"></label>
         <img id="coluThumb" style="display:none;width:100%;max-height:130px;object-fit:cover;border-radius:9px;margin-top:8px">
       </div>
       <div id="colu_devE" style="display:none">
-        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">🖥 <span id="coluLblD">Escritorio (horizontal)</span><input type="file" accept="image/*" id="coluFileD" style="display:none" onchange="colDraftImg(this.files[0],'u','escritorio');this.value=''"></label>
+        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:var(--white);border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">🖥 <span id="coluLblD">Escritorio (horizontal)</span><input type="file" accept="image/*" id="coluFileD" style="display:none" onchange="colDraftImg(this.files[0],'u','escritorio');this.value=''"></label>
         <img id="coluThumbD" style="display:none;width:100%;max-height:100px;object-fit:cover;border-radius:9px;margin-top:8px">
         <div style="margin-top:9px;font-size:11px;font-weight:700;color:var(--ink2)">🖥 Encuadre escritorio (arriba ←→ abajo): <span id="coluPosV">50%</span></div>
         <input type="range" id="coluPos" min="0" max="100" value="50" oninput="document.getElementById('coluPosV').textContent=this.value+'%'" style="width:100%;margin-top:5px">
       </div>
-      <input id="coluTit" type="text" placeholder="Título (ej. Colección Unisex)" style="margin-top:8px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
-      <input id="coluSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
+      <input id="coluTit" type="text" placeholder="Título (ej. Colección Unisex)" style="margin-top:8px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
+      <input id="coluSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
       <button onclick="saveColBanner('u')" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">💾 Guardar banner Unisex</button>
     </div>
     <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#eefcf6">
       <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">📱 Redes sociales (footer)</div>
-      <input id="cfgIg" type="url" placeholder="Instagram (https://instagram.com/...)" onchange="saveSocials()" style="width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:500;color:var(--ink);outline:none">
-      <input id="cfgTiktok" type="url" placeholder="TikTok (https://tiktok.com/@...)" onchange="saveSocials()" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:500;color:var(--ink);outline:none">
-      <input id="cfgFb" type="url" placeholder="Facebook (https://facebook.com/...)" onchange="saveSocials()" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:500;color:var(--ink);outline:none">
+      <input id="cfgIg" type="url" placeholder="Instagram (https://instagram.com/...)" onchange="saveSocials()" style="width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:500;color:var(--ink);outline:none">
+      <input id="cfgTiktok" type="url" placeholder="TikTok (https://tiktok.com/@...)" onchange="saveSocials()" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:500;color:var(--ink);outline:none">
+      <input id="cfgFb" type="url" placeholder="Facebook (https://facebook.com/...)" onchange="saveSocials()" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:500;color:var(--ink);outline:none">
       <div style="font-size:10px;color:var(--ink3);margin-top:6px;text-align:center">WhatsApp usa el número que ya configuraste. Solo se muestran las redes con enlace.</div>
     </div>
-    <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#fffbeb">
+    <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:var(--white)beb">
       <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">⭐ Clientes felices (testimonios)</div>
       <label style="font-size:11px;font-weight:600;color:var(--ink2)">Nº de reseñas a mostrar (marketing)</label>
-      <input id="cfgReviews" type="number" inputmode="numeric" placeholder="ej. 1562" onchange="saveReviews()" style="margin-top:4px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
+      <input id="cfgReviews" type="number" inputmode="numeric" placeholder="ej. 1562" onchange="saveReviews()" style="margin-top:4px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
       <div id="testiList" style="display:flex;flex-direction:column;gap:6px;margin:10px 0"></div>
-      <input id="testiNombre" type="text" placeholder="Nombre del cliente (ej. Johanna M.)" style="width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
-      <input id="testiFecha" type="text" placeholder="Fecha (ej. 28/05/2026) — opcional" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
-      <textarea id="testiTexto" placeholder="Testimonio / recomendación del cliente" rows="2" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none;resize:vertical"></textarea>
-      <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:9px;margin-top:6px;background:#fff;border:1.5px dashed var(--ink3);border-radius:8px;font-family:var(--font);font-size:11.5px;font-weight:700;color:var(--ink2);cursor:pointer"><span id="testiFotoLbl">📷 Foto del cliente (opcional)</span><input type="file" accept="image/*" id="testiFoto" style="display:none" onchange="testiFotoUp(this.files[0]);this.value=''"></label>
-      <select id="testiProdSel" style="margin-top:6px;width:100%;padding:9px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"></select>
+      <input id="testiNombre" type="text" placeholder="Nombre del cliente (ej. Johanna M.)" style="width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
+      <input id="testiFecha" type="text" placeholder="Fecha (ej. 28/05/2026) — opcional" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
+      <textarea id="testiTexto" placeholder="Testimonio / recomendación del cliente" rows="2" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none;resize:vertical"></textarea>
+      <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:9px;margin-top:6px;background:var(--white);border:1.5px dashed var(--ink3);border-radius:8px;font-family:var(--font);font-size:11.5px;font-weight:700;color:var(--ink2);cursor:pointer"><span id="testiFotoLbl">📷 Foto del cliente (opcional)</span><input type="file" accept="image/*" id="testiFoto" style="display:none" onchange="testiFotoUp(this.files[0]);this.value=''"></label>
+      <select id="testiProdSel" style="margin-top:6px;width:100%;padding:9px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"></select>
       <button onclick="testiAdd()" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">➕ Agregar testimonio</button>
     </div>
-    <div id="storageWarn" style="display:none;margin:8px 14px;padding:8px 12px;background:#fff8e1;border:1px solid #ffc107;border-radius:8px;font-size:11px;color:#7a5800;font-weight:600"></div>
+    <div id="storageWarn" style="display:none;margin:8px 14px;padding:8px 12px;background:var(--white)8e1;border:1px solid #ffc107;border-radius:8px;font-size:11px;color:#7a5800;font-weight:600"></div>
     <div class="trow" style="background:#f8f8f6">
       <div style="flex:1;margin-right:10px">
         <div class="trow-lbl">⚙ Nombre del negocio</div>
@@ -937,31 +949,31 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
     <div class="trow" style="background:#f5f0ff">
       <div style="flex:1;margin-right:10px">
         <div class="trow-lbl">📣 Meta Pixel ID <span title="Ve a Meta Business Suite → Events Manager → Pixeles → copiar el ID numérico (ej: 1234567890123)" style="font-size:10px;color:var(--blue);cursor:help">ⓘ</span></div>
-        <input id="cfgPixel" type="text" placeholder="1234567890123" style="margin-top:5px;width:100%;padding:7px 10px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none" oninput="PIXEL_ID=this.value.trim();saveConfig();initPixel()">
+        <input id="cfgPixel" type="text" placeholder="1234567890123" style="margin-top:5px;width:100%;padding:7px 10px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none" oninput="PIXEL_ID=this.value.trim();saveConfig();initPixel()">
       </div>
     </div>
     <div class="trow" style="background:#f0f7ff">
       <div style="flex:1;margin-right:10px">
         <div class="trow-lbl">📊 Google Sheets URL <span title="Opcional. Pega la URL de tu Web App de Google Apps Script. Cada pedido se enviará automáticamente a tu hoja de cálculo. Ver instrucciones en el código fuente." style="font-size:10px;color:var(--blue);cursor:help">ⓘ</span></div>
-        <input id="cfgSheets" type="url" placeholder="https://script.google.com/macros/s/..." style="margin-top:5px;width:100%;padding:7px 10px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:11px;font-weight:500;color:var(--ink);outline:none" oninput="SHEETS_URL=this.value.trim();saveConfig()">
+        <input id="cfgSheets" type="url" placeholder="https://script.google.com/macros/s/..." style="margin-top:5px;width:100%;padding:7px 10px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:11px;font-weight:500;color:var(--ink);outline:none" oninput="SHEETS_URL=this.value.trim();saveConfig()">
       </div>
     </div>
     <div class="trow" style="background:#f5eeff">
       <div style="flex:1;margin-right:10px">
         <div class="trow-lbl">💜 Wompi Llave Pública <span title="wompi.com.co → Developers → Llaves de API → Llave pública (pub_test_... o pub_prod_...)" style="font-size:10px;color:var(--blue);cursor:help">ⓘ</span></div>
-        <input id="cfgWompi" type="text" placeholder="pub_test_xxxxxxxx" style="margin-top:5px;width:100%;padding:7px 10px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:11px;font-weight:500;color:var(--ink);outline:none" oninput="WOMPI_PK=this.value.trim();saveConfig()">
+        <input id="cfgWompi" type="text" placeholder="pub_test_xxxxxxxx" style="margin-top:5px;width:100%;padding:7px 10px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:11px;font-weight:500;color:var(--ink);outline:none" oninput="WOMPI_PK=this.value.trim();saveConfig()">
       </div>
     </div>
     <div class="trow" style="background:#e8f5e9">
       <div style="flex:1;margin-right:10px">
         <div class="trow-lbl">📊 Microsoft Clarity ID <span title="clarity.microsoft.com → New project → copia el ID (ej: abc123xyz0)" style="font-size:10px;color:var(--blue);cursor:help">ⓘ</span></div>
-        <input id="cfgClarity" type="text" placeholder="ej: abc123xyz0" style="margin-top:5px;width:100%;padding:7px 10px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:11px;font-weight:500;color:var(--ink);outline:none" oninput="CLARITY_ID=this.value.trim();saveConfig()">
+        <input id="cfgClarity" type="text" placeholder="ej: abc123xyz0" style="margin-top:5px;width:100%;padding:7px 10px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:11px;font-weight:500;color:var(--ink);outline:none" oninput="CLARITY_ID=this.value.trim();saveConfig()">
       </div>
     </div>
-    <div class="trow" style="background:#fff3e0">
+    <div class="trow" style="background:var(--white)3e0">
       <div style="flex:1;margin-right:10px">
         <div class="trow-lbl">🔑 Clave Admin API <span title="Pega aquí el valor de ADMIN_API_KEY configurado en Vercel. Solo se ingresa una vez. Sin esta clave los cambios del panel Admin no se guardan en la base de datos." style="font-size:10px;color:var(--blue);cursor:help">ⓘ</span></div>
-        <input id="cfgAdminKey" type="password" placeholder="Tu clave ADMIN_API_KEY de Vercel" style="margin-top:5px;width:100%;padding:7px 10px;background:#fff;border:1.5px solid #ff9800;border-radius:8px;font-family:var(--font);font-size:11px;font-weight:500;color:var(--ink);outline:none" oninput="ADMIN_API_KEY=this.value.trim();localStorage.setItem('ss_akey',ADMIN_API_KEY)">
+        <input id="cfgAdminKey" type="password" placeholder="Tu clave ADMIN_API_KEY de Vercel" style="margin-top:5px;width:100%;padding:7px 10px;background:var(--white);border:1.5px solid #ff9800;border-radius:8px;font-family:var(--font);font-size:11px;font-weight:500;color:var(--ink);outline:none" oninput="ADMIN_API_KEY=this.value.trim();localStorage.setItem('ss_akey',ADMIN_API_KEY)">
       </div>
     </div>
     <div style="display:flex;gap:8px;padding:10px 14px">
@@ -973,10 +985,10 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
     </div>
   </div>
   <div class="atabs">
-    <button class="atab" id="atab0" onclick="setAdminTab(0)" style="background:#0E0E0C;color:#fff">📦 Catálogo</button>
-    <button class="atab" id="atab1" onclick="setAdminTab(1)" style="background:#F2F1EE;color:#6B6B67">🔥 Liq.</button>
-    <button class="atab" id="atab2" onclick="setAdminTab(2)" style="background:#F2F1EE;color:#6B6B67">📊 Stats</button>
-    <button class="atab" id="atab3" onclick="setAdminTab(3)" style="background:#F2F1EE;color:#6B6B67">🎯 Leads</button>
+    <button class="atab" id="atab0" onclick="setAdminTab(0)" style="background:var(--ink);color:#fff">📦 Catálogo</button>
+    <button class="atab" id="atab1" onclick="setAdminTab(1)" style="background:var(--bg);color:#6B6B67">🔥 Liq.</button>
+    <button class="atab" id="atab2" onclick="setAdminTab(2)" style="background:var(--bg);color:#6B6B67">📊 Stats</button>
+    <button class="atab" id="atab3" onclick="setAdminTab(3)" style="background:var(--bg);color:#6B6B67">🎯 Leads</button>
   </div>
   <div id="panCat" style="display:flex;flex-direction:column;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0">
     <div class="mode-row" id="modeRowCat">
@@ -1006,7 +1018,7 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
       <button class="mode-btn on" id="mBtnNormLiq" onclick="set360('liq',false)">📸 Una por una</button>
       <button class="mode-btn" id="mBtnSpinLiq" onclick="set360('liq',true)">🔄 360° Spin</button>
     </div>
-    <div class="uz" style="border-color:rgba(232,32,10,.3);background:#fff5f5">
+    <div class="uz" style="border-color:rgba(232,32,10,.3);background:var(--white)5f5">
       <input type="file" accept="image/*" multiple onchange="handleFiles(this.files,'liq')">
       <div class="uz-ico">🔥</div><div class="uz-txt" style="color:var(--red)">Subir fotos de liquidación</div><div class="uz-sub">Precios especiales</div>
     </div>
@@ -1442,7 +1454,7 @@ function renderHeroAdmin(){
   const box=$('heroAdminList');if(!box)return;
   heroLinkTypeChange();   // refresca el selector de producto/marca con el inventario actual
   if(!heroSlides.length){box.innerHTML='<div style="font-size:11px;color:var(--ink3)">Aún no hay banners. Agrega el primero abajo 👇</div>';return;}
-  box.innerHTML=heroSlides.map((s,i)=>`<div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:9px;padding:6px">
+  box.innerHTML=heroSlides.map((s,i)=>`<div style="display:flex;align-items:center;gap:8px;background:var(--white);border:1px solid var(--line);border-radius:9px;padding:6px">
     <img src="${escHtml(s.img)}" style="width:38px;height:48px;object-fit:cover;border-radius:6px;flex-shrink:0">
     <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(s.titulo)||'(sin título)'}</div><div style="font-size:10px;color:var(--ink3)">${escHtml(heroDestLabel(s))}</div></div>
     <button onclick="heroPos(${i})" title="Encuadre escritorio: ${s.pos==='bottom'?'Abajo (tenis)':s.pos==='top'?'Arriba':'Centro'} — toca para cambiar" style="border:none;background:var(--bg);border-radius:6px;width:32px;height:26px;cursor:pointer;font-size:11px">${s.pos==='bottom'?'🖥▼':s.pos==='top'?'🖥▲':'🖥■'}</button>
@@ -1491,7 +1503,7 @@ function renderFeaturedAdmin(){
   if(!featuredIds.length){box.innerHTML='<div style="font-size:11px;color:var(--ink3)">Aún no hay lanzamientos. Agrega modelos abajo 👇</div>';return;}
   box.innerHTML=featuredIds.map((id,i)=>{
     const p=prods.find(x=>x.id===id);if(!p)return '';
-    return `<div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:9px;padding:6px">
+    return `<div style="display:flex;align-items:center;gap:8px;background:var(--white);border:1px solid var(--line);border-radius:9px;padding:6px">
       <img src="${escHtml(p.img||'')}" style="width:34px;height:42px;object-fit:cover;border-radius:6px;flex-shrink:0">
       <div style="flex:1;min-width:0;font-size:11.5px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(prodLabel(p))}</div>
       <button onclick="featMove(${i},-1)" ${i===0?'disabled':''} style="border:none;background:var(--bg);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;${i===0?'opacity:.3':''}">↑</button>
@@ -1711,7 +1723,7 @@ function renderTestiAdmin(){
   if(sel)sel.innerHTML='<option value="">(sin producto vinculado)</option>'+prods.map(p=>`<option value="${p.id}">${prodLabel(p)}</option>`).join('');
   const box=$('testiList');if(!box)return;
   if(!testimonios.length){box.innerHTML='<div style="font-size:11px;color:var(--ink3)">Aún no hay testimonios. Agrega el primero abajo 👇</div>';return;}
-  box.innerHTML=testimonios.map((t,i)=>`<div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:9px;padding:6px">
+  box.innerHTML=testimonios.map((t,i)=>`<div style="display:flex;align-items:center;gap:8px;background:var(--white);border:1px solid var(--line);border-radius:9px;padding:6px">
     <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--ink)">${escHtml(t.nombre||'')}</div><div style="font-size:10px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(t.texto||'')}</div></div>
     <button onclick="testiMove(${i},-1)" ${i===0?'disabled':''} style="border:none;background:var(--bg);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;${i===0?'opacity:.3':''}">↑</button>
     <button onclick="testiMove(${i},1)" ${i===testimonios.length-1?'disabled':''} style="border:none;background:var(--bg);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;${i===testimonios.length-1?'opacity:.3':''}">↓</button>
@@ -3058,6 +3070,18 @@ function applyStoreName(){
   // El encabezado del nav es marca fija "CATALOGO SNEAKERS" (no se sobreescribe con store_name).
   document.title=STORE_NAME;
 }
+// Modo oscuro: alterna data-theme, guarda preferencia y actualiza el ícono sol/luna.
+function toggleTheme(){
+  const dark=document.documentElement.getAttribute('data-theme')!=='dark';
+  if(dark)document.documentElement.setAttribute('data-theme','dark');
+  else document.documentElement.removeAttribute('data-theme');
+  try{localStorage.setItem('ss_theme',dark?'dark':'light');}catch(e){}
+  const b=document.getElementById('themeTog');if(b)b.textContent=dark?'☀️':'🌙';
+}
+function initThemeIcon(){
+  const b=document.getElementById('themeTog');
+  if(b)b.textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀️':'🌙';
+}
 
 /* ── PERSISTENCIA ── */
 function saveState(){
@@ -3229,6 +3253,7 @@ loadViews();   // prueba social: traer vistas reales por producto
 if(localStorage.getItem('ss_reserve_until')&&!_reserveTimer){_reserveTimer=setInterval(tickReserva,1000);tickReserva();}
 (async()=>{
   await loadState();
+  initThemeIcon();   // ícono sol/luna según el tema guardado
   if(bannerOn)$('banner').classList.remove('off');
   renderHero();   // carrusel del inicio (reemplaza el encabezado si hay banners)
   renderHeroAdmin();   // pinta la lista de banners y el selector en el panel admin
