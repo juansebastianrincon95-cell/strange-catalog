@@ -608,7 +608,7 @@ nav .nav-bag:active{transform:translateY(-50%) scale(.91)}
 .cbanner{position:relative;width:100%;aspect-ratio:4/5;max-height:70vh;overflow:hidden;background:var(--ink)}
 .cbanner picture{display:block;width:100%;height:100%}
 .cbanner img{width:100%;height:100%;object-fit:cover;display:block;-webkit-user-drag:none}
-@media(min-width:700px){.cbanner{aspect-ratio:21/9;max-height:64vh}.cbanner img{object-position:center var(--pos,50%)}}
+@media(min-width:700px){.cbanner{aspect-ratio:16/9;max-height:80vh}.cbanner img{object-position:center var(--pos,50%)}}
 /* Banners de colección: título + botón ABAJO (no centrado como el hero) */
 .cbanner .hero-ov{justify-content:flex-end;padding:0 22px 30px;background:linear-gradient(to top,rgba(0,0,0,.8) 6%,rgba(0,0,0,.32) 50%,transparent)}
 
@@ -2445,7 +2445,7 @@ function renderStatsTab(){
   const pagoMap={};
   orders.forEach(o=>{pagoMap[o.pago]=(pagoMap[o.pago]||0)+1;});
   const topPago=Object.entries(pagoMap).sort((a,b)=>b[1]-a[1])[0];
-  const pagoLabels={contra_entrega:'Contra entrega',pago_anticipado:'Pago anticipado',wompi:'Wompi',nequi:'Nequi',bancolombia:'Bancolombia',addi:'Addi',sistecredito:'Sistecrédito',bold:'Bold'};
+  const pagoLabels={contra_entrega:'Contra entrega',pago_anticipado:'Pago anticipado',wompi:'Wompi',bold:'Bold',credito:'Crédito (Addi/Sistecrédito)',nequi:'Nequi',bancolombia:'Bancolombia',addi:'Addi',sistecredito:'Sistecrédito'};
   el.innerHTML=`<div style="padding:14px 16px 24px;overflow-y:auto;flex:1;min-height:0">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
       <div style="background:var(--bg);border-radius:12px;padding:12px 14px">
@@ -2510,7 +2510,7 @@ function renderLeadsTab(){
   const nAban=orders.filter(o=>o.status==='abandoned').length;
   const lista=orders.filter(o=>leadFilter==='all'?true:leadFilter==='pending'?(!_isClasificado(o)&&o.status!=='abandoned'):o.status===leadFilter);
   const chip=(f,txt,n,col)=>`<button onclick="setLeadFilter('${f}')" style="flex:1;padding:7px 4px;border:none;border-radius:9px;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;background:${leadFilter===f?col:'#F2F1EE'};color:${leadFilter===f?'#fff':'#6B6B67'}">${txt} ${n}</button>`;
-  const pagoLabels={contra_entrega:'Contra entrega',pago_anticipado:'Pago anticipado',wompi:'Wompi',nequi:'Nequi',bancolombia:'Bancolombia',addi:'Addi',sistecredito:'Sistecrédito',bold:'Bold'};
+  const pagoLabels={contra_entrega:'Contra entrega',pago_anticipado:'Pago anticipado',wompi:'Wompi',bold:'Bold',credito:'Crédito (Addi/Sistecrédito)',nequi:'Nequi',bancolombia:'Bancolombia',addi:'Addi',sistecredito:'Sistecrédito'};
   const itemsTxt=o=>Array.isArray(o.items)?o.items.map(it=>`${it.label||'?'}${it.qty?` x${it.qty}`:''}`).join(', '):'';
   const badge=o=>o.status==='venta'?`<span style="background:var(--green);color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px">✓ VENTA</span>`
     :o.status==='no_venta'?`<span style="background:#E8200A;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px">✕ NO VENTA</span>`
@@ -2838,8 +2838,10 @@ function rCart(){
     return `<div class="crow"><div class="crimg">${m}</div><div class="crinfo"><div class="crname">${lbl}</div><div class="crprice">${fmt(p.price)} c/u</div></div><div class="cqc"><button class="cqb" onclick="chQty('${key}',-1)">−</button><span class="cqv">${qty}</span><button class="cqb" onclick="chQty('${key}',1)">+</button></div><button class="crm" onclick="rmItem('${key}')">✕</button></div>`;
   }).join('');
   const sub=rows.reduce((s,{p,qty})=>s+p.price*qty,0),tot=rows.reduce((s,{qty})=>s+qty,0);
-  const orig=rows.reduce((s,{p,qty})=>s+((p.was&&p.was>p.price)?p.was:p.price)*qty,0);
-  const ahorro=orig-sub;                 // descuento por precio tachado (display)
+  // El "precio original/descuento" SOLO se muestra cuando el descuento está activo (promo global o
+  // por producto). Si está apagado, orig==sub → no aparece línea de descuento.
+  const orig=rows.reduce((s,{p,qty})=>{const act=(p.promo||promoG)&&p.was&&p.was>p.price;return s+(act?p.was:p.price)*qty;},0);
+  const ahorro=orig-sub;                 // descuento por precio tachado (solo si promo activo)
   const desc=cuponDesc(sub);             // descuento por cupón
   const totalFinal=sub-desc;
   // 2 mensajes (estilo Adidas): no reservado + financiación
@@ -2903,7 +2905,7 @@ function rPayChoice(){
   const pares=rows.reduce((s,{qty})=>s+qty,0);
   const flete=calcFlete(pares);
   const card=(fn,bg,col,ico,tit,desc,tot)=>`<button onclick="${fn}" style="width:100%;text-align:left;background:${bg};color:${col};border:none;border-radius:14px;padding:16px 18px;cursor:pointer;font-family:var(--font);display:flex;flex-direction:column;gap:2px"><div style="font-size:15px;font-weight:700">${ico} ${tit}</div><div style="font-size:11px;opacity:.75;margin-top:1px">${desc}</div><div style="font-size:14px;font-weight:700;margin-top:6px;opacity:.9">Total a pagar: ${tot}</div></button>`;
-  $('cbody').innerHTML=`<div class="paysec"><div class="paytit">¿Cómo quieres pagar?</div><div style="display:flex;flex-direction:column;gap:10px;margin-top:20px">${card(`enviarWA('contra_entrega')`,'#1E1E1C','#fff','📦','Contra entrega',`Pagas al recibir · Envío: ${fmt(flete)}`,fmt(sub+flete))}${card(`enviarWA('pago_anticipado')`,'#F2F1EE','#1E1E1C','💸','Pago anticipado','Transfieres antes · Envío gratis ✓',fmt(sub))}${card(`pagarWompi()`,'#5D2D91','#fff','💜','Pagar en línea — Wompi','Tarjeta · PSE · Nequi · Bancolombia · Envío gratis ✓',fmt(sub))}</div></div>`;
+  $('cbody').innerHTML=`<div class="paysec"><div class="paytit">¿Cómo quieres pagar?</div><div style="display:flex;flex-direction:column;gap:10px;margin-top:20px">${card(`enviarWA('contra_entrega')`,'#1E1E1C','#fff','📦','Contra entrega',`Pagas al recibir · Envío: ${fmt(flete)}`,fmt(sub+flete))}${card(`enviarWA('pago_anticipado')`,'#F2F1EE','#1E1E1C','💸','Pago anticipado','Transfieres antes · Envío gratis ✓',fmt(sub))}${card(`pagarWompi()`,'#5D2D91','#fff','💜','Pagar en línea — Wompi','Tarjeta · PSE · Nequi · Bancolombia · Envío gratis ✓',fmt(sub))}${card(`pagarBold()`,'#2541B2','#fff','💳','Pagar en línea — Bold','Tarjeta · PSE · Botón Bancolombia · Envío gratis ✓',fmt(sub))}${card(`enviarWA('credito')`,'#0a7d4b','#fff','🧾','Pagar a crédito — Addi / Sistecrédito','Págalo en cuotas · Te asesoramos por WhatsApp · Envío gratis ✓',fmt(sub))}</div></div>`;
   $('cfoot').innerHTML=`<button class="btnback" onclick="goStep(1)">← Volver</button>`;
 }
 function enviarWA(tipo){
@@ -2924,8 +2926,8 @@ function enviarWA(tipo){
   rows.forEach(({p,qty,type})=>{const s=p.price*qty;const lbl=type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer');const mk=p.brand?(BRAND_LABELS[p.brand]||p.brand)+' · ':'';items+=`  • ${mk}${lbl} · #${p.id} x${qty} — ${fmt(s)}\n     👉 https://catalogo.strangesneakers.com/?id=${p.id}\n`;});
   const envioLinea=tipo==='contra_entrega'?`🚚 *Envío contra entrega:* ${fmt(flete)}`:`📦 *Envío: GRATIS ✓*`;
   const descLinea=desc>0?`🏷️ *Descuento ${cuponAplicado}:* -${fmt(desc)}\n`:'';
-  const pagoLbl=tipo==='contra_entrega'?'Contra entrega 📦':'Pago anticipado 💸';
-  const instruccion=tipo==='contra_entrega'?'Confirmar disponibilidad y coordinar entrega 🙏':'Enviar comprobante de pago para procesar el envío 🙏';
+  const pagoLbl=tipo==='contra_entrega'?'Contra entrega 📦':tipo==='credito'?'Crédito (Addi / Sistecrédito) 🧾':'Pago anticipado 💸';
+  const instruccion=tipo==='contra_entrega'?'Confirmar disponibilidad y coordinar entrega 🙏':tipo==='credito'?'El cliente quiere pagar a *CRÉDITO*. Indícale si aplica por *Addi* o *Sistecrédito* y el paso a paso 🙏':'Enviar comprobante de pago para procesar el envío 🙏';
   const msg=`🛍️ *NUEVO PEDIDO — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n💰 *Subtotal: ${fmt(subBruto)}*\n${descLinea}${envioLinea}\n💰 *TOTAL: ${fmt(tot)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${d.nombre}\n• Cédula: ${d.cedula}\n• Celular: ${d.celular}\n• Dirección: ${d.direccion}\n• Barrio: ${d.barrio}\n• Ciudad: ${d.ciudad}\n━━━━━━━━━━━━━━━━━━━━\n💳 *Pago:* ${pagoLbl}\n━━━━━━━━━━━━━━━━━━━━\n${instruccion}\n\n🎁 *Tu regalo — Guía de cuidado de tus sneakers:*\nhttps://catalogo.strangesneakers.com/?regalo=cuidado`;
   const orderObj={
     id:Date.now(),fecha:new Date().toISOString(),
@@ -3040,6 +3042,70 @@ async function checkWompiReturn(){
     setTimeout(()=>alert('⏳ Estamos confirmando tu pago.\nApenas se confirme te contactaremos por WhatsApp.'),300);
   }else if(status){
     setTimeout(()=>alert('❌ El pago no fue completado.\nPuedes intentar de nuevo o elegir otro método de pago.'),300);
+  }
+}
+
+/* ── PAGO EN LÍNEA: BOLD (Payment Link API; firma/llave en api/orders.js) ── */
+async function pagarBold(){
+  const m={nombre:'fn',cedula:'fc',celular:'ft',direccion:'fd',barrio:'fb',ciudad:'fci'};
+  let ok=true;const d={};
+  Object.entries(m).forEach(([k,id])=>{const el=$(id);const v=el?el.value:(cData[k]||'');d[k]=v.trim();if(!v.trim())ok=false;});
+  if(!ok){const e=$('ferr');if(e)e.classList.add('show');return;}
+  cData=d;
+  const rows=Object.values(cart);
+  const subBruto=rows.reduce((s,{p,qty})=>s+p.price*qty,0);
+  const desc=cuponDesc(subBruto);
+  const tot=subBruto-desc;                 // Bold cobra el subtotal con cupón (envío gratis)
+  const reference='STR-'+Date.now();
+  const totalPares=rows.reduce((s,{qty})=>s+qty,0);
+  const bOrder={
+    id:Date.now(),fecha:new Date().toISOString(),
+    items:rows.map(({p,qty,type})=>({label:type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer'),id:p.id,brand:p.brand||null,qty,precio:p.price*qty})),
+    subtotal:tot,envio:0,total:tot,pares:totalPares,pago:'bold',status:'pending',session_id:SESSION_ID,cupon:cuponAplicado||null,
+    nombre:d.nombre,cedula:d.cedula,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,direccion:d.direccion,
+    reference,utm:{...getUTM(),...getFbAttribution()},referrer:getReferrer(),seccion:gSel
+  };
+  orders.push(bOrder);saveState();
+  fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(bOrder)}).catch(()=>{});
+  try{
+    const res=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'bold_link',amount:tot,reference,description:'Pedido '+reference})});
+    const j=await res.json().catch(()=>({}));
+    if(!res.ok||!j.url){
+      if(j&&j.error==='bold_unavailable'){alert('El pago con Bold se activará muy pronto 🙏\nPor ahora elige otro método de pago.');return;}
+      throw new Error('bold link');
+    }
+    localStorage.setItem('bold_ref',reference);
+    localStorage.setItem('bold_link',j.payment_link||'');
+    location.href=j.url;
+  }catch(e){alert('No se pudo conectar con Bold. Intenta de nuevo o elige otro método de pago.');}
+}
+async function checkBoldReturn(){
+  const params=new URLSearchParams(location.search);
+  if(!params.get('bold'))return;
+  const reference=localStorage.getItem('bold_ref')||'';
+  const link=localStorage.getItem('bold_link')||'';
+  localStorage.removeItem('bold_ref');localStorage.removeItem('bold_link');
+  history.replaceState({},'',location.pathname);
+  let verified=false;
+  if(link){
+    try{
+      const vr=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'bold_status',payment_link:link,reference})});
+      if(vr.ok){const t=await vr.json();verified=(t.status==='PAID');}
+    }catch(e){}
+  }
+  if(verified){
+    const order=orders.find(o=>o.reference===reference)||orders.filter(o=>o.pago==='bold'&&o.status==='pending').pop();
+    if(order){
+      order.status='venta';saveState();
+      if(PIXEL_ID&&typeof fbq==='function'){const np=String(order.nombre||'').trim().toLowerCase().split(' ');fbq('init',PIXEL_ID,{ph:String(order.tel||'').replace(/\D/g,''),fn:np[0]||'',ln:np.slice(1).join(' ')||'',ct:String(order.ciudad||'').trim().toLowerCase(),country:'co'});}
+      px('Purchase',{value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',num_items:order.pares||1,...getUTM()},(order.reference||order.id)+'_purchase');
+      trackEvent('purchase',{price:order.subtotal!=null?order.subtotal:order.total});
+      let items='';order.items.forEach(it=>{const mk=it.brand?(BRAND_LABELS[it.brand]||it.brand)+' · ':'';const ref=it.id?` · #${it.id}`:'';const ln=it.id?`\n     👉 https://catalogo.strangesneakers.com/?id=${it.id}`:'';items+=`  • ${mk}${it.label}${ref} x${it.qty} — ${fmt(it.precio)}${ln}\n`;});
+      const msg=`✅ *PAGO CONFIRMADO — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n📦 *Envío: GRATIS ✓*\n💰 *TOTAL: ${fmt(order.total)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${order.nombre}\n• Celular: ${order.tel}\n• Dirección: ${order.direccion||'-'}\n• Ciudad: ${order.ciudad}\n• Ref: ${reference}\n━━━━━━━━━━━━━━━━━━━━\n💳 *Pago Bold:* Confirmado ✓\n━━━━━━━━━━━━━━━━━━━━\n¡Gracias por tu compra! 🙏\n\n🎁 *Tu regalo — Guía de cuidado:*\nhttps://catalogo.strangesneakers.com/?regalo=cuidado`;
+      setTimeout(()=>{alert('✅ ¡Pago confirmado!\nEn un momento recibirás confirmación por WhatsApp.');window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,'_blank');},300);
+    }else{setTimeout(()=>alert('✅ ¡Pago confirmado con Bold!\nTu pedido está en camino. Pronto te contactamos.'),300);}
+  }else{
+    setTimeout(()=>alert('⏳ Estamos confirmando tu pago con Bold.\nApenas se confirme te contactamos por WhatsApp.'),300);
   }
 }
 
@@ -3256,7 +3322,7 @@ function checkDeepLink(){
     setTimeout(()=>openGuia(),200);
     return;
   }
-  if(params.get('wompi'))return; // el ?id= en el retorno de Wompi es una transacción, no un producto
+  if(params.get('wompi')||params.get('bold'))return; // retorno de pasarela, no es un producto
   const id=parseInt(params.get('id'));
   if(!id)return;
   const inLiq=liqs.find(x=>x.id===id);
@@ -3358,6 +3424,7 @@ if(localStorage.getItem('ss_reserve_until')&&!_reserveTimer){_reserveTimer=setIn
   renderGrid();
   checkDeepLink();
   checkWompiReturn();
+  checkBoldReturn();
   maybeWelcome();   // popup de bienvenida ($20.000 OFF), una vez por visitante
 })();
 </script>

@@ -1,6 +1,75 @@
 const { createClient } = require('@supabase/supabase-js');
+const { sendEvent } = require('./_capi');
 
 const ALLOWED_ORIGINS = ['https://catalogo.strangesneakers.com', 'https://strange-catalog.vercel.app'];
+
+// ── BOLD (pagos en línea por Payment Link API). Integrado aquí para no superar el límite de 12
+// funciones serverless del plan Hobby. La llave va en env BOLD_API_KEY (Llave de identidad). ──
+async function handleBoldLink(req, res) {
+  const key = process.env.BOLD_API_KEY;
+  if (!key) return res.status(200).json({ error: 'bold_unavailable' });
+  const d = req.body || {};
+  const amount = parseInt(d.amount, 10);
+  if (!Number.isFinite(amount) || amount < 1000 || amount > 100_000_000)
+    return res.status(400).json({ error: 'amount fuera de rango' });
+  const reference   = (d.reference ? String(d.reference) : ('STR-' + Date.now())).slice(0, 60);
+  const description = (d.description ? String(d.description) : ('Pedido ' + reference)).slice(0, 100);
+  try {
+    const r = await fetch('https://integrations.api.bold.co/online/link/v1', {
+      method: 'POST',
+      headers: { 'Authorization': 'x-api-key ' + key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount_type: 'CLOSE',
+        amount: { currency: 'COP', total_amount: amount, tip_amount: 0 },
+        description,
+        callback_url: 'https://catalogo.strangesneakers.com/?bold=1'
+      })
+    });
+    const j = await r.json().catch(() => ({}));
+    const p = j.payload || j;
+    if (!r.ok || !(p && p.url)) return res.status(502).json({ error: 'bold_error' });
+    return res.status(200).json({ url: p.url, payment_link: p.payment_link, reference });
+  } catch (e) { return res.status(502).json({ error: 'bold_error' }); }
+}
+
+async function handleBoldStatus(req, res) {
+  const key = process.env.BOLD_API_KEY;
+  if (!key) return res.status(200).json({ status: 'UNKNOWN' });
+  const d = req.body || {};
+  const link = d.payment_link ? String(d.payment_link).replace(/[^\w-]/g, '').slice(0, 80) : '';
+  if (!link) return res.status(400).json({ error: 'missing payment_link' });
+  let status = 'UNKNOWN';
+  try {
+    const r = await fetch('https://integrations.api.bold.co/online/link/v1/' + encodeURIComponent(link),
+      { headers: { 'Authorization': 'x-api-key ' + key } });
+    const j = await r.json().catch(() => ({}));
+    const p = j.payload || j;
+    status = (p && p.status) || 'UNKNOWN';
+  } catch (e) { /* deja status UNKNOWN */ }
+  // Pago confirmado → marcar venta + Purchase a Meta (CAPI), igual que wompi-verify.
+  if (status === 'PAID' && d.reference && process.env.SUPABASE_SERVICE_KEY) {
+    try {
+      const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+      const { data: order } = await sb.from('orders')
+        .select('id,subtotal,total,tel,ciudad,nombre,status,utm')
+        .eq('reference', String(d.reference).slice(0, 100)).single();
+      if (order && order.status !== 'venta') {
+        await sb.from('orders').update({ status: 'venta' }).eq('id', order.id);
+        const utm = order.utm || {};
+        const clientIp = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || undefined;
+        sendEvent({
+          eventName: 'Purchase',
+          value: order.subtotal != null ? order.subtotal : order.total, currency: 'COP',
+          phone: order.tel, city: order.ciudad, name: order.nombre,
+          fbp: utm.fbp, fbc: utm.fbc, clientIp, clientUserAgent: req.headers['user-agent'],
+          eventId: String(d.reference) + '_purchase', actionSource: 'website',
+          eventSourceUrl: 'https://catalogo.strangesneakers.com/'
+        }).catch(() => {});
+      }
+    } catch (e) { /* no romper la respuesta */ }
+  }
+  return res.status(200).json({ status });
+}
 
 // Código del cupón de bienvenida ($20.000 OFF). Debe coincidir con CUPONES en index.html.
 const CODIGO_BIENVENIDA = 'BIENVENIDO20';
@@ -61,8 +130,10 @@ module.exports = async (req, res) => {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
-  // El popup de bienvenida reusa este endpoint (ver nota de límite de funciones).
-  if (req.body && req.body.kind === 'subscriber') return handleSubscribe(req, res);
+  // El popup de bienvenida y Bold reusan este endpoint (ver nota de límite de funciones).
+  if (req.body && req.body.kind === 'subscriber')  return handleSubscribe(req, res);
+  if (req.body && req.body.kind === 'bold_link')   return handleBoldLink(req, res);
+  if (req.body && req.body.kind === 'bold_status') return handleBoldStatus(req, res);
 
   const d = req.body;
   if (!d?.total || !d?.fecha) return res.status(400).json({ error: 'total y fecha requeridos' });
