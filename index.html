@@ -30,8 +30,14 @@
 html,body{background:#F2F1EE!important;color:#0E0E0C;font-family:var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
 
 /* NAV */
-nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:#F2F1EE;border-bottom:1px solid var(--line)}
-.logo{font-size:17px;font-weight:700;letter-spacing:-.04em;color:#0E0E0C}
+nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:center;justify-content:center;padding:8px 58px;background:var(--bg);border-bottom:1px solid var(--line)}
+.brand{text-align:center;line-height:1.04}
+.logo{font-size:18px;font-weight:700;letter-spacing:.04em;color:var(--ink);text-transform:uppercase}
+.brand-sub{font-size:10px;font-weight:600;color:var(--ink2);letter-spacing:.14em;text-transform:uppercase;margin-top:3px}
+.theme-tog{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:38px;height:38px;border:1px solid var(--line);border-radius:50%;background:var(--white);color:var(--ink);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .14s,background .15s}
+.theme-tog:active{transform:translateY(-50%) scale(.9)}
+.nav-bag{position:absolute;right:14px;top:50%;transform:translateY(-50%)}
+.nav-bag:active{transform:translateY(-50%) scale(.91)}
 .logo sup{font-size:8px;font-weight:500;color:var(--ink3);vertical-align:super;margin-left:2px}
 .nav-r{display:flex;align-items:center;gap:8px}
 .admin-pill{background:#fff;border:1.5px solid var(--line);border-radius:20px;padding:7px 14px;font-family:var(--font);font-size:11px;font-weight:600;color:var(--ink2);cursor:pointer;transition:all .15s}
@@ -65,7 +71,7 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .ban-env{font-size:11px;color:var(--green);font-weight:600;margin-top:4px}
 
 /* TABS */
-.tabs{display:flex;gap:4px;padding:0 10px 14px;background:#F2F1EE}
+.tabs{display:flex;gap:4px;padding:18px 10px 14px;background:#F2F1EE}
 .tab{flex:1;padding:10px 4px;background:#fff;border:1.5px solid var(--line);border-radius:10px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink2);cursor:pointer;transition:all .16s;text-align:center}
 .tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .brandbar{display:flex;gap:6px;padding:0 10px 12px;background:#F2F1EE;overflow-x:auto;scrollbar-width:none}
@@ -196,9 +202,15 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .pm-chip.reserve{background:#fff1ef;color:#d9492f;border:1px solid #ffd9d2}
 .pm-chip.reserve b{color:#d9492f;font-variant-numeric:tabular-nums}
 .pm-chip.gift{background:var(--bg);color:var(--ink2)}
-.pm-trust{margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.pm-trust-item{display:flex;align-items:center;gap:7px;background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:9px 11px;font-size:11px;font-weight:600;color:var(--ink)}
-.pm-trust-item span{line-height:1.2}
+.pm-trust{margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pm-trust-item{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,var(--white),var(--bg));border:1px solid var(--line);border-radius:14px;padding:11px 12px;font-size:12px;font-weight:700;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.03);transition:transform .16s,box-shadow .16s}
+.pm-trust-item span{line-height:1.15}
+.pm-trust-item:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.09)}
+.pm-ti-ic{flex-shrink:0;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;background:#eef4ff}
+.pm-trust-item:nth-child(2) .pm-ti-ic{background:#eafaf0}
+.photo-modal.on .pm-trust-item{animation:trustIn .5s cubic-bezier(.16,1,.3,1) both}
+.photo-modal.on .pm-trust-item:nth-child(2){animation-delay:.09s}
+@keyframes trustIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 /* Financiación + medios de pago con logos reales (carpeta logos/, fallback a texto vía onerror) */
 .pm-fin-cap{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-top:16px;margin-bottom:7px}
 .pm-finance .pm-fin{display:flex;align-items:center;justify-content:center;min-height:50px;background:#fff}
@@ -223,10 +235,12 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 /* 8c/9a — ESCRITORIO: ficha a 2 columnas (foto izq + info der), foto CUADRADA sin recorte.
    La barra de logotipo ocupa todo el ancho arriba (flex-wrap). El móvil (hoja inferior) NO cambia. */
 @media(min-width:700px){
-  .pm-wrap{max-width:880px;display:flex;flex-wrap:wrap;align-items:flex-start;overflow:hidden}
+  .pm-wrap{max-width:940px;display:flex;flex-wrap:wrap;align-items:flex-start;overflow:hidden}
   .pm-head{width:100%;border-radius:18px 18px 0 0}
   .pm-img{width:46%;align-self:flex-start;aspect-ratio:1/1;height:auto;object-fit:cover}
-  .pm-body{width:54%;overflow-y:auto;max-height:84vh;-webkit-overflow-scrolling:touch}
+  .pm-body{width:54%;overflow-y:auto;max-height:84vh;-webkit-overflow-scrolling:touch;padding:22px 24px 28px}
+  .pm-title{font-size:20px}
+  .pm-price{font-size:30px}
 }
 .cart-line{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;border-radius:10px;padding:9px 12px;margin-top:8px}
 .cart-reserva{background:#fff1ef;color:#d9492f;border:1px solid #ffd9d2}
@@ -246,6 +260,11 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .ascrim.on{display:block}
 .apanel{position:fixed;bottom:0;left:0;right:0;max-width:500px;margin:0 auto;background:#fff;border-radius:22px 22px 0 0;z-index:210;transform:translateY(100%);transition:transform .36s cubic-bezier(.32,.72,0,1);height:92vh;max-height:92vh;display:flex;flex-direction:column;padding-bottom:max(16px,env(safe-area-inset-bottom));box-shadow:0 -4px 40px rgba(0,0,0,.13)}
 .apanel.on{transform:translateY(0)}
+/* ESCRITORIO: panel admin como modal grande centrado. Móvil intacto. */
+@media(min-width:700px){
+  .apanel{left:50%;right:auto;top:50%;bottom:auto;margin:0;width:920px;max-width:920px;height:88vh;max-height:88vh;border-radius:18px;transform:translate(-50%,-50%) scale(.96);opacity:0;pointer-events:none;transition:transform .3s cubic-bezier(.16,1,.3,1),opacity .3s}
+  .apanel.on{transform:translate(-50%,-50%) scale(1);opacity:1;pointer-events:auto}
+}
 .adrag{width:36px;height:3px;background:var(--line);border-radius:2px;margin:10px auto 0;flex-shrink:0}
 .ahead{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;flex-shrink:0;border-bottom:1px solid var(--line)}
 .atitle{font-size:17px;font-weight:700;letter-spacing:-.03em}
@@ -318,6 +337,13 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .cscrim.on{display:block}
 .csheet{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:#fff;border-radius:22px 22px 0 0;z-index:610;transform:translateY(100%);transition:transform .34s cubic-bezier(.32,.72,0,1);max-height:90vh;display:flex;flex-direction:column;padding-bottom:max(16px,env(safe-area-inset-bottom));box-shadow:0 -2px 32px rgba(0,0,0,.09)}
 .csheet.on{transform:translateY(0)}
+/* ESCRITORIO: carrito como drawer lateral derecho (estilo Nike/Adidas). Móvil intacto. */
+@media(min-width:700px){
+  .csheet{left:auto;right:0;top:0;bottom:0;width:430px;max-width:430px;height:100vh;max-height:none;margin:0;border-radius:0;transform:translateX(100%)}
+  .csheet.on{transform:translateX(0)}
+  .cdrag{display:none}
+  .ctop{padding-top:22px}
+}
 .cdrag{width:32px;height:3px;background:var(--line);border-radius:2px;margin:10px auto 0;flex-shrink:0}
 .ctop{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 8px;flex-shrink:0}
 .cttl{font-size:19px;font-weight:700;letter-spacing:-.04em}
@@ -483,19 +509,20 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 .hero-slide{position:relative;min-width:100%;height:100%}
 .hero-slide picture{display:block;width:100%;height:100%}
 .hero-slide img{width:100%;height:100%;object-fit:cover;display:block;-webkit-user-drag:none;user-select:none}
-.hero-ov{position:absolute;left:0;right:0;bottom:0;padding:60px 22px 28px;background:linear-gradient(to top,rgba(0,0,0,.82) 8%,rgba(0,0,0,.35) 55%,transparent);color:#fff;text-align:center}
-.hero-tit{font-size:28px;font-weight:700;line-height:1.08;letter-spacing:.01em;text-transform:uppercase;text-shadow:0 2px 14px rgba(0,0,0,.45)}
-.hero-sub{font-size:11.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;opacity:.9;margin-top:7px;text-shadow:0 1px 8px rgba(0,0,0,.4)}
-.hero-cta{margin-top:16px;display:inline-block;background:rgba(0,0,0,.18);color:#fff;border:1.6px solid #fff;border-radius:8px;padding:11px 26px;font-family:var(--font);font-size:12.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:transform .12s,background .15s}
+.hero-ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:rgba(0,0,0,.30);color:#fff;text-align:center}
+.hero-tit{font-size:24px;font-weight:700;line-height:1.1;letter-spacing:.02em;text-transform:uppercase;text-shadow:0 2px 16px rgba(0,0,0,.5)}
+.hero-sub{font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;opacity:.92;margin-top:8px;text-shadow:0 1px 10px rgba(0,0,0,.45)}
+.hero-cta{margin-top:18px;display:inline-block;background:rgba(0,0,0,.14);color:#fff;border:1.5px solid #fff;border-radius:8px;padding:10px 24px;font-family:var(--font);font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:transform .12s,background .15s}
 .hero-cta:hover{background:rgba(255,255,255,.15)}
 .hero-cta:active{transform:scale(.97)}
 .hero-dots{position:absolute;top:14px;left:0;right:0;display:flex;justify-content:center;gap:6px;z-index:2}
 .hero-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.45);transition:width .25s,background .25s}
 .hero-dot.on{width:20px;border-radius:5px;background:#fff}
 @media(min-width:700px){
-  .hero-ov{padding:0 24px 56px;max-width:none;text-align:center}   /* título + botón centrados en escritorio */
-  .hero-tit{font-size:50px}
+  .hero-ov{padding:24px}   /* título + botón centrados (vertical y horizontal) en escritorio */
+  .hero-tit{font-size:40px}
   .hero-sub{font-size:13px}
+  .hero-cta{font-size:13px;padding:12px 30px}
   .hero-slide img{object-position:center var(--pos,50%)}   /* encuadre escritorio por slide */
 }
 
@@ -601,13 +628,14 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
 <body>
 
 <nav>
-  <div class="logo">Strange Sneakers<sup>®</sup></div>
-  <div class="nav-r">
-    <button class="bag-btn" onclick="openCart()">
-      <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-      <span class="bdot" id="bdot">0</span>
-    </button>
+  <div class="brand">
+    <div class="logo">CATALOGO SNEAKERS</div>
+    <div class="brand-sub">Tu estilo. Tu par.</div>
   </div>
+  <button class="bag-btn nav-bag" onclick="openCart()">
+    <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+    <span class="bdot" id="bdot">0</span>
+  </button>
 </nav>
 
 <button class="wa-fab" id="waFab" onclick="openWA()" aria-label="Escríbenos por WhatsApp">
@@ -1026,8 +1054,8 @@ nav{position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center
         <div class="pm-chip gift">🎁 <span>Tu compra incluye guía de cuidado + 5% en tu próximo par</span></div>
       </div>
       <div class="pm-trust">
-        <div class="pm-trust-item">🔄 <span>Cambios por talla</span></div>
-        <div class="pm-trust-item">⭐ <span>100% Garantía</span></div>
+        <div class="pm-trust-item"><span class="pm-ti-ic">🔄</span><span>Cambios<br>por talla</span></div>
+        <div class="pm-trust-item"><span class="pm-ti-ic">🛡️</span><span>100%<br>Garantía</span></div>
       </div>
       <div class="pm-reviews" id="pmRevList"></div>
     </div>
