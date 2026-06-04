@@ -2090,6 +2090,11 @@ function openPhoto(id,type){
   trackEvent('view_product',{product_id:String(id),price:p.price,gender:type==='liq'?null:p.g||null});
   $('photoModal').classList.add('on');
   lockScroll();
+  // Resetear el scroll de la ficha al ABRIR (si no, reabre donde quedó el anterior → en iOS el
+  // header sticky no se ancla y toca subir para ver "CATALOGO SNEAKERS").
+  const _pw=document.querySelector('.pm-wrap'), _pb=document.querySelector('.pm-body');
+  if(_pw)_pw.scrollTop=0; if(_pb)_pb.scrollTop=0;
+  requestAnimationFrame(()=>{if(_pw)_pw.scrollTop=0; if(_pb)_pb.scrollTop=0;});
 }
 function syncPmBtn(){
   const key=pmType==='liq'?'L'+pmId:pmId;
