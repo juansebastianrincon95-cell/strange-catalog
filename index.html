@@ -861,7 +861,8 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
       <div id="colm_devE" style="display:none">
         <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">🖥 <span id="colmLblD">Escritorio (horizontal)</span><input type="file" accept="image/*" id="colmFileD" style="display:none" onchange="colDraftImg(this.files[0],'m','escritorio');this.value=''"></label>
         <img id="colmThumbD" style="display:none;width:100%;max-height:100px;object-fit:cover;border-radius:9px;margin-top:8px">
-        <select id="colmPos" style="margin-top:8px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"><option value="center">🖥 Encuadre: Centro</option><option value="top">🖥 Encuadre: Arriba</option><option value="bottom">🖥 Encuadre: Abajo (mostrar tenis)</option></select>
+        <div style="margin-top:9px;font-size:11px;font-weight:700;color:var(--ink2)">🖥 Encuadre escritorio (arriba ←→ abajo): <span id="colmPosV">50%</span></div>
+        <input type="range" id="colmPos" min="0" max="100" value="50" oninput="document.getElementById('colmPosV').textContent=this.value+'%'" style="width:100%;margin-top:5px">
       </div>
       <input id="colmTit" type="text" placeholder="Título (ej. Colección Mujer)" style="margin-top:8px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
       <input id="colmSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
@@ -877,7 +878,8 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
       <div id="colh_devE" style="display:none">
         <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">🖥 <span id="colhLblD">Escritorio (horizontal)</span><input type="file" accept="image/*" id="colhFileD" style="display:none" onchange="colDraftImg(this.files[0],'h','escritorio');this.value=''"></label>
         <img id="colhThumbD" style="display:none;width:100%;max-height:100px;object-fit:cover;border-radius:9px;margin-top:8px">
-        <select id="colhPos" style="margin-top:8px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"><option value="center">🖥 Encuadre: Centro</option><option value="top">🖥 Encuadre: Arriba</option><option value="bottom">🖥 Encuadre: Abajo (mostrar tenis)</option></select>
+        <div style="margin-top:9px;font-size:11px;font-weight:700;color:var(--ink2)">🖥 Encuadre escritorio (arriba ←→ abajo): <span id="colhPosV">50%</span></div>
+        <input type="range" id="colhPos" min="0" max="100" value="50" oninput="document.getElementById('colhPosV').textContent=this.value+'%'" style="width:100%;margin-top:5px">
       </div>
       <input id="colhTit" type="text" placeholder="Título (ej. Colección Hombre)" style="margin-top:8px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
       <input id="colhSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
@@ -893,7 +895,8 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
       <div id="colu_devE" style="display:none">
         <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:#fff;border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">🖥 <span id="coluLblD">Escritorio (horizontal)</span><input type="file" accept="image/*" id="coluFileD" style="display:none" onchange="colDraftImg(this.files[0],'u','escritorio');this.value=''"></label>
         <img id="coluThumbD" style="display:none;width:100%;max-height:100px;object-fit:cover;border-radius:9px;margin-top:8px">
-        <select id="coluPos" style="margin-top:8px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"><option value="center">🖥 Encuadre: Centro</option><option value="top">🖥 Encuadre: Arriba</option><option value="bottom">🖥 Encuadre: Abajo (mostrar tenis)</option></select>
+        <div style="margin-top:9px;font-size:11px;font-weight:700;color:var(--ink2)">🖥 Encuadre escritorio (arriba ←→ abajo): <span id="coluPosV">50%</span></div>
+        <input type="range" id="coluPos" min="0" max="100" value="50" oninput="document.getElementById('coluPosV').textContent=this.value+'%'" style="width:100%;margin-top:5px">
       </div>
       <input id="coluTit" type="text" placeholder="Título (ej. Colección Unisex)" style="margin-top:8px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
       <input id="coluSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:#fff;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
@@ -1514,8 +1517,9 @@ async function saveFeatured(){
 let bannerMujer=null, bannerHombre=null, bannerUnisex=null;   // {img,img_desktop,titulo,subtitulo}
 let _colDraft={m:{img:null,img_desktop:null}, h:{img:null,img_desktop:null}, u:{img:null,img_desktop:null}};
 function colBannerHTML(b,g){
-  const posMap={top:'18%',center:'50%',bottom:'82%'};   // encuadre vertical en escritorio (var --pos)
-  const pos=posMap[b.pos]||'50%';
+  const posMap={top:'18%',center:'50%',bottom:'82%'};   // legacy por palabra; ahora pos puede ser número (%)
+  const _n=parseFloat(b.pos);
+  const pos=isFinite(_n)?_n+'%':(posMap[b.pos]||'50%');
   return `<picture>${b.img_desktop?`<source media="(min-width:700px)" srcset="${escHtml(b.img_desktop)}">`:''}<img src="${escHtml(b.img)}" alt="${escHtml(b.titulo||'')}" loading="lazy" style="--pos:${pos}"></picture><div class="hero-ov">${b.titulo?`<div class="hero-tit">${escHtml(b.titulo)}</div>`:''}${b.subtitulo?`<div class="hero-sub">${escHtml(b.subtitulo)}</div>`:''}<button class="hero-cta" onclick="colCTA('${g}')">Comprar ahora</button></div>`;
 }
 function renderColBanners(){
@@ -1558,7 +1562,7 @@ function renderColAdmin(){
     if(!b)return;
     const tit=$('col'+g+'Tit');if(tit)tit.value=b.titulo||'';
     const sub=$('col'+g+'Sub');if(sub)sub.value=b.subtitulo||'';
-    const pos=$('col'+g+'Pos');if(pos)pos.value=b.pos||'center';
+    const pos=$('col'+g+'Pos');if(pos){const n=parseFloat(b.pos);const v=isFinite(n)?n:({top:18,center:50,bottom:82}[b.pos]||50);pos.value=v;const lbl=$('col'+g+'PosV');if(lbl)lbl.textContent=v+'%';}
     const t=$('col'+g+'Thumb');if(t&&b.img){t.src=b.img;t.style.display='block';}
     const td=$('col'+g+'ThumbD');if(td&&b.img_desktop){td.src=b.img_desktop;td.style.display='block';}
   });
