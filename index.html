@@ -265,12 +265,18 @@ nav .nav-bag:active{transform:translateY(-50%) scale(.91)}
   .pm-title{font-size:22px}
   .pm-price{font-size:32px}
 }
-.cart-line{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;border-radius:10px;padding:9px 12px;margin-top:8px}
-.cart-reserva{background:#fff1ef;color:#d9492f;border:1px solid #ffd9d2}
+.cart-line{display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:600;line-height:1.3;border-radius:13px;padding:10px 12px;margin-top:8px;border:1px solid transparent}
+.cart-line b{font-weight:800}
+.cl-ic{flex-shrink:0;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px}
+.cart-reserva{background:#fff6f4;color:#c43a22;border-color:#ffd9d2}
 .cart-reserva b{font-variant-numeric:tabular-nums}
-.cart-ahorro{background:#eaf8ef;color:#1ba94c}
-.cart-regalo{background:var(--bg);color:var(--ink2)}
-.cart-cupon{background:#eef4ff;color:#0052cc}
+.cart-reserva .cl-ic{background:#ffe2da}
+.cart-ahorro{background:#eafaf0;color:#137a3a;border-color:#bfe9cd}
+.cart-ahorro .cl-ic{background:#cdeed8}
+.cart-regalo{background:var(--bg);color:var(--ink2);border-color:var(--line)}
+.cart-regalo .cl-ic{background:#fff3e0}
+.cart-cupon{background:#eef4ff;color:#0052cc;border-color:#cfe0ff}
+.cart-cupon .cl-ic{background:#dbe8ff}
 .cup-box{display:flex;gap:7px;margin-top:8px}
 .cup-box input{flex:1;min-width:0;padding:10px 12px;background:var(--bg);border:1.5px solid var(--line);border-radius:10px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none;text-transform:uppercase}
 .cup-box input::placeholder{text-transform:none;font-weight:500;color:var(--ink3)}
@@ -2806,13 +2812,13 @@ function rCart(){
   const desc=cuponDesc(sub);
   const subFinal=sub-desc;
   const cupHtml=cuponAplicado
-    ? `<div class="cart-line cart-cupon">🏷️ Cupón ${cuponAplicado}: -${fmt(desc)}</div>`
+    ? `<div class="cart-line cart-cupon"><span class="cl-ic">🏷️</span><span>Cupón <b>${cuponAplicado}</b>: −${fmt(desc)}</span></div>`
     : `<div class="cup-box"><input id="cupInput" placeholder="¿Tienes un código de descuento?" autocomplete="off"><button class="cup-btn" onclick="aplicarCupon()">Aplicar</button></div><div class="cup-err" id="cupErr" style="display:none">Código no válido</div>`;
   body.innerHTML+=`<div class="csubb"><span class="csubl">${tot} par${tot>1?'es':''}</span><span class="csubv">${fmt(subFinal)}</span></div>`
     +cupHtml
-    +`<div class="cart-line cart-reserva">⏰ Reservado para ti por <b id="cartReserveT">15:00</b></div>`
-    +(ahorro>0?`<div class="cart-line cart-ahorro">💰 Ahorras ${fmt(ahorro)} en esta compra</div>`:'')
-    +`<div class="cart-line cart-regalo">🎁 Incluye guía de cuidado + 5% en tu próximo par</div>`
+    +`<div class="cart-line cart-reserva"><span class="cl-ic">⏰</span><span>Reservado para ti por <b id="cartReserveT">15:00</b></span></div>`
+    +(ahorro>0?`<div class="cart-line cart-ahorro"><span class="cl-ic">💰</span><span>Ahorras <b>${fmt(ahorro)}</b> en esta compra</span></div>`:'')
+    +`<div class="cart-line cart-regalo"><span class="cl-ic">🎁</span><span>Incluye <b>guía de cuidado</b> + <b>5%</b> en tu próximo par</span></div>`
     +`<div class="cenvio">📦 Envío gratis · Contra entrega desde ${fmt(calcFlete(1))}</div>`;
   foot.innerHTML=`<button class="btnmain" onclick="goStep(1)">Continuar &nbsp;→</button>`;
   tickReserva();   // pintar el tiempo en el contador del carrito recién creado
