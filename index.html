@@ -37,6 +37,8 @@ html[data-theme="dark"] .wm-head,html[data-theme="dark"] .ftr-bottom{background:
 html[data-theme="dark"] .pm-pay-strip,html[data-theme="dark"] .pm-fin{background:#fff}
 html[data-theme="dark"] .theme-tog{background:var(--white)}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+/* El scroll interno de los modales NO arrastra el fondo (anti scroll-chaining) */
+.pm-wrap,.pm-body,.csheet,.cbody,.catview,.apanel,.wm-card,.guia-wrap{overscroll-behavior:contain}
 html,body{background:var(--bg)!important;color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
 
 /* NAV */
@@ -1293,9 +1295,10 @@ function aplicarCupon(){
 /* ── POPUP DE BIENVENIDA ($20.000 OFF) ── */
 let WELCOME_ON=true;                 // se sobreescribe desde settings (welcome_popup)
 const WELCOME_CODE='BIENVENIDO20';   // debe coincidir con CUPONES y api/subscribe.js
-function openWelcome(){const m=$('welcomeModal');if(m)m.classList.add('on');const t=$('wmReopen');if(t)t.classList.remove('show');}
+let _wmOpen=false;
+function openWelcome(){const m=$('welcomeModal');if(m)m.classList.add('on');if(!_wmOpen){_wmOpen=true;lockScroll();}const t=$('wmReopen');if(t)t.classList.remove('show');}
 // Cerrar NO marca "visto": si no dejó sus datos, queda el tag anclado abajo para reabrirlo.
-function closeWelcome(){const m=$('welcomeModal');if(m)m.classList.remove('on');
+function closeWelcome(){const m=$('welcomeModal');if(m)m.classList.remove('on');if(_wmOpen){_wmOpen=false;unlockScroll();}
   if(!localStorage.getItem('ss_subscribed')){const t=$('wmReopen');if(t)t.classList.add('show');}}
 // Aparece en cada visita HASTA que el cliente se registre (ss_subscribed). Si está activo y sin otro modal abierto.
 function maybeWelcome(){
@@ -1608,10 +1611,26 @@ function bannerDev(scope,dev){
 }
 
 /* ── CATÁLOGO COMPLETO (vista a pantalla completa) + PREVIEW del inicio ── */
+/* Bloqueo de scroll del fondo (iOS no respeta body{overflow:hidden}: hay que fijar el body).
+   Ref-contado para soportar modales apilados (ej. visor 360 → carrito). */
+let _slCount=0,_slY=0;
+function lockScroll(){
+  if(_slCount++>0)return;
+  _slY=window.scrollY||document.documentElement.scrollTop||0;
+  const b=document.body.style;
+  b.position='fixed';b.top=(-_slY)+'px';b.left='0';b.right='0';b.width='100%';b.overflow='hidden';
+}
+function unlockScroll(){
+  if(_slCount<=0)return;
+  if(--_slCount>0)return;
+  const b=document.body.style;
+  b.position='';b.top='';b.left='';b.right='';b.width='';b.overflow='';
+  window.scrollTo(0,_slY);
+}
 function openCatalog(opts){
   opts=opts||{};
   const v=$('catView');if(!v)return;
-  v.classList.add('on');document.body.style.overflow='hidden';
+  v.classList.add('on');lockScroll();
   const tabs=document.querySelectorAll('#catView .tabs .tab');
   if(opts.brand){
     gSel='all';brandSel=opts.brand;
@@ -1624,7 +1643,7 @@ function openCatalog(opts){
   }
   v.scrollTop=0;
 }
-function closeCatalog(){const v=$('catView');if(v)v.classList.remove('on');document.body.style.overflow='';}
+function closeCatalog(){const v=$('catView');if(v)v.classList.remove('on');unlockScroll();}
 // Preview del inicio: 6 modelos disponibles más recientes (prods viene ordenado por id asc).
 function renderPreview(){
   const sec=$('preview'),grid=$('previewGrid');if(!grid)return;
@@ -1733,9 +1752,9 @@ function openTesti(i){
   const f=$('tmFoto');if(f){if(t.foto){f.src=t.foto;f.style.display='';}else f.style.display='none';}
   _tmProdId=(t.productId&&prods.find(x=>x.id===t.productId))?t.productId:null;
   const pb=$('tmProd');if(pb)pb.style.display=_tmProdId?'':'none';
-  $('testiModal').classList.add('on');document.body.style.overflow='hidden';
+  $('testiModal').classList.add('on');lockScroll();
 }
-function closeTesti(){$('testiModal').classList.remove('on');document.body.style.overflow='';}
+function closeTesti(){$('testiModal').classList.remove('on');unlockScroll();}
 function testiVerProducto(){const id=_tmProdId;closeTesti();if(id)openPhoto(id,'cat');}
 function renderTestiAdmin(){
   const sel=$('testiProdSel');
@@ -2070,7 +2089,7 @@ function openPhoto(id,type){
   px('ViewContent',{content_ids:[String(id)],content_type:'product',content_category:_vcat,content_name:_vnm,value:p.price,currency:'COP',...getUTM()});
   trackEvent('view_product',{product_id:String(id),price:p.price,gender:type==='liq'?null:p.g||null});
   $('photoModal').classList.add('on');
-  document.body.style.overflow='hidden';
+  lockScroll();
 }
 function syncPmBtn(){
   const key=pmType==='liq'?'L'+pmId:pmId;
@@ -2109,7 +2128,7 @@ function renderFichaReviews(){
 function addFromModal(){if(pmId===null)return;const id=pmId,t=pmType;closePhotoBtn();togCard(id,t);}
 function closePhotoBtn(){
   $('photoModal').classList.remove('on');
-  document.body.style.overflow='';
+  unlockScroll();
   setTimeout(()=>{$('pmImg').src='';pmId=null;pmType=null;},300);
 }
 /* ── GUÍA DE CUIDADO ── */
@@ -2117,9 +2136,9 @@ function openGuia(){
   // WhatsApp clickeable con el número de la tienda
   const wa=$('guiaWa');
   if(wa)wa.href=`https://wa.me/${WA}?text=${encodeURIComponent('¡Hola '+STORE_NAME+'! Tengo una duda sobre el cuidado de mis sneakers 👟')}`;
-  $('guiaModal').classList.add('on');document.body.style.overflow='hidden';
+  $('guiaModal').classList.add('on');lockScroll();
 }
-function closeGuia(){$('guiaModal').classList.remove('on');document.body.style.overflow='';}
+function closeGuia(){$('guiaModal').classList.remove('on');unlockScroll();}
 // Descargar la guía: abre el diálogo de impresión con SOLO la guía (Guardar como PDF).
 function descargarGuia(){
   document.body.classList.add('printing-guia');
@@ -2208,12 +2227,12 @@ function open360(id,type){
   sync360Btn();
   $('v360Hint').style.opacity='1';
   $('viewer360').classList.add('on');
-  document.body.style.overflow='hidden';
+  lockScroll();
   _preload360(p.imgs360,()=>drawFrame360(0));
 }
 function close360(){
   $('viewer360').classList.remove('on');
-  document.body.style.overflow='';
+  unlockScroll();
   $('v360Add').style.display='';
   _preview360Frames=null;
   _v360Images=[];
@@ -2229,7 +2248,7 @@ function previewQueue360(dest){
   $('v360Add').style.display='none';
   $('v360Hint').style.opacity='1';
   $('viewer360').classList.add('on');
-  document.body.style.overflow='hidden';
+  lockScroll();
   _preload360(_preview360Frames,()=>drawFrame360(0));
 }
 function addFrom360(){if(v360Id!==null){togCard(v360Id,v360Type);sync360Btn();}}
@@ -2269,7 +2288,7 @@ function _showAdmin(){
   const cfgCl=$('cfgClarity');if(cfgCl)cfgCl.value=CLARITY_ID;
   const cfgAk=$('cfgAdminKey');if(cfgAk){cfgAk.value=ADMIN_API_KEY;cfgAk.style.borderColor=ADMIN_API_KEY?'#4caf50':'#f44336';}
   checkStorageQuota();
-  $('ascrim').classList.add('on');$('apanel').classList.add('on');document.body.style.overflow='hidden';
+  $('ascrim').classList.add('on');$('apanel').classList.add('on');lockScroll();
 }
 async function _fetchAdminKey(pin){
   try{
@@ -2302,7 +2321,7 @@ function changePin(){
   localStorage.setItem('ss_pin',nuevo);
   alert('PIN actualizado ✓');
 }
-function closeAdmin(){$('ascrim').classList.remove('on');$('apanel').classList.remove('on');document.body.style.overflow='';}
+function closeAdmin(){$('ascrim').classList.remove('on');$('apanel').classList.remove('on');unlockScroll();}
 async function toggleBanner(on){bannerOn=on;$('banner').classList.toggle('off',!on);await adminWrite('upsert_settings',{data:{key:'banner_on',value:String(on)}});}
 async function toggleGlobal(on){promoG=on;renderGrid();renderAdmin();await adminWrite('upsert_settings',{data:{key:'promo_global',value:String(on)}});}
 async function toggleWelcome(on){WELCOME_ON=on;await adminWrite('upsert_settings',{data:{key:'welcome_popup',value:String(on)}});}
@@ -2730,9 +2749,9 @@ async function addQueue(dest){
 let _icFired=false;
 function openCart(){
   step=0;_icFired=false;renderStep();
-  $('cscrim').classList.add('on');$('csheet').classList.add('on');document.body.style.overflow='hidden';
+  $('cscrim').classList.add('on');$('csheet').classList.add('on');lockScroll();
 }
-function closeCart(){$('cscrim').classList.remove('on');$('csheet').classList.remove('on');document.body.style.overflow='';}
+function closeCart(){$('cscrim').classList.remove('on');$('csheet').classList.remove('on');unlockScroll();}
 function updDots(){[0,1,2].forEach(i=>{const d=$('cs'+i);d.className='csd'+(i===step?' active':i<step?' done':'');});$('cttl').textContent=['Tu pedido','Tus datos','Pagar'][step]+`  ·  Paso ${step+1} de 3`;}
 function renderStep(){updDots();[rCart,rForm,rPayChoice][step]();}
 function goStep(n){
