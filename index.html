@@ -139,7 +139,7 @@ nav .nav-bag:active{transform:translateY(-50%) scale(.91)}
 .lfoot{padding:8px 9px 10px;background:var(--white);cursor:pointer}
 .lpnow{font-size:15px;font-weight:700;letter-spacing:-.04em;color:var(--red);line-height:1}
 .lpwas{font-size:10px;color:var(--ink3);text-decoration:line-through;margin-top:2px}
-.lsave{display:inline-block;margin-top:3px;background:var(--white)5f5;color:var(--red);font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px}
+.lsave{display:inline-block;margin-top:3px;background:#fff5f5;color:var(--red);font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px}
 .liq-empty{padding:32px;text-align:center;color:var(--ink3);font-size:13px;grid-column:1/-1}
 
 /* BOTÓN CIRCULAR + en la foto */
@@ -208,12 +208,22 @@ nav .nav-bag:active{transform:translateY(-50%) scale(.91)}
 .pm-cod-ic{font-size:20px;flex-shrink:0}
 .pm-pay-strip{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:18px;background:var(--white);border:1px solid var(--line);border-radius:12px;padding:13px 14px}
 .pm-pay-strip img{height:23px;width:auto;max-width:62px;object-fit:contain;display:block}
-.pm-meta{margin-top:16px;display:flex;flex-direction:column;gap:7px}
-.pm-chip{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;border-radius:10px;padding:9px 12px}
-.pm-chip.social{background:#f0f0ee;color:var(--ink2)}
-.pm-chip.reserve{background:var(--white)1ef;color:#d9492f;border:1px solid #ffd9d2}
-.pm-chip.reserve b{color:#d9492f;font-variant-numeric:tabular-nums}
-.pm-chip.gift{background:var(--bg);color:var(--ink2)}
+.pm-meta{margin-top:16px;display:flex;flex-direction:column;gap:9px}
+.pm-chip{display:flex;align-items:center;gap:11px;font-size:12.5px;font-weight:600;line-height:1.3;border-radius:13px;padding:11px 13px;background:var(--white);border:1px solid var(--line);box-shadow:0 1px 2px rgba(0,0,0,.03);color:var(--ink2);transition:transform .16s,box-shadow .16s}
+.pm-chip:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(0,0,0,.07)}
+.pm-chip-ic{flex-shrink:0;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;position:relative}
+.pm-chip b{color:var(--ink);font-weight:800}
+.pm-chip.social{color:var(--ink)}
+.pm-chip.social .pm-chip-ic{background:#eef4ff}
+.pm-chip.reserve{color:#c43a22;border-color:#ffd9d2;background:#fff6f4}
+.pm-chip.reserve b{color:#c43a22;font-variant-numeric:tabular-nums}
+.pm-chip.reserve .pm-chip-ic{background:#ffe2da}
+.pm-chip.gift .pm-chip-ic{background:#fff3e0}
+.pm-live{position:absolute;top:-1px;right:-1px;width:9px;height:9px;border-radius:50%;background:var(--green);border:2px solid var(--white);animation:pmLive 1.6s ease-in-out infinite}
+@keyframes pmLive{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.3);opacity:.6}}
+.photo-modal.on .pm-chip{animation:trustIn .5s cubic-bezier(.16,1,.3,1) both}
+.photo-modal.on .pm-chip:nth-child(2){animation-delay:.06s}
+.photo-modal.on .pm-chip:nth-child(3){animation-delay:.12s}
 .pm-trust{margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .pm-trust-item{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,var(--white),var(--bg));border:1px solid var(--line);border-radius:14px;padding:11px 12px;font-size:12px;font-weight:700;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.03);transition:transform .16s,box-shadow .16s}
 .pm-trust-item span{line-height:1.15}
@@ -252,7 +262,7 @@ nav .nav-bag:active{transform:translateY(-50%) scale(.91)}
   .pm-price{font-size:32px}
 }
 .cart-line{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;border-radius:10px;padding:9px 12px;margin-top:8px}
-.cart-reserva{background:var(--white)1ef;color:#d9492f;border:1px solid #ffd9d2}
+.cart-reserva{background:#fff1ef;color:#d9492f;border:1px solid #ffd9d2}
 .cart-reserva b{font-variant-numeric:tabular-nums}
 .cart-ahorro{background:#eaf8ef;color:#1ba94c}
 .cart-regalo{background:var(--bg);color:var(--ink2)}
@@ -831,11 +841,11 @@ nav .nav-bag:active{transform:translateY(-50%) scale(.91)}
       <div><div class="trow-lbl">🏷 Promoción global</div><div class="trow-sub">Muestra descuento en todos los pares</div></div>
       <label class="sw"><input type="checkbox" id="swPromo" onchange="toggleGlobal(this.checked)"><div class="sw-tr"></div><div class="sw-th"></div></label>
     </div>
-    <div class="trow" style="background:var(--white)8f0">
+    <div class="trow" style="background:#fff8f0">
       <div><div class="trow-lbl">🔥 Banner precio especial</div><div class="trow-sub">Muestra el banner negro arriba</div></div>
       <label class="sw"><input type="checkbox" id="swBanner" onchange="toggleBanner(this.checked)"><div class="sw-tr"></div><div class="sw-th"></div></label>
     </div>
-    <div class="trow" style="background:var(--white)0f0">
+    <div class="trow" style="background:#fff0f0">
       <div><div class="trow-lbl">🎁 Popup de bienvenida</div><div class="trow-sub">$20.000 OFF (código BIENVENIDO20) al dejar datos</div></div>
       <label class="sw"><input type="checkbox" id="swWelcome" onchange="toggleWelcome(this.checked)"><div class="sw-tr"></div><div class="sw-th"></div></label>
     </div>
@@ -927,7 +937,7 @@ nav .nav-bag:active{transform:translateY(-50%) scale(.91)}
       <input id="cfgFb" type="url" placeholder="Facebook (https://facebook.com/...)" onchange="saveSocials()" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:500;color:var(--ink);outline:none">
       <div style="font-size:10px;color:var(--ink3);margin-top:6px;text-align:center">WhatsApp usa el número que ya configuraste. Solo se muestran las redes con enlace.</div>
     </div>
-    <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:var(--white)beb">
+    <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#fffbeb">
       <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">⭐ Clientes felices (testimonios)</div>
       <label style="font-size:11px;font-weight:600;color:var(--ink2)">Nº de reseñas a mostrar (marketing)</label>
       <input id="cfgReviews" type="number" inputmode="numeric" placeholder="ej. 1562" onchange="saveReviews()" style="margin-top:4px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
@@ -940,7 +950,7 @@ nav .nav-bag:active{transform:translateY(-50%) scale(.91)}
       <select id="testiProdSel" style="margin-top:6px;width:100%;padding:9px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"></select>
       <button onclick="testiAdd()" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">➕ Agregar testimonio</button>
     </div>
-    <div id="storageWarn" style="display:none;margin:8px 14px;padding:8px 12px;background:var(--white)8e1;border:1px solid #ffc107;border-radius:8px;font-size:11px;color:#7a5800;font-weight:600"></div>
+    <div id="storageWarn" style="display:none;margin:8px 14px;padding:8px 12px;background:#fff8e1;border:1px solid #ffc107;border-radius:8px;font-size:11px;color:#7a5800;font-weight:600"></div>
     <div class="trow" style="background:#f8f8f6">
       <div style="flex:1;margin-right:10px">
         <div class="trow-lbl">⚙ Nombre del negocio</div>
@@ -977,7 +987,7 @@ nav .nav-bag:active{transform:translateY(-50%) scale(.91)}
         <input id="cfgClarity" type="text" placeholder="ej: abc123xyz0" style="margin-top:5px;width:100%;padding:7px 10px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:11px;font-weight:500;color:var(--ink);outline:none" oninput="CLARITY_ID=this.value.trim();saveConfig()">
       </div>
     </div>
-    <div class="trow" style="background:var(--white)3e0">
+    <div class="trow" style="background:#fff3e0">
       <div style="flex:1;margin-right:10px">
         <div class="trow-lbl">🔑 Clave Admin API <span title="Pega aquí el valor de ADMIN_API_KEY configurado en Vercel. Solo se ingresa una vez. Sin esta clave los cambios del panel Admin no se guardan en la base de datos." style="font-size:10px;color:var(--blue);cursor:help">ⓘ</span></div>
         <input id="cfgAdminKey" type="password" placeholder="Tu clave ADMIN_API_KEY de Vercel" style="margin-top:5px;width:100%;padding:7px 10px;background:var(--white);border:1.5px solid #ff9800;border-radius:8px;font-family:var(--font);font-size:11px;font-weight:500;color:var(--ink);outline:none" oninput="ADMIN_API_KEY=this.value.trim();localStorage.setItem('ss_akey',ADMIN_API_KEY)">
@@ -1025,7 +1035,7 @@ nav .nav-bag:active{transform:translateY(-50%) scale(.91)}
       <button class="mode-btn on" id="mBtnNormLiq" onclick="set360('liq',false)">📸 Una por una</button>
       <button class="mode-btn" id="mBtnSpinLiq" onclick="set360('liq',true)">🔄 360° Spin</button>
     </div>
-    <div class="uz" style="border-color:rgba(232,32,10,.3);background:var(--white)5f5">
+    <div class="uz" style="border-color:rgba(232,32,10,.3);background:#fff5f5">
       <input type="file" accept="image/*" multiple onchange="handleFiles(this.files,'liq')">
       <div class="uz-ico">🔥</div><div class="uz-txt" style="color:var(--red)">Subir fotos de liquidación</div><div class="uz-sub">Precios especiales</div>
     </div>
@@ -1087,8 +1097,8 @@ nav .nav-bag:active{transform:translateY(-50%) scale(.91)}
       </div>
       <div class="pm-meta">
         <div class="pm-chip social" id="pmSocial" style="display:none"></div>
-        <div class="pm-chip reserve" id="pmReserve" style="display:none">⏰ <span>Reservado para ti por <b id="pmReserveT">15:00</b></span></div>
-        <div class="pm-chip gift">🎁 <span>Tu compra incluye guía de cuidado + 5% en tu próximo par</span></div>
+        <div class="pm-chip reserve" id="pmReserve" style="display:none"><span class="pm-chip-ic">⏰</span><span>Reservado para ti por <b id="pmReserveT">15:00</b></span></div>
+        <div class="pm-chip gift"><span class="pm-chip-ic">🎁</span><span>Tu compra incluye <b>guía de cuidado</b> + <b>5%</b> en tu próximo par</span></div>
       </div>
       <div class="pm-trust">
         <div class="pm-trust-item"><span class="pm-ti-ic">🔄</span><span>Cambios<br>por talla</span></div>
@@ -2046,7 +2056,7 @@ function openPhoto(id,type){
   const so=$('pmSocial');
   if(so){
     const n=_views[String(id)]||0;
-    if(n>=3){so.textContent=`👀 ${n} personas vieron este modelo esta semana`;so.style.display='flex';}
+    if(n>=3){so.innerHTML=`<span class="pm-chip-ic">👀<span class="pm-live"></span></span><span><b>${n} personas</b> vieron este modelo esta semana</span>`;so.style.display='flex';}
     else so.style.display='none';
   }
   // Reserva: solo mostrar si ya hay algo en el carrito
