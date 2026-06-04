@@ -180,14 +180,19 @@ nav .nav-bag:active{transform:translateY(-50%) scale(.91)}
 .photo-modal{position:fixed;inset:0;z-index:620;display:none;background:rgba(0,0,0,.55)}
 .photo-modal.on{display:block}
 .pm-scrim{position:fixed;inset:0;cursor:pointer}
-.pm-wrap{position:absolute;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:var(--white);border-radius:20px 20px 0 0;max-height:94vh;overflow-y:auto;-webkit-overflow-scrolling:touch;animation:pmUp .32s cubic-bezier(.32,.72,0,1) both}
+/* VENTANA del producto a pantalla completa (no tarjeta): barra fija arriba + contenido scrolleable */
+.pm-wrap{position:absolute;inset:0;width:100%;height:100%;max-width:none;max-height:none;margin:0;background:var(--white);border-radius:0;display:flex;flex-direction:column;overflow:hidden;animation:pmPage .3s cubic-bezier(.16,1,.3,1) both}
+@keyframes pmPage{from{transform:translateX(100%)}to{transform:translateX(0)}}
 @keyframes pmUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 @keyframes pmIn{from{opacity:0;transform:scale(.9) translateY(16px)}to{opacity:1;transform:scale(1) translateY(0)}}
-.pm-img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block;background:var(--bg)}
-/* Barra de logotipo arriba de la ficha (sticky): la foto ya no queda pegada al borde superior */
-.pm-head{position:sticky;top:0;z-index:4;background:var(--white);display:flex;align-items:center;justify-content:center;padding:14px 16px;border-bottom:1px solid var(--line);border-radius:20px 20px 0 0}
+/* Barra superior FIJA (← volver + marca) */
+.pm-head{flex:0 0 auto;position:relative;z-index:4;background:var(--white);display:flex;align-items:center;justify-content:center;padding:14px 16px;border-bottom:1px solid var(--line)}
 .pm-logo{font-size:15px;font-weight:700;color:var(--ink);letter-spacing:-.02em}
-.pm-x{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:32px;height:32px;background:var(--bg);border:none;border-radius:50%;color:var(--ink2);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.pm-back{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:36px;height:36px;background:var(--bg);border:none;border-radius:50%;color:var(--ink);font-size:19px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+.pm-back:active{transform:translateY(-50%) scale(.9)}
+/* Área scrolleable (debajo de la barra fija) */
+.pm-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.pm-img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block;background:var(--bg)}
 .pm-body{padding:18px 18px 26px}
 .pm-title{font-size:18px;font-weight:700;color:var(--ink);letter-spacing:-.01em}
 .pm-stars{margin-top:6px;font-size:14px;color:#f5a623;letter-spacing:1px}
@@ -251,15 +256,12 @@ nav .nav-bag:active{transform:translateY(-50%) scale(.91)}
 .pm-rev-v{font-size:10px;font-weight:600;color:var(--green)}
 .pm-rev-s{font-size:12px;color:#f5a623;letter-spacing:1px;margin-top:2px}
 .pm-rev-x{font-size:12px;color:var(--ink2);line-height:1.5;margin-top:4px}
-@media(min-width:560px){.photo-modal.on{display:flex;align-items:center;justify-content:center;padding:24px}.pm-wrap{position:relative;left:auto;right:auto;bottom:auto;margin:0;border-radius:18px;max-height:92vh;animation:none}}
-/* 8c/9a — ESCRITORIO: ficha a 2 columnas (foto izq + info der), foto CUADRADA sin recorte.
-   La barra de logotipo ocupa todo el ancho arriba (flex-wrap). El móvil (hoja inferior) NO cambia. */
+/* ESCRITORIO: misma VENTANA a pantalla completa, pero el área scrolleable es 2 columnas
+   (foto izq + info der). La barra superior queda fija arriba. */
 @media(min-width:700px){
-  /* Ficha casi pantalla completa: barra logo fija arriba + foto grande izq + info der con scroll */
-  .pm-wrap{max-width:none;width:92vw;height:92vh;max-height:92vh;display:flex;flex-wrap:wrap;align-content:flex-start;overflow:hidden;border-radius:16px}
-  .pm-head{width:100%;border-radius:16px 16px 0 0;flex:0 0 auto}
-  .pm-img{width:44%;height:calc(92vh - 54px);aspect-ratio:auto;object-fit:contain;background:var(--bg)}
-  .pm-body{width:56%;height:calc(92vh - 54px);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:26px 32px 34px}
+  .pm-scroll{display:flex;flex-direction:row;overflow:hidden}
+  .pm-img{width:44%;height:100%;aspect-ratio:auto;object-fit:contain;background:var(--bg)}
+  .pm-body{width:56%;height:100%;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:26px 32px 34px}
   .pm-title{font-size:22px}
   .pm-price{font-size:32px}
 }
@@ -1071,7 +1073,8 @@ nav .nav-bag:active{transform:translateY(-50%) scale(.91)}
 <div class="photo-modal" id="photoModal">
   <div class="pm-scrim" onclick="closePhotoBtn()"></div>
   <div class="pm-wrap">
-    <div class="pm-head"><span class="pm-logo">CATALOGO SNEAKERS</span><button class="pm-x" onclick="closePhotoBtn()">✕</button></div>
+    <div class="pm-head"><button class="pm-back" onclick="closePhotoBtn()" aria-label="Volver">←</button><span class="pm-logo">CATALOGO SNEAKERS</span></div>
+    <div class="pm-scroll">
     <img class="pm-img" id="pmImg" src="" alt="par">
     <div class="pm-body">
       <div class="pm-title" id="pmTitle">Sneakers</div>
@@ -1107,6 +1110,7 @@ nav .nav-bag:active{transform:translateY(-50%) scale(.91)}
         <div class="pm-trust-item"><span class="pm-ti-ic">🛡️</span><span>100%<br>Garantía</span></div>
       </div>
       <div class="pm-reviews" id="pmRevList"></div>
+    </div>
     </div>
   </div>
 </div>
@@ -2092,9 +2096,9 @@ function openPhoto(id,type){
   lockScroll();
   // Resetear el scroll de la ficha al ABRIR (si no, reabre donde quedó el anterior → en iOS el
   // header sticky no se ancla y toca subir para ver "CATALOGO SNEAKERS").
-  const _pw=document.querySelector('.pm-wrap'), _pb=document.querySelector('.pm-body');
-  if(_pw)_pw.scrollTop=0; if(_pb)_pb.scrollTop=0;
-  requestAnimationFrame(()=>{if(_pw)_pw.scrollTop=0; if(_pb)_pb.scrollTop=0;});
+  const _ps=document.querySelector('.pm-scroll'), _pb=document.querySelector('.pm-body');
+  if(_ps)_ps.scrollTop=0; if(_pb)_pb.scrollTop=0;
+  requestAnimationFrame(()=>{if(_ps)_ps.scrollTop=0; if(_pb)_pb.scrollTop=0;});
 }
 function syncPmBtn(){
   const key=pmType==='liq'?'L'+pmId:pmId;
