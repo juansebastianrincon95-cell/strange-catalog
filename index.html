@@ -401,6 +401,28 @@ nav .nav-bag:active{transform:translateY(-50%) scale(.91)}
 .csubl{font-size:12px;color:var(--ink2)}
 .csubv{font-size:20px;font-weight:700;letter-spacing:-.04em}
 .cenvio{font-size:11px;color:var(--green);font-weight:600;margin-top:4px;text-align:right}
+/* ── Carrito estilo Adidas: mensajes + resumen + cupón colapsable ── */
+.cart-msg{display:flex;align-items:flex-start;gap:9px;font-size:12px;font-weight:500;color:var(--ink2);line-height:1.45;padding:11px 0;border-bottom:1px solid var(--line)}
+.cart-msg .cm-ic{flex-shrink:0;font-size:15px}
+.cart-msg b{color:var(--ink);font-weight:700}
+.cart-fin{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.cart-fin-tx{flex:1;font-size:12px;font-weight:500;color:var(--ink2);line-height:1.45}
+.cart-fin-tx b{color:var(--ink);font-weight:700}
+.cart-fin-logos{display:flex;align-items:center;gap:9px;flex-shrink:0}
+.cart-fin-logos img{height:17px;width:auto;max-width:62px;object-fit:contain}
+.csum{margin-top:18px}
+.csum-t{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);margin-bottom:8px}
+.csum-row{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:var(--ink2);padding:6px 0}
+.csum-row .v{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.csum-row.disc{color:var(--green)}
+.csum-row.disc .v{color:var(--green)}
+.csum-row .free{color:var(--green);font-weight:700}
+.csum-total{display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding-top:13px;border-top:1px solid var(--line)}
+.csum-total .l{font-size:15px;font-weight:700;color:var(--ink)}
+.csum-total .v{font-size:23px;font-weight:700;letter-spacing:-.03em;color:var(--ink);font-variant-numeric:tabular-nums}
+.cpromo{margin-top:14px}
+.cpromo-toggle{background:none;border:none;font-family:var(--font);font-size:12.5px;font-weight:700;color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:6px 0;text-decoration:underline;text-underline-offset:3px}
+.cpromo-box{margin-top:9px}
 .paysec{padding:4px 0 16px}
 .paytit{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:12px}
 .paygrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
@@ -1301,6 +1323,13 @@ function aplicarCupon(){
   const code=inp.value.trim().toUpperCase();
   if(CUPONES[code]){cuponAplicado=code;localStorage.setItem('ss_cupon',code);rCart();}
   else{const e=$('cupErr');if(e){e.style.display='block';setTimeout(()=>{e.style.display='none';},2500);}}
+}
+// Despliega/oculta el campo de código promocional (colapsado por defecto, estilo Adidas).
+function toggleCupon(){
+  const b=$('cpromoBox');if(!b)return;
+  const show=b.style.display==='none';
+  b.style.display=show?'block':'none';
+  if(show){const i=$('cupInput');if(i)i.focus();}
 }
 
 /* ── POPUP DE BIENVENIDA ($20.000 OFF) ── */
@@ -2768,7 +2797,9 @@ function openCart(){
   $('cscrim').classList.add('on');$('csheet').classList.add('on');lockScroll();
 }
 function closeCart(){$('cscrim').classList.remove('on');$('csheet').classList.remove('on');unlockScroll();}
-function updDots(){[0,1,2].forEach(i=>{const d=$('cs'+i);d.className='csd'+(i===step?' active':i<step?' done':'');});$('cttl').textContent=['Tu pedido','Tus datos','Pagar'][step]+`  ·  Paso ${step+1} de 3`;}
+function updDots(){[0,1,2].forEach(i=>{const d=$('cs'+i);d.className='csd'+(i===step?' active':i<step?' done':'');});
+  if(step===0){const n=Object.values(cart).reduce((s,i)=>s+i.qty,0);$('cttl').textContent=`Tu carrito (${n} ${n===1?'producto':'productos'})`;}
+  else $('cttl').textContent=['Tu pedido','Tus datos','Pagar'][step]+`  ·  Paso ${step+1} de 3`;}
 function renderStep(){updDots();[rCart,rForm,rPayChoice][step]();}
 function goStep(n){
   // InitiateCheckout = el cliente realmente inicia el checkout (avanza a "Tus datos"), una vez por ciclo.
@@ -2807,21 +2838,27 @@ function rCart(){
     return `<div class="crow"><div class="crimg">${m}</div><div class="crinfo"><div class="crname">${lbl}</div><div class="crprice">${fmt(p.price)} c/u</div></div><div class="cqc"><button class="cqb" onclick="chQty('${key}',-1)">−</button><span class="cqv">${qty}</span><button class="cqb" onclick="chQty('${key}',1)">+</button></div><button class="crm" onclick="rmItem('${key}')">✕</button></div>`;
   }).join('');
   const sub=rows.reduce((s,{p,qty})=>s+p.price*qty,0),tot=rows.reduce((s,{qty})=>s+qty,0);
-  const ahorro=rows.reduce((s,{p,qty})=>s+((p.was&&p.was>p.price)?(p.was-p.price)*qty:0),0);
-  // El cliente debe pegar su código en el campo del carrito (no se auto-aplica).
-  const desc=cuponDesc(sub);
-  const subFinal=sub-desc;
+  const orig=rows.reduce((s,{p,qty})=>s+((p.was&&p.was>p.price)?p.was:p.price)*qty,0);
+  const ahorro=orig-sub;                 // descuento por precio tachado (display)
+  const desc=cuponDesc(sub);             // descuento por cupón
+  const totalFinal=sub-desc;
+  // 2 mensajes (estilo Adidas): no reservado + financiación
+  const msgs=`<div class="cart-msg"><span class="cm-ic">🔒</span><span>Los artículos en tu carrito <b>no están reservados</b>. Termina tu compra ahora.</span></div>`
+    +`<div class="cart-fin"><div class="cart-fin-tx">Llévalos hoy y <b>págalos después</b> con Addi y Sistecrédito</div><div class="cart-fin-logos"><img src="logos/addi.png" alt="Addi" onerror="this.remove()"><img src="logos/sistecredito.png" alt="Sistecrédito" onerror="this.remove()"></div></div>`;
+  // Resumen del pedido
+  let sumRows=`<div class="csum-row"><span>Productos (${tot})</span><span class="v">${fmt(orig)}</span></div>`;
+  if(ahorro>0) sumRows+=`<div class="csum-row disc"><span>Descuento</span><span class="v">−${fmt(ahorro)}</span></div>`;
+  if(desc>0)   sumRows+=`<div class="csum-row disc"><span>Cupón ${cuponAplicado}</span><span class="v">−${fmt(desc)}</span></div>`;
+  sumRows+=`<div class="csum-row"><span>Envío</span><span class="free">Gratis</span></div>`;
+  const summary=`<div class="csum"><div class="csum-t">Resumen del pedido</div>${sumRows}<div class="csum-total"><span class="l">Total</span><span class="v">${fmt(totalFinal)}</span></div></div>`;
+  // Código promocional colapsable (sin campo abierto → no genera fuga)
   const cupHtml=cuponAplicado
-    ? `<div class="cart-line cart-cupon"><span class="cl-ic">🏷️</span><span>Cupón <b>${cuponAplicado}</b>: −${fmt(desc)}</span></div>`
-    : `<div class="cup-box"><input id="cupInput" placeholder="¿Tienes un código de descuento?" autocomplete="off"><button class="cup-btn" onclick="aplicarCupon()">Aplicar</button></div><div class="cup-err" id="cupErr" style="display:none">Código no válido</div>`;
-  body.innerHTML+=`<div class="csubb"><span class="csubl">${tot} par${tot>1?'es':''}</span><span class="csubv">${fmt(subFinal)}</span></div>`
-    +cupHtml
-    +`<div class="cart-line cart-reserva"><span class="cl-ic">⏰</span><span>Reservado para ti por <b id="cartReserveT">15:00</b></span></div>`
-    +(ahorro>0?`<div class="cart-line cart-ahorro"><span class="cl-ic">💰</span><span>Ahorras <b>${fmt(ahorro)}</b> en esta compra</span></div>`:'')
-    +`<div class="cart-line cart-regalo"><span class="cl-ic">🎁</span><span>Incluye <b>guía de cuidado</b> + <b>5%</b> en tu próximo par</span></div>`
-    +`<div class="cenvio">📦 Envío gratis · Contra entrega desde ${fmt(calcFlete(1))}</div>`;
-  foot.innerHTML=`<button class="btnmain" onclick="goStep(1)">Continuar &nbsp;→</button>`;
-  tickReserva();   // pintar el tiempo en el contador del carrito recién creado
+    ? `<div class="cart-line cart-cupon" style="margin-top:14px"><span class="cl-ic">🏷️</span><span>Cupón <b>${cuponAplicado}</b> aplicado: −${fmt(desc)}</span></div>`
+    : `<div class="cpromo"><button class="cpromo-toggle" onclick="toggleCupon()">🏷️ ¿Tienes un código promocional?</button><div class="cpromo-box" id="cpromoBox" style="display:none"><div class="cup-box"><input id="cupInput" placeholder="Código promocional" autocomplete="off"><button class="cup-btn" onclick="aplicarCupon()">Aplicar</button></div><div class="cup-err" id="cupErr" style="display:none">Código no válido</div></div></div>`;
+  const gift=`<div class="cart-line cart-regalo" style="margin-top:12px"><span class="cl-ic">🎁</span><span>Incluye <b>guía de cuidado</b> + <b>5%</b> en tu próximo par</span></div>`;
+  // Orden: mensajes → productos → resumen → código → regalo
+  body.innerHTML=msgs+body.innerHTML+summary+cupHtml+gift;
+  foot.innerHTML=`<button class="btnmain" onclick="goStep(1)">Ir a pagar &nbsp;→</button>`;
 }
 function rForm(){
   $('cbody').innerHTML=`<div class="formsec"><div class="formtit">¿A dónde enviamos tu pedido?</div>
