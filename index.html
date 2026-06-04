@@ -443,15 +443,17 @@ nav .nav-bag:active{transform:translateY(-50%) scale(.91)}
 .paytit{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:12px}
 /* Métodos de pago (paso 3): tarjetas pro con ícono, acento, sombra y hover */
 .paychoice-list{display:flex;flex-direction:column;gap:11px;margin-top:18px}
-.paychoice{position:relative;width:100%;display:flex;align-items:center;gap:13px;text-align:left;background:var(--white);border:1px solid var(--line);border-left:4px solid var(--acc);border-radius:15px;padding:14px 14px;cursor:pointer;font-family:var(--font);box-shadow:0 1px 3px rgba(0,0,0,.05);transition:transform .15s,box-shadow .15s}
-.paychoice:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,.10)}
+.paychoice{position:relative;width:100%;display:flex;align-items:center;gap:13px;text-align:left;background:var(--white);border:1px solid var(--line);border-radius:16px;padding:15px 16px;cursor:pointer;font-family:var(--font);box-shadow:0 1px 2px rgba(0,0,0,.04);transition:transform .15s,box-shadow .15s,border-color .15s}
+.paychoice:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,.10);border-color:color-mix(in srgb,var(--acc) 40%,var(--line))}
 .paychoice:active{transform:translateY(0) scale(.995)}
-.pc-ic{flex-shrink:0;width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.pc-ic{flex-shrink:0;width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--acc)}
+.pc-ic svg{width:23px;height:23px;display:block}
 .pc-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
 .pc-tit{font-size:14.5px;font-weight:700;color:var(--ink);letter-spacing:-.01em}
-.pc-desc{font-size:11px;color:var(--ink2);line-height:1.35;margin-top:1px}
-.pc-tot{font-size:12.5px;font-weight:800;color:var(--ink);margin-top:5px}
-.pc-arrow{flex-shrink:0;align-self:center;color:var(--ink3);font-size:17px;transition:transform .15s}
+.pc-desc{font-size:11.5px;color:var(--ink2);line-height:1.4;margin-top:2px}
+.pc-tot{font-size:12.5px;font-weight:800;color:var(--ink);margin-top:6px}
+.pc-arrow{flex-shrink:0;align-self:center;color:var(--ink3);transition:transform .15s}
+.pc-arrow svg{width:18px;height:18px;display:block}
 .paychoice:hover .pc-arrow{transform:translateX(3px)}
 .paygrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
 .paycard{background:var(--white);border:1.5px solid var(--line);border-radius:14px;padding:13px 11px 11px;cursor:pointer;transition:all .2s;text-align:left;display:flex;flex-direction:column}
@@ -2932,13 +2934,18 @@ function rPayChoice(){
   const sub=subBruto-cuponDesc(subBruto);   // subtotal con cupón
   const pares=rows.reduce((s,{qty})=>s+qty,0);
   const flete=calcFlete(pares);
-  const card=(fn,acc,tint,ico,tit,desc,tot)=>`<button class="paychoice" onclick="${fn}" style="--acc:${acc}"><span class="pc-ic" style="background:${tint}">${ico}</span><span class="pc-main"><span class="pc-tit">${tit}</span><span class="pc-desc">${desc}</span><span class="pc-tot">${tot}</span></span><span class="pc-arrow">→</span></button>`;
+  const SV='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">';
+  const icTruck=SV+'<path d="M2.5 6.5h11v9h-11z"/><path d="M13.5 9.5h4l3 3v3h-7z"/><circle cx="6" cy="17.5" r="1.6"/><circle cx="17" cy="17.5" r="1.6"/></svg>';
+  const icBank=SV+'<path d="M3 9.5l9-5 9 5"/><path d="M5 10v7M9.5 10v7M14.5 10v7M19 10v7"/><path d="M3.5 20h17"/></svg>';
+  const icCard=SV+'<rect x="2.5" y="5.5" width="19" height="13" rx="2.5"/><path d="M2.5 9.5h19"/><path d="M6 14.5h4"/></svg>';
+  const icCuotas=SV+'<rect x="3.5" y="4.5" width="17" height="16" rx="2.5"/><path d="M3.5 9.5h17"/><path d="M8 3v3M16 3v3"/><path d="M8.3 14.5l2 2 4-4"/></svg>';
+  const card=(fn,acc,tint,ico,tit,desc,tot)=>`<button class="paychoice" onclick="${fn}" style="--acc:${acc}"><span class="pc-ic" style="background:${tint}">${ico}</span><span class="pc-main"><span class="pc-tit">${tit}</span><span class="pc-desc">${desc}</span><span class="pc-tot">${tot}</span></span><span class="pc-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>`;
   $('cbody').innerHTML=`<div class="paysec"><div class="paytit">¿Cómo quieres pagar?</div><div class="paychoice-list">`
-    +card(`enviarWA('contra_entrega')`,'#1E1E1C','#f0f0ee','📦','Contra entrega',`Pagas el envío ahora y los zapatos al recibir en casa 🏠`,`Hoy: envío ${fmt(flete)} · Al recibir: ${fmt(sub)}`)
-    +card(`enviarWA('pago_anticipado')`,'#FF7A00','#fff3e6','💸','Pago anticipado','Transfieres antes · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
-    +card(`pagarWompi()`,'#5D2D91','#f3edfa','💜','Pagar en línea — Wompi','Tarjeta · PSE · Nequi · Bancolombia · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
-    +card(`pagarBold()`,'#2541B2','#e9edfb','💳','Pagar en línea — Bold','Tarjeta · PSE · Botón Bancolombia · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
-    +card(`enviarWA('credito')`,'#0a7d4b','#e7f6ee','🧾','Pagar a crédito — Addi / Sistecrédito','En cuotas · Te asesoramos por WhatsApp · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
+    +card(`enviarWA('contra_entrega')`,'#1E1E1C','#f1f1ef',icTruck,'Contra entrega',`Pagas el envío ahora y los zapatos al recibir en casa`,`Hoy: envío ${fmt(flete)} · Al recibir: ${fmt(sub)}`)
+    +card(`enviarWA('pago_anticipado')`,'#FF7A00','#fff3e6',icBank,'Pago anticipado','Transfieres antes · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
+    +card(`pagarWompi()`,'#5D2D91','#f3edfa',icCard,'Pagar en línea — Wompi','Tarjeta · PSE · Nequi · Bancolombia · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
+    +card(`pagarBold()`,'#2541B2','#e9edfb',icCard,'Pagar en línea — Bold','Tarjeta · PSE · Botón Bancolombia · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
+    +card(`enviarWA('credito')`,'#0a7d4b','#e7f6ee',icCuotas,'Pagar a crédito — Addi / Sistecrédito','En cuotas · Te asesoramos por WhatsApp · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
     +`</div></div>`;
   $('cfoot').innerHTML=`<button class="btnback" onclick="goStep(1)">← Volver</button>`;
 }
