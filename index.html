@@ -500,6 +500,19 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
 .wm-code{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--bg);border:2px dashed var(--red);border-radius:13px;padding:12px 16px;margin-bottom:6px}
 .wm-code b{font-size:19px;font-weight:700;letter-spacing:.06em;color:var(--ink)}
 .wm-copy{border:none;background:var(--ink);color:#fff;font-family:var(--font);font-size:12px;font-weight:700;padding:8px 13px;border-radius:9px;cursor:pointer}
+/* Tag anclado para reabrir el popup de descuento (si lo cerró sin registrarse) */
+.wm-reopen{position:fixed;left:14px;bottom:max(16px,env(safe-area-inset-bottom));z-index:55;display:none;align-items:center;gap:6px;background:var(--red);color:#fff;border:none;border-radius:30px;padding:11px 16px;font-family:var(--font);font-size:12.5px;font-weight:700;box-shadow:0 6px 22px rgba(232,32,10,.42);cursor:pointer;animation:pmIn .3s ease both}
+.wm-reopen.show{display:inline-flex}
+.wm-reopen:active{transform:scale(.95)}
+/* Popup más compacto en móvil */
+@media(max-width:480px){
+  .wm-card{max-width:320px}
+  .wm-head{padding:20px 18px 18px}
+  .wm-off{font-size:36px}
+  .wm-sub{font-size:12px}
+  .wm-body{padding:15px 17px 18px}
+  .wm-fld{margin-bottom:8px}
+}
 
 /* HERO CARRUSEL */
 .hero{position:relative;width:100%;height:90vh;overflow:hidden;background:var(--ink);display:none;touch-action:pan-y}
@@ -748,6 +761,9 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
     <div class="liq-grid" id="liqGrid"></div>
   </div>
 </div>
+
+<!-- TAG ANCLADO: reabre el popup de descuento si el visitante lo cerró sin registrarse -->
+<button class="wm-reopen" id="wmReopen" onclick="openWelcome()" style="display:none">🎁 ¡Tu descuento!</button>
 
 <!-- POPUP DE BIENVENIDA -->
 <div class="wm" id="welcomeModal">
@@ -1245,9 +1261,10 @@ function aplicarCupon(){
 /* ── POPUP DE BIENVENIDA ($20.000 OFF) ── */
 let WELCOME_ON=true;                 // se sobreescribe desde settings (welcome_popup)
 const WELCOME_CODE='BIENVENIDO20';   // debe coincidir con CUPONES y api/subscribe.js
-function openWelcome(){const m=$('welcomeModal');if(m)m.classList.add('on');}
-// Cerrar NO marca "visto": si no dejó sus datos, el popup vuelve a aparecer en la próxima visita.
-function closeWelcome(){const m=$('welcomeModal');if(m)m.classList.remove('on');}
+function openWelcome(){const m=$('welcomeModal');if(m)m.classList.add('on');const t=$('wmReopen');if(t)t.classList.remove('show');}
+// Cerrar NO marca "visto": si no dejó sus datos, queda el tag anclado abajo para reabrirlo.
+function closeWelcome(){const m=$('welcomeModal');if(m)m.classList.remove('on');
+  if(!localStorage.getItem('ss_subscribed')){const t=$('wmReopen');if(t)t.classList.add('show');}}
 // Aparece en cada visita HASTA que el cliente se registre (ss_subscribed). Si está activo y sin otro modal abierto.
 function maybeWelcome(){
   if(!WELCOME_ON)return;
@@ -1294,6 +1311,7 @@ function submitWelcome(){
     .then(j=>{
       const code=(j&&j.codigo)||WELCOME_CODE;
       localStorage.setItem('ss_subscribed','1');   // ya se registró → el popup no vuelve a aparecer
+      {const t=$('wmReopen');if(t)t.classList.remove('show');}   // ya no se necesita el tag de reapertura
       const cEl=$('wmCode');if(cEl)cEl.textContent=code;
       $('wmForm').style.display='none';$('wmOk').style.display='block';
       if(typeof px==='function')px('Lead',{content_name:'popup_bienvenida',...getUTM()},SESSION_ID+'_subscribe');
