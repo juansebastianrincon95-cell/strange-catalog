@@ -46,10 +46,9 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
 .brand-sub{font-size:10px;font-weight:600;color:var(--ink2);letter-spacing:.14em;text-transform:uppercase;margin-top:3px}
 .theme-tog{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:38px;height:38px;border:1px solid var(--line);border-radius:50%;background:var(--white);color:var(--ink);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .14s,background .15s}
 .theme-tog:active{transform:translateY(-50%) scale(.9)}
-.nav-bag{position:absolute;right:14px;top:50%;transform:translateY(-50%)}
-.nav-bag:active{transform:translateY(-50%) scale(.91)}
-.logo sup{font-size:8px;font-weight:500;color:var(--ink3);vertical-align:super;margin-left:2px}
-.nav-r{display:flex;align-items:center;gap:8px}
+/* especificidad nav .nav-bag para ganarle a .bag-btn{position:relative} (definida después) */
+nav .nav-bag{position:absolute;right:14px;top:50%;transform:translateY(-50%)}
+nav .nav-bag:active{transform:translateY(-50%) scale(.91)}
 .admin-pill{background:var(--white);border:1.5px solid var(--line);border-radius:20px;padding:7px 14px;font-family:var(--font);font-size:11px;font-weight:600;color:var(--ink2);cursor:pointer;transition:all .15s}
 .admin-pill:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
 .bag-btn{position:relative;width:40px;height:40px;background:var(--ink);border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .14s}
@@ -244,12 +243,13 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
 /* 8c/9a — ESCRITORIO: ficha a 2 columnas (foto izq + info der), foto CUADRADA sin recorte.
    La barra de logotipo ocupa todo el ancho arriba (flex-wrap). El móvil (hoja inferior) NO cambia. */
 @media(min-width:700px){
-  .pm-wrap{max-width:940px;display:flex;flex-wrap:wrap;align-items:flex-start;overflow:hidden}
-  .pm-head{width:100%;border-radius:18px 18px 0 0}
-  .pm-img{width:46%;align-self:flex-start;aspect-ratio:1/1;height:auto;object-fit:cover}
-  .pm-body{width:54%;overflow-y:auto;max-height:84vh;-webkit-overflow-scrolling:touch;padding:22px 24px 28px}
-  .pm-title{font-size:20px}
-  .pm-price{font-size:30px}
+  /* Ficha casi pantalla completa: barra logo fija arriba + foto grande izq + info der con scroll */
+  .pm-wrap{max-width:none;width:92vw;height:92vh;max-height:92vh;display:flex;flex-wrap:wrap;align-content:flex-start;overflow:hidden;border-radius:16px}
+  .pm-head{width:100%;border-radius:16px 16px 0 0;flex:0 0 auto}
+  .pm-img{width:44%;height:calc(92vh - 54px);aspect-ratio:auto;object-fit:contain;background:var(--bg)}
+  .pm-body{width:56%;height:calc(92vh - 54px);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:26px 32px 34px}
+  .pm-title{font-size:22px}
+  .pm-price{font-size:32px}
 }
 .cart-line{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;border-radius:10px;padding:9px 12px;margin-top:8px}
 .cart-reserva{background:var(--white)1ef;color:#d9492f;border:1px solid #ffd9d2}
@@ -511,17 +511,21 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
 .wm-code b{font-size:19px;font-weight:700;letter-spacing:.06em;color:var(--ink)}
 .wm-copy{border:none;background:var(--ink);color:#fff;font-family:var(--font);font-size:12px;font-weight:700;padding:8px 13px;border-radius:9px;cursor:pointer}
 /* Tag anclado para reabrir el popup de descuento (si lo cerró sin registrarse) */
-.wm-reopen{position:fixed;left:14px;bottom:max(16px,env(safe-area-inset-bottom));z-index:55;display:none;align-items:center;gap:6px;background:var(--red);color:#fff;border:none;border-radius:30px;padding:11px 16px;font-family:var(--font);font-size:12.5px;font-weight:700;box-shadow:0 6px 22px rgba(232,32,10,.42);cursor:pointer;animation:pmIn .3s ease both}
+.wm-reopen{position:fixed;left:14px;bottom:max(16px,env(safe-area-inset-bottom));z-index:55;display:none;align-items:center;gap:7px;background:var(--white);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:10px 14px;font-family:var(--font);font-size:12px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.16);cursor:pointer;animation:pmIn .3s ease both}
 .wm-reopen.show{display:inline-flex}
 .wm-reopen:active{transform:scale(.95)}
 /* Popup más compacto en móvil */
 @media(max-width:480px){
-  .wm-card{max-width:320px}
-  .wm-head{padding:20px 18px 18px}
-  .wm-off{font-size:36px}
-  .wm-sub{font-size:12px}
-  .wm-body{padding:15px 17px 18px}
-  .wm-fld{margin-bottom:8px}
+  .wm-card{max-width:300px}
+  .wm-head{padding:16px 16px 14px}
+  .wm-kick{font-size:10px;margin-bottom:5px}
+  .wm-off{font-size:31px}
+  .wm-sub{font-size:11.5px;margin-top:5px}
+  .wm-body{padding:13px 15px 16px}
+  .wm-intro{font-size:11.5px;margin-bottom:11px}
+  .wm-fld{margin-bottom:7px}
+  .wm-fld input{padding:11px 13px}
+  .wm-btn{padding:12px}
 }
 
 /* HERO CARRUSEL */
@@ -562,6 +566,8 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
 .cbanner picture{display:block;width:100%;height:100%}
 .cbanner img{width:100%;height:100%;object-fit:cover;display:block;-webkit-user-drag:none}
 @media(min-width:700px){.cbanner{aspect-ratio:21/9;max-height:64vh}.cbanner img{object-position:center var(--pos,50%)}}
+/* Banners de colección: título + botón ABAJO (no centrado como el hero) */
+.cbanner .hero-ov{justify-content:flex-end;padding:0 22px 30px;background:linear-gradient(to top,rgba(0,0,0,.8) 6%,rgba(0,0,0,.32) 50%,transparent)}
 
 /* PREVIEW (inicio): 2 columnas + "Ver todo" */
 .preview{padding:22px 0 12px;background:var(--bg)}
@@ -755,7 +761,7 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
     <button class="tab on" onclick="setG('all',this)">Todos</button>
     <button class="tab"    onclick="setG('h',this)">Hombre</button>
     <button class="tab"    onclick="setG('m',this)">Mujer</button>
-    <button class="tab"    onclick="setG('liq',this)">🔥 Liq.</button>
+    <button class="tab"    onclick="setG('liq',this)">🔥 Ofertas</button>
   </div>
   <div class="brandbar" id="brandbar"></div>
   <div class="secbar">
@@ -767,7 +773,7 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
 
   <div class="liq-sec" id="liqSec">
     <div class="liq-hdr">
-      <div><div style="font-size:24px;margin-bottom:4px">🔥</div><div class="liq-title">Liquidación</div><div class="liq-sub">Precios de locura · Solo por hoy</div></div>
+      <div><div style="font-size:24px;margin-bottom:4px">🔥</div><div class="liq-title">Ofertas</div><div class="liq-sub">Precios de locura · Solo por hoy</div></div>
       <div class="liq-badge"><div class="liq-badge-n" id="liqN">0</div><div class="liq-badge-l">modelos</div></div>
     </div>
     <div class="liq-grid" id="liqGrid"></div>
@@ -927,6 +933,7 @@ nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:ce
       <input id="cfgReviews" type="number" inputmode="numeric" placeholder="ej. 1562" onchange="saveReviews()" style="margin-top:4px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
       <div id="testiList" style="display:flex;flex-direction:column;gap:6px;margin:10px 0"></div>
       <input id="testiNombre" type="text" placeholder="Nombre del cliente (ej. Johanna M.)" style="width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
+      <input id="testiCiudad" type="text" placeholder="Ciudad (ej. Medellín) — opcional" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
       <input id="testiFecha" type="text" placeholder="Fecha (ej. 28/05/2026) — opcional" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
       <textarea id="testiTexto" placeholder="Testimonio / recomendación del cliente" rows="2" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none;resize:vertical"></textarea>
       <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:9px;margin-top:6px;background:var(--white);border:1.5px dashed var(--ink3);border-radius:8px;font-family:var(--font);font-size:11.5px;font-weight:700;color:var(--ink2);cursor:pointer"><span id="testiFotoLbl">📷 Foto del cliente (opcional)</span><input type="file" accept="image/*" id="testiFoto" style="display:none" onchange="testiFotoUp(this.files[0]);this.value=''"></label>
@@ -1358,7 +1365,7 @@ function renderHero(){
   if(hdr)hdr.style.display='none';             // el carrusel reemplaza el encabezado
   hero.classList.add('on');
   const posMap={top:'18%',center:'50%',bottom:'82%'};
-  track.innerHTML=slides.map(s=>`<div class="hero-slide"><picture>${s.img_desktop?`<source media="(min-width:700px)" srcset="${escHtml(s.img_desktop)}">`:''}<img src="${escHtml(s.img)}" alt="${escHtml(s.titulo)}" loading="lazy" style="--pos:${posMap[s.pos]||'50%'}"></picture><div class="hero-ov">${s.titulo?`<div class="hero-tit">${escHtml(s.titulo)}</div>`:''}${s.subtitulo?`<div class="hero-sub">${escHtml(s.subtitulo)}</div>`:''}<button class="hero-cta" onclick="heroCTA(${slides.indexOf(s)})">Comprar ahora</button></div></div>`).join('');
+  track.innerHTML=slides.map(s=>`<div class="hero-slide"><picture>${s.img_desktop?`<source media="(min-width:700px)" srcset="${escHtml(s.img_desktop)}">`:''}<img src="${escHtml(s.img)}" alt="${escHtml(s.titulo)}" loading="lazy" style="--pos:${posMap[s.pos]||'50%'}"></picture><div class="hero-ov">${s.titulo?`<div class="hero-tit">${escHtml(s.titulo)}</div>`:''}${s.subtitulo?`<div class="hero-sub">${escHtml(s.subtitulo)}</div>`:''}<button class="hero-cta" onclick="openCatalog({gender:'liq'})">Ver ofertas</button></div></div>`).join('');
   dots.innerHTML=slides.length>1?slides.map((_,i)=>`<span class="hero-dot${i===0?' on':''}" onclick="heroGoStop(${i})"></span>`).join(''):'';
   heroCur=0;heroApply();
   if(_heroTimer)clearInterval(_heroTimer);
@@ -1664,27 +1671,28 @@ async function saveSocials(){
 let testimonios=[];   // settings.testimonios [{nombre,fecha,texto,foto,productId}]
 let _tmProdId=null, _testiFoto=null, _testiList=[];
 // Testimonios de EJEMPLO (fallback cuando el admin aún no cargó reales). Reemplazar por reales.
+// Testimonios de EJEMPLO con ciudad + foto (retratos placeholder de randomuser.me). Reemplazar por reales.
 const DEFAULT_TESTIMONIOS=[
-  {nombre:'Valentina Ríos',fecha:'2025-09-12',texto:'Pedí mis tenis un viernes y el martes ya los tenía en Medellín. Calidad impecable y súper cómodos. 100% recomendados 🙌'},
-  {nombre:'Andrés Gómez',fecha:'2025-08-03',texto:'Llegaron tal cual la foto. Pagué contra entrega sin ningún problema y la atención fue muy buena.'},
-  {nombre:'Daniela Torres',fecha:'2025-10-21',texto:'Me encantaron 😍 la talla quedó perfecta y el material se siente original. Ya pedí otro par.'},
-  {nombre:'Juan David Martínez',fecha:'2025-07-18',texto:'Me asesoraron por WhatsApp para elegir la talla. Excelente servicio y los tenis son una nota.'},
-  {nombre:'Carolina Ramírez',fecha:'2025-11-05',texto:'Súper cómodos para caminar todo el día. Envío gratis y rapidísimo a Bogotá.'},
-  {nombre:'Sebastián Cardona',fecha:'2025-06-29',texto:'Tenía dudas de comprar online pero quedé feliz. Originales y a muy buen precio.'},
-  {nombre:'Laura Jiménez',fecha:'2025-09-30',texto:'Los compré para mi esposo y le fascinaron. Llegó bien empacado y a tiempo.'},
-  {nombre:'Mateo Herrera',fecha:'2025-08-22',texto:'Muy buena calidad, se ven aún mejor en persona. Volveré a comprar seguro.'},
-  {nombre:'Paola Castaño',fecha:'2025-10-10',texto:'Atención de 10. Me cambiaron la talla sin problema cuando pedí una más grande. Gracias!'},
-  {nombre:'Felipe Ospina',fecha:'2025-07-02',texto:'Llegaron en 2 días a Cali. Cómodos desde el primer día, no se sienten duros.'},
-  {nombre:'Manuela Vargas',fecha:'2025-11-18',texto:'La mejor compra que he hecho online: calidad, precio y rapidez. Repito sin duda.'},
-  {nombre:'Santiago León',fecha:'2025-09-08',texto:'Pedí dos pares y ambos perfectos, el de mi novia y el mío. Recomendadísimo 👟'}
+  {nombre:'Valentina Ríos',ciudad:'Medellín',fecha:'2025-09-12',foto:'https://randomuser.me/api/portraits/women/68.jpg',texto:'Pedí mis tenis un viernes y el martes ya los tenía en Medellín. Calidad impecable y súper cómodos. 100% recomendados 🙌'},
+  {nombre:'Andrés Gómez',ciudad:'Bogotá',fecha:'2025-08-03',foto:'https://randomuser.me/api/portraits/men/32.jpg',texto:'Llegaron tal cual la foto. Pagué contra entrega sin ningún problema y la atención fue muy buena.'},
+  {nombre:'Daniela Torres',ciudad:'Cali',fecha:'2025-10-21',foto:'https://randomuser.me/api/portraits/women/44.jpg',texto:'Me encantaron 😍 la talla quedó perfecta y el material se siente original. Ya pedí otro par.'},
+  {nombre:'Juan David Martínez',ciudad:'Bucaramanga',fecha:'2025-07-18',foto:'https://randomuser.me/api/portraits/men/45.jpg',texto:'Me asesoraron por WhatsApp para elegir la talla. Excelente servicio y los tenis son una nota.'},
+  {nombre:'Carolina Ramírez',ciudad:'Bogotá',fecha:'2025-11-05',foto:'https://randomuser.me/api/portraits/women/65.jpg',texto:'Súper cómodos para caminar todo el día. Envío gratis y rapidísimo a Bogotá.'},
+  {nombre:'Sebastián Cardona',ciudad:'Medellín',fecha:'2025-06-29',foto:'https://randomuser.me/api/portraits/men/52.jpg',texto:'Tenía dudas de comprar online pero quedé feliz. Originales y a muy buen precio.'},
+  {nombre:'Laura Jiménez',ciudad:'Barranquilla',fecha:'2025-09-30',foto:'https://randomuser.me/api/portraits/women/12.jpg',texto:'Los compré para mi esposo y le fascinaron. Llegó bien empacado y a tiempo.'},
+  {nombre:'Mateo Herrera',ciudad:'Pereira',fecha:'2025-08-22',foto:'https://randomuser.me/api/portraits/men/76.jpg',texto:'Muy buena calidad, se ven aún mejor en persona. Volveré a comprar seguro.'},
+  {nombre:'Paola Castaño',ciudad:'Manizales',fecha:'2025-10-10',foto:'https://randomuser.me/api/portraits/women/29.jpg',texto:'Atención de 10. Me cambiaron la talla sin problema cuando pedí una más grande. Gracias!'},
+  {nombre:'Felipe Ospina',ciudad:'Cali',fecha:'2025-07-02',foto:'https://randomuser.me/api/portraits/men/15.jpg',texto:'Llegaron en 2 días a Cali. Cómodos desde el primer día, no se sienten duros.'},
+  {nombre:'Manuela Vargas',ciudad:'Bogotá',fecha:'2025-11-18',foto:'https://randomuser.me/api/portraits/women/90.jpg',texto:'La mejor compra que he hecho online: calidad, precio y rapidez. Repito sin duda.'},
+  {nombre:'Santiago León',ciudad:'Medellín',fecha:'2025-09-08',foto:'https://randomuser.me/api/portraits/men/9.jpg',texto:'Pedí dos pares y ambos perfectos, el de mi novia y el mío. Recomendadísimo 👟'}
 ];
 const _AVCOL=['#E8200A','#0066FF','#1aad49','#FF7A00','#7b3fe4','#0aa6b8','#d6336c','#2b8a3e'];
-function _avatar(name){
+function _avatar(name,hidden){
   const parts=String(name||'C').trim().split(/\s+/);
   const ini=((parts[0]||'')[0]||'')+((parts[1]||'')[0]||'');
   let h=0;for(let i=0;i<name.length;i++)h=(h*31+name.charCodeAt(i))>>>0;
   const c=_AVCOL[h%_AVCOL.length];
-  return `<div class="testi-card-foto" style="display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;background:${c}">${escHtml(ini.toUpperCase())}</div>`;
+  return `<div class="testi-card-foto" style="display:${hidden?'none':'flex'};align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;background:${c}">${escHtml(ini.toUpperCase())}</div>`;
 }
 function renderTestimonios(){
   const sec=$('testimonios'),row=$('testiRow'),cnt=$('testiCount');
@@ -1696,10 +1704,11 @@ function renderTestimonios(){
   if(sec)sec.style.display='';
   row.innerHTML=ts.map((t,i)=>{
     const p=t.productId?prods.find(x=>x.id===t.productId):null;
-    const foto=t.foto?`<img class="testi-card-foto" src="${escHtml(t.foto)}" alt="">`:_avatar(t.nombre);
+    const foto=t.foto?`<img class="testi-card-foto" src="${escHtml(t.foto)}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`+_avatar(t.nombre,true):_avatar(t.nombre,false);
     const prod=p?`<div class="testi-card-prod"><img src="${escHtml(p.img)}" alt=""><span>${escHtml((BRAND_LABELS[p.brand]||'')+' '+(p.g==='h'?'Hombre':'Mujer'))}</span></div>`:'';
+    const meta=[t.ciudad,t.fecha].filter(Boolean).map(escHtml).join(' · ');
     return `<div class="testi-card" onclick="openTesti(${i})">
-      <div class="testi-card-top">${foto}<div><div class="testi-card-name">${escHtml(t.nombre||'Cliente')} <span class="testi-card-verif">✓</span></div><div class="testi-card-date">${escHtml(t.fecha||'')}</div></div></div>
+      <div class="testi-card-top">${foto}<div><div class="testi-card-name">${escHtml(t.nombre||'Cliente')} <span class="testi-card-verif">✓</span></div><div class="testi-card-date">${meta}</div></div></div>
       <div class="testi-card-stars">★★★★★</div>
       <div class="testi-card-text">${escHtml(t.texto||'')}</div>
       ${prod}
@@ -1709,7 +1718,7 @@ function renderTestimonios(){
 function openTesti(i){
   const t=_testiList[i];if(!t)return;
   $('tmName').textContent=t.nombre||'Cliente';
-  $('tmDate').textContent=t.fecha||'';
+  $('tmDate').textContent=[t.ciudad,t.fecha].filter(Boolean).join(' · ');
   $('tmText').textContent=t.texto||'';
   const f=$('tmFoto');if(f){if(t.foto){f.src=t.foto;f.style.display='';}else f.style.display='none';}
   _tmProdId=(t.productId&&prods.find(x=>x.id===t.productId))?t.productId:null;
@@ -1739,10 +1748,11 @@ async function testiAdd(){
   const nombre=($('testiNombre').value||'').trim(), texto=($('testiTexto').value||'').trim();
   if(!nombre||!texto){alert('Pon al menos el nombre y el testimonio.');return;}
   const fecha=($('testiFecha').value||'').trim()||new Date().toLocaleDateString('es-CO');
+  const ciudad=($('testiCiudad')||{}).value?$('testiCiudad').value.trim():'';
   const productId=parseInt(($('testiProdSel')||{}).value)||null;
-  testimonios.push({nombre,fecha,texto,foto:_testiFoto||null,productId});
+  testimonios.push({nombre,ciudad,fecha,texto,foto:_testiFoto||null,productId});
   await saveTestimonios();
-  _testiFoto=null;$('testiNombre').value='';$('testiTexto').value='';$('testiFecha').value='';
+  _testiFoto=null;$('testiNombre').value='';$('testiTexto').value='';$('testiFecha').value='';if($('testiCiudad'))$('testiCiudad').value='';
   const lbl=$('testiFotoLbl');if(lbl)lbl.textContent='📷 Foto del cliente (opcional)';
 }
 async function testiMove(i,dir){const j=i+dir;if(j<0||j>=testimonios.length)return;[testimonios[i],testimonios[j]]=[testimonios[j],testimonios[i]];await saveTestimonios();}
@@ -1884,7 +1894,7 @@ function renderGrid(){
     $('grid').style.display='none';
     const bb=$('brandbar');if(bb)bb.innerHTML='';   // liquidación no tiene filtro de marca
     $('statN').textContent=prods.length;
-    $('secName').textContent='🔥 Liquidación';
+    $('secName').textContent='🔥 Ofertas';
     $('secCt').textContent=liqs.length+' modelos';
     liqEl.style.display='block';
     const lhdr=liqEl.querySelector('.liq-hdr');
