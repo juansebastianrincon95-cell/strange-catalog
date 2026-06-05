@@ -27,34 +27,24 @@
 <style>
 :root{color-scheme:light;--bg:#F2F1EE;--white:#FFF;--ink:#0E0E0C;--ink2:#5a5a56;--ink3:#9a9a95;--line:rgba(0,0,0,0.08);--red:#E8200A;--blue:#0066FF;--green:#1aad49;--orange:#FF7A00;--wa:#25D366;--font:'Space Grotesk',system-ui,sans-serif;--annH:56px;--navH:64px}
 @media(min-width:700px){:root{--annH:62px;--navH:78px}}
-/* ── MODO OSCURO (10.10) ── paleta + arreglos. Inicia claro; toggle en el nav guarda en ss_theme. */
-html[data-theme="dark"]{color-scheme:dark;--bg:#15151b;--white:#1f1f27;--ink:#f3f2ef;--ink2:#abaaa4;--ink3:#76766f;--line:rgba(255,255,255,.12)}
-/* Botones/acentos con fondo var(--ink): en oscuro el fondo queda claro → texto oscuro */
-html[data-theme="dark"] .tab.on,html[data-theme="dark"] .bchip.on,html[data-theme="dark"] .pm-add,html[data-theme="dark"] .cup-btn,html[data-theme="dark"] .uadd,html[data-theme="dark"] .ep-save,html[data-theme="dark"] .btnmain,html[data-theme="dark"] .mode-btn.on,html[data-theme="dark"] .guia-num,html[data-theme="dark"] .guia-dl,html[data-theme="dark"] .toast,html[data-theme="dark"] .tm-prod,html[data-theme="dark"] .wm-copy,html[data-theme="dark"] .admin-pill:hover,html[data-theme="dark"] .ftr-news-row button{color:var(--bg)}
-html[data-theme="dark"] .bag-btn svg{stroke:var(--bg)}
-/* Superficies que deben quedarse oscuras (texto blanco encima) aunque var(--ink) se aclare */
-html[data-theme="dark"] .wm-head,html[data-theme="dark"] .ftr-bottom{background:#101014}
-/* Los logos de pago/financiación se mantienen sobre blanco también en oscuro (evita rectángulos) */
-html[data-theme="dark"] .pm-pay-strip,html[data-theme="dark"] .pm-fin{background:#fff}
-html[data-theme="dark"] .theme-tog{background:var(--white)}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 /* El scroll interno de los modales NO arrastra el fondo (anti scroll-chaining) */
 .pm-wrap,.pm-body,.csheet,.cbody,.catview,.apanel,.wm-card,.guia-wrap{overscroll-behavior:contain}
 /* overflow-x:clip (no 'hidden') evita scroll horizontal SIN romper position:sticky del nav */
 html,body{background:var(--bg)!important;color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased;overflow-x:clip}
 
-/* BARRA DE ANUNCIO (envío gratis) — en flujo normal: se VA al hacer scroll (solo el nav queda fijo,
-   como elena). Blanca, separada del nav por una línea gris fina. */
-.annbar{position:relative;z-index:1;height:var(--annH);background:var(--white);color:var(--ink);display:flex;align-items:center;justify-content:center;gap:10px;text-align:center;padding:0 14px;line-height:1.08;border-bottom:1px solid var(--line)}
+/* BARRA DE ANUNCIO (envío gratis) — STICKY arriba del todo: queda fija al hacer scroll, igual que el
+   nav (los dos se quedan arriba, como elena). Blanca, separada del nav por una línea gris fina. */
+.annbar{position:sticky;top:0;z-index:65;height:var(--annH);background:var(--white);color:var(--ink);display:flex;align-items:center;justify-content:center;gap:10px;text-align:center;padding:0 14px;line-height:1.08;border-bottom:1px solid var(--line)}
 .annbar-ic{font-size:18px;flex:0 0 auto}
 .annbar-tx{display:flex;flex-direction:column;align-items:center}
 .annbar-tx strong{font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
 .annbar-tx small{font-size:11px;font-weight:500;letter-spacing:.03em;color:var(--ink2);margin-top:1px}
 @media(min-width:700px){.annbar-ic{font-size:20px}.annbar-tx strong{font-size:17px}.annbar-tx small{font-size:12.5px}}
 
-/* NAV — sticky (queda fijo arriba); con overflow-x:clip el sticky sí ancla.
-   Móvil: ☰ izq · logo centro · 🌙+carrito der. Escritorio: logo izq · menú centro · 🌙+carrito der. */
-nav{position:sticky;top:0;z-index:60;height:var(--navH);display:flex;align-items:center;justify-content:center;padding:8px 58px;background:var(--bg);border-bottom:1px solid var(--line)}
+/* NAV — sticky DEBAJO de la barra de envío (ambas quedan fijas arriba al hacer scroll).
+   Móvil: ☰ izq · logo centro · carrito der. Escritorio: logo izq · menú centro · carrito der. */
+nav{position:sticky;top:var(--annH);z-index:60;height:var(--navH);display:flex;align-items:center;justify-content:center;padding:8px 58px;background:var(--bg);border-bottom:1px solid var(--line)}
 .brand{text-align:center;line-height:1.04}
 .logo{font-size:19px;font-weight:700;letter-spacing:.04em;color:var(--ink);text-transform:uppercase}
 .brand-sub{font-size:11px;font-weight:600;color:var(--ink2);letter-spacing:.14em;text-transform:uppercase;margin-top:3px}
@@ -62,10 +52,8 @@ nav{position:sticky;top:0;z-index:60;height:var(--navH);display:flex;align-items
 .nav-burger{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:none;border:none;color:var(--ink);cursor:pointer;padding:0}
 .nav-burger svg{width:24px;height:24px;stroke:currentColor;stroke-width:2;stroke-linecap:round}
 .nav-burger:active{transform:translateY(-50%) scale(.9)}
-/* grupo derecho: tema + carrito */
+/* grupo derecho: carrito */
 .nav-right{position:absolute;right:12px;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:8px}
-.theme-tog{width:38px;height:38px;border:1px solid var(--line);border-radius:50%;background:var(--white);color:var(--ink);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .14s,background .15s;flex:0 0 auto}
-.theme-tog:active{transform:scale(.9)}
 .nav-bag:active{transform:scale(.91)}
 /* menú horizontal (solo escritorio) */
 .nav-menu{display:none}
@@ -94,11 +82,16 @@ nav{position:sticky;top:0;z-index:60;height:var(--navH);display:flex;align-items
 .nd-links button:active{background:var(--bg)}
 @media(min-width:700px){.navdrawer{display:none!important}}
 
-/* VENTANAS INFO (Mayoristas / Cambios) — reusan .guia-modal/.guia-wrap */
-/* animación propia que NO pierde el centrado translate(-50%,-50%) (pmIn sí lo perdía) */
-.info-modal .guia-wrap{animation:infoIn .3s cubic-bezier(.16,1,.3,1) both}
-@keyframes infoIn{from{opacity:0;transform:translate(-50%,-50%) scale(.95)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
-.info-body{padding:26px 22px 30px}
+/* VENTANAS INFO (Mayoristas / Cambios) — ventana a PANTALLA COMPLETA con flecha ← de volver */
+.info-modal{position:fixed;inset:0;z-index:560;display:none;background:var(--bg)}
+.info-modal.on{display:block}
+.info-page{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--bg);animation:pmPage .3s cubic-bezier(.16,1,.3,1) both}
+.info-head{flex:0 0 auto;position:relative;display:flex;align-items:center;justify-content:center;padding:15px 16px;background:var(--white);border-bottom:1px solid var(--line)}
+.info-back{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:none;border:none;color:var(--ink);font-size:25px;line-height:1;cursor:pointer}
+.info-back:active{transform:translateY(-50%) scale(.9)}
+.info-htitle{font-size:15px;font-weight:700;letter-spacing:.03em;color:var(--ink);text-transform:uppercase}
+.info-scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.info-body{max-width:640px;margin:0 auto;padding:26px 22px 44px}
 .info-kicker{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:5px 12px;margin-bottom:12px}
 .info-h1{font-size:24px;font-weight:700;line-height:1.12;letter-spacing:-.01em;color:var(--ink);text-transform:uppercase}
 .info-h1 .big{color:var(--red)}
@@ -791,7 +784,6 @@ nav{position:sticky;top:0;z-index:60;height:var(--navH);display:flex;align-items
 </style>
 </head>
 <body>
-<script>try{if(localStorage.getItem('ss_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 
 <div class="annbar" role="note" aria-label="Envío gratis a toda Colombia">
   <span class="annbar-ic">🎉</span>
@@ -818,7 +810,6 @@ nav{position:sticky;top:0;z-index:60;height:var(--navH);display:flex;align-items
     <button onclick="openInfo('cambios')">Cambios y Garantías</button>
   </div>
   <div class="nav-right">
-    <button class="theme-tog" id="themeTog" onclick="toggleTheme()" aria-label="Cambiar tema">🌙</button>
     <button class="bag-btn nav-bag" onclick="openCart()">
       <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
       <span class="bdot" id="bdot">0</span>
@@ -843,12 +834,14 @@ nav{position:sticky;top:0;z-index:60;height:var(--navH);display:flex;align-items
   </aside>
 </div>
 
-<!-- VENTANA INFO (Mayoristas / Cambios y Garantías) -->
-<div class="guia-modal info-modal" id="infoModal">
-  <div class="guia-scrim" onclick="closeInfo()"></div>
-  <div class="guia-wrap">
-    <button class="guia-close" onclick="closeInfo()">✕</button>
-    <div class="info-body" id="infoBody"></div>
+<!-- VENTANA INFO (Mayoristas / Cambios y Garantías) — pantalla completa con ← volver -->
+<div class="info-modal" id="infoModal">
+  <div class="info-page">
+    <div class="info-head">
+      <button class="info-back" onclick="closeInfo()" aria-label="Volver">←</button>
+      <span class="info-htitle" id="infoTitle">Información</span>
+    </div>
+    <div class="info-scroll"><div class="info-body" id="infoBody"></div></div>
   </div>
 </div>
 
@@ -1841,7 +1834,6 @@ function navGo(t){
 
 /* ── VENTANAS INFO (Mayoristas / Cambios y Garantías) ── reusan el modal .guia-modal ── */
 const INFO_MAYORISTAS=`<div class="info-pad">
-  <span class="info-kicker">🤝 Mayoristas</span>
   <h2 class="info-h1">Gana hasta un <span class="big">46%</span> de rentabilidad</h2>
   <p class="info-lead">Vende sneakers originales y genera ingresos extra con nosotros. Te acompañamos en todo el proceso.</p>
   <div class="info-subt">Beneficios de ser mayorista</div>
@@ -1854,8 +1846,7 @@ const INFO_MAYORISTAS=`<div class="info-pad">
   <button class="info-wa" onclick="waMayoristas()">💬 Más información por WhatsApp</button>
 </div>`;
 const INFO_CAMBIOS=`<div class="info-pad">
-  <span class="info-kicker">🔄 Cambios y Garantía</span>
-  <h2 class="info-h1">Cambios y Garantías</h2>
+  <p class="info-lead" style="margin-top:0">Tu compra está protegida. Estas son nuestras condiciones de cambios y garantía 👇</p>
   <div class="info-sec"><h3>👟 Solo cambios por talla</h3><p>Si te equivocaste, los costos de envío van por tu cuenta. Si es defecto de fábrica 👉 ¡nosotros lo cubrimos! ✅</p></div>
   <div class="info-sec"><h3>⏳ Tiempo para solicitar cambio</h3><p>Tienes 2 días hábiles después de recibir tu pedido. Pasado este tiempo no podremos hacer el cambio.</p></div>
   <div class="info-sec"><h3>📦 Condiciones del producto</h3><p>Devuélvelos en la misma bolsa. Deben estar en perfecto estado (sin manchas, ni uso).</p></div>
@@ -1866,8 +1857,9 @@ const INFO_CAMBIOS=`<div class="info-pad">
 function openInfo(which){
   const b=$('infoBody');if(!b)return;
   b.innerHTML=which==='mayoristas'?INFO_MAYORISTAS:INFO_CAMBIOS;
+  const t=$('infoTitle');if(t)t.textContent=which==='mayoristas'?'Mayoristas':'Cambios y Garantías';
   const m=$('infoModal');m.classList.add('on');lockScroll();
-  if(m.querySelector('.guia-wrap'))m.querySelector('.guia-wrap').scrollTop=0;
+  const sc=m.querySelector('.info-scroll');if(sc)sc.scrollTop=0;
 }
 function closeInfo(){const m=$('infoModal');if(m)m.classList.remove('on');unlockScroll();}
 function waMayoristas(){
@@ -3461,18 +3453,6 @@ function applyStoreName(){
   // El encabezado del nav es marca fija "CATALOGO SNEAKERS" (no se sobreescribe con store_name).
   document.title=STORE_NAME;
 }
-// Modo oscuro: alterna data-theme, guarda preferencia y actualiza el ícono sol/luna.
-function toggleTheme(){
-  const dark=document.documentElement.getAttribute('data-theme')!=='dark';
-  if(dark)document.documentElement.setAttribute('data-theme','dark');
-  else document.documentElement.removeAttribute('data-theme');
-  try{localStorage.setItem('ss_theme',dark?'dark':'light');}catch(e){}
-  const b=document.getElementById('themeTog');if(b)b.textContent=dark?'☀️':'🌙';
-}
-function initThemeIcon(){
-  const b=document.getElementById('themeTog');
-  if(b)b.textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀️':'🌙';
-}
 
 /* ── PERSISTENCIA ── */
 function saveState(){
@@ -3644,7 +3624,6 @@ loadViews();   // prueba social: traer vistas reales por producto
 if(localStorage.getItem('ss_reserve_until')&&!_reserveTimer){_reserveTimer=setInterval(tickReserva,1000);tickReserva();}
 (async()=>{
   await loadState();
-  initThemeIcon();   // ícono sol/luna según el tema guardado
   if(bannerOn)$('banner').classList.remove('off');
   renderHero();   // carrusel del inicio (reemplaza el encabezado si hay banners)
   renderHeroAdmin();   // pinta la lista de banners y el selector en el panel admin
