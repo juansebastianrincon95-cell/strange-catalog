@@ -166,7 +166,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .tabs.show{display:flex;gap:4px;padding:18px 10px 14px;background:var(--bg)}
 .tab{flex:1;padding:10px 4px;background:var(--white);border:1.5px solid var(--line);border-radius:10px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink2);cursor:pointer;transition:all .16s;text-align:center}
 .tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
-.brandbar{display:flex;gap:6px;padding:0 10px 12px;background:var(--bg);overflow-x:auto;scrollbar-width:none}
+.brandbar{display:flex;gap:6px;padding:16px 10px 12px;background:var(--bg);overflow-x:auto;scrollbar-width:none}
 .brandbar::-webkit-scrollbar{display:none}
 .brandbar:empty{display:none}
 .bchip{flex:0 0 auto;padding:6px 13px;background:var(--white);border:1.5px solid var(--line);border-radius:20px;font-family:var(--font);font-size:11px;font-weight:600;color:var(--ink2);cursor:pointer;transition:all .16s;white-space:nowrap}
@@ -1980,18 +1980,18 @@ let _tmProdId=null, _testiFoto=null, _testiList=[];
 // Testimonios de EJEMPLO (fallback cuando el admin aún no cargó reales). Reemplazar por reales.
 // Testimonios de EJEMPLO con ciudad (sin foto → avatar de iniciales). Subir fotos reales o generar latinas.
 const DEFAULT_TESTIMONIOS=[
-  {nombre:'Valentina Ríos',ciudad:'Medellín',fecha:'2025-09-12',texto:'Pedí mis tenis un viernes y el martes ya los tenía en Medellín. Calidad impecable y súper cómodos. 100% recomendados 🙌'},
-  {nombre:'Andrés Gómez',ciudad:'Bogotá',fecha:'2025-08-03',texto:'Llegaron tal cual la foto. Pagué contra entrega sin ningún problema y la atención fue muy buena.'},
-  {nombre:'Daniela Torres',ciudad:'Cali',fecha:'2025-10-21',texto:'Me encantaron 😍 la talla quedó perfecta y el material se siente original. Ya pedí otro par.'},
-  {nombre:'Juan David Martínez',ciudad:'Bucaramanga',fecha:'2025-07-18',texto:'Me asesoraron por WhatsApp para elegir la talla. Excelente servicio y los tenis son una nota.'},
-  {nombre:'Carolina Ramírez',ciudad:'Bogotá',fecha:'2025-11-05',texto:'Súper cómodos para caminar todo el día. Envío gratis y rapidísimo a Bogotá.'},
-  {nombre:'Sebastián Cardona',ciudad:'Medellín',fecha:'2025-06-29',texto:'Tenía dudas de comprar online pero quedé feliz. Originales y a muy buen precio.'},
-  {nombre:'Laura Jiménez',ciudad:'Barranquilla',fecha:'2025-09-30',texto:'Los compré para mi esposo y le fascinaron. Llegó bien empacado y a tiempo.'},
-  {nombre:'Mateo Herrera',ciudad:'Pereira',fecha:'2025-08-22',texto:'Muy buena calidad, se ven aún mejor en persona. Volveré a comprar seguro.'},
-  {nombre:'Paola Castaño',ciudad:'Manizales',fecha:'2025-10-10',texto:'Atención de 10. Me cambiaron la talla sin problema cuando pedí una más grande. Gracias!'},
-  {nombre:'Felipe Ospina',ciudad:'Cali',fecha:'2025-07-02',texto:'Llegaron en 2 días a Cali. Cómodos desde el primer día, no se sienten duros.'},
-  {nombre:'Manuela Vargas',ciudad:'Bogotá',fecha:'2025-11-18',texto:'La mejor compra que he hecho online: calidad, precio y rapidez. Repito sin duda.'},
-  {nombre:'Santiago León',ciudad:'Medellín',fecha:'2025-09-08',texto:'Pedí dos pares y ambos perfectos, el de mi novia y el mío. Recomendadísimo 👟'}
+  {nombre:'Valentina Ríos',ciudad:'Medellín',fecha:'2025-09-12',texto:'La verdad estaba indecisa de comprar tenis por internet, pero pedí el viernes y el martes ya los tenía en la casa. Quedé encantada, se sienten muy bien hechos.'},
+  {nombre:'Andrés Gómez',ciudad:'Bogotá',fecha:'2025-08-03',texto:'Llegaron tal cual las fotos, ni más ni menos. Pagué contra entrega y el muchacho del envío súper amable. Todo bien 👌'},
+  {nombre:'Daniela Torres',ciudad:'Cali',fecha:'2025-10-21',texto:'Me quedaron perfectos de talla (yo calzo 37). El material se siente bueno, no como en otras páginas que decepcionan. Ya encargué otro par para mi hermana.'},
+  {nombre:'Juan David Martínez',ciudad:'Bucaramanga',fecha:'2025-07-18',texto:'Le escribí al WhatsApp porque no sabía si pedir la 42 o la 43 y me respondieron de una. Acerté con la talla, gracias por la paciencia jaja.'},
+  {nombre:'Carolina Ramírez',ciudad:'Bogotá',fecha:'2025-11-05',texto:'Los uso para trabajar y camino todo el día. Muy cómodos y el envío a Bogotá no me costó nada.'},
+  {nombre:'Sebastián Cardona',ciudad:'Medellín',fecha:'2025-06-29',texto:'Honestamente desconfiaba un poco por el precio, pensé que serían de mala calidad. Me sorprendieron, se ven bien hechos y originales.'},
+  {nombre:'Laura Jiménez',ciudad:'Barranquilla',fecha:'2025-09-30',texto:'Se los regalé a mi esposo para el cumpleaños y le fascinaron. Llegaron bien empacados en su caja.'},
+  {nombre:'Mateo Herrera',ciudad:'Pereira',fecha:'2025-08-22',texto:'En persona se ven mejor que en las fotos. Pedí los blancos y todavía no se me ensucian jaja. Buena compra.'},
+  {nombre:'Paola Castaño',ciudad:'Manizales',fecha:'2025-10-10',texto:'Pedí una talla y me quedó apretada, escribí y me hicieron el cambio sin ningún problema. Eso para mí vale mucho, repito tranquila.'},
+  {nombre:'Felipe Ospina',ciudad:'Cali',fecha:'2025-07-02',texto:'Pedí un lunes y el miércoles ya estaban acá en Cali. Cómodos desde el primer día, no tocó amansarlos.'},
+  {nombre:'Manuela Vargas',ciudad:'Bogotá',fecha:'2025-11-18',texto:'Ya es mi segunda compra. La primera vez pensé que había sido suerte, pero no, volvieron a cumplir con lo prometido.'},
+  {nombre:'Santiago León',ciudad:'Medellín',fecha:'2025-09-08',texto:'Pedimos dos pares, el mío y el de mi novia, y los dos llegaron perfectos. Buen precio comparado con lo del centro comercial.'}
 ];
 const _AVCOL=['#E8200A','#0066FF','#1aad49','#FF7A00','#7b3fe4','#0aa6b8','#d6336c','#2b8a3e'];
 function _avatar(name,hidden){
@@ -2390,9 +2390,9 @@ function genDescripcion(p,type){
 // Reseñas de ejemplo (genéricas, 5★) para la ficha. NOTA: son de muestra; reemplazar por reales
 // cuando se tengan, para no chocar con políticas de Meta ni con la confianza del cliente.
 const FICHA_REVIEWS=[
-  {nombre:'Andrés M.',texto:'Súper cómodos y llegaron rapidísimo. Tal cual la foto, calidad muy buena.'},
-  {nombre:'Laura G.',texto:'Me encantaron, la talla quedó perfecta y el material se siente original. Repito sin duda.'},
-  {nombre:'Camilo R.',texto:'Excelente atención y pagué contra entrega sin problema. 100% recomendados.'}
+  {nombre:'Andrés M.',texto:'Llegaron en dos días y tal cual la foto. Cómodos de una, no tocó amansarlos.'},
+  {nombre:'Laura G.',texto:'La talla me quedó perfecta y el material se siente bueno. Es mi segunda compra acá, repito sin pensarlo.'},
+  {nombre:'Camilo R.',texto:'Estaba inseguro de comprar por internet, pero pagué contra entrega y todo bien. Llegó en su caja original.'}
 ];
 // Nº de reseñas por producto: pseudo-aleatorio pero ESTABLE por id (mismo valor siempre), rango ~80–399.
 let pmReviewN=0;
