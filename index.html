@@ -25,7 +25,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
-:root{color-scheme:light;--bg:#F2F1EE;--white:#FFF;--ink:#0E0E0C;--ink2:#5a5a56;--ink3:#9a9a95;--line:rgba(0,0,0,0.08);--red:#E8200A;--blue:#0066FF;--green:#1aad49;--orange:#FF7A00;--wa:#25D366;--font:'Space Grotesk',system-ui,sans-serif}
+:root{color-scheme:light;--bg:#F2F1EE;--white:#FFF;--ink:#0E0E0C;--ink2:#5a5a56;--ink3:#9a9a95;--line:rgba(0,0,0,0.08);--red:#E8200A;--blue:#0066FF;--green:#1aad49;--orange:#FF7A00;--wa:#25D366;--font:'Space Grotesk',system-ui,sans-serif;--annH:46px;--navH:64px}
+@media(min-width:700px){:root{--annH:50px;--navH:78px}}
 /* ── MODO OSCURO (10.10) ── paleta + arreglos. Inicia claro; toggle en el nav guarda en ss_theme. */
 html[data-theme="dark"]{color-scheme:dark;--bg:#15151b;--white:#1f1f27;--ink:#f3f2ef;--ink2:#abaaa4;--ink3:#76766f;--line:rgba(255,255,255,.12)}
 /* Botones/acentos con fondo var(--ink): en oscuro el fondo queda claro → texto oscuro */
@@ -41,11 +42,21 @@ html[data-theme="dark"] .theme-tog{background:var(--white)}
 .pm-wrap,.pm-body,.csheet,.cbody,.catview,.apanel,.wm-card,.guia-wrap{overscroll-behavior:contain}
 html,body{background:var(--bg)!important;color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
 
+/* BARRA DE ANUNCIO (envío gratis) — fija arriba del todo, encima del nav. Fondo literal #0E0E0C
+   para que NO se invierta en modo oscuro (var(--ink) se aclara). */
+.annbar{position:sticky;top:0;z-index:65;height:var(--annH);background:#0E0E0C;color:#fff;display:flex;align-items:center;justify-content:center;gap:9px;text-align:center;padding:0 14px;line-height:1.08}
+.annbar-ic{font-size:16px;flex:0 0 auto}
+.annbar-tx{display:flex;flex-direction:column;align-items:center}
+.annbar-tx strong{font-size:12.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
+.annbar-tx small{font-size:10px;font-weight:500;letter-spacing:.04em;opacity:.85;margin-top:1px}
+@media(min-width:700px){.annbar-ic{font-size:18px}.annbar-tx strong{font-size:15px}.annbar-tx small{font-size:11.5px}}
+
 /* NAV */
-nav{position:sticky;top:0;z-index:60;min-height:60px;display:flex;align-items:center;justify-content:center;padding:8px 58px;background:var(--bg);border-bottom:1px solid var(--line)}
+nav{position:sticky;top:var(--annH);z-index:60;height:var(--navH);display:flex;align-items:center;justify-content:center;padding:8px 58px;background:var(--bg);border-bottom:1px solid var(--line)}
 .brand{text-align:center;line-height:1.04}
-.logo{font-size:18px;font-weight:700;letter-spacing:.04em;color:var(--ink);text-transform:uppercase}
-.brand-sub{font-size:10px;font-weight:600;color:var(--ink2);letter-spacing:.14em;text-transform:uppercase;margin-top:3px}
+.logo{font-size:19px;font-weight:700;letter-spacing:.04em;color:var(--ink);text-transform:uppercase}
+@media(min-width:700px){.logo{font-size:24px}}
+.brand-sub{font-size:11px;font-weight:600;color:var(--ink2);letter-spacing:.14em;text-transform:uppercase;margin-top:3px}
 .theme-tog{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:38px;height:38px;border:1px solid var(--line);border-radius:50%;background:var(--white);color:var(--ink);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .14s,background .15s}
 .theme-tog:active{transform:translateY(-50%) scale(.9)}
 /* especificidad nav .nav-bag para ganarle a .bag-btn{position:relative} (definida después) */
@@ -602,7 +613,7 @@ nav .nav-bag:active{transform:translateY(-50%) scale(.91)}
 }
 
 /* HERO CARRUSEL */
-.hero{position:relative;width:100%;height:90vh;overflow:hidden;background:var(--ink);display:none;touch-action:pan-y}
+.hero{position:relative;width:100%;height:calc(100vh - var(--annH) - var(--navH));overflow:hidden;background:var(--ink);display:none;touch-action:pan-y}
 .hero.on{display:block}
 .hero-track{display:flex;height:100%;transition:transform .5s cubic-bezier(.16,1,.3,1)}
 .hero-slide{position:relative;min-width:100%;height:100%}
@@ -618,7 +629,7 @@ nav .nav-bag:active{transform:translateY(-50%) scale(.91)}
 .hero-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.45);transition:width .25s,background .25s}
 .hero-dot.on{width:20px;border-radius:5px;background:var(--white)}
 @media(min-width:700px){
-  .hero{height:100vh}      /* escritorio: hero a pantalla completa (más grande), móvil queda 90vh */
+  /* el alto del hero lo da calc(100vh - barras) con las vars de escritorio (no override aquí) */
   .hero-ov{padding:24px}   /* título + botón centrados (vertical y horizontal) en escritorio */
   .hero-tit{font-size:40px}
   .hero-sub{font-size:13px}
@@ -730,6 +741,13 @@ nav .nav-bag:active{transform:translateY(-50%) scale(.91)}
 <body>
 <script>try{if(localStorage.getItem('ss_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 
+<div class="annbar" role="note" aria-label="Envío gratis a toda Colombia">
+  <span class="annbar-ic">🚚</span>
+  <span class="annbar-tx">
+    <strong>ENVÍO GRATIS A TODA COLOMBIA</strong>
+    <small>(hasta la puerta de tu casa)</small>
+  </span>
+</div>
 <nav>
   <button class="theme-tog" id="themeTog" onclick="toggleTheme()" aria-label="Cambiar tema">🌙</button>
   <div class="brand">
