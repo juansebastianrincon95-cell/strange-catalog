@@ -41,10 +41,12 @@ html[data-theme="dark"] .theme-tog{background:var(--white)}
 /* El scroll interno de los modales NO arrastra el fondo (anti scroll-chaining) */
 .pm-wrap,.pm-body,.csheet,.cbody,.catview,.apanel,.wm-card,.guia-wrap{overscroll-behavior:contain}
 html,body{background:var(--bg)!important;color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+/* compensa las barras fijas (annbar + nav) para que el contenido no quede debajo */
+body{padding-top:calc(var(--annH) + var(--navH))}
 
 /* BARRA DE ANUNCIO (envío gratis) — fija arriba del todo, encima del nav. Fondo literal #0E0E0C
    para que NO se invierta en modo oscuro (var(--ink) se aclara). */
-.annbar{position:sticky;top:0;z-index:65;height:var(--annH);background:#0E0E0C;color:#fff;display:flex;align-items:center;justify-content:center;gap:9px;text-align:center;padding:0 14px;line-height:1.08}
+.annbar{position:fixed;top:0;left:0;right:0;z-index:65;height:var(--annH);background:#0E0E0C;color:#fff;display:flex;align-items:center;justify-content:center;gap:9px;text-align:center;padding:0 14px;line-height:1.08}
 .annbar-ic{font-size:16px;flex:0 0 auto}
 .annbar-tx{display:flex;flex-direction:column;align-items:center}
 .annbar-tx strong{font-size:12.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
@@ -52,7 +54,7 @@ html,body{background:var(--bg)!important;color:var(--ink);font-family:var(--font
 @media(min-width:700px){.annbar-ic{font-size:18px}.annbar-tx strong{font-size:15px}.annbar-tx small{font-size:11.5px}}
 
 /* NAV */
-nav{position:sticky;top:var(--annH);z-index:60;height:var(--navH);display:flex;align-items:center;justify-content:center;padding:8px 58px;background:var(--bg);border-bottom:1px solid var(--line)}
+nav{position:fixed;top:var(--annH);left:0;right:0;z-index:60;height:var(--navH);display:flex;align-items:center;justify-content:center;padding:8px 58px;background:var(--bg);border-bottom:1px solid var(--line)}
 .brand{text-align:center;line-height:1.04}
 .logo{font-size:19px;font-weight:700;letter-spacing:.04em;color:var(--ink);text-transform:uppercase}
 @media(min-width:700px){.logo{font-size:24px}}
