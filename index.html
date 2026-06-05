@@ -33,18 +33,21 @@
 /* overflow-x:clip (no 'hidden') evita scroll horizontal SIN romper position:sticky del nav */
 html,body{background:var(--bg)!important;color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased;overflow-x:clip}
 
-/* BARRA DE ANUNCIO (envío gratis) — STICKY arriba del todo: queda fija al hacer scroll, igual que el
-   nav (los dos se quedan arriba, como elena). Blanca, separada del nav por una línea gris fina. */
-.annbar{position:sticky;top:0;z-index:65;height:var(--annH);background:var(--white);color:var(--ink);display:flex;align-items:center;justify-content:center;gap:10px;text-align:center;padding:0 14px;line-height:1.08;border-bottom:1px solid var(--line)}
+/* CABECERA (barra de envío + nav) — estilo Adidas: sticky arriba, se OCULTA al bajar y REAPARECE
+   al subir (clase .hide la sube con translateY). El JS de auto-hide alterna .hide según el scroll. */
+.topbar{position:sticky;top:0;z-index:65;transition:transform .35s cubic-bezier(.4,0,.2,1)}
+.topbar.hide{transform:translateY(-100%)}
+/* BARRA DE ANUNCIO (envío gratis) — blanca, separada del nav por una línea gris fina. */
+.annbar{position:relative;height:var(--annH);background:var(--white);color:var(--ink);display:flex;align-items:center;justify-content:center;gap:10px;text-align:center;padding:0 14px;line-height:1.08;border-bottom:1px solid var(--line)}
 .annbar-ic{font-size:18px;flex:0 0 auto}
 .annbar-tx{display:flex;flex-direction:column;align-items:center}
 .annbar-tx strong{font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
 .annbar-tx small{font-size:11px;font-weight:500;letter-spacing:.03em;color:var(--ink2);margin-top:1px}
 @media(min-width:700px){.annbar-ic{font-size:20px}.annbar-tx strong{font-size:17px}.annbar-tx small{font-size:12.5px}}
 
-/* NAV — sticky DEBAJO de la barra de envío (ambas quedan fijas arriba al hacer scroll).
-   Móvil: ☰ izq · logo centro · carrito der. Escritorio: logo izq · menú centro · carrito der. */
-nav{position:sticky;top:var(--annH);z-index:60;height:var(--navH);display:flex;align-items:center;justify-content:center;padding:8px 58px;background:var(--bg);border-bottom:1px solid var(--line)}
+/* NAV — dentro del header (.topbar). Móvil: ☰ izq · logo centro · carrito der.
+   Escritorio: logo izq · menú centro · carrito der. */
+nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:center;justify-content:center;padding:8px 58px;background:var(--bg);border-bottom:1px solid var(--line)}
 .brand{text-align:center;line-height:1.04}
 .logo{font-size:19px;font-weight:700;letter-spacing:.04em;color:var(--ink);text-transform:uppercase}
 .brand-sub{font-size:11px;font-weight:600;color:var(--ink2);letter-spacing:.14em;text-transform:uppercase;margin-top:3px}
@@ -106,6 +109,25 @@ nav{position:sticky;top:var(--annH);z-index:60;height:var(--navH);display:flex;a
 .info-sec:first-of-type{border-top:none;padding-top:4px}
 .info-sec h3{font-size:14.5px;font-weight:700;color:var(--ink);margin-bottom:6px;letter-spacing:.01em}
 .info-sec p{font-size:13.5px;line-height:1.5;color:var(--ink2)}
+.info-grid{display:block}
+/* ── ESCRITORIO: ventanas Mayoristas/Cambios más profesionales (no estilo móvil estirado) ── */
+@media(min-width:700px){
+  .info-head{padding:18px}
+  .info-htitle{font-size:18px}
+  .info-back{left:18px;width:44px;height:44px;font-size:28px}
+  .info-body{max-width:920px;padding:52px 40px 70px}
+  .info-h1{font-size:40px;line-height:1.08}
+  .info-lead{font-size:16.5px;margin-top:14px;max-width:620px}
+  .info-subt{font-size:14px;margin:32px 0 16px}
+  .info-benes{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .info-bene{font-size:16px;padding:18px 20px;border-radius:14px}
+  .info-wa{max-width:420px;margin:34px auto 0;padding:17px 30px;font-size:16px}
+  .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:26px}
+  .info-sec{margin-top:0;padding:22px;border-top:none;border:1px solid var(--line);border-radius:16px;background:var(--white)}
+  .info-sec:first-of-type{padding-top:22px}
+  .info-sec h3{font-size:16px;margin-bottom:8px}
+  .info-sec p{font-size:14.5px}
+}
 
 .admin-pill{background:var(--white);border:1.5px solid var(--line);border-radius:20px;padding:7px 14px;font-family:var(--font);font-size:11px;font-weight:600;color:var(--ink2);cursor:pointer;transition:all .15s}
 .admin-pill:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
@@ -138,7 +160,10 @@ nav{position:sticky;top:var(--annH);z-index:60;height:var(--navH);display:flex;a
 .ban-env{font-size:11px;color:var(--green);font-weight:600;margin-top:4px}
 
 /* TABS */
-.tabs{display:flex;gap:4px;padding:18px 10px 14px;background:var(--bg)}
+/* Pestañas de género ocultas: se navega por el menú (Hombre/Mujer/Ofertas) + ← volver. Quedan solo
+   las marcas (#brandbar). Los botones siguen en el DOM para que setG/openCatalog funcionen. */
+.tabs{display:none}
+.tabs.show{display:flex;gap:4px;padding:18px 10px 14px;background:var(--bg)}
 .tab{flex:1;padding:10px 4px;background:var(--white);border:1.5px solid var(--line);border-radius:10px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink2);cursor:pointer;transition:all .16s;text-align:center}
 .tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .brandbar{display:flex;gap:6px;padding:0 10px 12px;background:var(--bg);overflow-x:auto;scrollbar-width:none}
@@ -785,6 +810,7 @@ nav{position:sticky;top:var(--annH);z-index:60;height:var(--navH);display:flex;a
 </head>
 <body>
 
+<header class="topbar" id="topbar">
 <div class="annbar" role="note" aria-label="Envío gratis a toda Colombia">
   <span class="annbar-ic">🎉</span>
   <span class="annbar-tx">
@@ -816,6 +842,7 @@ nav{position:sticky;top:var(--annH);z-index:60;height:var(--navH);display:flex;a
     </button>
   </div>
 </nav>
+</header>
 
 <!-- PANEL LATERAL MÓVIL (menú ☰) -->
 <div class="navdrawer" id="navDrawer" aria-hidden="true">
@@ -1815,6 +1842,12 @@ function openCatalog(opts){
     const idx=g==='h'?1:g==='m'?2:g==='liq'?3:0;
     setG(g, tabs[idx]);   // setG hace renderGrid
   }
+  // Título del catálogo según la sección (las pestañas están ocultas).
+  const tt=v.querySelector('.catview-title');
+  if(tt){
+    const map={h:'Hombre',m:'Mujer',liq:'Ofertas',all:'Productos'};
+    tt.textContent = opts.brand ? (typeof BRAND_LABELS!=='undefined' && BRAND_LABELS[opts.brand] ? BRAND_LABELS[opts.brand] : 'Productos') : (map[opts.gender||'all']||'Catálogo');
+  }
   v.scrollTop=0;
 }
 function closeCatalog(){const v=$('catView');if(v)v.classList.remove('on');unlockScroll();}
@@ -1847,12 +1880,14 @@ const INFO_MAYORISTAS=`<div class="info-pad">
 </div>`;
 const INFO_CAMBIOS=`<div class="info-pad">
   <p class="info-lead" style="margin-top:0">Tu compra está protegida. Estas son nuestras condiciones de cambios y garantía 👇</p>
+  <div class="info-grid">
   <div class="info-sec"><h3>👟 Solo cambios por talla</h3><p>Si te equivocaste, los costos de envío van por tu cuenta. Si es defecto de fábrica 👉 ¡nosotros lo cubrimos! ✅</p></div>
   <div class="info-sec"><h3>⏳ Tiempo para solicitar cambio</h3><p>Tienes 2 días hábiles después de recibir tu pedido. Pasado este tiempo no podremos hacer el cambio.</p></div>
   <div class="info-sec"><h3>📦 Condiciones del producto</h3><p>Devuélvelos en la misma bolsa. Deben estar en perfecto estado (sin manchas, ni uso).</p></div>
   <div class="info-sec"><h3>💸 Importante</h3><p>No hacemos devoluciones de dinero, ni cancelación de créditos. Si la talla no está disponible, podrás elegir entre otros modelos.</p></div>
   <div class="info-sec"><h3>🕐 Proceso</h3><p>El cambio puede tardar 15 días hábiles aproximadamente.</p></div>
   <div class="info-sec"><h3>✅ Garantía</h3><p>Tu compra tiene 1 mes de garantía por defectos de costura o despegue. En este caso, el cambio será sin costo adicional.</p></div>
+  </div>
 </div>`;
 function openInfo(which){
   const b=$('infoBody');if(!b)return;
@@ -1868,6 +1903,24 @@ function waMayoristas(){
   if(typeof px==='function')px('Lead',{content_name:'mayoristas',...getUTM()});
   window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,'_blank');
 }
+
+/* ── CABECERA AUTO-OCULTABLE (estilo Adidas) ── se oculta al bajar, reaparece al subir ── */
+(function(){
+  const bar=document.getElementById('topbar');
+  if(!bar)return;
+  let lastY=window.scrollY||0, ticking=false;
+  const TH=6;   // umbral para ignorar micro-scrolls
+  function update(){
+    const y=window.scrollY||document.documentElement.scrollTop||0;
+    if(y<=2){ bar.classList.remove('hide'); }                         // arriba del todo: siempre visible
+    else if(Math.abs(y-lastY)>TH){
+      if(y>lastY && y>bar.offsetHeight) bar.classList.add('hide');    // bajando → ocultar
+      else bar.classList.remove('hide');                              // subiendo → mostrar
+    }
+    lastY=y; ticking=false;
+  }
+  window.addEventListener('scroll',()=>{ if(!ticking){ requestAnimationFrame(update); ticking=true; } },{passive:true});
+})();
 
 // Preview del inicio: 6 modelos disponibles más recientes (prods viene ordenado por id asc).
 function renderPreview(){
