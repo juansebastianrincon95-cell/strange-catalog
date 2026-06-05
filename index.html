@@ -25,8 +25,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
-:root{color-scheme:light;--bg:#F2F1EE;--white:#FFF;--ink:#0E0E0C;--ink2:#5a5a56;--ink3:#9a9a95;--line:rgba(0,0,0,0.08);--red:#E8200A;--blue:#0066FF;--green:#1aad49;--orange:#FF7A00;--wa:#25D366;--font:'Space Grotesk',system-ui,sans-serif;--annH:46px;--navH:64px}
-@media(min-width:700px){:root{--annH:50px;--navH:78px}}
+:root{color-scheme:light;--bg:#F2F1EE;--white:#FFF;--ink:#0E0E0C;--ink2:#5a5a56;--ink3:#9a9a95;--line:rgba(0,0,0,0.08);--red:#E8200A;--blue:#0066FF;--green:#1aad49;--orange:#FF7A00;--wa:#25D366;--font:'Space Grotesk',system-ui,sans-serif;--annH:56px;--navH:64px}
+@media(min-width:700px){:root{--annH:62px;--navH:78px}}
 /* ── MODO OSCURO (10.10) ── paleta + arreglos. Inicia claro; toggle en el nav guarda en ss_theme. */
 html[data-theme="dark"]{color-scheme:dark;--bg:#15151b;--white:#1f1f27;--ink:#f3f2ef;--ink2:#abaaa4;--ink3:#76766f;--line:rgba(255,255,255,.12)}
 /* Botones/acentos con fondo var(--ink): en oscuro el fondo queda claro → texto oscuro */
@@ -40,30 +40,77 @@ html[data-theme="dark"] .theme-tog{background:var(--white)}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 /* El scroll interno de los modales NO arrastra el fondo (anti scroll-chaining) */
 .pm-wrap,.pm-body,.csheet,.cbody,.catview,.apanel,.wm-card,.guia-wrap{overscroll-behavior:contain}
-html,body{background:var(--bg)!important;color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
-/* compensa las barras fijas (annbar + nav) para que el contenido no quede debajo */
-body{padding-top:calc(var(--annH) + var(--navH))}
+/* overflow-x:clip (no 'hidden') evita scroll horizontal SIN romper position:sticky del nav */
+html,body{background:var(--bg)!important;color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased;overflow-x:clip}
 
-/* BARRA DE ANUNCIO (envío gratis) — fija arriba del todo, encima del nav. Fondo literal #0E0E0C
-   para que NO se invierta en modo oscuro (var(--ink) se aclara). */
-.annbar{position:fixed;top:0;left:0;right:0;z-index:65;height:var(--annH);background:#0E0E0C;color:#fff;display:flex;align-items:center;justify-content:center;gap:9px;text-align:center;padding:0 14px;line-height:1.08}
-.annbar-ic{font-size:16px;flex:0 0 auto}
+/* BARRA DE ANUNCIO (envío gratis) — en flujo normal: se VA al hacer scroll (solo el nav queda fijo,
+   como elena). Blanca, separada del nav por una línea gris fina. */
+.annbar{position:relative;z-index:1;height:var(--annH);background:var(--white);color:var(--ink);display:flex;align-items:center;justify-content:center;gap:10px;text-align:center;padding:0 14px;line-height:1.08;border-bottom:1px solid var(--line)}
+.annbar-ic{font-size:18px;flex:0 0 auto}
 .annbar-tx{display:flex;flex-direction:column;align-items:center}
-.annbar-tx strong{font-size:12.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
-.annbar-tx small{font-size:10px;font-weight:500;letter-spacing:.04em;opacity:.85;margin-top:1px}
-@media(min-width:700px){.annbar-ic{font-size:18px}.annbar-tx strong{font-size:15px}.annbar-tx small{font-size:11.5px}}
+.annbar-tx strong{font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.annbar-tx small{font-size:11px;font-weight:500;letter-spacing:.03em;color:var(--ink2);margin-top:1px}
+@media(min-width:700px){.annbar-ic{font-size:20px}.annbar-tx strong{font-size:17px}.annbar-tx small{font-size:12.5px}}
 
-/* NAV */
-nav{position:fixed;top:var(--annH);left:0;right:0;z-index:60;height:var(--navH);display:flex;align-items:center;justify-content:center;padding:8px 58px;background:var(--bg);border-bottom:1px solid var(--line)}
+/* NAV — sticky (queda fijo arriba); con overflow-x:clip el sticky sí ancla.
+   Móvil: ☰ izq · logo centro · 🌙+carrito der. Escritorio: logo izq · menú centro · 🌙+carrito der. */
+nav{position:sticky;top:0;z-index:60;height:var(--navH);display:flex;align-items:center;justify-content:center;padding:8px 58px;background:var(--bg);border-bottom:1px solid var(--line)}
 .brand{text-align:center;line-height:1.04}
 .logo{font-size:19px;font-weight:700;letter-spacing:.04em;color:var(--ink);text-transform:uppercase}
-@media(min-width:700px){.logo{font-size:24px}}
 .brand-sub{font-size:11px;font-weight:600;color:var(--ink2);letter-spacing:.14em;text-transform:uppercase;margin-top:3px}
-.theme-tog{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:38px;height:38px;border:1px solid var(--line);border-radius:50%;background:var(--white);color:var(--ink);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .14s,background .15s}
-.theme-tog:active{transform:translateY(-50%) scale(.9)}
-/* especificidad nav .nav-bag para ganarle a .bag-btn{position:relative} (definida después) */
-nav .nav-bag{position:absolute;right:14px;top:50%;transform:translateY(-50%)}
-nav .nav-bag:active{transform:translateY(-50%) scale(.91)}
+/* ☰ menú (solo móvil) */
+.nav-burger{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:none;border:none;color:var(--ink);cursor:pointer;padding:0}
+.nav-burger svg{width:24px;height:24px;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.nav-burger:active{transform:translateY(-50%) scale(.9)}
+/* grupo derecho: tema + carrito */
+.nav-right{position:absolute;right:12px;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:8px}
+.theme-tog{width:38px;height:38px;border:1px solid var(--line);border-radius:50%;background:var(--white);color:var(--ink);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .14s,background .15s;flex:0 0 auto}
+.theme-tog:active{transform:scale(.9)}
+.nav-bag:active{transform:scale(.91)}
+/* menú horizontal (solo escritorio) */
+.nav-menu{display:none}
+@media(min-width:700px){
+  nav{display:grid;grid-template-columns:1fr auto 1fr;justify-content:initial;gap:18px;padding:8px 30px}
+  .nav-burger{display:none}
+  .brand{justify-self:start;text-align:left}
+  .logo{font-size:22px}
+  .nav-menu{display:flex;justify-self:center;align-items:center;gap:24px}
+  .nav-menu button{background:none;border:none;font-family:var(--font);font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink);cursor:pointer;padding:6px 0;position:relative;white-space:nowrap}
+  .nav-menu button::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--ink);transform:scaleX(0);transition:transform .18s}
+  .nav-menu button:hover::after{transform:scaleX(1)}
+  .nav-right{position:static;transform:none;justify-self:end}
+}
+/* PANEL LATERAL MÓVIL (menú ☰) */
+.navdrawer{position:fixed;inset:0;z-index:600;display:none}
+.navdrawer.on{display:block}
+.nd-scrim{position:absolute;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(4px)}
+.nd-panel{position:absolute;left:0;top:0;bottom:0;width:min(82vw,330px);background:var(--white);box-shadow:6px 0 40px rgba(0,0,0,.3);transform:translateX(-100%);transition:transform .3s cubic-bezier(.32,.72,0,1);display:flex;flex-direction:column;padding-bottom:max(12px,env(safe-area-inset-bottom));overflow-y:auto;-webkit-overflow-scrolling:touch}
+.navdrawer.on .nd-panel{transform:translateX(0)}
+.nd-head{display:flex;align-items:center;justify-content:space-between;padding:18px 18px 14px;border-bottom:1px solid var(--line)}
+.nd-logo{font-size:15px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink)}
+.nd-x{width:34px;height:34px;border:none;background:none;color:var(--ink2);font-size:18px;cursor:pointer;border-radius:50%}
+.nd-links{display:flex;flex-direction:column;padding:6px 0}
+.nd-links button{text-align:left;background:none;border:none;border-bottom:1px solid var(--line);font-family:var(--font);font-size:16px;font-weight:600;color:var(--ink);padding:15px 20px;cursor:pointer;transition:background .12s}
+.nd-links button:active{background:var(--bg)}
+@media(min-width:700px){.navdrawer{display:none!important}}
+
+/* VENTANAS INFO (Mayoristas / Cambios) — reusan .guia-modal/.guia-wrap */
+.info-body{padding:26px 22px 30px}
+.info-kicker{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:5px 12px;margin-bottom:12px}
+.info-h1{font-size:24px;font-weight:700;line-height:1.12;letter-spacing:-.01em;color:var(--ink);text-transform:uppercase}
+.info-h1 .big{color:var(--red)}
+.info-lead{font-size:14px;color:var(--ink2);margin-top:10px;line-height:1.45}
+.info-subt{font-size:13px;font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 10px}
+.info-benes{display:flex;flex-direction:column;gap:9px}
+.info-bene{display:flex;align-items:flex-start;gap:9px;font-size:14.5px;font-weight:600;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.info-wa{margin-top:22px;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--wa);color:#fff;border:none;border-radius:12px;padding:15px;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;transition:transform .12s,filter .15s}
+.info-wa:hover{filter:brightness(1.05)}
+.info-wa:active{transform:scale(.98)}
+.info-sec{margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+.info-sec:first-of-type{border-top:none;padding-top:4px}
+.info-sec h3{font-size:14.5px;font-weight:700;color:var(--ink);margin-bottom:6px;letter-spacing:.01em}
+.info-sec p{font-size:13.5px;line-height:1.5;color:var(--ink2)}
+
 .admin-pill{background:var(--white);border:1.5px solid var(--line);border-radius:20px;padding:7px 14px;font-family:var(--font);font-size:11px;font-weight:600;color:var(--ink2);cursor:pointer;transition:all .15s}
 .admin-pill:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
 .bag-btn{position:relative;width:40px;height:40px;background:var(--ink);border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .14s}
@@ -744,23 +791,63 @@ nav .nav-bag:active{transform:translateY(-50%) scale(.91)}
 <script>try{if(localStorage.getItem('ss_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 
 <div class="annbar" role="note" aria-label="Envío gratis a toda Colombia">
-  <span class="annbar-ic">🚚</span>
+  <span class="annbar-ic">🎉</span>
   <span class="annbar-tx">
     <strong>ENVÍO GRATIS A TODA COLOMBIA</strong>
     <small>(hasta la puerta de tu casa)</small>
   </span>
 </div>
 <nav>
-  <button class="theme-tog" id="themeTog" onclick="toggleTheme()" aria-label="Cambiar tema">🌙</button>
+  <button class="nav-burger" onclick="openMenu()" aria-label="Abrir menú">
+    <svg viewBox="0 0 24 24" fill="none"><line x1="3" y1="8" x2="21" y2="8"/><line x1="3" y1="16" x2="21" y2="16"/></svg>
+  </button>
   <div class="brand">
     <div class="logo">CATALOGO SNEAKERS</div>
     <div class="brand-sub">Tu estilo. Tu par.</div>
   </div>
-  <button class="bag-btn nav-bag" onclick="openCart()">
-    <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-    <span class="bdot" id="bdot">0</span>
-  </button>
+  <div class="nav-menu">
+    <button onclick="openCatalog()">Productos</button>
+    <button onclick="openCatalog({gender:'h'})">Hombre</button>
+    <button onclick="openCatalog({gender:'m'})">Mujer</button>
+    <button onclick="openCatalog()">Unisex</button>
+    <button onclick="openCatalog({gender:'liq'})">Ofertas</button>
+    <button onclick="openInfo('mayoristas')">Mayoristas</button>
+    <button onclick="openInfo('cambios')">Cambios y Garantías</button>
+  </div>
+  <div class="nav-right">
+    <button class="theme-tog" id="themeTog" onclick="toggleTheme()" aria-label="Cambiar tema">🌙</button>
+    <button class="bag-btn nav-bag" onclick="openCart()">
+      <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      <span class="bdot" id="bdot">0</span>
+    </button>
+  </div>
 </nav>
+
+<!-- PANEL LATERAL MÓVIL (menú ☰) -->
+<div class="navdrawer" id="navDrawer" aria-hidden="true">
+  <div class="nd-scrim" onclick="closeMenu()"></div>
+  <aside class="nd-panel" role="dialog" aria-label="Menú">
+    <div class="nd-head"><span class="nd-logo">CATALOGO SNEAKERS</span><button class="nd-x" onclick="closeMenu()" aria-label="Cerrar">✕</button></div>
+    <div class="nd-links">
+      <button onclick="navGo()">Productos</button>
+      <button onclick="navGo('h')">Hombre</button>
+      <button onclick="navGo('m')">Mujer</button>
+      <button onclick="navGo('u')">Unisex</button>
+      <button onclick="navGo('liq')">Ofertas</button>
+      <button onclick="navGo('mayoristas')">Mayoristas</button>
+      <button onclick="navGo('cambios')">Cambios y Garantías</button>
+    </div>
+  </aside>
+</div>
+
+<!-- VENTANA INFO (Mayoristas / Cambios y Garantías) -->
+<div class="guia-modal info-modal" id="infoModal">
+  <div class="guia-scrim" onclick="closeInfo()"></div>
+  <div class="guia-wrap">
+    <button class="guia-close" onclick="closeInfo()">✕</button>
+    <div class="info-body" id="infoBody"></div>
+  </div>
+</div>
 
 <button class="wa-fab" id="waFab" onclick="openWA()" aria-label="Escríbenos por WhatsApp">
   <svg viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
@@ -1735,6 +1822,58 @@ function openCatalog(opts){
   v.scrollTop=0;
 }
 function closeCatalog(){const v=$('catView');if(v)v.classList.remove('on');unlockScroll();}
+
+/* ── MENÚ MÓVIL (panel lateral ☰) ── */
+function openMenu(){const d=$('navDrawer');if(!d)return;d.classList.add('on');lockScroll();}
+function closeMenu(){const d=$('navDrawer');if(!d)return;d.classList.remove('on');unlockScroll();}
+function navGo(t){
+  closeMenu();
+  if(t==='h')openCatalog({gender:'h'});
+  else if(t==='m')openCatalog({gender:'m'});
+  else if(t==='liq')openCatalog({gender:'liq'});
+  else if(t==='mayoristas')openInfo('mayoristas');
+  else if(t==='cambios')openInfo('cambios');
+  else openCatalog();   // Productos / Unisex → todos
+}
+
+/* ── VENTANAS INFO (Mayoristas / Cambios y Garantías) ── reusan el modal .guia-modal ── */
+const INFO_MAYORISTAS=`<div class="info-pad">
+  <span class="info-kicker">🤝 Mayoristas</span>
+  <h2 class="info-h1">Gana hasta un <span class="big">46%</span> de rentabilidad</h2>
+  <p class="info-lead">Vende sneakers originales y genera ingresos extra con nosotros. Te acompañamos en todo el proceso.</p>
+  <div class="info-subt">Beneficios de ser mayorista</div>
+  <div class="info-benes">
+    <div class="info-bene">✅ Producto 100% importado</div>
+    <div class="info-bene">✅ Calidad garantizada</div>
+    <div class="info-bene">✅ Envíos a toda Colombia</div>
+    <div class="info-bene">✅ Genera ingresos extra con nosotros</div>
+  </div>
+  <button class="info-wa" onclick="waMayoristas()">💬 Más información por WhatsApp</button>
+</div>`;
+const INFO_CAMBIOS=`<div class="info-pad">
+  <span class="info-kicker">🔄 Cambios y Garantía</span>
+  <h2 class="info-h1">Cambios y Garantías</h2>
+  <div class="info-sec"><h3>👟 Solo cambios por talla</h3><p>Si te equivocaste, los costos de envío van por tu cuenta. Si es defecto de fábrica 👉 ¡nosotros lo cubrimos! ✅</p></div>
+  <div class="info-sec"><h3>⏳ Tiempo para solicitar cambio</h3><p>Tienes 2 días hábiles después de recibir tu pedido. Pasado este tiempo no podremos hacer el cambio.</p></div>
+  <div class="info-sec"><h3>📦 Condiciones del producto</h3><p>Devuélvelos en la misma bolsa. Deben estar en perfecto estado (sin manchas, ni uso).</p></div>
+  <div class="info-sec"><h3>💸 Importante</h3><p>No hacemos devoluciones de dinero, ni cancelación de créditos. Si la talla no está disponible, podrás elegir entre otros modelos.</p></div>
+  <div class="info-sec"><h3>🕐 Proceso</h3><p>El cambio puede tardar 15 días hábiles aproximadamente.</p></div>
+  <div class="info-sec"><h3>✅ Garantía</h3><p>Tu compra tiene 1 mes de garantía por defectos de costura o despegue. En este caso, el cambio será sin costo adicional.</p></div>
+</div>`;
+function openInfo(which){
+  const b=$('infoBody');if(!b)return;
+  b.innerHTML=which==='mayoristas'?INFO_MAYORISTAS:INFO_CAMBIOS;
+  const m=$('infoModal');m.classList.add('on');lockScroll();
+  if(m.querySelector('.guia-wrap'))m.querySelector('.guia-wrap').scrollTop=0;
+}
+function closeInfo(){const m=$('infoModal');if(m)m.classList.remove('on');unlockScroll();}
+function waMayoristas(){
+  const msg=`¡Hola ${STORE_NAME}! 👟 Quiero información para ser MAYORISTA y vender sus sneakers. ¿Me cuentas cómo funciona? 🙏`;
+  try{trackEvent('lead',{});}catch(e){}
+  if(typeof px==='function')px('Lead',{content_name:'mayoristas',...getUTM()});
+  window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,'_blank');
+}
+
 // Preview del inicio: 6 modelos disponibles más recientes (prods viene ordenado por id asc).
 function renderPreview(){
   const sec=$('preview'),grid=$('previewGrid');if(!grid)return;
@@ -2240,7 +2379,7 @@ function descargarGuia(){
   document.body.classList.add('printing-guia');
   setTimeout(()=>{ window.print(); document.body.classList.remove('printing-guia'); },80);
 }
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closePhotoBtn();close360();closeGuia();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closePhotoBtn();close360();closeGuia();closeInfo();closeMenu();}});
 
 /* ── VISOR 360° ── */
 function set360(dest,on){
