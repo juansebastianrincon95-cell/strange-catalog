@@ -108,10 +108,34 @@ module.exports = async (req, res) => {
     return res.json({ ok: true });
   }
 
+  // Campos de operador comercial (no tocan el status de venta): estado del contacto por
+  // WhatsApp, temperatura del lead, motivo de no venta y nota interna del vendedor.
+  if (action === 'update_order_meta') {
+    if (!id) return res.status(400).json({ error: 'id required' });
+    const d = data || {};
+    const upd = {};
+    if ('wa_status' in d) {
+      if (d.wa_status !== null && !['sin_contactar', 'contactado', 'respondio', 'no_respondio'].includes(d.wa_status))
+        return res.status(400).json({ error: 'invalid wa_status' });
+      upd.wa_status = d.wa_status;
+    }
+    if ('temperatura' in d) {
+      if (d.temperatura !== null && !['frio', 'tibio', 'caliente'].includes(d.temperatura))
+        return res.status(400).json({ error: 'invalid temperatura' });
+      upd.temperatura = d.temperatura;
+    }
+    if ('motivo_no_venta' in d) upd.motivo_no_venta = d.motivo_no_venta == null ? null : String(d.motivo_no_venta).slice(0, 300);
+    if ('nota' in d) upd.nota = d.nota == null ? null : String(d.nota).slice(0, 500);
+    if (!Object.keys(upd).length) return res.status(400).json({ error: 'nothing to update' });
+    const { error } = await sb.from('orders').update(upd).eq('id', id);
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json({ ok: true });
+  }
+
   if (action === 'list_orders') {
     const { data: rows, error } = await sb
       .from('orders')
-      .select('id,created_at,fecha,nombre,cedula,tel,ciudad,barrio,direccion,pago,subtotal,envio,total,pares,items,status,reference,seccion,utm')
+      .select('id,created_at,fecha,nombre,cedula,tel,ciudad,barrio,direccion,pago,subtotal,envio,total,pares,items,status,reference,seccion,utm,wa_status,temperatura,motivo_no_venta,nota')
       .order('created_at', { ascending: false })
       .limit(500);
     if (error) return res.status(500).json({ error: error.message });

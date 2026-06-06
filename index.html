@@ -2693,6 +2693,7 @@ async function loadOrders(){
         id:o.id,fecha:o.fecha||o.created_at,subtotal:o.subtotal,envio:o.envio,total:o.total||0,pares:o.pares,
         pago:o.pago,ciudad:o.ciudad,barrio:o.barrio,nombre:o.nombre,tel:o.tel,
         cedula:o.cedula,direccion:o.direccion,utm:o.utm||null,
+        wa_status:o.wa_status,temperatura:o.temperatura,motivo_no_venta:o.motivo_no_venta,nota:o.nota,
         items:o.items,status:o.status,reference:o.reference,seccion:o.seccion
       }));
     }
@@ -2953,6 +2954,10 @@ function renderStatsTab(){
   // Tareas de hoy (solo las que tienen trabajo pendiente)
   const tareas=[];
   if(pendientes.length)tareas.push({txt:`Clasificar <b>${pendientes.length} pedido${pendientes.length===1?'':'s'} pendiente${pendientes.length===1?'':'s'}</b> como venta / no venta`,go:`avGo('leads','pending')`,ic:'⏳'});
+  const sinContactar=pendientes.filter(o=>!o.wa_status||o.wa_status==='sin_contactar').length;
+  if(sinContactar)tareas.push({txt:`Escribir a <b>${sinContactar} lead${sinContactar===1?'':'s'} sin contactar</b> por WhatsApp`,go:`avGo('leads','pending')`,ic:'📱'});
+  const calientes=orders.filter(o=>o.temperatura==='caliente'&&o.status!=='venta'&&o.status!=='no_venta').length;
+  if(calientes)tareas.push({txt:`Cerrar <b>${calientes} lead${calientes===1?'':'s'} caliente${calientes===1?'':'s'}</b> 🔥 — están listos para comprar`,go:`avGo('leads','pending')`,ic:'🔥'});
   if(aban24)tareas.push({txt:`Contactar <b>${aban24} carrito${aban24===1?'':'s'} abandonado${aban24===1?'':'s'}</b> de las últimas 24h`,go:`avGo('leads','abandoned')`,ic:'🛒'});
   if(agotados)tareas.push({txt:`<b>${agotados} producto${agotados===1?'':'s'} agotado${agotados===1?'':'s'}</b> — repón stock o libera la vitrina`,go:`avGo('productos')`,ic:'📦'});
   const card=(lbl,val,sub,go,color)=>`<div onclick="${go||''}" style="background:var(--white);border:1px solid var(--line);border-radius:14px;padding:14px 15px;${go?'cursor:pointer;':''}transition:box-shadow .15s" ${go?`onmouseover="this.style.boxShadow='0 6px 18px rgba(0,0,0,.08)'" onmouseout="this.style.boxShadow='none'"`:''}>
@@ -3040,6 +3045,12 @@ function renderLeadsTab(){
           💰 <b>${fmt(o.total||0)}</b>${o.pago?` · ${escHtml(pagoLabels[o.pago]||o.pago)}`:''}
           ${o.fecha?`<br><span style="color:var(--ink3);font-size:10px">${new Date(o.fecha).toLocaleString('es-CO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</span>`:''}
         </div>
+        ${o.motivo_no_venta?`<div style="font-size:11px;color:#b3541e;background:#fdf3ec;border-radius:8px;padding:6px 9px;margin-top:7px">✕ Motivo: ${escHtml(o.motivo_no_venta)}</div>`:''}
+        ${o.nota?`<div style="font-size:11px;color:var(--ink2);background:#fffbe8;border-radius:8px;padding:6px 9px;margin-top:6px">📝 ${escHtml(o.nota)}</div>`:''}
+        <div style="display:flex;gap:5px;margin-top:9px;flex-wrap:wrap">
+          ${chipWa(o)}${chipTemp(o)}
+          <button onclick="leadNota(${o.id})" style="padding:6px 10px;border:1px solid var(--line);border-radius:14px;background:var(--white);font-family:var(--font);font-size:10.5px;font-weight:700;color:var(--ink2);cursor:pointer">📝 Nota</button>
+        </div>
         <div style="display:flex;gap:6px;margin-top:9px">
           <button onclick="updateOrderStatus(${o.id},'venta')" style="flex:1;padding:9px;border:none;border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;background:${o.status==='venta'?'#1BA94C':'#E7F6EC'};color:${o.status==='venta'?'#fff':'#1BA94C'}">✓ Venta</button>
           <button onclick="updateOrderStatus(${o.id},'no_venta')" style="flex:1;padding:9px;border:none;border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;background:${o.status==='no_venta'?'#E8200A':'#FDEAE8'};color:${o.status==='no_venta'?'#fff':'#E8200A'}">✕ No venta</button>
@@ -3049,9 +3060,51 @@ function renderLeadsTab(){
 }
 async function updateOrderStatus(id,status){
   const o=orders.find(x=>x.id===id);if(!o)return;
+  // Al marcar NO VENTA, pedir el motivo (contexto para remarketing y para aprender qué falla).
+  if(status==='no_venta'&&o.status!=='no_venta'){
+    const motivo=prompt('¿Por qué no compró? (precio, talla, desconfianza, dejó de responder…)',o.motivo_no_venta||'');
+    if(motivo!==null&&motivo.trim())updateOrderMeta(id,{motivo_no_venta:motivo.trim()});
+  }
   const prev=o.status;o.status=status;renderLeadsTab();
   try{await adminWrite('update_order',{id,data:{status}});}
   catch(e){o.status=prev;renderLeadsTab();alert('No se pudo guardar: '+e.message);}
+}
+/* ── Campos de operador: estado WhatsApp, temperatura, nota ── */
+const WA_STATES=[null,'sin_contactar','contactado','respondio','no_respondio'];
+const WA_LABELS={sin_contactar:'📵 Sin contactar',contactado:'📤 Contactado',respondio:'💬 Respondió',no_respondio:'🔇 No respondió'};
+const TEMP_STATES=[null,'frio','tibio','caliente'];
+const TEMP_LABELS={frio:'🧊 Frío',tibio:'🌤 Tibio',caliente:'🔥 Caliente'};
+function chipWa(o){
+  const v=o.wa_status||null;
+  const lbl=v?WA_LABELS[v]:'📱 Estado WA';
+  const on=v?'background:var(--ink);color:#fff;border-color:var(--ink)':'background:var(--white);color:var(--ink2)';
+  return `<button onclick="cycleLeadField(${o.id},'wa_status')" style="padding:6px 10px;border:1px solid var(--line);border-radius:14px;font-family:var(--font);font-size:10.5px;font-weight:700;cursor:pointer;${on}">${lbl}</button>`;
+}
+function chipTemp(o){
+  const v=o.temperatura||null;
+  const lbl=v?TEMP_LABELS[v]:'🌡 Temperatura';
+  const col=v==='caliente'?'background:#E8200A;color:#fff;border-color:#E8200A':v==='tibio'?'background:#F2A900;color:#fff;border-color:#F2A900':v==='frio'?'background:#5b9bd5;color:#fff;border-color:#5b9bd5':'background:var(--white);color:var(--ink2)';
+  return `<button onclick="cycleLeadField(${o.id},'temperatura')" style="padding:6px 10px;border:1px solid var(--line);border-radius:14px;font-family:var(--font);font-size:10.5px;font-weight:700;cursor:pointer;${col}">${lbl}</button>`;
+}
+function cycleLeadField(id,campo){
+  const o=orders.find(x=>x.id===id);if(!o)return;
+  const estados=campo==='wa_status'?WA_STATES:TEMP_STATES;
+  const idx=estados.indexOf(o[campo]||null);
+  const nuevo=estados[(idx+1)%estados.length];
+  updateOrderMeta(id,{[campo]:nuevo});
+}
+function leadNota(id){
+  const o=orders.find(x=>x.id===id);if(!o)return;
+  const nota=prompt('Nota interna del vendedor:',o.nota||'');
+  if(nota===null)return;
+  updateOrderMeta(id,{nota:nota.trim()||null});
+}
+async function updateOrderMeta(id,campos){
+  const o=orders.find(x=>x.id===id);if(!o)return;
+  const prev={};Object.keys(campos).forEach(k=>prev[k]=o[k]);
+  Object.assign(o,campos);renderLeadsTab();
+  try{await adminWrite('update_order_meta',{id,data:campos});}
+  catch(e){Object.assign(o,prev);renderLeadsTab();alert('No se pudo guardar: '+e.message);}
 }
 
 function startEP(id,type){

@@ -107,7 +107,11 @@ create table if not exists orders (
   utm        jsonb,
   referrer   text,
   seccion    text,
-  session_id text
+  session_id text,
+  wa_status        text,   -- operador: sin_contactar | contactado | respondio | no_respondio
+  temperatura      text,   -- operador: frio | tibio | caliente
+  motivo_no_venta  text,   -- operador: por qué no compró
+  nota             text    -- operador: nota interna del vendedor
 );
 
 alter table orders enable row level security;
@@ -125,6 +129,10 @@ alter table liq_products add column if not exists imgs text;
 alter table orders add column if not exists subtotal integer;
 alter table orders add column if not exists envio integer;
 alter table orders add column if not exists session_id text;
+alter table orders add column if not exists wa_status text;
+alter table orders add column if not exists temperatura text;
+alter table orders add column if not exists motivo_no_venta text;
+alter table orders add column if not exists nota text;
 create index if not exists orders_reference_idx on orders(reference);
 create index if not exists orders_session_status_idx on orders(session_id, status);
 create index if not exists orders_status_created_idx on orders(status, created_at);

@@ -154,15 +154,19 @@ module.exports = async (req, res) => {
       venta:      ventas.length,
       no_venta:   noVenta.length,
       abandoned:  abandonados.length,
-      // Interesados que NO compraron → audiencia de remarketing (subir a Meta Custom Audience)
+      // Interesados que NO compraron → audiencia de remarketing (subir a Meta Custom Audience).
+      // Incluye contexto del operador: estado WhatsApp, temperatura, motivo y nota.
       no_venta_contacts: noVenta.map(o => ({
         nombre: o.nombre, tel: o.tel, ciudad: o.ciudad,
-        subtotal: prodValue(o), items: o.items, utm: o.utm, fecha: o.fecha
+        subtotal: prodValue(o), items: o.items, utm: o.utm, fecha: o.fecha,
+        wa_status: o.wa_status || null, temperatura: o.temperatura || null,
+        motivo_no_venta: o.motivo_no_venta || null, nota: o.nota || null
       })),
       // Carritos abandonados: llenaron datos pero no confirmaron → remarketing más caliente aún
       abandoned_contacts: abandonados.map(o => ({
         nombre: o.nombre, tel: o.tel, ciudad: o.ciudad,
-        subtotal: prodValue(o), items: o.items, utm: o.utm, fecha: o.fecha
+        subtotal: prodValue(o), items: o.items, utm: o.utm, fecha: o.fecha,
+        wa_status: o.wa_status || null, temperatura: o.temperatura || null, nota: o.nota || null
       }))
     },
     // Suscriptores del popup de bienvenida ($20.000 OFF) → audiencia de remarketing / promos de cumpleaños.
