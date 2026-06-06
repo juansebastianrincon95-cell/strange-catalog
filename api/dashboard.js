@@ -349,11 +349,12 @@ module.exports = async (req, res) => {
       }
     }
 
-    // ROAS ATRIBUIDO (Codex #6): solo campañas con gasto Y cruce — mide TUS campañas del
-    // catálogo, sin que otras campañas de la cuenta Meta (otras marcas/pruebas) lo ensucien.
-    const conGasto = campanas.filter(c => c.inversion > 0);
-    const invAtr = conGasto.reduce((s, c) => s + c.inversion, 0);
-    const facAtr = conGasto.reduce((s, c) => s + c.facturacion, 0);
+    // ROAS ATRIBUIDO (Codex, FASE M): SOLO campañas con gasto Y ventas cruzadas — mide tus
+    // campañas del catálogo. Campañas con gasto y 0 ventas (otras marcas, pruebas, o que aún
+    // no convierten) siguen visibles en la tabla con CTR/CPC/CPM pero NO entran aquí.
+    const conCruce = campanas.filter(c => c.inversion > 0 && c.compras > 0);
+    const invAtr = conCruce.reduce((s, c) => s + c.inversion, 0);
+    const facAtr = conCruce.reduce((s, c) => s + c.facturacion, 0);
     const roas_atribuido = invAtr > 0 ? +(facAtr / invAtr).toFixed(2) : null;
 
     return res.json({

@@ -138,6 +138,13 @@ async function getOrderByReference(reference) {
   return data;
 }
 
+// content_ids para Pixel/CAPI con el MISMO formato del feed de Meta (cat_34 / liq_34) —
+// así Events Manager asocia cada Purchase a los productos del catálogo (FASE M).
+function contentIdsDe(items) {
+  if (!Array.isArray(items)) return [];
+  return items.map(it => (it.type === 'liq' ? 'liq_' : 'cat_') + parseInt(it.id)).filter(s => !s.endsWith('_NaN'));
+}
+
 async function confirmPaidOrder({ reference, amount, amountInCents, currency = 'COP', eventSourceUrl, req }) {
   const sb = serviceClient();
   const order = await getOrderByReference(reference);
@@ -155,6 +162,7 @@ async function confirmPaidOrder({ reference, amount, amountInCents, currency = '
       eventName: 'Purchase',
       value: expected,
       currency: 'COP',
+      contentIds: contentIdsDe(order.items),
       phone: order.tel, city: order.ciudad, name: order.nombre,
       fbp: utm.fbp, fbc: utm.fbc, clientIp, clientUserAgent: req && req.headers['user-agent'],
       eventId: String(order.reference || order.id) + '_purchase',
@@ -165,4 +173,4 @@ async function confirmPaidOrder({ reference, amount, amountInCents, currency = '
   return { ok: true, order: { ...order, status: 'venta' } };
 }
 
-module.exports = { anonClient, serviceClient, cleanText, calculateOrder, createOrder, getOrderByReference, confirmPaidOrder };
+module.exports = { anonClient, serviceClient, cleanText, calculateOrder, createOrder, getOrderByReference, confirmPaidOrder, contentIdsDe };

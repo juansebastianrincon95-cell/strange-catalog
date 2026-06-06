@@ -83,7 +83,13 @@ async function sendEvent({ eventName, value, currency = 'COP', phone, city, name
   if (eventId) event.event_id = eventId;
   if (eventSourceUrl) event.event_source_url = eventSourceUrl;
 
-  const r = await post(`${PIXEL}/events?access_token=${TOKEN}`, { data: [event] });
+  // Con META_TEST_EVENT_CODE puesto en Vercel, los eventos caen en la pestaña "Probar eventos"
+  // de Events Manager (validación sin ensuciar datos reales). Quitar el env = producción normal.
+  const payload = { data: [event] };
+  const testCode = (process.env.META_TEST_EVENT_CODE || '').trim();
+  if (testCode) payload.test_event_code = testCode;
+
+  const r = await post(`${PIXEL}/events?access_token=${TOKEN}`, payload);
   return !!(r && r.status >= 200 && r.status < 300);
 }
 

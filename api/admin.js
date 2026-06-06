@@ -1,5 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const { sendEvent } = require('./_capi');
+const { contentIdsDe } = require('./_orders');
 const { requireAdmin, renewIfActive } = require('./_admin_auth');
 const crypto = require('crypto');
 
@@ -85,14 +86,16 @@ module.exports = async (req, res) => {
 
     // Leer el pedido antes de actualizar (para CAPI y para no re-disparar si ya era venta)
     const { data: order } = await sb.from('orders')
-      .select('subtotal,total,tel,ciudad,nombre,reference,status,utm')
+      .select('subtotal,total,tel,ciudad,nombre,reference,status,utm,items')
       .eq('id', id).single();
 
     const { error } = await sb.from('orders').update({ status }).eq('id', id);
     if (error) return res.status(500).json({ error: error.message });
 
     // Si pasa a 'venta' (y no lo era ya), enviar Purchase real a Meta vía CAPI.
-    // event_id idempotente por pedido → dedup con cualquier Pixel previo.
+    // eventId = MISMO que usan el webhook de pago y el Pixel del navegador
+    // ({reference}_purchase) → Meta dedup aunque el Purchase llegue por los 3 caminos.
+    // content_ids en formato del feed (cat_/liq_) para asociarlo al catálogo (FASE M).
     // Nota: IP/UA NO se envían aquí (serían los del vendedor, no del cliente); sí fbp/fbc del pedido.
     if (status === 'venta' && order && order.status !== 'venta') {
       const utm = order.utm || {};
@@ -100,9 +103,10 @@ module.exports = async (req, res) => {
         eventName: 'Purchase',
         value: order.subtotal != null ? order.subtotal : order.total,
         currency: 'COP',
+        contentIds: contentIdsDe(order.items),
         phone: order.tel, city: order.ciudad, name: order.nombre,
         fbp: utm.fbp, fbc: utm.fbc,
-        eventId: 'order_' + id + '_purchase',
+        eventId: String(order.reference || ('order_' + id)) + '_purchase',
         actionSource: 'business_messaging'
       }).catch(() => {});
     }
