@@ -3293,23 +3293,8 @@ function renderStatsTab(){
     </div>`;
     return;
   }
-  const tot=orders.length;
-  // INGRESOS HONESTOS: solo ventas confirmadas (status='venta') y solo producto (subtotal sin
-  // flete) — consistente con /api/dashboard y /api/catalog. Antes sumaba TODOS los pedidos.
-  const prodVal=o=>(o.subtotal!=null?o.subtotal:(o.total||0));
-  const ventas=orders.filter(o=>o.status==='venta');
-  const ingresos=ventas.reduce((s,o)=>s+prodVal(o),0);
-  const avg=ventas.length?Math.round(ingresos/ventas.length):0;
-  const hace30=Date.now()-30*24*60*60*1000;
-  const ventas30=ventas.filter(o=>new Date(o.fecha).getTime()>=hace30).length;
-  const ciudadMap={};
-  orders.forEach(o=>{const c=(o.ciudad||'?').trim().toLowerCase();ciudadMap[c]=(ciudadMap[c]||0)+1;});
-  const topCiudades=Object.entries(ciudadMap).sort((a,b)=>b[1]-a[1]).slice(0,3);
-  const pagoMap={};
-  orders.forEach(o=>{pagoMap[o.pago]=(pagoMap[o.pago]||0)+1;});
-  const topPago=Object.entries(pagoMap).sort((a,b)=>b[1]-a[1])[0];
-  const pagoLabels={contra_entrega:'Contra entrega',pago_anticipado:'Pago anticipado',wompi:'Wompi',bold:'Bold',credito:'Crédito (Addi/Sistecrédito)',nequi:'Nequi',bancolombia:'Bancolombia',addi:'Addi',sistecredito:'Sistecrédito'};
-  // ── INICIO DE OPERADOR: conteos accionables + tareas de hoy ──
+  // ── INICIO DE OPERADOR: tareas de hoy (lo operativo). Las métricas de negocio
+  //    viven abajo en el bloque ANALYTICS, servidas por /api/dashboard (FASE K). ──
   const pendientes=orders.filter(o=>o.status!=='venta'&&o.status!=='no_venta'&&o.status!=='abandoned');
   const abandonados=orders.filter(o=>o.status==='abandoned');
   const hace24=Date.now()-24*60*60*1000;
@@ -3329,29 +3314,7 @@ function renderStatsTab(){
   if(seguirHoy)tareas.push({txt:`Hacer seguimiento a <b>${seguirHoy} lead${seguirHoy===1?'':'s'}</b> con fecha cumplida 📅`,go:`avGo('leads','pending')`,ic:'📅'});
   if(aban24)tareas.push({txt:`Contactar <b>${aban24} carrito${aban24===1?'':'s'} abandonado${aban24===1?'':'s'}</b> de las últimas 24h`,go:`avGo('leads','abandoned')`,ic:'🛒'});
   if(agotados)tareas.push({txt:`<b>${agotados} producto${agotados===1?'':'s'} agotado${agotados===1?'':'s'}</b> — repón stock o libera la vitrina`,go:`avGo('productos')`,ic:'📦'});
-  const card=(lbl,val,sub,go,color)=>`<div onclick="${go||''}" style="background:var(--white);border:1px solid var(--line);border-radius:14px;padding:14px 15px;${go?'cursor:pointer;':''}transition:box-shadow .15s" ${go?`onmouseover="this.style.boxShadow='0 6px 18px rgba(0,0,0,.08)'" onmouseout="this.style.boxShadow='none'"`:''}>
-      <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:5px">${lbl}</div>
-      <div style="font-size:24px;font-weight:700;letter-spacing:-.04em;${color?`color:${color}`:''}">${val}</div>
-      ${sub?`<div style="font-size:9.5px;color:var(--ink3);margin-top:3px">${sub}</div>`:''}
-    </div>`;
   el.innerHTML=`<div style="padding:14px 16px 24px;overflow-y:auto;flex:1;min-height:0">
-    <div class="av-cards" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px">
-      ${card('Ingresos confirmados',fmt(ingresos),'Solo producto, sin flete · '+ventas.length+' venta'+(ventas.length===1?'':'s'),null,'var(--green)')}
-      ${card('Ticket promedio',fmt(avg),ventas30+' venta'+(ventas30===1?'':'s')+' en 30 días',null,null)}
-      ${card('Pedidos pendientes',pendientes.length,'por clasificar →',`avGo('leads','pending')`,pendientes.length?'#F2A900':null)}
-      ${card('Carritos abandonados',abandonados.length,'remarketing caliente →',`avGo('leads','abandoned')`,abandonados.length?'#8A6D00':null)}
-      ${card('Disponibles',disponibles,'en vitrina →',`avGo('productos')`,null)}
-      ${card('Agotados',agotados,agotados?'repón o despeja →':'todo disponible',`avGo('productos')`,agotados?'var(--red)':null)}
-      ${(()=>{ // Margen estimado: ventas − costo, solo sobre ítems con costo registrado
-        if(!Object.keys(costos).length||!ventas.length)return '';
-        let m=0,con=0;
-        ventas.forEach(o=>(o.items||[]).forEach(it=>{
-          const c=costos[(it.type==='liq'?'liq':'cat')+':'+it.id];
-          if(c!=null){m+=(it.precio||0)-c*(parseInt(it.qty)||1);con++;}
-        }));
-        return con?card('Margen estimado',fmt(m),'ventas − costo · solo ítems con costo',null,m>=0?'var(--green)':'var(--red)'):'';
-      })()}
-    </div>
     <div style="background:var(--white);border:1px solid var(--line);border-radius:14px;padding:13px 15px;margin-bottom:14px">
       <div style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);margin-bottom:9px">✅ Tareas de hoy</div>
       ${tareas.length?tareas.map(t=>`<div onclick="${t.go}" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);cursor:pointer">
@@ -3360,37 +3323,10 @@ function renderStatsTab(){
         <span style="color:var(--ink3);font-size:13px">→</span>
       </div>`).join(''):`<div style="font-size:12.5px;color:var(--green);font-weight:600;padding:4px 0">✅ Al día — no hay tareas pendientes.</div>`}
     </div>
-    ${(()=>{ // 📣 Campañas con ventas: SOLO plata real (status='venta'), agrupada por utm_campaign
-      if(!ventas.length)return '';
-      const camp={};
-      ventas.forEach(o=>{
-        const k=(o.utm&&o.utm.utm_campaign)||'(sin campaña)';
-        if(!camp[k])camp[k]={n:0,ing:0};
-        camp[k].n++;camp[k].ing+=prodVal(o);
-      });
-      const top=Object.entries(camp).sort((a,b)=>b[1].ing-a[1].ing).slice(0,5);
-      return `<div style="background:var(--white);border:1px solid var(--line);border-radius:14px;padding:13px 15px;margin-bottom:14px">
-        <div style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);margin-bottom:9px">📣 Campañas con ventas</div>
-        ${top.map(([k,v],i)=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;${i<top.length-1?'border-bottom:1px solid var(--line)':''}">
-          <span style="flex:1;min-width:0;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(k)}</span>
-          <span style="font-size:11px;color:var(--ink2);font-weight:600;flex-shrink:0">${v.n} venta${v.n===1?'':'s'}</span>
-          <b style="font-size:12.5px;color:var(--green);flex-shrink:0">${fmt(v.ing)}</b>
-        </div>`).join('')}
-      </div>`;
-    })()}
-    <div style="background:var(--bg);border-radius:12px;padding:12px 14px;margin-bottom:8px">
-      <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:8px">🏙 Top ciudades</div>
-      ${topCiudades.map(([c,n],i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;${i<topCiudades.length-1?'border-bottom:1px solid var(--line)':''}">
-        <span style="font-size:13px;font-weight:600;text-transform:capitalize">${escHtml(c)}</span>
-        <span style="font-size:11px;color:var(--ink2);font-weight:600">${n} pedido${n>1?'s':''}</span>
-      </div>`).join('')}
-    </div>
-    ${topPago?`<div style="background:var(--bg);border-radius:12px;padding:12px 14px;margin-bottom:12px">
-      <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px">💳 Pago más usado</div>
-      <div style="font-size:15px;font-weight:700">${escHtml(pagoLabels[topPago[0]]||topPago[0])} <span style="color:var(--ink3);font-size:12px;font-weight:500">${topPago[1]} pedido${topPago[1]>1?'s':''}</span></div>
-    </div>`:''}
-    <button onclick="exportOrders()" style="width:100%;padding:11px;background:var(--ink);color:#fff;border:none;border-radius:11px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;margin-bottom:8px">📤 Exportar datos para IA</button>
+    <div id="anaWrap"></div>
+    <button onclick="exportOrders()" style="width:100%;padding:11px;background:var(--ink);color:#fff;border:none;border-radius:11px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;margin:6px 0 8px">📤 Exportar datos para IA</button>
   </div>`;
+  renderAnalytics();
 }
 function exportOrders(){
   const data={contexto:`Historial de pedidos de ${STORE_NAME}. Exportado el ${new Date().toLocaleString('es-CO')}. Úsalo para analizar tendencias, ciudades top, métodos de pago y promedio de ticket.`,pedidos:orders};
@@ -3398,6 +3334,186 @@ function exportOrders(){
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download=`pedidos-${STORE_NAME.toLowerCase()}-${new Date().toISOString().slice(0,10)}.json`;
   a.click();URL.revokeObjectURL(a.href);
+}
+
+/* ══ ANALYTICS (FASE K): panel tipo Shopify servido por /api/dashboard ══
+   Rango + 6 tarjetas con Δ% vs periodo anterior + gráfica SVG + desglose contable +
+   embudo + clientes nuevos/recurrentes + productos ganadores + campañas con ROAS/CTR/CPC. */
+let anaRango='30d',anaGroup='day';
+function setAnaRango(r){anaRango=r;renderAnalytics();}
+function setAnaGroup(g){anaGroup=g;renderAnalytics();}
+function _anaParams(){
+  const hoy=_hoyKey(0);
+  if(anaRango==='hoy')return{since:hoy,until:hoy};
+  if(anaRango==='ayer'){const a=_hoyKey(1);return{since:a,until:a};}
+  if(anaRango==='7d')return{since:_hoyKey(6),until:hoy};
+  if(anaRango==='30d')return{since:_hoyKey(29),until:hoy};
+  if(anaRango==='mes')return{since:hoy.slice(0,7)+'-01',until:hoy};
+  if(anaRango==='mespasado'){
+    const [y,m]=hoy.split('-').map(Number);
+    const fin=new Date(Date.UTC(y,m-1,1)-86400000).toISOString().slice(0,10); // último día mes anterior
+    return{since:fin.slice(0,7)+'-01',until:fin};
+  }
+  return null; // 'all' = lifetime
+}
+function _abrev(n){
+  n=Math.round(n||0);const a=Math.abs(n);
+  if(a>=1e6)return '$'+String((n/1e6).toFixed(1)).replace('.',',').replace(/,0$/,'')+'M';
+  if(a>=1e3)return '$'+Math.round(n/1e3)+'K';
+  return '$'+n;
+}
+function _delta(cur,prev,fmtFn){
+  // Δ% vs periodo anterior: ▲ verde / ▼ rojo / — gris. prev null = sin comparación.
+  if(prev==null)return `<span style="font-size:10px;color:var(--ink3)">—</span>`;
+  if(!prev)return cur>0?`<span style="font-size:10px;color:var(--green);font-weight:700">▲ nuevo</span>`:`<span style="font-size:10px;color:var(--ink3)">—</span>`;
+  const d=(cur-prev)/prev*100;
+  if(Math.abs(d)<0.5)return `<span style="font-size:10px;color:var(--ink3)">— igual</span>`;
+  const up=d>0;
+  return `<span title="Periodo anterior: ${fmtFn?fmtFn(prev):prev}" style="font-size:10px;font-weight:700;color:${up?'var(--green)':'var(--red)'}">${up?'▲':'▼'} ${Math.abs(d).toFixed(0)}%</span>`;
+}
+function _kLabel(k){
+  // etiqueta corta de un bucket: día '6 jun' · semana 'sem 1 jun' · mes 'jun 26'
+  if(/^\d{4}-\d{2}$/.test(k)){const [y,m]=k.split('-').map(Number);return new Date(Date.UTC(y,m-1,1)).toLocaleDateString('es-CO',{month:'short',timeZone:'UTC'})+' '+String(y).slice(2);}
+  const [y,m,d]=k.split('-').map(Number);
+  return new Date(Date.UTC(y,m-1,d)).toLocaleDateString('es-CO',{day:'numeric',month:'short',timeZone:'UTC'});
+}
+function _svgSerie(serie){
+  if(!serie||!serie.length)return `<div style="padding:26px;text-align:center;color:var(--ink3);font-size:12px">Sin ventas en este rango.</div>`;
+  const W=680,H=210,pL=48,pR=12,pT=14,pB=30,iw=W-pL-pR,ih=H-pT-pB;
+  const maxV=Math.max(...serie.map(p=>p.netas),1);
+  const maxP=Math.max(...serie.map(p=>p.pedidos),1);
+  const X=i=>serie.length===1?pL+iw/2:pL+i*(iw/(serie.length-1));
+  const Y=v=>pT+ih-(v/maxV)*ih, YP=v=>pT+ih-(v/maxP)*ih;
+  let lin='',area=`M${X(0).toFixed(1)},${(pT+ih).toFixed(1)}`,linP='',dots='';
+  serie.forEach((p,i)=>{
+    const x=X(i).toFixed(1),y=Y(p.netas).toFixed(1),yp=YP(p.pedidos).toFixed(1);
+    lin+=(i?' L':'M')+x+','+y; area+=` L${x},${y}`; linP+=(i?' L':'M')+x+','+yp;
+    const t=`${_kLabel(p.k)} · ${fmt(p.netas)} · ${p.pedidos} pedido${p.pedidos===1?'':'s'}`;
+    dots+=`<circle cx="${x}" cy="${y}" r="3.4" fill="var(--green)"><title>${escHtml(t)}</title></circle>`;
+  });
+  area+=` L${X(serie.length-1).toFixed(1)},${(pT+ih).toFixed(1)} Z`;
+  // hasta 6 etiquetas en X
+  const step=Math.max(1,Math.ceil(serie.length/6));
+  let xlab='';
+  serie.forEach((p,i)=>{if(i%step===0||i===serie.length-1)xlab+=`<text x="${X(i).toFixed(1)}" y="${H-8}" text-anchor="middle" font-size="9.5" fill="#8a8a85">${escHtml(_kLabel(p.k))}</text>`;});
+  // 3 guías horizontales
+  let guias='';[1,0.5,0].forEach(f=>{const y=(pT+ih-f*ih).toFixed(1);guias+=`<line x1="${pL}" y1="${y}" x2="${W-pR}" y2="${y}" stroke="#eceae6" stroke-width="1"/><text x="${pL-5}" y="${+y+3}" text-anchor="end" font-size="9.5" fill="#8a8a85">${_abrev(maxV*f)}</text>`;});
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block">
+    <defs><linearGradient id="anaGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1BA94C" stop-opacity=".22"/><stop offset="100%" stop-color="#1BA94C" stop-opacity="0"/></linearGradient></defs>
+    ${guias}
+    <path d="${area}" fill="url(#anaGrad)"/>
+    <path d="${lin}" fill="none" stroke="var(--green)" stroke-width="2.2" stroke-linejoin="round"/>
+    <path d="${linP}" fill="none" stroke="#5D2D91" stroke-width="1.4" stroke-dasharray="4 3" opacity=".75"/>
+    ${dots}${xlab}
+  </svg>
+  <div style="display:flex;gap:14px;justify-content:center;font-size:10px;color:var(--ink3);margin-top:2px">
+    <span><span style="display:inline-block;width:14px;height:3px;background:var(--green);border-radius:2px;vertical-align:middle"></span> Ventas netas</span>
+    <span><span style="display:inline-block;width:14px;height:0;border-top:2px dashed #5D2D91;vertical-align:middle"></span> Pedidos</span>
+  </div>`;
+}
+function _embudo(f){
+  if(!f)return '';
+  const pasos=[['👀 Sesiones',f.sessions],['👟 Vieron producto',f.view_product],['🛒 Agregaron al carrito',f.add_to_cart],['💳 Iniciaron checkout',f.initiate_checkout],['📱 Lead WhatsApp',f.leads],['✅ Venta',f.ventas]];
+  const max=Math.max(...pasos.map(p=>p[1]),1);
+  return pasos.map((p,i)=>{
+    const prev=i?pasos[i-1][1]:null;
+    const tasa=prev?Math.round(p[1]/prev*100):null;
+    const w=Math.max(2,p[1]/max*100);
+    return `<div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+      <span style="flex:0 0 148px;font-size:11px;font-weight:600;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p[0]}</span>
+      <div style="flex:1;background:var(--bg);border-radius:6px;height:18px;overflow:hidden"><div style="width:${w}%;height:100%;background:${i===pasos.length-1?'var(--green)':'#b9b4ab'};border-radius:6px"></div></div>
+      <b style="flex:0 0 44px;text-align:right;font-size:12px">${p[1]}</b>
+      <span style="flex:0 0 44px;text-align:right;font-size:10px;color:${tasa!=null&&tasa<10?'var(--red)':'var(--ink3)'}">${tasa!=null?tasa+'%':''}</span>
+    </div>`;
+  }).join('');
+}
+function _anaBloque(titulo,inner){
+  return `<div style="background:var(--white);border:1px solid var(--line);border-radius:14px;padding:13px 15px;margin-bottom:14px">
+    <div style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);margin-bottom:9px">${titulo}</div>${inner}</div>`;
+}
+async function renderAnalytics(){
+  const box=$('anaWrap');if(!box)return;
+  const RANGOS=[['hoy','Hoy'],['ayer','Ayer'],['7d','7 días'],['30d','30 días'],['mes','Este mes'],['mespasado','Mes pasado'],['all','Todo']];
+  const chips=`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px">${RANGOS.map(([v,t])=>`<button onclick="setAnaRango('${v}')" style="padding:6px 11px;border:1px solid ${anaRango===v?'var(--ink)':'var(--line)'};border-radius:14px;background:${anaRango===v?'var(--ink)':'var(--white)'};color:${anaRango===v?'#fff':'var(--ink2)'};font-family:var(--font);font-size:10.5px;font-weight:700;cursor:pointer">${t}</button>`).join('')}</div>`;
+  const key=anaRango+'|'+anaGroup;
+  window._anaCache=window._anaCache||{};
+  const hit=window._anaCache[key];
+  let j=hit&&(Date.now()-hit.t<5*60*1000)?hit.j:null;   // cache 5 min (no golpear Meta en cada render)
+  if(!j){
+    box.innerHTML=chips+`<div style="padding:28px;text-align:center;color:var(--ink3);font-size:12px">📊 Cargando analytics…</div>`;
+    try{
+      const p=_anaParams();
+      const qs=new URLSearchParams();if(p){qs.set('since',p.since);qs.set('until',p.until);}qs.set('group',anaGroup);
+      const r=await fetch('/api/dashboard?'+qs.toString(),{cache:'no-store'});
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      j=await r.json();
+      window._anaCache[key]={t:Date.now(),j};
+    }catch(e){
+      box.innerHTML=chips+`<div style="padding:22px;text-align:center;color:var(--ink3);font-size:12px">No se pudo cargar analytics (${escHtml(e.message)}).<br><button onclick="renderAnalytics()" style="margin-top:9px;padding:8px 16px;border:1px solid var(--line);border-radius:9px;background:var(--white);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">Reintentar</button></div>`;
+      return;
+    }
+    if(anaRango+'|'+anaGroup!==key)return; // el usuario cambió de rango mientras cargaba
+  }
+  const R=j.resumen||{},P=j.resumen_prev,C=j.clientes||{};
+  const tcard=(lbl,val,delta,def)=>`<div title="${escHtml(def||'')}" style="background:var(--white);border:1px solid var(--line);border-radius:14px;padding:12px 13px">
+      <div style="font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px">${lbl}</div>
+      <div style="font-size:20px;font-weight:700;letter-spacing:-.04em;white-space:nowrap">${val}</div>
+      <div style="margin-top:3px">${delta}</div>
+    </div>`;
+  const cards=`<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px">
+    ${tcard('Ventas netas',_abrev(R.ventas_netas),_delta(R.ventas_netas,P?P.ventas_netas:null,fmt),'Producto post-descuento, sin flete → base del ROAS')}
+    ${tcard('Pedidos (ventas)',R.pedidos||0,_delta(R.pedidos,P?P.pedidos:null),'Solo pedidos marcados como VENTA')}
+    ${tcard('Valor medio pedido',_abrev(R.aov),_delta(R.aov,P?P.aov:null,fmt),'Ventas netas ÷ pedidos (AOV)')}
+    ${tcard('ROAS',j.roas_promedio!=null?j.roas_promedio:'—',`<span style="font-size:10px;color:var(--ink3)">${j.inversion_total!=null?'inv. '+_abrev(j.inversion_total):'sin dato de Meta'}</span>`,'Ventas netas ÷ inversión en Meta del rango')}
+    ${tcard('Margen estimado',_abrev(R.margen_estimado),_delta(R.margen_estimado,P?P.margen_estimado:null,fmt),'Ventas − costo · solo ítems con costo registrado ('+Math.round((R.margen_cobertura||0)*100)+'% cubierto) → utilidad')}
+    ${tcard('Clientes habituales',(C.returning_rate!=null?C.returning_rate:0)+'%',`<span style="font-size:10px;color:var(--ink3)">${C.recurrentes||0} de ${(C.nuevos||0)+(C.recurrentes||0)} clientes</span>`,'% de clientes del rango que ya habían comprado antes (returning customer rate)')}
+  </div>`;
+  const serieBloque=_anaBloque(`📈 Ventas a lo largo del tiempo`,
+    `<div style="display:flex;gap:5px;margin-bottom:8px">${[['day','📅 Día'],['week','📆 Semana'],['month','🗓 Mes']].map(([v,t])=>`<button onclick="setAnaGroup('${v}')" style="padding:5px 12px;border:1px solid ${anaGroup===v?'var(--ink)':'var(--line)'};border-radius:14px;background:${anaGroup===v?'var(--ink)':'var(--white)'};color:${anaGroup===v?'#fff':'var(--ink2)'};font-family:var(--font);font-size:10px;font-weight:700;cursor:pointer">${t}</button>`).join('')}</div>`
+    +_svgSerie(j.serie));
+  const mini=(l,v,def)=>`<div title="${escHtml(def)}" style="background:var(--bg);border-radius:10px;padding:8px 10px;min-width:0">
+    <div style="font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3)">${l}</div>
+    <div style="font-size:13.5px;font-weight:700;white-space:nowrap">${v}</div></div>`;
+  const desglose=_anaBloque('💰 Desglose contable',
+    `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+      ${mini('Brutas',_abrev(R.ventas_brutas),'Productos antes de descuentos → volumen')}
+      ${mini('Descuentos','−'+_abrev(R.descuentos),'Cupones y combos aplicados')}
+      ${mini('Netas',_abrev(R.ventas_netas),'Producto post-descuento → para ROAS')}
+      ${mini('Envíos',_abrev(R.envios),'Fletes cobrados al cliente')}
+      ${mini('Total cobrado',_abrev(R.total_cobrado),'Lo que entró a caja (producto + envío)')}
+      ${mini('Margen est.',_abrev(R.margen_estimado),'Utilidad estimada (ítems con costo)')}
+    </div>`);
+  const embudoBloque=j.funnel?_anaBloque('🔻 Embudo del rango',_embudo(j.funnel)):'';
+  const clientesBloque=_anaBloque('👥 Clientes',
+    `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:8px">
+      ${mini('Nuevos',(C.nuevos||0)+' · '+_abrev(C.ventas_nuevos),'Primera compra dentro del rango')}
+      ${mini('Recurrentes',(C.recurrentes||0)+' · '+_abrev(C.ventas_recurrentes),'Ya habían comprado antes del rango')}
+      ${mini('Frecuencia',(C.frecuencia_promedio||0)+' compras/cliente','Pedidos del rango ÷ clientes del rango')}
+      ${mini('Entre compras',C.dias_entre_compras!=null?C.dias_entre_compras+' días':'—','Promedio histórico entre compras del mismo cliente')}
+    </div>`);
+  const prodBloque=(j.productos&&j.productos.length)?_anaBloque('🏆 Productos ganadores',
+    `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px;min-width:480px">
+      <tr style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em;text-align:right"><th style="text-align:left;padding:4px 6px 4px 0">Producto</th><th>Ingresos</th><th>Und.</th><th>Vistas</th><th>Carrito</th><th title="% de vistas que agregaron al carrito">V→C</th><th title="% de carritos que terminaron en venta">C→V</th></tr>
+      ${j.productos.map(p=>`<tr style="border-top:1px solid var(--line);text-align:right">
+        <td style="text-align:left;padding:6px 6px 6px 0;font-weight:600;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(p.label)} <span style="color:var(--ink3);font-weight:400">#${p.id}</span></td>
+        <td style="font-weight:700;color:var(--green)">${_abrev(p.ingresos)}</td><td>${p.unidades}</td><td>${p.views}</td><td>${p.atc}</td>
+        <td>${p.conv_view_cart!=null?p.conv_view_cart+'%':'—'}</td><td>${p.conv_cart_venta!=null?p.conv_cart_venta+'%':'—'}</td>
+      </tr>`).join('')}
+    </table></div>`):'';
+  const campBloque=(j.por_campana&&j.por_campana.length)?_anaBloque('📣 Campañas (Meta × ventas)',
+    `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px;min-width:560px">
+      <tr style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em;text-align:right"><th style="text-align:left;padding:4px 6px 4px 0">Campaña</th><th>Gasto</th><th>Ventas</th><th>ROAS</th><th>CPA</th><th>CTR</th><th>CPC</th><th>CPM</th></tr>
+      ${j.por_campana.slice(0,8).map(c=>`<tr style="border-top:1px solid var(--line);text-align:right">
+        <td style="text-align:left;padding:6px 6px 6px 0;font-weight:600;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(c.campana)}</td>
+        <td>${c.inversion?_abrev(c.inversion):'—'}</td>
+        <td style="font-weight:700;color:var(--green)">${c.facturacion?_abrev(c.facturacion):'—'}<span style="color:var(--ink3);font-weight:400"> (${c.compras})</span></td>
+        <td style="font-weight:700;color:${c.roas==null?'var(--ink3)':c.roas>=2?'var(--green)':c.roas>=1?'#F2A900':'var(--red)'}">${c.roas!=null?c.roas:'—'}</td>
+        <td>${c.cpa!=null?_abrev(c.cpa):'—'}</td><td>${c.ctr!=null?c.ctr+'%':'—'}</td><td>${c.cpc!=null?_abrev(c.cpc):'—'}</td><td>${c.cpm!=null?_abrev(c.cpm):'—'}</td>
+      </tr>`).join('')}
+    </table></div>`
+    +(j.meta_error?`<div style="font-size:10px;color:var(--ink3);margin-top:7px">⚠ Sin datos de inversión de Meta: ${escHtml(String(j.meta_error).slice(0,90))}</div>`:''))
+    :(j.meta_error?_anaBloque('📣 Campañas',`<div style="font-size:11.5px;color:var(--ink3)">⚠ Sin conexión con Meta (${escHtml(String(j.meta_error).slice(0,90))}). Las ventas por campaña aparecerán cuando lleguen pedidos con utm_campaign.</div>`):'');
+  box.innerHTML=chips+cards+serieBloque+desglose+embudoBloque+clientesBloque+prodBloque+campBloque;
 }
 
 /* ── LEADS (Venta / No venta) ── */
