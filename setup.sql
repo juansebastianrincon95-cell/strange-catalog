@@ -15,7 +15,8 @@ create table if not exists products (
   sold         boolean default false,
   img_url      text,
   imgs_360     text,
-  imgs         text
+  imgs         text,
+  modelo       text       -- nombre/SKU del modelo (ej. "Nike Air Max 90") — opcional
 );
 
 -- ─── TABLA: liq_products ────────────────────────────────────
@@ -27,7 +28,8 @@ create table if not exists liq_products (
   sold         boolean default false,
   img_url      text,
   imgs_360     text,
-  imgs         text
+  imgs         text,
+  modelo       text       -- nombre/SKU del modelo (ej. "Nike Air Max 90") — opcional
 );
 
 -- ─── TABLA: settings ────────────────────────────────────────
@@ -126,6 +128,23 @@ drop policy if exists "anon insert orders" on orders;
 alter table products add column if not exists brand text;
 alter table products add column if not exists imgs text;        -- galería: fotos secundarias (JSON array de URLs)
 alter table liq_products add column if not exists imgs text;
+alter table products add column if not exists modelo text;
+alter table liq_products add column if not exists modelo text;
+
+-- ─── TABLA: product_costs ───────────────────────────────────
+-- Costo de adquisición por producto, SEPARADO de products: esa tabla la lee cualquier
+-- visitante con la anon key (select *), y el costo NUNCA debe ser público.
+-- Solo service_role (admin.js: list_costs / upsert_cost).
+create table if not exists product_costs (
+  ptype text not null check (ptype in ('cat','liq')),
+  pid   bigint not null,
+  costo integer not null check (costo >= 0),
+  primary key (ptype, pid)
+);
+alter table product_costs enable row level security;
+drop policy if exists "service all product_costs" on product_costs;
+create policy "service all product_costs"
+  on product_costs for all to service_role using (true) with check (true);
 alter table orders add column if not exists subtotal integer;
 alter table orders add column if not exists envio integer;
 alter table orders add column if not exists session_id text;

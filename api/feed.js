@@ -32,7 +32,7 @@ module.exports = async (req, res) => {
       const gen = p.gender === 'h' ? 'Hombre' : 'Mujer';
       return {
       id:           'cat_' + p.id,
-      title:        (bl ? bl + ' ' : '') + 'Par ' + gen + ' — ' + brand,
+      title:        p.modelo || ((bl ? bl + ' ' : '') + 'Par ' + gen + ' — ' + brand),
       description:  (bl ? bl + ' - ' : '') + brand + ' - Calzado de calidad',
       availability: 'in stock',
       condition:    'new',
@@ -46,7 +46,7 @@ module.exports = async (req, res) => {
     };}),
     ...(liqs || []).map(p => ({
       id:           'liq_' + p.id,
-      title:        'Liquidación — ' + brand,
+      title:        p.modelo ? p.modelo + ' — Liquidación' : ('Liquidación — ' + brand),
       description:  brand + ' - Precio especial',
       availability: 'in stock',
       condition:    'new',

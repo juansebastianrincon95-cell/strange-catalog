@@ -108,6 +108,29 @@ module.exports = async (req, res) => {
     return res.json({ ok: true });
   }
 
+  // Costos de adquisición (tabla product_costs, solo service_role — el costo NUNCA es público)
+  if (action === 'list_costs') {
+    const { data: rows, error } = await sb.from('product_costs').select('ptype,pid,costo');
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json({ ok: true, costs: rows || [] });
+  }
+  if (action === 'upsert_cost') {
+    const d = data || {};
+    const ptype = ['cat', 'liq'].includes(d.ptype) ? d.ptype : null;
+    const pid = parseInt(d.pid, 10);
+    if (!ptype || !Number.isFinite(pid)) return res.status(400).json({ error: 'ptype/pid invalid' });
+    if (d.costo == null || d.costo === '') {
+      const { error } = await sb.from('product_costs').delete().match({ ptype, pid });
+      if (error) return res.status(500).json({ error: error.message });
+      return res.json({ ok: true, deleted: true });
+    }
+    const costo = parseInt(d.costo, 10);
+    if (!Number.isFinite(costo) || costo < 0 || costo > 100_000_000) return res.status(400).json({ error: 'costo invalid' });
+    const { error } = await sb.from('product_costs').upsert({ ptype, pid, costo });
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json({ ok: true });
+  }
+
   // Campos de operador comercial (no tocan el status de venta): estado del contacto por
   // WhatsApp, temperatura del lead, motivo de no venta y nota interna del vendedor.
   if (action === 'update_order_meta') {

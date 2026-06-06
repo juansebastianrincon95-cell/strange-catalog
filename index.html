@@ -458,7 +458,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .arow-price{font-size:12px;font-weight:700;color:var(--ink)}
 .arow-price.sale{color:var(--red)}
 .epbtn{background:none;border:none;color:var(--blue);font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font);padding:2px 0;text-decoration:underline;text-underline-offset:2px}
-.ep-row{grid-column:1/-1;display:flex;gap:6px;align-items:center;padding:6px 0 2px;animation:fadeIn .15s ease}
+.ep-row{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 0 2px;animation:fadeIn .15s ease}
 @keyframes fadeIn{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:translateY(0)}}
 .ep-row input{flex:1;min-width:0;padding:8px 10px;background:var(--bg);border:1.5px solid var(--blue);border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;color:var(--ink);outline:none}
 .ep-brand{flex:1;min-width:0;padding:8px 6px;background:var(--bg);border:1.5px solid var(--blue);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink);outline:none;cursor:pointer}
@@ -1066,6 +1066,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
       <button class="av-nav" data-nav="banners" onclick="setAdminSection('banners')"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="m3 17 5-5 4 4 3.5-3.5L21 18"/></svg>Banners</button>
       <button class="av-nav" data-nav="testimonios" onclick="setAdminSection('testimonios')"><svg viewBox="0 0 24 24"><path d="m12 3 2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 16.9 6.6 19.8l1.1-6.1L3.2 9.4l6.1-.8z"/></svg>Testimonios</button>
       <button class="av-nav" data-nav="pedidos" onclick="setAdminSection('pedidos')"><svg viewBox="0 0 24 24"><path d="M6 2h12v20l-2-1.5L14 22l-2-1.5L10 22l-2-1.5L6 22z"/><path d="M9.5 7.5h5M9.5 11h5M9.5 14.5h3"/></svg>Pedidos</button>
+      <button class="av-nav" data-nav="clientes" onclick="setAdminSection('clientes')"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.4"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.6"/><path d="M16.5 14.6c2.6.4 4.5 2.4 4.5 5.4"/></svg>Clientes</button>
       <button class="av-nav" data-nav="leads" onclick="setAdminSection('leads')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2"/></svg>Leads</button>
       <button class="av-nav" data-nav="ajustes" onclick="setAdminSection('ajustes')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.01a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.01a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg>Ajustes</button>
     </aside>
@@ -1298,6 +1299,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
   </div>
   <div id="panStats" data-sec="inicio" data-disp="flex" style="display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0"></div>
   <div id="panPedidos" data-sec="pedidos" data-disp="flex" style="display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0"></div>
+  <div id="panClientes" data-sec="clientes" data-disp="flex" style="display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0"></div>
   <div id="panLeads" data-sec="leads" data-disp="flex" style="display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0"></div>
     </div>
   </div>
@@ -2297,7 +2299,7 @@ function cardHTML(p,i,prefix){
         <div class="bchk">✓</div>
         <button class="add-circle" onclick="event.stopPropagation();togCard(${p.id},'cat')">${on?'✓':'+'}</button>
       </div>
-      <div class="cfoot-card">${p.brand?`<div class="cbrand">${brandLabel(p.brand)}</div>`:''}<div class="cprice ${sp?'sale':''}">${fmt(p.price)}</div>${sp&&p.was?`<div class="cwas">${fmt(p.was)}</div>`:''}</div>
+      <div class="cfoot-card">${p.modelo?`<div class="cbrand">${escHtml(p.modelo)}</div>`:p.brand?`<div class="cbrand">${brandLabel(p.brand)}</div>`:''}<div class="cprice ${sp?'sale':''}">${fmt(p.price)}</div>${sp&&p.was?`<div class="cwas">${fmt(p.was)}</div>`:''}</div>
     </div>`;
 }
 function renderGrid(){
@@ -2442,7 +2444,8 @@ function openPhoto(id,type){
   pmId=id;pmType=type;
   renderPmGal([p.img,...(p.imgs||[])],p.imgs360?.length>=2);
   const _mk=BRAND_LABELS[p.brand]||'';
-  $('pmTitle').textContent=(_mk?_mk+' · ':'')+(type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer'));
+  // Si el producto tiene MODELO (ej. "Nike Air Max 90"), ese es el título; si no, Marca · Género.
+  $('pmTitle').textContent=p.modelo||((_mk?_mk+' · ':'')+(type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer')));
   pmReviewN=reviewsForProduct(id);   // nº de reseñas estable por producto (paso 4)
   {const rv=$('pmReviews');if(rv)rv.textContent=`(${pmReviewN.toLocaleString('es-CO')} reseñas)`;}
   {const dd=$('pmDesc');if(dd)dd.textContent=genDescripcion(p,type);}
@@ -2700,6 +2703,7 @@ async function loadOrders(){
   }catch(e){}
 }
 function _showAdmin(){
+  loadCosts().then(()=>{if(avSec==='productos'||avSec==='ofertas')avSec==='ofertas'?renderLiqAdmin():renderAdmin();});
   renderAdmin();
   const swP=$('swPromo');if(swP)swP.checked=promoG;
   const swB=$('swBanner');if(swB)swB.checked=bannerOn;
@@ -2738,7 +2742,7 @@ async function toggleGlobal(on){promoG=on;renderGrid();renderAdmin();await admin
 async function toggleWelcome(on){WELCOME_ON=on;await adminWrite('upsert_settings',{data:{key:'welcome_popup',value:String(on)}});}
 /* ── ADMIN "Shopify-lite": navegación por secciones (sidebar) ── */
 let avSec='inicio';
-const AV_TITLES={inicio:'Inicio',productos:'Productos',ofertas:'Ofertas',banners:'Banners',testimonios:'Testimonios',pedidos:'Pedidos',leads:'Leads',ajustes:'Ajustes'};
+const AV_TITLES={inicio:'Inicio',productos:'Productos',ofertas:'Ofertas',banners:'Banners',testimonios:'Testimonios',pedidos:'Pedidos',clientes:'Clientes',leads:'Leads',ajustes:'Ajustes'};
 function setAdminSection(name){
   avSec=name;
   document.querySelectorAll('#avMain [data-sec]').forEach(el=>{
@@ -2754,6 +2758,7 @@ function setAdminSection(name){
   if(name==='banners'){renderHeroAdmin();renderFeaturedAdmin();renderColAdmin();}
   if(name==='testimonios')renderTestiAdmin();
   if(name==='pedidos'){renderPedidos();loadOrders().then(()=>{if(avSec==='pedidos')renderPedidos();});}
+  if(name==='clientes'){renderClientes();loadOrders().then(()=>{if(avSec==='clientes')renderClientes();});}
   if(name==='leads'){renderLeadsTab();loadOrders().then(()=>{if(avSec==='leads')renderLeadsTab();});}
 }
 // Navegar desde las tarjetas/tareas del Inicio: sección + filtro de leads opcional.
@@ -2817,6 +2822,76 @@ function renderPedidosList(){
       <div id="pedDet${o.id}" style="display:none;border-top:1px solid var(--line);background:var(--bg);padding:12px 14px;font-size:12px;color:var(--ink2);line-height:1.7"></div>
     </div>`;}).join(''):`<div style="padding:24px 8px;text-align:center;color:var(--ink3);font-size:12.5px">Sin resultados para "${escHtml(pedidosQ)}"</div>`);
 }
+/* ── CLIENTES v1: agrupa los pedidos por teléfono (sin tabla nueva) ── */
+let clientesQ='';
+function _telKey(t){return String(t||'').replace(/\D/g,'').slice(-10);}
+function buildClientes(){
+  const map={};
+  orders.forEach(o=>{
+    const k=_telKey(o.tel);if(!k)return;
+    if(!map[k])map[k]={tel:k,nombre:'',ciudad:'',pedidos:[],ventas:0,total:0,ultima:0};
+    const c=map[k];
+    c.pedidos.push(o);
+    const ts=new Date(o.fecha).getTime()||0;
+    if(ts>=c.ultima){c.ultima=ts;c.nombre=o.nombre||c.nombre;c.ciudad=o.ciudad||c.ciudad;}
+    if(o.status==='venta'){c.ventas++;c.total+=(o.subtotal!=null?o.subtotal:(o.total||0));}
+  });
+  return Object.values(map).sort((a,b)=>b.ultima-a.ultima);
+}
+function renderClientes(){
+  const el=$('panClientes');if(!el)return;
+  if(!el.dataset.built){
+    el.dataset.built='1';
+    el.innerHTML=`<div style="padding:12px 14px 8px;flex-shrink:0">
+      <input type="search" placeholder="Buscar cliente por nombre, teléfono o ciudad…" value="${escHtml(clientesQ)}"
+        oninput="clientesQ=this.value;clearTimeout(window._cliT);window._cliT=setTimeout(renderClientesList,200)"
+        style="width:100%;padding:10px 13px;background:var(--white);border:1.5px solid var(--line);border-radius:10px;font-family:var(--font);font-size:16px;color:var(--ink);outline:none">
+    </div>
+    <div id="cliList" style="overflow-y:auto;flex:1;min-height:0;padding:0 14px 24px"></div>`;
+  }
+  renderClientesList();
+}
+function renderClientesList(){
+  const box=$('cliList');if(!box)return;
+  const clientes=buildClientes();
+  const q=clientesQ.trim().toLowerCase();
+  const lista=clientes.filter(c=>!q||c.nombre.toLowerCase().includes(q)||c.tel.includes(q)||c.ciudad.toLowerCase().includes(q));
+  if(!clientes.length){box.innerHTML=`<div style="padding:32px 8px;text-align:center;color:var(--ink3);font-size:13px;line-height:1.7">👥 Aún no hay clientes.<br>Aparecen cuando llegan pedidos con teléfono.</div>`;return;}
+  box.innerHTML=`<div style="font-size:11px;color:var(--ink3);font-weight:600;padding:2px 2px 8px">${lista.length} cliente${lista.length===1?'':'s'}${q?' (filtro activo)':''}</div>`
+    +(lista.length?lista.map(c=>`
+    <div style="background:var(--white);border:1px solid var(--line);border-radius:12px;margin-bottom:8px;overflow:hidden">
+      <div onclick="togCliDetail('${c.tel}')" style="padding:12px 14px;cursor:pointer">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <span style="font-size:13.5px;font-weight:700">${escHtml(c.nombre||'Sin nombre')}</span>
+          ${c.ventas?`<span style="background:var(--green);color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px">${c.ventas} COMPRA${c.ventas===1?'':'S'}</span>`:`<span style="background:var(--bg);color:var(--ink3);font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px;border:1px solid var(--line)">SIN COMPRAS</span>`}
+        </div>
+        <div style="font-size:12px;color:var(--ink2);line-height:1.6">
+          📱 <a href="https://wa.me/57${c.tel}" target="_blank" onclick="event.stopPropagation()" style="color:var(--blue);text-decoration:none">${escHtml(c.tel)}</a>
+          ${c.ciudad?` · 📍 ${escHtml(c.ciudad)}`:''} · 🧾 ${c.pedidos.length} pedido${c.pedidos.length===1?'':'s'}
+          ${c.total?` · 💰 <b>${fmt(c.total)}</b>`:''}
+          <span style="float:right;color:var(--blue);font-size:11px;font-weight:700" id="cliChev${c.tel}">Ver perfil ▾</span>
+        </div>
+      </div>
+      <div id="cliDet${c.tel}" style="display:none;border-top:1px solid var(--line);background:var(--bg);padding:10px 14px"></div>
+    </div>`).join(''):`<div style="padding:24px 8px;text-align:center;color:var(--ink3);font-size:12.5px">Sin resultados para "${escHtml(clientesQ)}"</div>`);
+}
+function togCliDetail(tel){
+  const det=$('cliDet'+tel),chev=$('cliChev'+tel);if(!det)return;
+  const abierto=det.style.display!=='none';
+  if(abierto){det.style.display='none';if(chev)chev.textContent='Ver perfil ▾';return;}
+  const c=buildClientes().find(x=>x.tel===tel);if(!c)return;
+  const badge=o=>o.status==='venta'?'✓ Venta':o.status==='no_venta'?'✕ No venta':o.status==='abandoned'?'🛒 Abandonó':'⏳ Pendiente';
+  det.innerHTML=c.pedidos.sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)).map(o=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:11.5px;color:var(--ink2)">
+      <span style="flex:0 0 auto;color:var(--ink3)">${o.fecha?new Date(o.fecha).toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'2-digit'}):''}</span>
+      <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${Array.isArray(o.items)?o.items.map(it=>escHtml(it.label||'?')).join(', '):''}</span>
+      <b style="flex:0 0 auto">${fmt(o.total||0)}</b>
+      <span style="flex:0 0 auto;font-weight:700;font-size:10px">${badge(o)}</span>
+    </div>`).join('')
+    +`<a href="https://wa.me/57${c.tel}" target="_blank" style="display:block;text-align:center;margin-top:10px;background:var(--wa);color:#fff;text-decoration:none;padding:10px;border-radius:10px;font-size:12.5px;font-weight:700">💬 Escribirle por WhatsApp</a>`;
+  det.style.display='block';
+  if(chev)chev.textContent='Ocultar ▴';
+}
 /* Detalle profundo del pedido: dirección, montos separados, campaña/atribución, contexto */
 function togPedDetail(id){
   const det=$('pedDet'+id),chev=$('pedChev'+id);if(!det)return;
@@ -2849,11 +2924,11 @@ function renderAdmin(){
     const m=p.img?`<img src="${p.img}" alt="">`:`<span style="font-size:20px">👟</span>`;
     return `<div class="arow">
       <div class="arow-img">${m}${p.sold?`<div class="arow-sov">Agot.</div>`:''}</div>
-      <div><div class="arow-gen">${p.g==='h'?'Hombre':'Mujer'}</div><div class="arow-st">${p.sold?'🔴 Agotado':'🟢 Disponible'}${p.imgs360?.length>=2?`<span style="color:var(--blue);font-size:9px;display:block">🔄 ${p.imgs360.length} frames</span>`:''}</div></div>
+      <div><div class="arow-gen">${p.modelo?escHtml(p.modelo):(p.g==='h'?'Hombre':'Mujer')}</div><div class="arow-st">${p.modelo?(p.g==='h'?'Hombre · ':'Mujer · '):''}${p.sold?'🔴 Agotado':'🟢 Disponible'}${p.imgs360?.length>=2?`<span style="color:var(--blue);font-size:9px;display:block">🔄 ${p.imgs360.length} frames</span>`:''}</div></div>
       <div><div class="arow-price ${sp?'sale':''}">${fmt(p.price)}</div><button class="epbtn" onclick="startEP(${p.id},'cat')">Editar</button> <button class="epbtn" id="galbtncat${p.id}" onclick="togGal(${p.id},'cat')">📷 ${(p.imgs||[]).length}</button></div>
       <button class="sold-btn ${p.sold?'on':''}" onclick="togSold(${p.id},'cat')">${p.sold?'✓ Agot.':'Agotado'}</button>
       <button class="adel" onclick="delProd(${p.id},'cat')">✕</button>
-      <div class="ep-row" id="ep${p.id}" style="display:none"><input id="epi${p.id}" type="number" value="${p.price}"><select id="epb${p.id}" class="ep-brand"><option value=""${!p.brand?' selected':''}>Sin marca</option>${Object.keys(BRAND_LABELS).map(b=>`<option value="${b}"${p.brand===b?' selected':''}>${BRAND_LABELS[b]}</option>`).join('')}</select><button class="ep-save" onclick="saveEP(${p.id},'cat')">Guardar</button><button class="ep-cancel" onclick="cancelEP()">✕</button></div>
+      <div class="ep-row" id="ep${p.id}" style="display:none"><input id="epi${p.id}" type="number" value="${p.price}" title="Precio de venta"><select id="epb${p.id}" class="ep-brand"><option value=""${!p.brand?' selected':''}>Sin marca</option>${Object.keys(BRAND_LABELS).map(b=>`<option value="${b}"${p.brand===b?' selected':''}>${BRAND_LABELS[b]}</option>`).join('')}</select><input id="epm${p.id}" type="text" placeholder="Modelo (ej. Nike Air Max 90)" value="${escHtml(p.modelo||'')}" style="flex-basis:100%"><input id="epc${p.id}" type="number" placeholder="Costo (privado, para margen)" value="${costos['cat:'+p.id]??''}" style="flex-basis:48%"><button class="ep-save" onclick="saveEP(${p.id},'cat')">Guardar</button><button class="ep-cancel" onclick="cancelEP()">✕</button></div>
       <div id="galcat${p.id}" style="display:none;grid-column:1/-1;padding:8px 0 4px"></div>
     </div>`;
   }).join('');
@@ -2913,7 +2988,7 @@ function renderLiqAdmin(){
       <div><div class="arow-price sale">${fmt(p.price)}</div><button class="epbtn" onclick="startEP(${p.id},'liq')">Editar</button> <button class="epbtn" id="galbtnliq${p.id}" onclick="togGal(${p.id},'liq')">📷 ${(p.imgs||[]).length}</button></div>
       <button class="sold-btn ${p.sold?'on':''}" onclick="togSold(${p.id},'liq')">${p.sold?'✓ Agot.':'Agotado'}</button>
       <button class="adel" onclick="delProd(${p.id},'liq')">✕</button>
-      <div class="ep-row" id="epl${p.id}" style="display:none"><input id="epli${p.id}" type="number" value="${p.price}"><button class="ep-save" onclick="saveEP(${p.id},'liq')">Guardar</button><button class="ep-cancel" onclick="cancelEP()">✕</button></div>
+      <div class="ep-row" id="epl${p.id}" style="display:none"><input id="epli${p.id}" type="number" value="${p.price}" title="Precio de venta"><input id="eplm${p.id}" type="text" placeholder="Modelo" value="${escHtml(p.modelo||'')}"><input id="eplc${p.id}" type="number" placeholder="Costo" value="${costos['liq:'+p.id]??''}"><button class="ep-save" onclick="saveEP(${p.id},'liq')">Guardar</button><button class="ep-cancel" onclick="cancelEP()">✕</button></div>
       <div id="galliq${p.id}" style="display:none;grid-column:1/-1;padding:8px 0 4px"></div>
     </div>`;
   }).join('');
@@ -2973,6 +3048,15 @@ function renderStatsTab(){
       ${card('Carritos abandonados',abandonados.length,'remarketing caliente →',`avGo('leads','abandoned')`,abandonados.length?'#8A6D00':null)}
       ${card('Disponibles',disponibles,'en vitrina →',`avGo('productos')`,null)}
       ${card('Agotados',agotados,agotados?'repón o despeja →':'todo disponible',`avGo('productos')`,agotados?'var(--red)':null)}
+      ${(()=>{ // Margen estimado: ventas − costo, solo sobre ítems con costo registrado
+        if(!Object.keys(costos).length||!ventas.length)return '';
+        let m=0,con=0;
+        ventas.forEach(o=>(o.items||[]).forEach(it=>{
+          const c=costos[(it.type==='liq'?'liq':'cat')+':'+it.id];
+          if(c!=null){m+=(it.precio||0)-c*(parseInt(it.qty)||1);con++;}
+        }));
+        return con?card('Margen estimado',fmt(m),'ventas − costo · solo ítems con costo',null,m>=0?'var(--green)':'var(--red)'):'';
+      })()}
     </div>
     <div style="background:var(--white);border:1px solid var(--line);border-radius:14px;padding:13px 15px;margin-bottom:14px">
       <div style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);margin-bottom:9px">✅ Tareas de hoy</div>
@@ -3126,9 +3210,33 @@ async function saveEP(id,type){
     if(p)p.brand=brand;
     data.brand=brand||null;
   }
+  // Modelo (público) — título de ficha, tarjeta, ticket de WhatsApp y feed de Meta
+  const mEl=$(type==='liq'?'eplm'+id:'epm'+id);
+  if(mEl){const modelo=mEl.value.trim();if(p)p.modelo=modelo;data.modelo=modelo||null;}
   if(p)p.price=val;
-  renderGrid();type==='liq'?renderLiqAdmin():renderAdmin();
+  renderGrid();renderPreview();renderFeatured();type==='liq'?renderLiqAdmin():renderAdmin();
   await adminWrite('update_product',{table:type==='liq'?'liq_products':'products',id,data});
+  // Costo (privado, tabla product_costs vía service_role — para el margen del Inicio)
+  const cEl=$(type==='liq'?'eplc'+id:'epc'+id);
+  if(cEl){
+    const ptype=type==='liq'?'liq':'cat';
+    const raw=cEl.value.trim();
+    const key=ptype+':'+id;
+    const nuevo=raw===''?null:parseInt(raw);
+    if((costos[key]??null)!==(nuevo??null)){
+      if(nuevo===null)delete costos[key]; else costos[key]=nuevo;
+      await adminWrite('upsert_cost',{data:{ptype,pid:id,costo:nuevo}}).catch(()=>{});
+    }
+  }
+}
+/* Costos privados: mapa 'cat:ID'/'liq:ID' → costo. Se cargan al abrir el admin. */
+let costos={};
+async function loadCosts(){
+  try{
+    const r=await adminWrite('list_costs',{});
+    costos={};
+    (r.costs||[]).forEach(c=>{costos[c.ptype+':'+c.pid]=c.costo;});
+  }catch(e){}
 }
 function cancelEP(){document.querySelectorAll('.ep-row').forEach(r=>r.style.display='none');}
 async function delProd(id,type){
@@ -3445,7 +3553,7 @@ function captureLead(d){
   const totalPares=rows.reduce((s,{qty})=>s+qty,0);
   const lead={
     id:Date.now(),fecha:new Date().toISOString(),
-    items:rows.map(({p,qty,type})=>({label:type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer'),type,id:p.id,brand:p.brand||null,qty,precio:p.price*qty})),
+    items:rows.map(({p,qty,type})=>({label:p.modelo||(type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer')),type,id:p.id,brand:p.brand||null,qty,precio:p.price*qty})),
     subtotal:sub,envio:0,total:sub,pares:totalPares,pago:null,status:'abandoned',session_id:SESSION_ID,
     nombre:d.nombre,cedula:d.cedula,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,direccion:d.direccion,
     utm:{...getUTM(),...getFbAttribution(),...getVisitCtx()},referrer:getReferrer(),seccion:gSel
@@ -3503,7 +3611,7 @@ async function enviarWA(tipo){
   const msg=`🛍️ *NUEVO PEDIDO — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n📸 *Ver el pedido con fotos:*\n${pedidoLink}\n━━━━━━━━━━━━━━━━━━━━\n💰 *Subtotal: ${fmt(subBruto)}*\n${descLinea}${envioLinea}\n💰 *TOTAL: ${fmt(tot)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${d.nombre}\n• Cédula: ${d.cedula}\n• Celular: ${d.celular}\n• Dirección: ${d.direccion}\n• Barrio: ${d.barrio}\n• Ciudad: ${d.ciudad}\n━━━━━━━━━━━━━━━━━━━━\n💳 *Pago:* ${pagoLbl}\n━━━━━━━━━━━━━━━━━━━━\n${instruccion}\n\n🎁 *Tu regalo — Guía de cuidado de tus sneakers:*\nhttps://catalogo.strangesneakers.com/?regalo=cuidado`;
   const orderObj={
     id:Date.now(),fecha:new Date().toISOString(),
-    items:rows.map(({p,qty,type})=>({label:type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer'),type,id:p.id,brand:p.brand||null,qty,precio:p.price*qty})),
+    items:rows.map(({p,qty,type})=>({label:p.modelo||(type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer')),type,id:p.id,brand:p.brand||null,qty,precio:p.price*qty})),
     subtotal:sub,envio:flete,total:tot,pares:totalPares,pago:tipo,session_id:SESSION_ID,cupon:cuponAplicado||null,
     nombre:d.nombre,cedula:d.cedula,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,direccion:d.direccion,
     utm:{...getUTM(),...getFbAttribution(),...getVisitCtx()},referrer:getReferrer(),seccion:gSel
@@ -3542,7 +3650,7 @@ async function pagarWompi(){
   const totalPares=rows.reduce((s,{qty})=>s+qty,0);
   const wOrder={
     id:Date.now(),fecha:new Date().toISOString(),
-    items:rows.map(({p,qty,type})=>({label:type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer'),type,id:p.id,brand:p.brand||null,qty,precio:p.price*qty})),
+    items:rows.map(({p,qty,type})=>({label:p.modelo||(type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer')),type,id:p.id,brand:p.brand||null,qty,precio:p.price*qty})),
     subtotal:tot,envio:0,total:tot,pares:totalPares,pago:'wompi',status:'pending',session_id:SESSION_ID,cupon:cuponAplicado||null,
     nombre:d.nombre,cedula:d.cedula,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,direccion:d.direccion,
     reference,utm:{...getUTM(),...getFbAttribution(),...getVisitCtx()},referrer:getReferrer(),seccion:gSel
@@ -3637,7 +3745,7 @@ async function pagarBold(){
   const totalPares=rows.reduce((s,{qty})=>s+qty,0);
   const bOrder={
     id:Date.now(),fecha:new Date().toISOString(),
-    items:rows.map(({p,qty,type})=>({label:type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer'),type,id:p.id,brand:p.brand||null,qty,precio:p.price*qty})),
+    items:rows.map(({p,qty,type})=>({label:p.modelo||(type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer')),type,id:p.id,brand:p.brand||null,qty,precio:p.price*qty})),
     subtotal:tot,envio:0,total:tot,pares:totalPares,pago:'bold',status:'pending',session_id:SESSION_ID,cupon:cuponAplicado||null,
     nombre:d.nombre,cedula:d.cedula,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,direccion:d.direccion,
     reference,utm:{...getUTM(),...getFbAttribution(),...getVisitCtx()},referrer:getReferrer(),seccion:gSel
@@ -3852,13 +3960,13 @@ async function loadState(){
       sb.from('settings').select('*')
     ]);
     prods=(pRows||[]).map(r=>({
-      id:r.id, g:r.gender, brand:r.brand||'', img:r.img_url,
+      id:r.id, g:r.gender, brand:r.brand||'', modelo:r.modelo||'', img:r.img_url,
       imgs360:r.imgs_360?JSON.parse(r.imgs_360):[],
       imgs:r.imgs?JSON.parse(r.imgs):[],
       price:r.price, was:r.price_before, promo:r.promo, sold:r.sold
     }));
     liqs=(lRows||[]).map(r=>({
-      id:r.id, img:r.img_url,
+      id:r.id, modelo:r.modelo||'', img:r.img_url,
       imgs360:r.imgs_360?JSON.parse(r.imgs_360):[],
       imgs:r.imgs?JSON.parse(r.imgs):[],
       price:r.price, was:r.price_before, sold:r.sold
