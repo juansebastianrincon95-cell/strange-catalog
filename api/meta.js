@@ -41,6 +41,7 @@ module.exports = async (req, res) => {
   }
 
   const qs = s => `${s}${s.includes('?') ? '&' : '?'}access_token=${TOKEN}`;
+  const copToMinor = v => String(Math.round(Number(v) * 100));
 
   if (req.method === 'GET') {
     const { resource, campaign_id, since, until } = req.query || {};
@@ -127,7 +128,7 @@ module.exports = async (req, res) => {
 
     if (action === 'update_campaign_budget') {
       const { campaign_id, daily_budget } = payload;
-      const r = await graphRequest('POST', qs(`${campaign_id}`), { daily_budget: String(daily_budget * 100) });
+      const r = await graphRequest('POST', qs(`${campaign_id}`), { daily_budget: copToMinor(daily_budget) });
       return res.status(r.status).json(r.body);
     }
 
@@ -139,14 +140,14 @@ module.exports = async (req, res) => {
 
     if (action === 'update_adset_budget') {
       const { adset_id, daily_budget } = payload;
-      const r = await graphRequest('POST', qs(`${adset_id}`), { daily_budget: String(daily_budget * 100) });
+      const r = await graphRequest('POST', qs(`${adset_id}`), { daily_budget: copToMinor(daily_budget) });
       return res.status(r.status).json(r.body);
     }
 
     if (action === 'create_campaign') {
       const { name, objective, daily_budget, status = 'PAUSED' } = payload;
       const r = await graphRequest('POST', qs(`${ACCOUNT}/campaigns`), {
-        name, objective, daily_budget: String(daily_budget * 100), status,
+        name, objective, daily_budget: copToMinor(daily_budget), status,
         special_ad_categories: []
       });
       return res.status(r.status).json(r.body);
@@ -162,7 +163,7 @@ module.exports = async (req, res) => {
         status,
         special_ad_categories: []
       };
-      if (daily_budget) body.daily_budget = parseInt(daily_budget);
+      if (daily_budget) body.daily_budget = copToMinor(daily_budget);
       if (promoted_object) body.promoted_object = promoted_object;
       const r = await graphRequest('POST', qs(`${ACCOUNT}/adsets`), body);
       return res.status(r.status).json(r.body);
@@ -250,7 +251,7 @@ module.exports = async (req, res) => {
         campaign_id, name, status,
         optimization_goal: 'OFFSITE_CONVERSIONS',
         billing_event: 'IMPRESSIONS',
-        daily_budget: parseInt(daily_budget),
+        daily_budget: copToMinor(daily_budget),
         promoted_object: {
           product_set_id,
           custom_event_type: 'PURCHASE'

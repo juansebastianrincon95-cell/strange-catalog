@@ -1020,7 +1020,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 <div class="ascrim" id="ascrim" onclick="closeAdmin()"></div>
 <div class="apanel" id="apanel">
   <div class="adrag"></div>
-  <div class="ahead"><div class="atitle">⚙ Admin</div><div style="display:flex;gap:6px;align-items:center"><button class="admin-pill" style="font-size:10px;padding:5px 10px" onclick="changePin()">🔑 PIN</button><button class="ax" onclick="closeAdmin()">✕</button></div></div>
+  <div class="ahead"><div class="atitle">⚙ Admin</div><div style="display:flex;gap:6px;align-items:center"><button class="admin-pill" style="font-size:10px;padding:5px 10px" onclick="logoutAdmin()">Salir</button><button class="ax" onclick="closeAdmin()">✕</button></div></div>
   <div class="astats">
     <div class="ast"><div class="astn" id="aTot">0</div><div class="astl">Total</div></div>
     <div class="ast"><div class="astn" id="aH">0</div><div class="astl">Hombre</div></div>
@@ -1181,10 +1181,10 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
         <input id="cfgClarity" type="text" placeholder="ej: abc123xyz0" style="margin-top:5px;width:100%;padding:7px 10px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:11px;font-weight:500;color:var(--ink);outline:none" oninput="CLARITY_ID=this.value.trim();saveConfig()">
       </div>
     </div>
-    <div class="trow" style="background:#fff3e0">
+    <div class="trow" style="background:#eef8f0">
       <div style="flex:1;margin-right:10px">
-        <div class="trow-lbl">🔑 Clave Admin API <span title="Pega aquí el valor de ADMIN_API_KEY configurado en Vercel. Solo se ingresa una vez. Sin esta clave los cambios del panel Admin no se guardan en la base de datos." style="font-size:10px;color:var(--blue);cursor:help">ⓘ</span></div>
-        <input id="cfgAdminKey" type="password" placeholder="Tu clave ADMIN_API_KEY de Vercel" style="margin-top:5px;width:100%;padding:7px 10px;background:var(--white);border:1.5px solid #ff9800;border-radius:8px;font-family:var(--font);font-size:11px;font-weight:500;color:var(--ink);outline:none" oninput="ADMIN_API_KEY=this.value.trim();localStorage.setItem('ss_akey',ADMIN_API_KEY)">
+        <div class="trow-lbl">Sesión admin</div>
+        <div style="font-size:11px;color:var(--ink2);line-height:1.4">Activa con cookie segura. La clave privada ya no se guarda en este navegador.</div>
       </div>
     </div>
     <div style="display:flex;gap:8px;padding:10px 14px">
@@ -1424,18 +1424,18 @@ const SUPABASE_URL  = 'https://ayogbrpqezutzfdktsok.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_ZjVLucKCxH2RM2CycRhkhQ_Gw95sl7s';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-let ADMIN_API_KEY = localStorage.getItem('ss_akey') || '';
+let ADMIN_OK = false;
 
 async function adminWrite(action, payload = {}) {
-  if (!ADMIN_API_KEY) {
-    alert('⚠️ Configura la Clave Admin en el panel de Configuración antes de guardar cambios.');
-    throw new Error('ADMIN_API_KEY not set');
-  }
   const r = await fetch('/api/admin', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ADMIN_API_KEY },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action, ...payload })
   });
+  if (r.status === 401) {
+    ADMIN_OK=false;
+    alert('Tu sesión admin expiró. Vuelve a entrar con el PIN.');
+  }
   if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || 'Admin error'); }
   return r.json();
 }
@@ -2544,9 +2544,9 @@ function sync360Btn(){
 
 /* ── ADMIN ── */
 async function loadOrders(){
-  if(!ADMIN_API_KEY)return;
+  if(!ADMIN_OK)return;
   try{
-    const r=await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+ADMIN_API_KEY},body:JSON.stringify({action:'list_orders'})});
+    const r=await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'list_orders'})});
     if(!r.ok)return;
     const j=await r.json();
     if(Array.isArray(j.orders)){
@@ -2569,40 +2569,27 @@ function _showAdmin(){
   const cfgPx=$('cfgPixel');if(cfgPx)cfgPx.value=PIXEL_ID;
   const cfgWo=$('cfgWompi');if(cfgWo)cfgWo.value=WOMPI_PK;
   const cfgCl=$('cfgClarity');if(cfgCl)cfgCl.value=CLARITY_ID;
-  const cfgAk=$('cfgAdminKey');if(cfgAk){cfgAk.value=ADMIN_API_KEY;cfgAk.style.borderColor=ADMIN_API_KEY?'#4caf50':'#f44336';}
   checkStorageQuota();
   $('ascrim').classList.add('on');$('apanel').classList.add('on');lockScroll();
 }
-async function _fetchAdminKey(pin){
+async function _startAdminSession(pin){
   try{
     const r=await fetch('/api/admin-setup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pin})});
-    if(r.ok){const {key}=await r.json();if(key){ADMIN_API_KEY=key;localStorage.setItem('ss_akey',key);}}
-    else{ADMIN_API_KEY='';localStorage.removeItem('ss_akey');}
-  }catch(e){}
+    ADMIN_OK=!!r.ok;
+    return ADMIN_OK;
+  }catch(e){ADMIN_OK=false;return false;}
 }
 async function openAdmin(){
-  const pin=localStorage.getItem('ss_pin');
-  if(!pin){
-    const nuevo=prompt('Primera vez: crea tu PIN de Admin (mínimo 8 caracteres):');
-    if(!nuevo||nuevo.length<8){alert('PIN demasiado corto. Mínimo 8 caracteres.');return;}
-    localStorage.setItem('ss_pin',nuevo);
-    await _fetchAdminKey(nuevo);
-    _showAdmin();
-  }else{
-    const input=prompt('PIN de administrador:');
-    if(input===null)return;
-    if(input!==pin){alert('PIN incorrecto ❌');return;}
-    await _fetchAdminKey(pin);
-    _showAdmin();
-  }
+  const input=prompt('PIN de administrador:');
+  if(input===null)return;
+  const ok=await _startAdminSession(input);
+  if(!ok){alert('PIN incorrecto o sesión no disponible.');return;}
+  _showAdmin();
 }
-function changePin(){
-  const pin=localStorage.getItem('ss_pin');
-  if(pin){const actual=prompt('PIN actual:');if(actual!==pin){alert('PIN incorrecto ❌');return;}}
-  const nuevo=prompt('Nuevo PIN (mínimo 8 caracteres):');
-  if(!nuevo||nuevo.length<8){alert('PIN demasiado corto. Mínimo 8 caracteres.');return;}
-  localStorage.setItem('ss_pin',nuevo);
-  alert('PIN actualizado ✓');
+async function logoutAdmin(){
+  await fetch('/api/admin-setup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'logout'})}).catch(()=>{});
+  ADMIN_OK=false;
+  closeAdmin();
 }
 function closeAdmin(){$('ascrim').classList.remove('on');$('apanel').classList.remove('on');unlockScroll();}
 async function toggleBanner(on){bannerOn=on;$('banner').classList.toggle('off',!on);await adminWrite('upsert_settings',{data:{key:'banner_on',value:String(on)}});}
@@ -2706,13 +2693,13 @@ function renderStatsTab(){
     <div style="background:var(--bg);border-radius:12px;padding:12px 14px;margin-bottom:8px">
       <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:8px">🏙 Top ciudades</div>
       ${topCiudades.map(([c,n],i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;${i<topCiudades.length-1?'border-bottom:1px solid var(--line)':''}">
-        <span style="font-size:13px;font-weight:600;text-transform:capitalize">${c}</span>
+        <span style="font-size:13px;font-weight:600;text-transform:capitalize">${escHtml(c)}</span>
         <span style="font-size:11px;color:var(--ink2);font-weight:600">${n} pedido${n>1?'s':''}</span>
       </div>`).join('')}
     </div>
     ${topPago?`<div style="background:var(--bg);border-radius:12px;padding:12px 14px;margin-bottom:12px">
       <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px">💳 Pago más usado</div>
-      <div style="font-size:15px;font-weight:700">${pagoLabels[topPago[0]]||topPago[0]} <span style="color:var(--ink3);font-size:12px;font-weight:500">${topPago[1]} pedido${topPago[1]>1?'s':''}</span></div>
+      <div style="font-size:15px;font-weight:700">${escHtml(pagoLabels[topPago[0]]||topPago[0])} <span style="color:var(--ink3);font-size:12px;font-weight:500">${topPago[1]} pedido${topPago[1]>1?'s':''}</span></div>
     </div>`:''}
     <button onclick="exportOrders()" style="width:100%;padding:11px;background:var(--ink);color:#fff;border:none;border-radius:11px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;margin-bottom:8px">📤 Exportar datos para IA</button>
     <button onclick="clearOrders()" style="width:100%;padding:10px;background:var(--bg);border:1.5px solid var(--line);border-radius:11px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--red);cursor:pointer">🗑 Borrar historial de pedidos</button>
@@ -2749,7 +2736,7 @@ function renderLeadsTab(){
   const lista=orders.filter(o=>leadFilter==='all'?true:leadFilter==='pending'?(!_isClasificado(o)&&o.status!=='abandoned'):o.status===leadFilter);
   const chip=(f,txt,n,col)=>`<button onclick="setLeadFilter('${f}')" style="flex:1;padding:7px 4px;border:none;border-radius:9px;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;background:${leadFilter===f?col:'#F2F1EE'};color:${leadFilter===f?'#fff':'#6B6B67'}">${txt} ${n}</button>`;
   const pagoLabels={contra_entrega:'Contra entrega',pago_anticipado:'Pago anticipado',wompi:'Wompi',bold:'Bold',credito:'Crédito (Addi/Sistecrédito)',nequi:'Nequi',bancolombia:'Bancolombia',addi:'Addi',sistecredito:'Sistecrédito'};
-  const itemsTxt=o=>Array.isArray(o.items)?o.items.map(it=>`${it.label||'?'}${it.qty?` x${it.qty}`:''}`).join(', '):'';
+  const itemsTxt=o=>Array.isArray(o.items)?o.items.map(it=>`${escHtml(it.label||'?')}${it.qty?` x${parseInt(it.qty)||1}`:''}`).join(', '):'';
   const badge=o=>o.status==='venta'?`<span style="background:var(--green);color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px">✓ VENTA</span>`
     :o.status==='no_venta'?`<span style="background:#E8200A;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px">✕ NO VENTA</span>`
     :o.status==='abandoned'?`<span style="background:#8A6D00;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px">🛒 ABANDONÓ</span>`
@@ -2761,14 +2748,14 @@ function renderLeadsTab(){
     ${lista.length?lista.map(o=>`
       <div style="background:var(--bg);border-radius:12px;padding:12px 14px;margin-bottom:8px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <span style="font-size:14px;font-weight:700">${o.nombre||'Sin nombre'}</span>
+          <span style="font-size:14px;font-weight:700">${escHtml(o.nombre||'Sin nombre')}</span>
           ${badge(o)}
         </div>
         <div style="font-size:12px;color:var(--ink2);line-height:1.6">
-          ${o.tel?`📱 <a href="https://wa.me/57${String(o.tel).replace(/\D/g,'').slice(-10)}" target="_blank" style="color:var(--blue);text-decoration:none">${o.tel}</a><br>`:''}
-          ${o.ciudad?`📍 ${o.ciudad}${o.barrio?', '+o.barrio:''}<br>`:''}
+          ${o.tel?`📱 <a href="https://wa.me/57${String(o.tel).replace(/\D/g,'').slice(-10)}" target="_blank" style="color:var(--blue);text-decoration:none">${escHtml(o.tel)}</a><br>`:''}
+          ${o.ciudad?`📍 ${escHtml(o.ciudad)}${o.barrio?', '+escHtml(o.barrio):''}<br>`:''}
           ${itemsTxt(o)?`👟 ${itemsTxt(o)}<br>`:''}
-          💰 <b>${fmt(o.total||0)}</b>${o.pago?` · ${pagoLabels[o.pago]||o.pago}`:''}
+          💰 <b>${fmt(o.total||0)}</b>${o.pago?` · ${escHtml(pagoLabels[o.pago]||o.pago)}`:''}
           ${o.fecha?`<br><span style="color:var(--ink3);font-size:10px">${new Date(o.fecha).toLocaleString('es-CO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</span>`:''}
         </div>
         <div style="display:flex;gap:6px;margin-top:9px">
@@ -2866,7 +2853,7 @@ async function handleAIFile(file, dest){
   if(btn){btn.disabled=true;btn.firstChild.textContent='⏳ Procesando con IA (~10s)…';}
   try{
     const base64=await new Promise((res,rej)=>{compressImg(file,res);});
-    const r=await fetch('/api/ai-photo',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+ADMIN_API_KEY},body:JSON.stringify({imageBase64:base64})});
+    const r=await fetch('/api/ai-photo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imageBase64:base64})});
     if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||'Error del servidor');}
     const {url}=await r.json();
     const q=dest==='liq'?qL:qC;
@@ -2966,13 +2953,9 @@ function rmQ(id,dest){
 /* ── SUPABASE STORAGE ── */
 async function uploadToStorage(base64, idx, isAI){
   if(isAI) return base64; // ya está en Supabase Storage, devolver URL directo
-  const res = await fetch(base64);
-  const blob = await res.blob();
-  const path = `${Date.now()}_${idx}.webp`;
-  const { error } = await sb.storage.from('product-images').upload(path, blob, {contentType:'image/webp', upsert:false});
-  if(error) throw error;
-  const { data } = sb.storage.from('product-images').getPublicUrl(path);
-  return data.publicUrl;
+  const r=await adminWrite('upload_image',{data:{imageBase64:base64,idx}});
+  if(!r||!r.url)throw new Error('upload failed');
+  return r.url;
 }
 async function _commitQueue(dest,isC,urls){
   if(isC){
@@ -3013,7 +2996,7 @@ async function addQueue(dest){
     await _commitQueue(dest,isC,urls);
   }catch(e){
     console.error('Upload error:',e);
-    if(!ADMIN_API_KEY){
+    if(!ADMIN_OK){
       alert('⚠️ La clave Admin no está activa.\n\nCierra el panel, vuelve a entrar con tu PIN e intenta de nuevo.');
     }else if(e.message&&(e.message.includes('storage')||e.message.includes('upload')||e.message.includes('bucket'))){
       alert('❌ Error subiendo la foto al servidor.\nRevisa tu conexión e intenta de nuevo.');
@@ -3127,7 +3110,7 @@ function captureLead(d){
   const totalPares=rows.reduce((s,{qty})=>s+qty,0);
   const lead={
     id:Date.now(),fecha:new Date().toISOString(),
-    items:rows.map(({p,qty,type})=>({label:type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer'),id:p.id,brand:p.brand||null,qty,precio:p.price*qty})),
+    items:rows.map(({p,qty,type})=>({label:type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer'),type,id:p.id,brand:p.brand||null,qty,precio:p.price*qty})),
     subtotal:sub,envio:0,total:sub,pares:totalPares,pago:null,status:'abandoned',session_id:SESSION_ID,
     nombre:d.nombre,cedula:d.cedula,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,direccion:d.direccion,
     utm:{...getUTM(),...getFbAttribution()},referrer:getReferrer(),seccion:gSel
@@ -3157,7 +3140,7 @@ function rPayChoice(){
     +`</div></div>`;
   $('cfoot').innerHTML=`<button class="btnback" onclick="goStep(1)">← Volver</button>`;
 }
-function enviarWA(tipo){
+async function enviarWA(tipo){
   tipo=tipo||'pago_anticipado';
   const m={nombre:'fn',cedula:'fc',celular:'ft',direccion:'fd',barrio:'fb',ciudad:'fci'};
   let ok=true;const d={};
@@ -3183,7 +3166,7 @@ function enviarWA(tipo){
   const msg=`🛍️ *NUEVO PEDIDO — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n📸 *Ver el pedido con fotos:*\n${pedidoLink}\n━━━━━━━━━━━━━━━━━━━━\n💰 *Subtotal: ${fmt(subBruto)}*\n${descLinea}${envioLinea}\n💰 *TOTAL: ${fmt(tot)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${d.nombre}\n• Cédula: ${d.cedula}\n• Celular: ${d.celular}\n• Dirección: ${d.direccion}\n• Barrio: ${d.barrio}\n• Ciudad: ${d.ciudad}\n━━━━━━━━━━━━━━━━━━━━\n💳 *Pago:* ${pagoLbl}\n━━━━━━━━━━━━━━━━━━━━\n${instruccion}\n\n🎁 *Tu regalo — Guía de cuidado de tus sneakers:*\nhttps://catalogo.strangesneakers.com/?regalo=cuidado`;
   const orderObj={
     id:Date.now(),fecha:new Date().toISOString(),
-    items:rows.map(({p,qty,type})=>({label:type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer'),id:p.id,brand:p.brand||null,qty,precio:p.price*qty})),
+    items:rows.map(({p,qty,type})=>({label:type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer'),type,id:p.id,brand:p.brand||null,qty,precio:p.price*qty})),
     subtotal:sub,envio:flete,total:tot,pares:totalPares,pago:tipo,session_id:SESSION_ID,cupon:cuponAplicado||null,
     nombre:d.nombre,cedula:d.cedula,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,direccion:d.direccion,
     utm:{...getUTM(),...getFbAttribution()},referrer:getReferrer(),seccion:gSel
@@ -3200,7 +3183,9 @@ function enviarWA(tipo){
   trackEvent('lead',{price:sub});
   orders.push(orderObj);
   saveState();
-  fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(orderObj)}).catch(()=>{});
+  // OJO: fire-and-forget (sin await). Un await aquí rompe window.open en iOS Safari
+  // (pierde la activación del gesto → popup bloqueado → el cliente nunca llega a WhatsApp).
+  fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'create_order',...orderObj})}).catch(()=>{});
   if(SHEETS_URL){fetch(SHEETS_URL,{method:'POST',body:JSON.stringify(orderObj),headers:{'Content-Type':'application/json'}}).catch(()=>{});}
   window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,'_blank');
   return false;
@@ -3216,34 +3201,37 @@ async function pagarWompi(){
   const subBruto=rows.reduce((s,{p,qty})=>s+p.price*qty,0);
   const desc=cuponDesc(subBruto);
   const tot=subBruto-desc;                 // Wompi cobra el subtotal con cupón (envío gratis)
-  const amountCents=tot*100;
   const reference='STR-'+Date.now();
   const totalPares=rows.reduce((s,{qty})=>s+qty,0);
   const wOrder={
     id:Date.now(),fecha:new Date().toISOString(),
-    items:rows.map(({p,qty,type})=>({label:type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer'),id:p.id,brand:p.brand||null,qty,precio:p.price*qty})),
+    items:rows.map(({p,qty,type})=>({label:type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer'),type,id:p.id,brand:p.brand||null,qty,precio:p.price*qty})),
     subtotal:tot,envio:0,total:tot,pares:totalPares,pago:'wompi',status:'pending',session_id:SESSION_ID,cupon:cuponAplicado||null,
     nombre:d.nombre,cedula:d.cedula,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,direccion:d.direccion,
     reference,utm:{...getUTM(),...getFbAttribution()},referrer:getReferrer(),seccion:gSel
   };
   orders.push(wOrder);
   saveState();
-  fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(wOrder)}).catch(()=>{});
   try{
-    const res=await fetch(`/api/wompi-sign?amount=${amountCents}&reference=${reference}`);
+    const saved=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'create_order',...wOrder})}).then(r=>r.ok?r.json():Promise.reject(new Error('order error')));
+    if(saved&&saved.order){
+      wOrder.reference=saved.order.reference;
+      wOrder.subtotal=saved.order.subtotal;wOrder.total=saved.order.total;wOrder.items=saved.order.items;
+    }
+    const res=await fetch(`/api/wompi-sign?reference=${encodeURIComponent(wOrder.reference)}`);
     if(!res.ok)throw new Error('sign error');
-    const {signature}=await res.json();
+    const {signature,amount_in_cents}=await res.json();
     const params=new URLSearchParams({
       'public-key':WOMPI_PK,
       'currency':'COP',
-      'amount-in-cents':String(amountCents),
-      'reference':reference,
+      'amount-in-cents':String(amount_in_cents),
+      'reference':wOrder.reference,
       'signature:integrity':signature,
       'redirect-url':location.origin+'/?wompi=1',
       'customer-data:full-name':d.nombre,
       'customer-data:phone-number':d.celular.replace(/\D/g,''),
     });
-    localStorage.setItem('wompi_ref',reference);
+    localStorage.setItem('wompi_ref',wOrder.reference);
     location.href='https://checkout.wompi.co/p/?'+params.toString();
   }catch(e){
     alert('Error al conectar con Wompi. Verifica tu conexión e intenta de nuevo.');
@@ -3263,7 +3251,7 @@ async function checkWompiReturn(){
     try{
       // Pasar la reference: el server marca la venta en BD y dispara Purchase vía CAPI.
       const vr=await fetch('/api/wompi-verify?id='+encodeURIComponent(txId)+(reference?'&reference='+encodeURIComponent(reference):''));
-      if(vr.ok){const t=await vr.json();status=t.status||status;verified=(t.status==='APPROVED');}
+      if(vr.ok){const t=await vr.json();status=t.status||status;verified=!!t.confirmed;}
     }catch(e){}
   }
   if(verified){
@@ -3280,7 +3268,7 @@ async function checkWompiReturn(){
       px('Purchase',{value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',num_items:order.pares||1,...getUTM()},(order.reference||order.id)+'_purchase');
       trackEvent('purchase',{price:order.subtotal!=null?order.subtotal:order.total});
       let items='';
-      order.items.forEach(it=>{const mk=it.brand?(BRAND_LABELS[it.brand]||it.brand)+' · ':'';const ref=it.id?` · #${it.id}`:'';const ln=it.id?`\n     👉 https://catalogo.strangesneakers.com/?id=${it.id}`:'';items+=`  • ${mk}${it.label}${ref} x${it.qty} — ${fmt(it.precio)}${ln}\n`;});
+      order.items.forEach(it=>{const mk=it.brand?(BRAND_LABELS[it.brand]||it.brand)+' · ':'';const ref=it.id?` · #${it.id}`:'';const tp=it.type==='liq'?'liq':'cat';const ln=it.id?`\n     👉 https://catalogo.strangesneakers.com/?type=${tp}&id=${it.id}`:'';items+=`  • ${mk}${it.label}${ref} x${it.qty} — ${fmt(it.precio)}${ln}\n`;});
       const msg=`✅ *PAGO CONFIRMADO — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n📦 *Envío: GRATIS ✓*\n💰 *TOTAL: ${fmt(order.total)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${order.nombre}\n• Cédula: ${order.cedula||'-'}\n• Celular: ${order.tel}\n• Dirección: ${order.direccion||'-'}\n• Barrio: ${order.barrio}\n• Ciudad: ${order.ciudad}\n• Ref: ${reference}\n━━━━━━━━━━━━━━━━━━━━\n💜 *Pago Wompi:* Confirmado ✓\n━━━━━━━━━━━━━━━━━━━━\n¡Gracias por tu compra! Tu pedido está siendo procesado 🙏\n\n🎁 *Tu regalo — Guía de cuidado de tus sneakers:*\nhttps://catalogo.strangesneakers.com/?regalo=cuidado`;
       setTimeout(()=>{
         alert('✅ ¡Pago confirmado!\nEn un momento recibirás confirmación por WhatsApp.');
@@ -3312,21 +3300,25 @@ async function pagarBold(){
   const totalPares=rows.reduce((s,{qty})=>s+qty,0);
   const bOrder={
     id:Date.now(),fecha:new Date().toISOString(),
-    items:rows.map(({p,qty,type})=>({label:type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer'),id:p.id,brand:p.brand||null,qty,precio:p.price*qty})),
+    items:rows.map(({p,qty,type})=>({label:type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer'),type,id:p.id,brand:p.brand||null,qty,precio:p.price*qty})),
     subtotal:tot,envio:0,total:tot,pares:totalPares,pago:'bold',status:'pending',session_id:SESSION_ID,cupon:cuponAplicado||null,
     nombre:d.nombre,cedula:d.cedula,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,direccion:d.direccion,
     reference,utm:{...getUTM(),...getFbAttribution()},referrer:getReferrer(),seccion:gSel
   };
   orders.push(bOrder);saveState();
-  fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(bOrder)}).catch(()=>{});
   try{
-    const res=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'bold_link',amount:tot,reference,description:'Pedido '+reference})});
+    const saved=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'create_order',...bOrder})}).then(r=>r.ok?r.json():Promise.reject(new Error('order error')));
+    if(saved&&saved.order){
+      bOrder.reference=saved.order.reference;
+      bOrder.subtotal=saved.order.subtotal;bOrder.total=saved.order.total;bOrder.items=saved.order.items;
+    }
+    const res=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'bold_link',reference:bOrder.reference,description:'Pedido '+bOrder.reference})});
     const j=await res.json().catch(()=>({}));
     if(!res.ok||!j.url){
       if(j&&j.error==='bold_unavailable'){alert('El pago con Bold se activará muy pronto 🙏\nPor ahora elige otro método de pago.');return;}
       throw new Error('bold link');
     }
-    localStorage.setItem('bold_ref',reference);
+    localStorage.setItem('bold_ref',bOrder.reference);
     localStorage.setItem('bold_link',j.payment_link||'');
     location.href=j.url;
   }catch(e){alert('No se pudo conectar con Bold. Intenta de nuevo o elige otro método de pago.');}
@@ -3342,7 +3334,7 @@ async function checkBoldReturn(){
   if(link){
     try{
       const vr=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'bold_status',payment_link:link,reference})});
-      if(vr.ok){const t=await vr.json();verified=(t.status==='PAID');}
+      if(vr.ok){const t=await vr.json();verified=!!t.confirmed;}
     }catch(e){}
   }
   if(verified){
@@ -3352,7 +3344,7 @@ async function checkBoldReturn(){
       if(PIXEL_ID&&typeof fbq==='function'){const np=String(order.nombre||'').trim().toLowerCase().split(' ');fbq('init',PIXEL_ID,{ph:String(order.tel||'').replace(/\D/g,''),fn:np[0]||'',ln:np.slice(1).join(' ')||'',ct:String(order.ciudad||'').trim().toLowerCase(),country:'co'});}
       px('Purchase',{value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',num_items:order.pares||1,...getUTM()},(order.reference||order.id)+'_purchase');
       trackEvent('purchase',{price:order.subtotal!=null?order.subtotal:order.total});
-      let items='';order.items.forEach(it=>{const mk=it.brand?(BRAND_LABELS[it.brand]||it.brand)+' · ':'';const ref=it.id?` · #${it.id}`:'';const ln=it.id?`\n     👉 https://catalogo.strangesneakers.com/?id=${it.id}`:'';items+=`  • ${mk}${it.label}${ref} x${it.qty} — ${fmt(it.precio)}${ln}\n`;});
+      let items='';order.items.forEach(it=>{const mk=it.brand?(BRAND_LABELS[it.brand]||it.brand)+' · ':'';const ref=it.id?` · #${it.id}`:'';const tp=it.type==='liq'?'liq':'cat';const ln=it.id?`\n     👉 https://catalogo.strangesneakers.com/?type=${tp}&id=${it.id}`:'';items+=`  • ${mk}${it.label}${ref} x${it.qty} — ${fmt(it.precio)}${ln}\n`;});
       const msg=`✅ *PAGO CONFIRMADO — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n📦 *Envío: GRATIS ✓*\n💰 *TOTAL: ${fmt(order.total)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${order.nombre}\n• Celular: ${order.tel}\n• Dirección: ${order.direccion||'-'}\n• Ciudad: ${order.ciudad}\n• Ref: ${reference}\n━━━━━━━━━━━━━━━━━━━━\n💳 *Pago Bold:* Confirmado ✓\n━━━━━━━━━━━━━━━━━━━━\n¡Gracias por tu compra! 🙏\n\n🎁 *Tu regalo — Guía de cuidado:*\nhttps://catalogo.strangesneakers.com/?regalo=cuidado`;
       setTimeout(()=>{alert('✅ ¡Pago confirmado!\nEn un momento recibirás confirmación por WhatsApp.');window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,'_blank');},300);
     }else{setTimeout(()=>alert('✅ ¡Pago confirmado con Bold!\nTu pedido está en camino. Pronto te contactamos.'),300);}
@@ -3397,7 +3389,7 @@ function exportMetaCatalog(){
     availability:'in stock',
     condition:'new',
     price:p.price+' COP',
-    link:base+'?id='+p.id,
+    link:base+'?type='+(prefix==='L'?'liq':'cat')+'&id='+p.id,
     image_link:p.img||'',
     brand:STORE_NAME,
     google_product_category:'187'
@@ -3427,7 +3419,7 @@ function exportCatalog(){
 }
 async function importCatalog(file){
   if(!file)return;
-  if(!ADMIN_API_KEY){alert('⚠️ Configura la Clave Admin en Configuración antes de importar.');return;}
+  if(!ADMIN_OK){alert('⚠️ Inicia sesión admin antes de importar.');return;}
   let text;try{text=await file.text();}catch{alert('No se pudo leer el archivo.');return;}
   let data;try{data=JSON.parse(text);}catch{alert('Archivo JSON inválido.');return;}
   if(!data.prods||!data.liqs){alert('Formato inválido: el backup debe tener prods y liqs.');return;}
@@ -3565,16 +3557,6 @@ async function loadState(){
 }
 function checkDeepLink(){
   const params=new URLSearchParams(location.search);
-  const akey=params.get('akey');
-  if(akey&&akey.length>=32){
-    ADMIN_API_KEY=akey;
-    localStorage.setItem('ss_akey',akey);
-  }
-  const newPin=params.get('pin');
-  if(newPin&&newPin.length>=8){
-    localStorage.setItem('ss_pin',newPin);
-  }
-  if(akey||newPin)history.replaceState(null,'',location.pathname);
   // Entrada secreta al panel: ?admin abre el admin (pide PIN como siempre) y limpia la URL.
   if(params.has('admin')){
     history.replaceState(null,'',location.pathname);
@@ -3591,10 +3573,14 @@ function checkDeepLink(){
   if(params.get('wompi')||params.get('bold'))return; // retorno de pasarela, no es un producto
   const id=parseInt(params.get('id'));
   if(!id)return;
-  const inLiq=liqs.find(x=>x.id===id);
-  const p=inLiq||prods.find(x=>x.id===id);
+  const requestedType=params.get('type');
+  const inLiq=requestedType==='liq'?liqs.find(x=>x.id===id):null;
+  const inCat=requestedType==='cat'?prods.find(x=>x.id===id):null;
+  const fallbackCat=prods.find(x=>x.id===id);
+  const fallbackLiq=liqs.find(x=>x.id===id);
+  const p=inLiq||inCat||fallbackCat||fallbackLiq;
   if(!p)return;
-  const type=inLiq?'liq':'cat';
+  const type=(inLiq||(!inCat&&!fallbackCat&&fallbackLiq))?'liq':'cat';
   setTimeout(()=>openPhoto(id,type),300);
 }
 function checkStorageQuota(){

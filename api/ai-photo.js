@@ -1,11 +1,5 @@
 const https = require('https');
-const crypto = require('crypto');
-
-function safeEq(a, b) {
-  const ab = Buffer.from(String(a || '')), bb = Buffer.from(String(b || ''));
-  if (ab.length !== bb.length) return false;
-  try { return crypto.timingSafeEqual(ab, bb); } catch { return false; }
-}
+const { requireAdmin } = require('./_admin_auth');
 
 const PROMPT = 'Transform this shoe photo into a professional e-commerce product photo. Pure white background, clean studio lighting, sharp focus on all shoe details, no shadows, shoe perfectly centered. Preserve ALL original details: colors, textures, logos, sole pattern, laces. Remove any background, floor, furniture, hands or distractions. Result must look like a professional product photographer took it for an online store.';
 
@@ -30,11 +24,7 @@ module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).end();
 
   try {
-  const auth = req.headers['authorization'] || '';
-  const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
-  if (!token || !process.env.ADMIN_API_KEY || !safeEq(token, process.env.ADMIN_API_KEY)) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  if (!requireAdmin(req, res)) return;
 
   const { imageBase64 } = req.body || {};
   if (!imageBase64) return res.status(400).json({ error: 'imageBase64 requerido' });

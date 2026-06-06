@@ -33,7 +33,7 @@ module.exports = async (req, res) => {
       condition:    'new',
       price:        (p.price_before || p.price) + ' COP',
       ...(p.price_before && p.price_before > p.price ? { sale_price: p.price + ' COP' } : {}),
-      link:         storeUrl + '/?id=' + p.id,
+      link:         storeUrl + '/?type=cat&id=' + p.id,
       image_link:   p.img_url || '',
       brand:        bl || brand,                       // marca real si existe; si no, la tienda
       google_product_category: '187'
@@ -46,7 +46,7 @@ module.exports = async (req, res) => {
       condition:    'new',
       price:        (p.price_before || p.price) + ' COP',
       ...(p.price_before && p.price_before > p.price ? { sale_price: p.price + ' COP' } : {}),
-      link:         storeUrl + '/?id=' + p.id,
+      link:         storeUrl + '/?type=liq&id=' + p.id,
       image_link:   p.img_url || '',
       brand:        brand,
       google_product_category: '187'

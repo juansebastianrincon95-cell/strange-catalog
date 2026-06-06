@@ -1,9 +1,6 @@
 const https = require('https');
-const { createClient } = require('@supabase/supabase-js');
-const { sendEvent } = require('./_capi');
+const { confirmPaidOrder } = require('./_orders');
 
-// Consulta pública de transacción Wompi: permite verificar el estado real
-// server-side en vez de confiar en el parámetro ?status= de la URL de retorno.
 function get(url) {
   return new Promise((resolve, reject) => {
     https.get(url, res => {
@@ -17,9 +14,32 @@ function get(url) {
   });
 }
 
+async function handleWebhook(req, res) {
+  const secret = (process.env.WOMPI_WEBHOOK_SECRET || '').trim();
+  const got = req.headers['x-webhook-secret'] || req.headers['x-wompi-signature'] || req.query.secret;
+  if (!secret || got !== secret) return res.status(202).json({ ok: false, error: 'webhook_not_configured_or_invalid' });
+  const payload = req.body || {};
+  const tx = payload.data?.transaction || payload.transaction || payload.data || payload;
+  if (tx.status === 'APPROVED' && tx.reference) {
+    const out = await confirmPaidOrder({
+      reference: tx.reference,
+      amountInCents: tx.amount_in_cents,
+      currency: tx.currency || 'COP',
+      req,
+      eventSourceUrl: 'https://catalogo.strangesneakers.com/'
+    });
+    return res.json(out);
+  }
+  return res.json({ ok: true, ignored: true });
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Cache-Control', 'no-store');
+
+  if (req.method === 'POST' || (req.query && req.query.webhook === 'wompi')) {
+    return handleWebhook(req, res);
+  }
 
   const id = (req.query && req.query.id ? String(req.query.id) : '').trim();
   if (!/^[\w-]{1,80}$/.test(id)) {
@@ -32,39 +52,24 @@ module.exports = async (req, res) => {
   const t = r.body && r.body.data;
   if (!t) return res.status(404).json({ error: 'transaction not found' });
 
-  // Pago aprobado: marcar el pedido como 'venta' en la BD y enviar Purchase a Meta (CAPI).
-  // Esto cierra el loop sin depender del navegador del cliente.
-  if (t.status === 'APPROVED' && t.reference && process.env.SUPABASE_SERVICE_KEY) {
-    try {
-      const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-      const { data: order } = await sb.from('orders')
-        .select('id,subtotal,total,tel,ciudad,nombre,status,utm')
-        .eq('reference', t.reference).single();
-      if (order && order.status !== 'venta') {
-        await sb.from('orders').update({ status: 'venta' }).eq('id', order.id);
-        const utm = order.utm || {};
-        // En Wompi el retorno lo hace el navegador del cliente → IP/UA son los suyos (válidos para CAPI).
-        const clientIp = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || undefined;
-        sendEvent({
-          eventName: 'Purchase',
-          value: order.subtotal != null ? order.subtotal : order.total,
-          currency: t.currency || 'COP',
-          phone: order.tel, city: order.ciudad, name: order.nombre,
-          fbp: utm.fbp, fbc: utm.fbc,
-          clientIp, clientUserAgent: req.headers['user-agent'],
-          eventId: t.reference + '_purchase',   // mismo id que el Pixel del navegador → dedup
-          actionSource: 'website',
-          eventSourceUrl: 'https://catalogo.strangesneakers.com/'
-        }).catch(() => {});
-      }
-    } catch (e) { /* no romper la respuesta de verificación */ }
+  let confirmed = false;
+  if (t.status === 'APPROVED' && t.reference) {
+    const out = await confirmPaidOrder({
+      reference: t.reference,
+      amountInCents: t.amount_in_cents,
+      currency: t.currency || 'COP',
+      req,
+      eventSourceUrl: 'https://catalogo.strangesneakers.com/'
+    }).catch(() => null);
+    confirmed = !!(out && out.ok);
   }
 
   return res.json({
-    id:              t.id,
-    status:          t.status,                 // APPROVED | DECLINED | VOIDED | ERROR | PENDING
-    reference:       t.reference,
+    id: t.id,
+    status: t.status,
+    reference: t.reference,
     amount_in_cents: t.amount_in_cents,
-    currency:        t.currency
+    currency: t.currency,
+    confirmed
   });
 };

@@ -1,15 +1,10 @@
 const { createClient } = require('@supabase/supabase-js');
-const crypto = require('crypto');
 const { sendEvent } = require('./_capi');
+const { requireAdmin } = require('./_admin_auth');
+const crypto = require('crypto');
 
 const ALLOWED_TABLES = ['products', 'liq_products', 'settings'];
 const ALLOWED_ORDER_STATUS = ['pending', 'venta', 'no_venta'];
-
-function safeEq(a, b) {
-  const ab = Buffer.from(String(a || '')), bb = Buffer.from(String(b || ''));
-  if (ab.length !== bb.length) return false;
-  try { return crypto.timingSafeEqual(ab, bb); } catch { return false; }
-}
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -18,11 +13,7 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
 
-  const auth = req.headers['authorization'] || '';
-  const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
-  if (!token || !process.env.ADMIN_API_KEY || !safeEq(token, process.env.ADMIN_API_KEY)) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  if (!requireAdmin(req, res)) return;
 
   if (!process.env.SUPABASE_SERVICE_KEY) {
     return res.status(500).json({ error: 'SUPABASE_SERVICE_KEY not configured' });
@@ -33,6 +24,8 @@ module.exports = async (req, res) => {
 
   if (!action) return res.status(400).json({ error: 'action required' });
 
+  if (action === 'ping') return res.json({ ok: true });
+
   if (action === 'upsert_settings') {
     if (!data) return res.status(400).json({ error: 'data required' });
     const rows = Array.isArray(data) ? data : [data];
@@ -41,6 +34,22 @@ module.exports = async (req, res) => {
     const { error } = await sb.from('settings').upsert(clean);
     if (error) return res.status(500).json({ error: error.message });
     return res.json({ ok: true });
+  }
+
+  if (action === 'upload_image') {
+    const imageBase64 = data && data.imageBase64;
+    if (!imageBase64 || typeof imageBase64 !== 'string') return res.status(400).json({ error: 'imageBase64 required' });
+    if (imageBase64.length > 8_000_000) return res.status(413).json({ error: 'image too large' });
+    const m = imageBase64.match(/^data:(image\/(?:webp|png|jpeg|jpg));base64,(.+)$/);
+    if (!m) return res.status(400).json({ error: 'invalid image data' });
+    const mime = m[1] === 'image/jpg' ? 'image/jpeg' : m[1];
+    const ext = mime.includes('png') ? 'png' : mime.includes('webp') ? 'webp' : 'jpg';
+    const bytes = Buffer.from(m[2], 'base64');
+    const filename = `admin_${Date.now()}_${crypto.randomBytes(4).toString('hex')}.${ext}`;
+    const { error } = await sb.storage.from('product-images').upload(filename, bytes, { contentType: mime, upsert: false });
+    if (error) return res.status(500).json({ error: error.message });
+    const { data: pub } = sb.storage.from('product-images').getPublicUrl(filename);
+    return res.json({ ok: true, url: pub.publicUrl });
   }
 
   if (action === 'insert_product') {

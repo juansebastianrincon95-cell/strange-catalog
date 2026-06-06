@@ -8,6 +8,7 @@ create table if not exists products (
   id           bigint generated always as identity primary key,
   created_at   timestamptz default now(),
   gender       text check (gender in ('h','m')),
+  brand        text,
   price        integer not null,
   price_before integer,
   promo        boolean default false,
@@ -80,10 +81,6 @@ create policy "public read images"
   using (bucket_id = 'product-images');
 
 -- Subida de imágenes desde el browser (admin panel) — sigue siendo anon
-create policy "anon upload images"
-  on storage.objects for insert to anon
-  with check (bucket_id = 'product-images');
-
 -- Sin policy de delete anónimo: borrar imágenes requiere service_role
 
 -- ─── TABLA: orders ──────────────────────────────────────────
@@ -98,6 +95,8 @@ create table if not exists orders (
   barrio     text,
   direccion  text,
   pago       text,
+  subtotal   integer,
+  envio      integer,
   total      integer,
   pares      integer,
   items      jsonb,
@@ -105,7 +104,8 @@ create table if not exists orders (
   reference  text,
   utm        jsonb,
   referrer   text,
-  seccion    text
+  seccion    text,
+  session_id text
 );
 
 alter table orders enable row level security;
@@ -114,6 +114,29 @@ create policy "anon insert orders"
   on orders for insert to anon with check (true);
 create policy "service all orders"
   on orders for all to service_role using (true) with check (true);
+
+-- Migraciones idempotentes para instalaciones existentes
+alter table products add column if not exists brand text;
+alter table orders add column if not exists subtotal integer;
+alter table orders add column if not exists envio integer;
+alter table orders add column if not exists session_id text;
+create index if not exists orders_reference_idx on orders(reference);
+create index if not exists orders_session_status_idx on orders(session_id, status);
+create index if not exists orders_status_created_idx on orders(status, created_at);
+
+do $$
+begin
+  -- NOT VALID: aplica solo a filas nuevas — no falla si alguna fila histórica
+  -- tiene un status/monto fuera de regla (la migración nunca debe romper producción).
+  if not exists (select 1 from pg_constraint where conname = 'orders_status_allowed') then
+    alter table orders add constraint orders_status_allowed
+      check (status in ('pending','venta','no_venta','abandoned')) not valid;
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'orders_amounts_nonnegative') then
+    alter table orders add constraint orders_amounts_nonnegative
+      check (coalesce(subtotal,0) >= 0 and coalesce(envio,0) >= 0 and coalesce(total,0) >= 0) not valid;
+  end if;
+end $$;
 
 -- ─── TABLA: events ──────────────────────────────────────────
 create table if not exists events (
@@ -144,6 +167,7 @@ create table if not exists subscribers (
   id         bigserial primary key,
   created_at timestamptz default now(),
   nombre     text,
+  email      text,
   whatsapp   text,
   cumple     text,            -- YYYY-MM-DD, para promos de cumpleaños
   utm        jsonb,
@@ -153,6 +177,9 @@ create table if not exists subscribers (
 
 alter table subscribers enable row level security;
 -- (sin policies anon: solo service_role puede leer/escribir)
+alter table subscribers add column if not exists email text;
+create index if not exists subscribers_whatsapp_idx on subscribers(whatsapp);
+create index if not exists subscribers_email_idx on subscribers(email);
 
 -- ─── VERIFICACIÓN ───────────────────────────────────────────
 select 'products'     as tabla, count(*) as filas from products

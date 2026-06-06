@@ -1,19 +1,66 @@
 const { createClient } = require('@supabase/supabase-js');
-const { sendEvent } = require('./_capi');
+const { rateLimit } = require('./_rate_limit');
+const { anonClient, serviceClient, cleanText, createOrder, getOrderByReference, confirmPaidOrder } = require('./_orders');
 
 const ALLOWED_ORIGINS = ['https://catalogo.strangesneakers.com', 'https://strange-catalog.vercel.app'];
+const CODIGO_BIENVENIDA = 'BIENVENIDO20';
 
-// ── BOLD (pagos en línea por Payment Link API). Integrado aquí para no superar el límite de 12
-// funciones serverless del plan Hobby. La llave va en env BOLD_API_KEY (Llave de identidad). ──
+function allowedOrigin(req, res) {
+  const origin = (req.headers.origin || '').trim();
+  res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0]);
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Webhook-Secret, X-Bold-Signature');
+  return ALLOWED_ORIGINS.includes(origin);
+}
+
+function sbForPrivateWrites() {
+  return process.env.SUPABASE_SERVICE_KEY ? serviceClient() : anonClient();
+}
+
+async function handleSubscribe(req, res) {
+  const d = req.body || {};
+  const utm = (d.utm && typeof d.utm === 'object' && !Array.isArray(d.utm)) ? d.utm : null;
+  const session_id = cleanText(d.session_id, 64);
+  const sb = sbForPrivateWrites();
+
+  const email = cleanText(d.email, 200) || '';
+  if (d.source === 'footer' || (email && !d.whatsapp)) {
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'email invalido' });
+    const { data: prev } = await sb.from('subscribers').select('id').eq('email', email).limit(1);
+    if (!prev || !prev.length) {
+      const { error } = await sb.from('subscribers').insert({ email, utm, session_id, source: 'footer' });
+      if (error) return res.status(500).json({ error: error.message });
+    }
+    return res.status(201).json({ ok: true });
+  }
+
+  const nombre = cleanText(d.nombre, 200) || '';
+  const whatsapp = d.whatsapp ? String(d.whatsapp).replace(/\D/g, '').slice(0, 20) : '';
+  if (!nombre) return res.status(400).json({ error: 'nombre requerido' });
+  if (whatsapp.length < 7) return res.status(400).json({ error: 'whatsapp invalido' });
+  const cumple = cleanText(d.cumple, 20);
+  const { data: prev } = await sb.from('subscribers').select('id').eq('whatsapp', whatsapp).limit(1);
+  if (!prev || !prev.length) {
+    const { error } = await sb.from('subscribers').insert({
+      nombre, whatsapp, cumple, utm, session_id, source: 'popup_bienvenida'
+    });
+    if (error) return res.status(500).json({ error: error.message });
+  }
+  return res.status(201).json({ ok: true, codigo: CODIGO_BIENVENIDA });
+}
+
 async function handleBoldLink(req, res) {
   const key = process.env.BOLD_API_KEY;
   if (!key) return res.status(200).json({ error: 'bold_unavailable' });
-  const d = req.body || {};
-  const amount = parseInt(d.amount, 10);
-  if (!Number.isFinite(amount) || amount < 1000 || amount > 100_000_000)
+  const reference = cleanText(req.body && req.body.reference, 100);
+  if (!reference) return res.status(400).json({ error: 'reference requerida' });
+  const order = await getOrderByReference(reference);
+  if (!order) return res.status(404).json({ error: 'order_not_found' });
+  const amount = Number(order.subtotal != null ? order.subtotal : order.total);
+  if (!Number.isFinite(amount) || amount < 1000 || amount > 100_000_000) {
     return res.status(400).json({ error: 'amount fuera de rango' });
-  const reference   = (d.reference ? String(d.reference) : ('STR-' + Date.now())).slice(0, 60);
-  const description = (d.description ? String(d.description) : ('Pedido ' + reference)).slice(0, 100);
+  }
+  const description = cleanText(req.body && req.body.description, 100) || ('Pedido ' + reference);
   try {
     const r = await fetch('https://integrations.api.bold.co/online/link/v1', {
       method: 'POST',
@@ -29,7 +76,13 @@ async function handleBoldLink(req, res) {
     const p = j.payload || j;
     if (!r.ok || !(p && p.url)) return res.status(502).json({ error: 'bold_error' });
     return res.status(200).json({ url: p.url, payment_link: p.payment_link, reference });
-  } catch (e) { return res.status(502).json({ error: 'bold_error' }); }
+  } catch {
+    return res.status(502).json({ error: 'bold_error' });
+  }
+}
+
+function boldAmount(p) {
+  return p?.amount?.total_amount ?? p?.amount?.total ?? p?.total_amount ?? p?.amount;
 }
 
 async function handleBoldStatus(req, res) {
@@ -38,165 +91,86 @@ async function handleBoldStatus(req, res) {
   const d = req.body || {};
   const link = d.payment_link ? String(d.payment_link).replace(/[^\w-]/g, '').slice(0, 80) : '';
   if (!link) return res.status(400).json({ error: 'missing payment_link' });
-  let status = 'UNKNOWN';
+  let status = 'UNKNOWN', amount = null;
   try {
     const r = await fetch('https://integrations.api.bold.co/online/link/v1/' + encodeURIComponent(link),
       { headers: { 'Authorization': 'x-api-key ' + key } });
     const j = await r.json().catch(() => ({}));
     const p = j.payload || j;
     status = (p && p.status) || 'UNKNOWN';
-  } catch (e) { /* deja status UNKNOWN */ }
-  // Pago confirmado → marcar venta + Purchase a Meta (CAPI), igual que wompi-verify.
-  if (status === 'PAID' && d.reference && process.env.SUPABASE_SERVICE_KEY) {
-    try {
-      const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-      const { data: order } = await sb.from('orders')
-        .select('id,subtotal,total,tel,ciudad,nombre,status,utm')
-        .eq('reference', String(d.reference).slice(0, 100)).single();
-      if (order && order.status !== 'venta') {
-        await sb.from('orders').update({ status: 'venta' }).eq('id', order.id);
-        const utm = order.utm || {};
-        const clientIp = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || undefined;
-        sendEvent({
-          eventName: 'Purchase',
-          value: order.subtotal != null ? order.subtotal : order.total, currency: 'COP',
-          phone: order.tel, city: order.ciudad, name: order.nombre,
-          fbp: utm.fbp, fbc: utm.fbc, clientIp, clientUserAgent: req.headers['user-agent'],
-          eventId: String(d.reference) + '_purchase', actionSource: 'website',
-          eventSourceUrl: 'https://catalogo.strangesneakers.com/'
-        }).catch(() => {});
-      }
-    } catch (e) { /* no romper la respuesta */ }
+    amount = boldAmount(p);
+  } catch {}
+  let confirmed = false;
+  if (status === 'PAID' && d.reference) {
+    const out = await confirmPaidOrder({ reference: d.reference, amount, currency: 'COP', req }).catch(() => null);
+    confirmed = !!(out && out.ok);
   }
-  return res.status(200).json({ status });
+  return res.status(200).json({ status, confirmed });
 }
 
-// Código del cupón de bienvenida ($20.000 OFF). Debe coincidir con CUPONES en index.html.
-const CODIGO_BIENVENIDA = 'BIENVENIDO20';
-
-// Suscriptor del popup de bienvenida (NO es un pedido). Va aquí, y no en su propio endpoint,
-// para no superar el límite de 12 funciones serverless del plan Hobby de Vercel.
-async function handleSubscribe(req, res) {
+async function handleBoldWebhook(req, res) {
+  const secret = (process.env.BOLD_WEBHOOK_SECRET || '').trim();
+  const got = req.headers['x-webhook-secret'] || req.headers['x-bold-signature'] || req.query.secret;
+  if (!secret || got !== secret) return res.status(202).json({ ok: false, error: 'webhook_not_configured_or_invalid' });
   const d = req.body || {};
-  const utm        = (d.utm && typeof d.utm === 'object' && !Array.isArray(d.utm)) ? d.utm : null;
-  const session_id = d.session_id ? String(d.session_id).slice(0, 64) : null;
-  const key = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
-  const sb = createClient(process.env.SUPABASE_URL, key);
-
-  // ── Newsletter del footer: solo correo (sin nombre/whatsapp) ──
-  const email = d.email ? String(d.email).trim().slice(0, 200) : '';
-  if (d.source === 'footer' || (email && !d.whatsapp)) {
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'email inválido' });
-    try {
-      const { data: prev } = await sb.from('subscribers').select('id').eq('email', email).limit(1);
-      if (!prev || !prev.length) {
-        const { error } = await sb.from('subscribers').insert({ email, utm, session_id, source: 'footer' });
-        if (error) return res.status(500).json({ error: error.message });
-      }
-    } catch (e) { return res.status(500).json({ error: e.message || 'error' }); }
-    return res.status(201).json({ ok: true });
+  const p = d.payload || d;
+  if ((p.status || d.status) !== 'PAID' || !(p.reference || d.reference)) {
+    return res.json({ ok: true, ignored: true });
   }
-
-  // ── Popup de bienvenida: nombre + whatsapp (+ cumpleaños) ──
-  const nombre   = d.nombre ? String(d.nombre).trim().slice(0, 200) : '';
-  const whatsapp = d.whatsapp ? String(d.whatsapp).replace(/\D/g, '').slice(0, 20) : '';
-  if (!nombre)             return res.status(400).json({ error: 'nombre requerido' });
-  if (whatsapp.length < 7) return res.status(400).json({ error: 'whatsapp inválido' });
-  const cumple = d.cumple ? String(d.cumple).slice(0, 20) : null;
-  try {
-    const { data: prev } = await sb.from('subscribers').select('id').eq('whatsapp', whatsapp).limit(1);
-    if (!prev || !prev.length) {
-      const { error } = await sb.from('subscribers').insert({
-        nombre, whatsapp, cumple, utm, session_id, source: 'popup_bienvenida'
-      });
-      if (error) return res.status(500).json({ error: error.message });
-    }
-  } catch (e) {
-    return res.status(500).json({ error: e.message || 'error' });
-  }
-  return res.status(201).json({ ok: true, codigo: CODIGO_BIENVENIDA });
+  const out = await confirmPaidOrder({ reference: p.reference || d.reference, amount: boldAmount(p), currency: 'COP', req });
+  return res.json(out);
 }
 
 module.exports = async (req, res) => {
-  const origin = (req.headers.origin || '').trim();
-  res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0]);
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
+  const okOrigin = allowedOrigin(req, res);
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
+  if (req.query && req.query.webhook === 'bold') return handleBoldWebhook(req, res);
+  if (!okOrigin) return res.status(403).json({ error: 'Forbidden' });
+  if (!rateLimit(req, res, { scope: 'orders', max: 40, windowMs: 60_000 })) return;
 
-  if (!ALLOWED_ORIGINS.includes(origin)) {
-    return res.status(403).json({ error: 'Forbidden' });
+  try {
+    const kind = req.body && req.body.kind;
+    if (kind === 'subscriber') return handleSubscribe(req, res);
+    if (kind === 'bold_link') return handleBoldLink(req, res);
+    if (kind === 'bold_status') return handleBoldStatus(req, res);
+    if (kind === 'create_order') {
+      const order = await createOrder(req.body, req.body.status || 'pending');
+      return res.status(201).json({ ok: true, order });
+    }
+
+    // Compatibilidad con el frontend anterior: si vienen items, recalcular siempre server-side.
+    if (Array.isArray(req.body && req.body.items) && req.body.items.length) {
+      const order = await createOrder(req.body, req.body.status || 'pending');
+      return res.status(201).json({ ok: true, order });
+    }
+
+    // Fallback defensivo para registros sin items: no aceptar montos arbitrarios.
+    const sb = process.env.SUPABASE_SERVICE_KEY
+      ? serviceClient()
+      : createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+    const base = {
+      fecha: cleanText(req.body.fecha, 50) || new Date().toISOString(),
+      nombre: cleanText(req.body.nombre, 200),
+      cedula: cleanText(req.body.cedula, 30),
+      tel: cleanText(req.body.tel || req.body.celular, 30),
+      ciudad: cleanText(req.body.ciudad, 100),
+      barrio: cleanText(req.body.barrio, 100),
+      direccion: cleanText(req.body.direccion, 300),
+      pago: cleanText(req.body.pago, 50),
+      subtotal: 0, envio: 0, total: 0, pares: 0, items: [],
+      // Mismo whitelist que createOrder: el cliente nunca puede auto-marcar 'venta'/'no_venta'.
+      status: cleanText(req.body.status, 20) === 'abandoned' ? 'abandoned' : 'pending',
+      reference: cleanText(req.body.reference, 100),
+      utm: req.body.utm && typeof req.body.utm === 'object' && !Array.isArray(req.body.utm) ? req.body.utm : null,
+      referrer: cleanText(req.body.referrer, 300),
+      seccion: cleanText(req.body.seccion, 20),
+      session_id: cleanText(req.body.session_id, 64)
+    };
+    const { error } = await sb.from('orders').insert(base);
+    if (error) return res.status(500).json({ error: error.message });
+    return res.status(201).json({ ok: true });
+  } catch (e) {
+    return res.status(400).json({ error: e.message || 'order_error' });
   }
-
-  // El popup de bienvenida y Bold reusan este endpoint (ver nota de límite de funciones).
-  if (req.body && req.body.kind === 'subscriber')  return handleSubscribe(req, res);
-  if (req.body && req.body.kind === 'bold_link')   return handleBoldLink(req, res);
-  if (req.body && req.body.kind === 'bold_status') return handleBoldStatus(req, res);
-
-  const d = req.body;
-  if (!d?.total || !d?.fecha) return res.status(400).json({ error: 'total y fecha requeridos' });
-
-  const total = parseInt(d.total);
-  if (isNaN(total) || total < 1000 || total > 100_000_000) {
-    return res.status(400).json({ error: 'total fuera de rango' });
-  }
-
-  // Acotar payloads para evitar abuso (origin es spoofeable por clientes no-browser)
-  const pares = Number.isFinite(parseInt(d.pares)) ? Math.min(Math.max(0, parseInt(d.pares)), 1000) : null;
-  const items = Array.isArray(d.items) ? d.items.slice(0, 50) : null;
-  const utm   = (d.utm && typeof d.utm === 'object' && !Array.isArray(d.utm)) ? d.utm : null;
-  const subtotal = Number.isFinite(parseInt(d.subtotal)) ? parseInt(d.subtotal) : null;
-  const envio    = Number.isFinite(parseInt(d.envio))    ? parseInt(d.envio)    : null;
-
-  // Campos base (siempre existen en la tabla)
-  const base = {
-    fecha:     String(d.fecha).slice(0, 50),
-    nombre:    d.nombre ? String(d.nombre).slice(0, 200) : null,
-    cedula:    d.cedula ? String(d.cedula).slice(0, 30) : null,
-    tel:       d.tel || d.celular ? String(d.tel || d.celular).slice(0, 30) : null,
-    ciudad:    d.ciudad ? String(d.ciudad).slice(0, 100) : null,
-    barrio:    d.barrio ? String(d.barrio).slice(0, 100) : null,
-    direccion: d.direccion ? String(d.direccion).slice(0, 300) : null,
-    pago:      d.pago ? String(d.pago).slice(0, 50) : null,
-    total,
-    pares,
-    items,
-    status:    d.status ? String(d.status).slice(0, 20) : 'pending',
-    reference: d.reference ? String(d.reference).slice(0, 100) : null,
-    utm,
-    referrer:  d.referrer ? String(d.referrer).slice(0, 300) : null,
-    seccion:   d.seccion ? String(d.seccion).slice(0, 20) : null
-  };
-  // Campos nuevos (requieren migración: subtotal/envio/session_id)
-  const extra = {
-    subtotal,
-    envio,
-    session_id: d.session_id ? String(d.session_id).slice(0, 64) : null
-  };
-
-  const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
-
-  // Si este es un pedido REAL (no el lead 'abandoned' que se guarda al llenar el form),
-  // borrar el 'abandoned' previo de la misma sesión para no duplicar. Requiere service_role
-  // (la RLS solo deja insertar al anon). Acotado a status='abandoned' + esa session_id.
-  if (base.status !== 'abandoned' && extra.session_id && process.env.SUPABASE_SERVICE_KEY) {
-    try {
-      const sbSvc = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-      await sbSvc.from('orders').delete()
-        .eq('session_id', extra.session_id).eq('status', 'abandoned');
-    } catch (e) { /* si falla, peor caso queda un abandoned huérfano; no rompe el pedido */ }
-  }
-
-  let { error } = await sb.from('orders').insert({ ...base, ...extra });
-
-  // Resiliencia: si las columnas nuevas aún no existen (migración pendiente),
-  // reintentar solo con los campos base para no perder el pedido.
-  if (error && /column .* does not exist|schema cache/i.test(error.message || '')) {
-    ({ error } = await sb.from('orders').insert(base));
-  }
-
-  if (error) return res.status(500).json({ error: error.message });
-  res.status(201).json({ ok: true });
 };

@@ -1,14 +1,9 @@
 const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
+const { safeEq, makeSession, cookieHeader, clearCookieHeader } = require('./_admin_auth');
 
 const MAX_ATTEMPTS = 5;
 const WINDOW_MS    = 15 * 60 * 1000; // 15 minutos
-
-function safeEq(a, b) {
-  const ab = Buffer.from(String(a || '')), bb = Buffer.from(String(b || ''));
-  if (ab.length !== bb.length) return false;
-  try { return crypto.timingSafeEqual(ab, bb); } catch { return false; }
-}
 
 async function getRateLimit(sb, ipHash) {
   const key = `rl:setup:${ipHash}`;
@@ -31,6 +26,11 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
 
+  if (req.body && req.body.action === 'logout') {
+    res.setHeader('Set-Cookie', clearCookieHeader());
+    return res.json({ ok: true });
+  }
+
   const ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
   const ipHash = crypto.createHash('sha256').update(ip).digest('hex').slice(0, 16);
 
@@ -48,6 +48,9 @@ module.exports = async (req, res) => {
   }
 
   const { pin } = req.body || {};
+  if (!process.env.ADMIN_SESSION_SECRET) {
+    return res.status(500).json({ error: 'ADMIN_SESSION_SECRET not configured' });
+  }
   if (!pin || !process.env.ADMIN_PIN || !safeEq(String(pin).trim(), process.env.ADMIN_PIN.trim())) {
     await setRateLimit(sb, rl.key, rl.count + 1, rl.ts);
     // Delay artificial para frenar brute force
@@ -57,5 +60,6 @@ module.exports = async (req, res) => {
 
   // Login exitoso: limpiar contador
   await setRateLimit(sb, rl.key, 0, now);
-  return res.json({ key: process.env.ADMIN_API_KEY });
+  res.setHeader('Set-Cookie', cookieHeader(makeSession()));
+  return res.json({ ok: true });
 };
