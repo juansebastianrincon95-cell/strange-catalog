@@ -529,6 +529,11 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .paychoice:active{transform:translateY(0) scale(.995)}
 .pc-ic{flex-shrink:0;width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--acc)}
 .pc-ic svg{width:23px;height:23px;display:block}
+/* Logos reales de pasarela en el paso 3 (caja blanca con borde sutil) */
+.pc-ic:has(.pc-logo){border:1px solid var(--line)}
+.pc-ic .pc-logo{max-width:36px;max-height:28px;object-fit:contain;display:block}
+.pc-logos2{display:flex;flex-direction:column;gap:3px;align-items:center;justify-content:center}
+.pc-logos2 .pc-logo{max-width:34px;max-height:14px}
 .pc-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
 .pc-tit{font-size:14.5px;font-weight:700;color:var(--ink);letter-spacing:-.01em}
 .pc-desc{font-size:11.5px;color:var(--ink2);line-height:1.4;margin-top:2px}
@@ -1045,6 +1050,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
     </div>
     <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#f3f1ff">
       <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">🖼 Banners del inicio (hero)</div>
+      <input type="file" accept="image/*" id="heroEditFile" style="display:none" onchange="heroEditFileChange(this.files[0])">
       <div id="heroAdminList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>
       <div class="dev-tog"><button type="button" id="hero_btnM" class="on" onclick="bannerDev('hero','m')">📱 Móvil</button><button type="button" id="hero_btnE" onclick="bannerDev('hero','e')">🖥 Escritorio</button></div>
       <div id="hero_devM">
@@ -1675,14 +1681,48 @@ function renderHeroAdmin(){
   const box=$('heroAdminList');if(!box)return;
   heroLinkTypeChange();   // refresca el selector de producto/marca con el inventario actual
   if(!heroSlides.length){box.innerHTML='<div style="font-size:11px;color:var(--ink3)">Aún no hay banners. Agrega el primero abajo 👇</div>';return;}
-  box.innerHTML=heroSlides.map((s,i)=>`<div style="display:flex;align-items:center;gap:8px;background:var(--white);border:1px solid var(--line);border-radius:9px;padding:6px">
-    <img src="${escHtml(s.img)}" style="width:38px;height:48px;object-fit:cover;border-radius:6px;flex-shrink:0">
-    <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(s.titulo)||'(sin título)'}</div><div style="font-size:10px;color:var(--ink3)">${escHtml(heroDestLabel(s))}</div></div>
-    <button onclick="heroPos(${i})" title="Encuadre escritorio: ${s.pos==='bottom'?'Abajo (tenis)':s.pos==='top'?'Arriba':'Centro'} — toca para cambiar" style="border:none;background:var(--bg);border-radius:6px;width:32px;height:26px;cursor:pointer;font-size:11px">${s.pos==='bottom'?'🖥▼':s.pos==='top'?'🖥▲':'🖥■'}</button>
-    <button onclick="heroMove(${i},-1)" ${i===0?'disabled':''} style="border:none;background:var(--bg);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;${i===0?'opacity:.3':''}">↑</button>
-    <button onclick="heroMove(${i},1)" ${i===heroSlides.length-1?'disabled':''} style="border:none;background:var(--bg);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;${i===heroSlides.length-1?'opacity:.3':''}">↓</button>
-    <button onclick="heroDel(${i})" style="border:none;background:#ffe9e6;color:var(--red);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px">🗑</button>
+  box.innerHTML=heroSlides.map((s,i)=>`<div style="background:var(--white);border:1px solid var(--line);border-radius:9px;padding:6px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <img src="${escHtml(s.img)}" style="width:38px;height:48px;object-fit:cover;border-radius:6px;flex-shrink:0">
+      <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(s.titulo)||'(sin título)'}</div><div style="font-size:10px;color:var(--ink3)">${escHtml(heroDestLabel(s))} · ${s.img_desktop?'🖥 con escritorio':'🖥 sin escritorio'}</div></div>
+      <button onclick="heroMove(${i},-1)" ${i===0?'disabled':''} style="border:none;background:var(--bg);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;${i===0?'opacity:.3':''}">↑</button>
+      <button onclick="heroMove(${i},1)" ${i===heroSlides.length-1?'disabled':''} style="border:none;background:var(--bg);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;${i===heroSlides.length-1?'opacity:.3':''}">↓</button>
+      <button onclick="heroDel(${i})" style="border:none;background:#ffe9e6;color:var(--red);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px">🗑</button>
+    </div>
+    <div style="display:flex;gap:5px;margin-top:6px">
+      <button onclick="heroPickImg(${i},'movil')" style="flex:1;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:5px 4px;cursor:pointer;font-family:var(--font);font-size:10px;font-weight:700;color:var(--ink2)">📱 Cambiar móvil</button>
+      <button onclick="heroPickImg(${i},'escritorio')" style="flex:1;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:5px 4px;cursor:pointer;font-family:var(--font);font-size:10px;font-weight:700;color:var(--ink2)">🖥 Cambiar escritorio</button>
+      <button onclick="heroEditText(${i})" style="flex:1;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:5px 4px;cursor:pointer;font-family:var(--font);font-size:10px;font-weight:700;color:var(--ink2)">✏ Texto</button>
+      <button onclick="heroPos(${i})" title="Encuadre escritorio" style="border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:5px 7px;cursor:pointer;font-size:10px">${s.pos==='bottom'?'🖥▼':s.pos==='top'?'🖥▲':'🖥■'}</button>
+    </div>
   </div>`).join('');
+}
+/* Editar un slide EXISTENTE: reemplazar imagen móvil/escritorio o el texto, sin borrarlo */
+let _heroEdit=null;   // {i, which} del slide en edición
+function heroPickImg(i,which){
+  _heroEdit={i,which};
+  const inp=$('heroEditFile');if(inp){inp.value='';inp.click();}
+}
+function heroEditFileChange(file){
+  if(!file||!_heroEdit)return;
+  const {i,which}=_heroEdit;_heroEdit=null;
+  compressImg(file,async dataUrl=>{
+    try{
+      const url=await uploadToStorage(dataUrl,0,false);
+      if(which==='escritorio')heroSlides[i].img_desktop=url; else heroSlides[i].img=url;
+      await saveHeroSlides();
+      alert('✓ Imagen '+(which==='escritorio'?'de escritorio':'móvil')+' actualizada. Ya está publicada.');
+    }catch(e){alert('❌ No se pudo subir la imagen:\n'+(e.message||e));}
+  },false);
+}
+async function heroEditText(i){
+  const s=heroSlides[i];
+  const tit=prompt('Título del banner:',s.titulo||'');
+  if(tit===null)return;
+  const sub=prompt('Subtítulo (opcional):',s.subtitulo||'');
+  if(sub===null)return;
+  s.titulo=tit.trim();s.subtitulo=sub.trim();
+  await saveHeroSlides();
 }
 async function heroPos(i){
   const order=['center','bottom','top'];
@@ -1868,13 +1908,15 @@ function navGo(t){
 /* ── VENTANAS INFO (Mayoristas / Cambios y Garantías) ── reusan el modal .guia-modal ── */
 const INFO_MAYORISTAS=`<div class="info-pad">
   <h2 class="info-h1">Gana hasta un <span class="big">46%</span> de rentabilidad</h2>
-  <p class="info-lead">Vende sneakers originales y genera ingresos extra con nosotros. Te acompañamos en todo el proceso.</p>
+  <p class="info-lead">Vende sneakers importados y genera ingresos extra con nosotros. Te acompañamos en todo el proceso.</p>
   <div class="info-subt">Beneficios de ser mayorista</div>
   <div class="info-benes">
-    <div class="info-bene">✅ Producto 100% importado</div>
-    <div class="info-bene">✅ Calidad garantizada</div>
+    <div class="info-bene">✅ Precios especiales de mayorista</div>
+    <div class="info-bene">✅ Material listo para publicar (fotos y videos)</div>
+    <div class="info-bene">✅ Catálogo siempre actualizado</div>
+    <div class="info-bene">✅ Asesoría directa por WhatsApp</div>
     <div class="info-bene">✅ Envíos a toda Colombia</div>
-    <div class="info-bene">✅ Genera ingresos extra con nosotros</div>
+    <div class="info-bene">✅ Vende sin inventario (te despachamos directo a tu cliente)</div>
   </div>
   <button class="info-wa" onclick="waMayoristas()">💬 Más información por WhatsApp</button>
 </div>`;
@@ -1898,7 +1940,7 @@ function openInfo(which){
 }
 function closeInfo(){const m=$('infoModal');if(m)m.classList.remove('on');unlockScroll();}
 function waMayoristas(){
-  const msg=`¡Hola ${STORE_NAME}! 👟 Quiero información para ser MAYORISTA y vender sus sneakers. ¿Me cuentas cómo funciona? 🙏`;
+  const msg=`Hola ${STORE_NAME}, quiero ser mayorista. ¿Me puedes enviar precios, condiciones y catálogo disponible?`;
   try{trackEvent('lead',{});}catch(e){}
   if(typeof px==='function')px('Lead',{content_name:'mayoristas',...getUTM()});
   window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,'_blank');
@@ -3130,13 +3172,15 @@ function rPayChoice(){
   const icBank=SV+'<path d="M3 9.5l9-5 9 5"/><path d="M5 10v7M9.5 10v7M14.5 10v7M19 10v7"/><path d="M3.5 20h17"/></svg>';
   const icCard=SV+'<rect x="2.5" y="5.5" width="19" height="13" rx="2.5"/><path d="M2.5 9.5h19"/><path d="M6 14.5h4"/></svg>';
   const icCuotas=SV+'<rect x="3.5" y="4.5" width="17" height="16" rx="2.5"/><path d="M3.5 9.5h17"/><path d="M8 3v3M16 3v3"/><path d="M8.3 14.5l2 2 4-4"/></svg>';
+  // Logo real con fallback al SVG genérico si el archivo no existe (mismo patrón que la ficha)
+  const icLogo=(src,alt,fb)=>`<img src="${src}" alt="${alt}" class="pc-logo" onerror="this.outerHTML=${JSON.stringify(fb).replace(/"/g,'&quot;')}">`;
   const card=(fn,acc,tint,ico,tit,desc,tot)=>`<button class="paychoice" onclick="${fn}" style="--acc:${acc}"><span class="pc-ic" style="background:${tint}">${ico}</span><span class="pc-main"><span class="pc-tit">${tit}</span><span class="pc-desc">${desc}</span><span class="pc-tot">${tot}</span></span><span class="pc-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>`;
   $('cbody').innerHTML=`<div class="paysec"><div class="paytit">¿Cómo quieres pagar?</div><div class="paychoice-list">`
     +card(`enviarWA('contra_entrega')`,'#1E1E1C','#f1f1ef',icTruck,'Contra entrega',`Pagas el envío ahora y los zapatos al recibir en casa`,`Hoy: envío ${fmt(flete)} · Al recibir: ${fmt(sub)}`)
     +card(`enviarWA('pago_anticipado')`,'#FF7A00','#fff3e6',icBank,'Pago anticipado','Transfieres antes · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
-    +card(`pagarWompi()`,'#5D2D91','#f3edfa',icCard,'Pagar en línea — Wompi','Tarjeta · PSE · Nequi · Bancolombia · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
-    +card(`pagarBold()`,'#2541B2','#e9edfb',icCard,'Pagar en línea — Bold','Tarjeta · PSE · Botón Bancolombia · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
-    +card(`enviarWA('credito')`,'#0a7d4b','#e7f6ee',icCuotas,'Pagar a crédito — Addi / Sistecrédito','En cuotas · Te asesoramos por WhatsApp · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
+    +card(`pagarWompi()`,'#5D2D91','#fff',icLogo('logos/wompi.png','Wompi',icCard),'Pagar en línea — Wompi','Tarjeta · PSE · Nequi · Bancolombia · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
+    +card(`pagarBold()`,'#2541B2','#fff',icLogo('logos/bold.png','Bold',icCard),'Pagar en línea — Bold','Tarjeta · PSE · Botón Bancolombia · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
+    +card(`enviarWA('credito')`,'#0a7d4b','#fff',`<span class="pc-logos2">${icLogo('logos/addi.png','Addi',icCuotas)}${icLogo('logos/sistecredito.png','Sistecrédito','')}</span>`,'Pagar a crédito — Addi / Sistecrédito','En cuotas · Te asesoramos por WhatsApp · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
     +`</div></div>`;
   $('cfoot').innerHTML=`<button class="btnback" onclick="goStep(1)">← Volver</button>`;
 }
