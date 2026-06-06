@@ -14,7 +14,7 @@ module.exports = async (req, res) => {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
 
   const ordersQuery = sbSvc
-    ? sbSvc.from('orders').select('id,fecha,total,subtotal,envio,pares,pago,ciudad,barrio,tel,nombre,utm,status,reference,session_id,items,created_at').order('created_at', { ascending: false }).limit(50)
+    ? sbSvc.from('orders').select('id,fecha,total,subtotal,envio,pares,pago,ciudad,barrio,tel,nombre,utm,combo,status,reference,session_id,items,created_at').order('created_at', { ascending: false }).limit(50)
     : Promise.resolve({ data: [] });
 
   const eventsQuery = sbSvc

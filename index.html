@@ -225,6 +225,24 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .lsave{display:inline-block;margin-top:3px;background:#fff5f5;color:var(--red);font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px}
 .liq-empty{padding:32px;text-align:center;color:var(--ink3);font-size:13px;grid-column:1/-1}
 
+/* COMBOS MUNDIALISTAS: tarjetas de bundle en la sección Ofertas */
+.combos-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px 10px 14px}
+@media(min-width:700px){.combos-grid{grid-template-columns:repeat(4,1fr);gap:10px}}
+.combo-card{position:relative;background:var(--white);border:1.5px solid var(--line);border-radius:16px;padding:16px 12px 14px;text-align:center;cursor:pointer;transition:transform .14s,box-shadow .15s,border-color .15s;overflow:hidden}
+.combo-card:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(0,0,0,.10);border-color:var(--ink)}
+.combo-card:active{transform:scale(.97)}
+.combo-flag{font-size:34px;line-height:1}
+.combo-nom{font-size:13.5px;font-weight:800;color:var(--ink);margin-top:7px;letter-spacing:-.01em}
+.combo-det{font-size:11px;font-weight:600;color:var(--ink2);margin-top:3px}
+.combo-precio{font-size:17px;font-weight:800;color:var(--ink);margin-top:6px;letter-spacing:-.03em}
+.combo-cami{display:inline-block;margin-top:7px;background:#eafaf0;color:#137a3a;border:1px solid #bfe9cd;font-size:9.5px;font-weight:800;padding:3px 9px;border-radius:12px}
+.combo-cta{display:inline-block;margin-top:9px;background:var(--ink);color:#fff;font-size:11px;font-weight:700;padding:8px 16px;border-radius:9px}
+/* Barra sticky de progreso del combo activo (dentro del catálogo) */
+.combo-bar{position:sticky;top:59px;z-index:3;display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--ink);color:#fff;font-size:12.5px;font-weight:700;line-height:1.3}
+.combo-bar.ok{background:#137a3a}
+.combo-bar.exceso{background:#b3541e}
+.combo-bar .cb-x{margin-left:auto;flex-shrink:0;background:rgba(255,255,255,.18);border:none;color:#fff;font-family:var(--font);font-size:10.5px;font-weight:700;padding:6px 10px;border-radius:8px;cursor:pointer}
+
 /* BOTÓN CIRCULAR + en la foto */
 .add-circle{
   position:absolute;
@@ -1002,6 +1020,8 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 <!-- CATÁLOGO COMPLETO (vista a pantalla completa; se abre con "Ver todo") -->
 <div class="catview" id="catView">
   <div class="catview-bar"><button class="catview-back" onclick="closeCatalog()" aria-label="Volver">←</button><span class="catview-title">Catálogo</span><button class="bag-btn" style="margin-left:auto" onclick="openCart()" aria-label="Ver carrito"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span class="bdot" id="bdot2">0</span></button></div>
+  <!-- Barra sticky de progreso del combo activo -->
+  <div id="comboBar" style="display:none"></div>
 
   <div class="banner off" id="banner">
     <div><div class="ban-tag">🔥 Precio especial</div><div class="ban-txt">Todos los pares</div><div class="ban-sub">Colección completa</div></div>
@@ -1023,6 +1043,8 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
   <div class="grid" id="grid"></div>
 
   <div class="liq-sec" id="liqSec">
+    <!-- COMBOS MUNDIALISTAS: 4 tarjetas (bundle de N pares a precio fijo) -->
+    <div id="combosRow"></div>
     <div class="liq-hdr">
       <div><div style="font-size:24px;margin-bottom:4px">🔥</div><div class="liq-title">Ofertas</div><div class="liq-sub">Precios de locura · Solo por hoy</div></div>
       <div class="liq-badge"><div class="liq-badge-n" id="liqN">0</div><div class="liq-badge-l">modelos</div></div>
@@ -1099,6 +1121,12 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
     <div class="trow" style="background:#fff8f0">
       <div><div class="trow-lbl">🔥 Banner precio especial</div><div class="trow-sub">Muestra el banner negro arriba</div></div>
       <label class="sw"><input type="checkbox" id="swBanner" onchange="toggleBanner(this.checked)"><div class="sw-tr"></div><div class="sw-th"></div></label>
+    </div>
+    <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#fdf6ec">
+      <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:4px">🏆 Combos Mundialistas</div>
+      <div style="font-size:10.5px;color:var(--ink3);margin-bottom:10px">Bundles a precio fijo. El precio lo valida también el servidor (anti-manipulación). La camiseta gratis solo aplica al combo que la tenga activada.</div>
+      <div id="combosAdminList" style="display:flex;flex-direction:column;gap:8px"></div>
+      <button onclick="guardarCombos()" style="margin-top:10px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">💾 Guardar combos</button>
     </div>
   </div>
   <div data-sec="ajustes">
@@ -1535,6 +1563,122 @@ let cuponAplicado=null;   // null o el CÓDIGO aplicado (string)
 function cuponDesc(sub){
   const c=cuponAplicado&&CUPONES[cuponAplicado];if(!c)return 0;
   return c.tipo==='pct'?Math.round(sub*c.val):Math.min(c.val,sub);
+}
+
+/* ── COMBOS MUNDIALISTAS ── bundles con precio fijo (validados también server-side) ── */
+// Fallback si el admin no ha configurado settings.combos. camiseta:true = regalo al completar.
+const DEFAULT_COMBOS=[
+  {id:'espana',   nombre:'Combo España',   bandera:'🇪🇸', pares:2, precio:379000, img:null, activo:true},
+  {id:'francia',  nombre:'Combo Francia',  bandera:'🇫🇷', pares:3, precio:549000, img:null, activo:true},
+  {id:'argentina',nombre:'Combo Argentina',bandera:'🇦🇷', pares:4, precio:700000, img:null, activo:true},
+  {id:'colombia', nombre:'Combo Colombia', bandera:'🇨🇴', pares:5, precio:860000, img:null, activo:true, camiseta:true}
+];
+let combos=DEFAULT_COMBOS.slice();
+let comboActivo=null;   // objeto del combo elegido (o null)
+let _comboCamisetaCelebrada=false;   // para disparar el toast UNA vez al completar
+function restaurarCombo(){
+  try{
+    const id=sessionStorage.getItem('ss_combo');
+    if(id)comboActivo=combos.find(c=>c.id===id&&c.activo!==false)||null;
+  }catch(e){}
+}
+function comboPares(){return Object.values(cart).reduce((s,{qty})=>s+qty,0);}
+// PRECIOS DEL CARRITO centralizados: combo (precio fijo, sin cupón) o flujo normal con cupón.
+// Único lugar donde se decide el subtotal — lo usan carrito, paso 3, WhatsApp, Wompi y Bold.
+function cartPricing(rows){
+  rows=rows||Object.values(cart);
+  const subBruto=rows.reduce((s,{p,qty})=>s+p.price*qty,0);
+  const pares=rows.reduce((s,{qty})=>s+qty,0);
+  const combo=(comboActivo&&comboActivo.activo!==false&&pares===parseInt(comboActivo.pares))?comboActivo:null;
+  const desc=combo?0:cuponDesc(subBruto);
+  const sub=combo?parseInt(combo.precio):(subBruto-desc);
+  return {subBruto,pares,combo,desc,sub,camiseta:!!(combo&&combo.camiseta)};
+}
+// Editor de combos en Admin → Ofertas (settings.combos)
+function renderCombosAdmin(){
+  const box=$('combosAdminList');if(!box)return;
+  box.innerHTML=(combos||[]).map((c,i)=>`<div style="background:var(--white);border:1px solid var(--line);border-radius:10px;padding:9px">
+    <div style="display:flex;gap:6px;align-items:center">
+      <input id="cbN${i}" type="text" value="${escHtml(c.nombre||'')}" placeholder="Nombre" style="flex:2;min-width:0;padding:7px 9px;background:var(--bg);border:1px solid var(--line);border-radius:7px;font-family:var(--font);font-size:12px;font-weight:700">
+      <input id="cbB${i}" type="text" value="${escHtml(c.bandera||'')}" placeholder="🏳" maxlength="4" style="flex:0 0 44px;padding:7px 4px;background:var(--bg);border:1px solid var(--line);border-radius:7px;font-family:var(--font);font-size:14px;text-align:center">
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;margin-top:6px">
+      <input id="cbP${i}" type="number" value="${parseInt(c.pares)||0}" min="1" max="20" title="Pares" style="flex:0 0 58px;padding:7px 6px;background:var(--bg);border:1px solid var(--line);border-radius:7px;font-family:var(--font);font-size:12px;font-weight:700;text-align:center">
+      <span style="font-size:10px;color:var(--ink3)">pares</span>
+      <input id="cbV${i}" type="number" value="${parseInt(c.precio)||0}" step="1000" title="Precio total" style="flex:1;min-width:0;padding:7px 9px;background:var(--bg);border:1px solid var(--line);border-radius:7px;font-family:var(--font);font-size:12px;font-weight:700">
+      <label style="display:flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:var(--ink2);cursor:pointer">🎁<input id="cbC${i}" type="checkbox" ${c.camiseta?'checked':''} title="Camiseta gratis"></label>
+      <label style="display:flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:var(--ink2);cursor:pointer">ON<input id="cbA${i}" type="checkbox" ${c.activo!==false?'checked':''} title="Activo"></label>
+    </div>
+  </div>`).join('');
+}
+async function guardarCombos(){
+  const nuevos=(combos||[]).map((c,i)=>({
+    id:c.id,
+    nombre:($('cbN'+i)||{}).value?.trim()||c.nombre,
+    bandera:($('cbB'+i)||{}).value?.trim()||c.bandera||'⚽',
+    pares:Math.min(Math.max(parseInt(($('cbP'+i)||{}).value)||c.pares,1),20),
+    precio:Math.max(parseInt(($('cbV'+i)||{}).value)||c.precio,1000),
+    img:c.img||null,
+    camiseta:!!($('cbC'+i)||{}).checked,
+    activo:!!($('cbA'+i)||{}).checked
+  }));
+  combos=nuevos;
+  await adminWrite('upsert_settings',{data:{key:'combos',value:JSON.stringify(nuevos)}});
+  renderCombos();renderCombosAdmin();
+  alert('✓ Combos guardados y publicados');
+}
+// Tarjetas de combos en la sección Ofertas
+function renderCombos(){
+  const box=$('combosRow');if(!box)return;
+  const activos=(combos||[]).filter(c=>c&&c.activo!==false);
+  if(!activos.length){box.innerHTML='';return;}
+  box.innerHTML=`<div style="padding:10px 14px 0"><div style="font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-.01em">🏆 Combos Mundialistas</div><div style="font-size:11.5px;color:var(--ink2);margin-top:2px">Escoge tu selección, arma tu combo y paga precio fijo</div></div>
+  <div class="combos-grid">${activos.map(c=>`
+    <div class="combo-card" onclick="activarCombo('${escHtml(c.id)}')">
+      ${c.img?`<img src="${escHtml(c.img)}" style="width:100%;height:74px;object-fit:cover;border-radius:10px;margin-bottom:8px">`:`<div class="combo-flag">${c.bandera||'⚽'}</div>`}
+      <div class="combo-nom">${escHtml(c.nombre)}</div>
+      <div class="combo-det">${c.pares} pares a tu elección</div>
+      <div class="combo-precio">${fmt(parseInt(c.precio))}</div>
+      ${c.camiseta?`<div class="combo-cami">+ 🎁 CAMISETA GRATIS</div>`:''}
+      <div class="combo-cta">Armar combo →</div>
+    </div>`).join('')}</div>`;
+}
+function activarCombo(id){
+  const c=(combos||[]).find(x=>x&&x.id===id&&x.activo!==false);if(!c)return;
+  comboActivo=c;_comboCamisetaCelebrada=false;
+  try{sessionStorage.setItem('ss_combo',c.id);}catch(e){}
+  trackEvent('view_product',{product_id:'combo_'+c.id});
+  openCatalog({gender:'all'});
+  renderComboBar();
+  toast(`🏆 ${c.nombre} activo — escoge ${c.pares} modelos`);
+}
+function salirCombo(){
+  comboActivo=null;_comboCamisetaCelebrada=false;
+  try{sessionStorage.removeItem('ss_combo');}catch(e){}
+  renderComboBar();
+  toast('Saliste del combo — precios normales');
+  if(typeof rCart==='function'&&$('csheet')&&$('csheet').classList.contains('on')&&step===0)rCart();
+}
+// Barra sticky de progreso: gris=faltan · verde=completo · ámbar=excedido
+function renderComboBar(){
+  const bar=$('comboBar');if(!bar)return;
+  if(!comboActivo){bar.style.display='none';bar.innerHTML='';bar.className='';return;}
+  const n=comboPares(),N=parseInt(comboActivo.pares);
+  const estado=n===N?'ok':n>N?'exceso':'';
+  bar.className='combo-bar'+(estado?' '+estado:'');
+  bar.style.display='flex';
+  const txt=n===N
+    ?`✅ ¡${escHtml(comboActivo.nombre)} COMPLETO! ${N} pares por ${fmt(parseInt(comboActivo.precio))}${comboActivo.camiseta?' + 🎁 camiseta GRATIS':''} — ve al carrito`
+    :n>N
+    ?`⚠️ ${escHtml(comboActivo.nombre)}: tienes ${n} pares — el combo es de ${N}. Quita ${n-N}.`
+    :`🏆 ${escHtml(comboActivo.nombre)} · ${n}/${N} pares · ${fmt(parseInt(comboActivo.precio))}${comboActivo.camiseta?' + 🎁 camiseta':''}`;
+  bar.innerHTML=`<span>${txt}</span><button class="cb-x" onclick="salirCombo()">✕ Salir</button>`;
+  // Celebración de la camiseta: UNA vez al completar
+  if(n===N&&comboActivo.camiseta&&!_comboCamisetaCelebrada){
+    _comboCamisetaCelebrada=true;
+    toast('🎉 ¡Gracias por escoger tu selección ganadora! Liberaste una CAMISETA GRATIS 🎁');
+  }
+  if(n!==N)_comboCamisetaCelebrada=false;
 }
 function aplicarCupon(){
   const inp=$('cupInput');if(!inp)return;
@@ -2394,6 +2538,7 @@ function togCard(id,type){
 function syncDot(){
   const n=Object.values(cart).reduce((s,i)=>s+i.qty,0);
   [$('bdot'),$('bdot2')].forEach(d=>{if(d){d.textContent=n;d.classList.toggle('show',n>0);}});
+  renderComboBar();   // el progreso del combo sigue cada cambio del carrito
 }
 let _toastT=null;
 function toast(msg){
@@ -2691,7 +2836,7 @@ async function loadOrders(){
       orders=j.orders.map(o=>({
         id:o.id,fecha:o.fecha||o.created_at,subtotal:o.subtotal,envio:o.envio,total:o.total||0,pares:o.pares,
         pago:o.pago,ciudad:o.ciudad,barrio:o.barrio,nombre:o.nombre,tel:o.tel,
-        cedula:o.cedula,direccion:o.direccion,utm:o.utm||null,
+        cedula:o.cedula,direccion:o.direccion,utm:o.utm||null,combo:o.combo||null,
         wa_status:o.wa_status,temperatura:o.temperatura,motivo_no_venta:o.motivo_no_venta,nota:o.nota,seguimiento:o.seguimiento,
         items:o.items,status:o.status,reference:o.reference,seccion:o.seccion
       }));
@@ -2808,7 +2953,7 @@ function renderPedidosList(){
           <span style="font-size:13.5px;font-weight:700">${escHtml(o.nombre||'Sin nombre')}</span>${badge(o)}
         </div>
         <div style="font-size:12px;color:var(--ink2);line-height:1.6">
-          ${o.tel?`📱 <a href="https://wa.me/57${String(o.tel).replace(/\D/g,'').slice(-10)}" target="_blank" onclick="event.stopPropagation()" style="color:var(--blue);text-decoration:none">${escHtml(o.tel)}</a> · `:''}${o.ciudad?`📍 ${escHtml(o.ciudad)}`:''}${camp?` · 📣 ${camp}`:''}<br>
+          ${o.tel?`📱 <a href="https://wa.me/57${String(o.tel).replace(/\D/g,'').slice(-10)}" target="_blank" onclick="event.stopPropagation()" style="color:var(--blue);text-decoration:none">${escHtml(o.tel)}</a> · `:''}${o.ciudad?`📍 ${escHtml(o.ciudad)}`:''}${camp?` · 📣 ${camp}`:''}${o.combo?` · <b style="color:#b3541e">🏆 ${escHtml(o.combo)}</b>`:''}<br>
           ${itemsTxt(o)?`👟 ${itemsTxt(o)}<br>`:''}
           💰 <b>${fmt(o.total||0)}</b>${o.pago?` · ${escHtml(pagoLabels[o.pago]||o.pago)}`:''}
           ${o.fecha?` · <span style="color:var(--ink3);font-size:10px">${new Date(o.fecha).toLocaleString('es-CO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</span>`:''}
@@ -3144,7 +3289,7 @@ function renderLeadsTab(){
           ${o.tel?`📱 <a href="https://wa.me/57${String(o.tel).replace(/\D/g,'').slice(-10)}" target="_blank" style="color:var(--blue);text-decoration:none">${escHtml(o.tel)}</a><br>`:''}
           ${o.ciudad?`📍 ${escHtml(o.ciudad)}${o.barrio?', '+escHtml(o.barrio):''}<br>`:''}
           ${itemsTxt(o)?`👟 ${itemsTxt(o)}<br>`:''}
-          💰 <b>${fmt(o.total||0)}</b>${o.pago?` · ${escHtml(pagoLabels[o.pago]||o.pago)}`:''}
+          💰 <b>${fmt(o.total||0)}</b>${o.pago?` · ${escHtml(pagoLabels[o.pago]||o.pago)}`:''}${o.combo?` · <b style="color:#b3541e">🏆 ${escHtml(o.combo)}</b>`:''}
           ${o.fecha?`<br><span style="color:var(--ink3);font-size:10px">${new Date(o.fecha).toLocaleString('es-CO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</span>`:''}
         </div>
         ${o.motivo_no_venta?`<div style="font-size:11px;color:#b3541e;background:#fdf3ec;border-radius:8px;padding:6px 9px;margin-top:7px">✕ Motivo: ${escHtml(o.motivo_no_venta)}</div>`:''}
@@ -3551,29 +3696,45 @@ function rCart(){
     const lbl=type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer');
     return `<div class="crow"><div class="crimg">${m}</div><div class="crinfo"><div class="crname">${lbl}</div><div class="crprice">${fmt(p.price)} c/u</div></div><div class="cqc"><button class="cqb" onclick="chQty('${key}',-1)">−</button><span class="cqv">${qty}</span><button class="cqb" onclick="chQty('${key}',1)">+</button></div><button class="crm" onclick="rmItem('${key}')">✕</button></div>`;
   }).join('');
-  const sub=rows.reduce((s,{p,qty})=>s+p.price*qty,0),tot=rows.reduce((s,{qty})=>s+qty,0);
+  const pricing=cartPricing(rows);
+  const sub=pricing.subBruto,tot=pricing.pares;
   // El "precio original/descuento" SOLO se muestra cuando el descuento está activo (promo global o
   // por producto). Si está apagado, orig==sub → no aparece línea de descuento.
   const orig=rows.reduce((s,{p,qty})=>{const act=(p.promo||promoG)&&p.was&&p.was>p.price;return s+(act?p.was:p.price)*qty;},0);
   const ahorro=orig-sub;                 // descuento por precio tachado (solo si promo activo)
-  const desc=cuponDesc(sub);             // descuento por cupón
-  const totalFinal=sub-desc;
+  const desc=pricing.desc;               // descuento por cupón (0 si hay combo)
+  const totalFinal=pricing.sub;
   // 2 mensajes (estilo Adidas): no reservado + financiación
   const msgs=`<div class="cart-msg"><span class="cm-ic">🔒</span><span>Los artículos en tu carrito <b>no están reservados</b>. Termina tu compra ahora.</span></div>`
     +`<div class="cart-fin"><div class="cart-fin-tx">Llévalos hoy y <b>págalos después</b> con Addi y Sistecrédito</div><div class="cart-fin-logos"><img src="logos/addi.png" alt="Addi" onerror="this.remove()"><img src="logos/sistecredito.png" alt="Sistecrédito" onerror="this.remove()"></div></div>`;
+  // Aviso de combo en progreso (activo pero sin los pares exactos)
+  const comboAviso=(comboActivo&&!pricing.combo)
+    ? `<div class="cart-line" style="background:#fff8e6;color:#8a6d00;border-color:#f0dfa8;margin-top:12px"><span class="cl-ic">🏆</span><span><b>${escHtml(comboActivo.nombre)}</b>: ${pricing.pares<comboActivo.pares?`te falta${comboActivo.pares-pricing.pares===1?'':'n'} <b>${comboActivo.pares-pricing.pares} par${comboActivo.pares-pricing.pares===1?'':'es'}</b> para el precio de ${fmt(comboActivo.precio)}`:`tienes <b>${pricing.pares-comboActivo.pares} par${pricing.pares-comboActivo.pares===1?'':'es'} de más</b> — el combo es de ${comboActivo.pares}`}</span></div>`
+    :'';
   // Resumen del pedido
-  let sumRows=`<div class="csum-row"><span>Productos (${tot})</span><span class="v">${fmt(orig)}</span></div>`;
-  if(ahorro>0) sumRows+=`<div class="csum-row disc"><span>Descuento</span><span class="v">−${fmt(ahorro)}</span></div>`;
-  if(desc>0)   sumRows+=`<div class="csum-row disc"><span>Cupón ${cuponAplicado}</span><span class="v">−${fmt(desc)}</span></div>`;
+  let sumRows=`<div class="csum-row"><span>Productos (${tot})</span><span class="v"${pricing.combo?' style="text-decoration:line-through;color:var(--ink3)"':''}>${fmt(pricing.combo?sub:orig)}</span></div>`;
+  if(pricing.combo){
+    sumRows+=`<div class="csum-row disc"><span>🏆 ${escHtml(pricing.combo.nombre)} (${pricing.combo.pares} pares)</span><span class="v">${fmt(pricing.sub)}</span></div>`;
+    if(sub>pricing.sub)sumRows+=`<div class="csum-row disc"><span>Ahorro del combo</span><span class="v">−${fmt(sub-pricing.sub)}</span></div>`;
+  }else{
+    if(ahorro>0) sumRows+=`<div class="csum-row disc"><span>Descuento</span><span class="v">−${fmt(ahorro)}</span></div>`;
+    if(desc>0)   sumRows+=`<div class="csum-row disc"><span>Cupón ${cuponAplicado}</span><span class="v">−${fmt(desc)}</span></div>`;
+  }
   sumRows+=`<div class="csum-row"><span>Envío</span><span class="free">Gratis</span></div>`;
   const summary=`<div class="csum"><div class="csum-t">Resumen del pedido</div>${sumRows}<div class="csum-total"><span class="l">Total</span><span class="v">${fmt(totalFinal)}</span></div></div>`;
-  // Código promocional colapsable (sin campo abierto → no genera fuga)
-  const cupHtml=cuponAplicado
-    ? `<div class="cart-line cart-cupon" style="margin-top:14px"><span class="cl-ic">🏷️</span><span>Cupón <b>${cuponAplicado}</b> aplicado: −${fmt(desc)}</span></div>`
-    : `<div class="cpromo"><button class="cpromo-toggle" onclick="toggleCupon()">🏷️ ¿Tienes un código promocional?</button><div class="cpromo-box" id="cpromoBox" style="display:none"><div class="cup-box"><input id="cupInput" placeholder="Código promocional" autocomplete="off"><button class="cup-btn" onclick="aplicarCupon()">Aplicar</button></div><div class="cup-err" id="cupErr" style="display:none">Código no válido</div></div></div>`;
+  // Código promocional: NO acumulable con combo (si el combo aplica, el cupón se oculta/ignora)
+  const cupHtml=pricing.combo
+    ? (cuponAplicado?`<div class="cart-line" style="background:var(--bg);color:var(--ink3);border-color:var(--line);margin-top:14px"><span class="cl-ic">🏷️</span><span>El cupón no es acumulable con el combo — se aplicó el precio del combo.</span></div>`:'')
+    : (cuponAplicado
+      ? `<div class="cart-line cart-cupon" style="margin-top:14px"><span class="cl-ic">🏷️</span><span>Cupón <b>${cuponAplicado}</b> aplicado: −${fmt(desc)}</span></div>`
+      : `<div class="cpromo"><button class="cpromo-toggle" onclick="toggleCupon()">🏷️ ¿Tienes un código promocional?</button><div class="cpromo-box" id="cpromoBox" style="display:none"><div class="cup-box"><input id="cupInput" placeholder="Código promocional" autocomplete="off"><button class="cup-btn" onclick="aplicarCupon()">Aplicar</button></div><div class="cup-err" id="cupErr" style="display:none">Código no válido</div></div></div>`);
+  // 🎉 CAMISETA GRATIS: combo con camiseta COMPLETO
+  const camisetaHtml=pricing.camiseta
+    ? `<div class="cart-line" style="background:#eafaf0;color:#137a3a;border-color:#bfe9cd;margin-top:12px;font-weight:700"><span class="cl-ic">🎉</span><span>¡Gracias por escoger tu selección ganadora! Liberaste una <b>CAMISETA GRATIS</b> de tu selección 🎁 (confírmanos la talla por WhatsApp)</span></div>`
+    :'';
   const gift=`<div class="cart-line cart-regalo" style="margin-top:12px"><span class="cl-ic">🎁</span><span>Incluye <b>guía de cuidado</b> + <b>5%</b> en tu próximo par</span></div>`;
-  // Orden: mensajes → productos → resumen → código → regalo
-  body.innerHTML=msgs+body.innerHTML+summary+cupHtml+gift;
+  // Orden: mensajes → productos → aviso combo → resumen → camiseta → código → regalo
+  body.innerHTML=msgs+body.innerHTML+comboAviso+summary+camisetaHtml+cupHtml+gift;
   foot.innerHTML=`<button class="btnmain" onclick="goStep(1)">Ir a pagar &nbsp;→</button>`;
 }
 function rForm(){
@@ -3599,12 +3760,14 @@ function saveFormAndNext(){
 function captureLead(d){
   if(sessionStorage.getItem('ss_lead_saved')===SESSION_ID)return;
   const rows=Object.values(cart);
-  const sub=rows.reduce((s,{p,qty})=>s+p.price*qty,0);
-  const totalPares=rows.reduce((s,{qty})=>s+qty,0);
+  const pricing=cartPricing(rows);
+  const sub=pricing.sub;
+  const totalPares=pricing.pares;
   const lead={
     id:Date.now(),fecha:new Date().toISOString(),
     items:rows.map(({p,qty,type})=>({label:p.modelo||(type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer')),type,id:p.id,brand:p.brand||null,qty,precio:p.price*qty})),
     subtotal:sub,envio:0,total:sub,pares:totalPares,pago:null,status:'abandoned',session_id:SESSION_ID,
+    combo:pricing.combo?pricing.combo.id:null,
     nombre:d.nombre,cedula:d.cedula,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,direccion:d.direccion,
     utm:{...getUTM(),...getFbAttribution(),...getVisitCtx()},referrer:getReferrer(),seccion:gSel
   };
@@ -3614,9 +3777,9 @@ function captureLead(d){
 function calcFlete(pares){return 25000+Math.max(0,pares-1)*15000;}
 function rPayChoice(){
   const rows=Object.values(cart);
-  const subBruto=rows.reduce((s,{p,qty})=>s+p.price*qty,0);
-  const sub=subBruto-cuponDesc(subBruto);   // subtotal con cupón
-  const pares=rows.reduce((s,{qty})=>s+qty,0);
+  const pricing=cartPricing(rows);          // combo (precio fijo) o normal con cupón
+  const sub=pricing.sub;
+  const pares=pricing.pares;
   const flete=calcFlete(pares);
   const SV='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">';
   const icTruck=SV+'<path d="M2.5 6.5h11v9h-11z"/><path d="M13.5 9.5h4l3 3v3h-7z"/><circle cx="6" cy="17.5" r="1.6"/><circle cx="17" cy="17.5" r="1.6"/></svg>';
@@ -3643,19 +3806,22 @@ async function enviarWA(tipo){
   if(!ok){const e=$('ferr');if(e)e.classList.add('show');return false;}
   cData=d;
   const rows=Object.values(cart);
-  const subBruto=rows.reduce((s,{p,qty})=>s+p.price*qty,0);
-  const desc=cuponDesc(subBruto);          // descuento del cupón sobre producto
-  const sub=subBruto-desc;                 // subtotal real (con cupón)
-  const totalPares=rows.reduce((s,{qty})=>s+qty,0);
+  const pricing=cartPricing(rows);         // combo (precio fijo) o normal con cupón
+  const subBruto=pricing.subBruto;
+  const desc=pricing.desc;
+  const sub=pricing.sub;
+  const totalPares=pricing.pares;
   const flete=tipo==='contra_entrega'?calcFlete(totalPares):0;
   const tot=sub+flete;
   let items='';
-  rows.forEach(({p,qty,type})=>{const s=p.price*qty;const lbl=type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer');const mk=p.brand?(BRAND_LABELS[p.brand]||p.brand)+' · ':'';items+=`  • ${mk}${lbl} · #${p.id} x${qty} — ${fmt(s)}\n`;});
+  rows.forEach(({p,qty,type})=>{const s=p.price*qty;const lbl=p.modelo||(type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer'));const mk=p.brand?(BRAND_LABELS[p.brand]||p.brand)+' · ':'';items+=`  • ${mk}${lbl} · #${p.id} x${qty} — ${fmt(s)}\n`;});
   // UN solo link que abre TODO el pedido con fotos (más fácil para el vendedor que link por link).
   const pedidoCode=rows.map(({p,qty,type})=>(type==='liq'?'L':'')+p.id+'x'+qty).join(',');
   const pedidoLink=`https://catalogo.strangesneakers.com/?pedido=${pedidoCode}`;
   const envioLinea=tipo==='contra_entrega'?`🚚 *Envío (se paga primero):* ${fmt(flete)}\n👟 *Zapatos (pagas al recibir en casa):* ${fmt(sub)}`:`📦 *Envío: GRATIS ✓*`;
-  const descLinea=desc>0?`🏷️ *Descuento ${cuponAplicado}:* -${fmt(desc)}\n`:'';
+  const descLinea=pricing.combo
+    ?`🏆 *${pricing.combo.nombre}: ${pricing.combo.pares} pares por ${fmt(pricing.sub)}* (ahorra ${fmt(subBruto-pricing.sub)})\n${pricing.camiseta?`🎁 *CAMISETA GRATIS de su selección* — pedirle la talla ⚽\n`:''}`
+    :(desc>0?`🏷️ *Descuento ${cuponAplicado}:* -${fmt(desc)}\n`:'');
   const pagoLbl=tipo==='contra_entrega'?'Contra entrega 📦':tipo==='credito'?'Crédito (Addi / Sistecrédito) 🧾':'Pago anticipado 💸';
   const instruccion=tipo==='contra_entrega'?`El cliente paga primero el *ENVÍO* (${fmt(flete)}) y los *zapatos al recibir* en casa. Coordinemos el pago del envío 🙏`:tipo==='credito'?'El cliente quiere pagar a *CRÉDITO*. Indícale si aplica por *Addi* o *Sistecrédito* y el paso a paso 🙏':'Enviar comprobante de pago para procesar el envío 🙏';
   const msg=`🛍️ *NUEVO PEDIDO — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n📸 *Ver el pedido con fotos:*\n${pedidoLink}\n━━━━━━━━━━━━━━━━━━━━\n💰 *Subtotal: ${fmt(subBruto)}*\n${descLinea}${envioLinea}\n💰 *TOTAL: ${fmt(tot)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${d.nombre}\n• Cédula: ${d.cedula}\n• Celular: ${d.celular}\n• Dirección: ${d.direccion}\n• Barrio: ${d.barrio}\n• Ciudad: ${d.ciudad}\n━━━━━━━━━━━━━━━━━━━━\n💳 *Pago:* ${pagoLbl}\n━━━━━━━━━━━━━━━━━━━━\n${instruccion}\n\n🎁 *Tu regalo — Guía de cuidado de tus sneakers:*\nhttps://catalogo.strangesneakers.com/?regalo=cuidado`;
@@ -3663,6 +3829,7 @@ async function enviarWA(tipo){
     id:Date.now(),fecha:new Date().toISOString(),
     items:rows.map(({p,qty,type})=>({label:p.modelo||(type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer')),type,id:p.id,brand:p.brand||null,qty,precio:p.price*qty})),
     subtotal:sub,envio:flete,total:tot,pares:totalPares,pago:tipo,session_id:SESSION_ID,cupon:cuponAplicado||null,
+    combo:pricing.combo?pricing.combo.id:null,
     nombre:d.nombre,cedula:d.cedula,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,direccion:d.direccion,
     utm:{...getUTM(),...getFbAttribution(),...getVisitCtx()},referrer:getReferrer(),seccion:gSel
   };
@@ -3693,15 +3860,15 @@ async function pagarWompi(){
   if(!ok){const e=$('ferr');if(e)e.classList.add('show');return;}
   cData=d;
   const rows=Object.values(cart);
-  const subBruto=rows.reduce((s,{p,qty})=>s+p.price*qty,0);
-  const desc=cuponDesc(subBruto);
-  const tot=subBruto-desc;                 // Wompi cobra el subtotal con cupón (envío gratis)
+  const pricing=cartPricing(rows);
+  const tot=pricing.sub;                   // Wompi cobra el subtotal (combo o con cupón; envío gratis)
   const reference='STR-'+Date.now();
-  const totalPares=rows.reduce((s,{qty})=>s+qty,0);
+  const totalPares=pricing.pares;
   const wOrder={
     id:Date.now(),fecha:new Date().toISOString(),
     items:rows.map(({p,qty,type})=>({label:p.modelo||(type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer')),type,id:p.id,brand:p.brand||null,qty,precio:p.price*qty})),
     subtotal:tot,envio:0,total:tot,pares:totalPares,pago:'wompi',status:'pending',session_id:SESSION_ID,cupon:cuponAplicado||null,
+    combo:pricing.combo?pricing.combo.id:null,
     nombre:d.nombre,cedula:d.cedula,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,direccion:d.direccion,
     reference,utm:{...getUTM(),...getFbAttribution(),...getVisitCtx()},referrer:getReferrer(),seccion:gSel
   };
@@ -3750,6 +3917,7 @@ async function checkWompiReturn(){
     }catch(e){}
   }
   if(verified){
+    comboActivo=null;try{sessionStorage.removeItem('ss_combo');}catch(e){}   // ciclo del combo cerrado
     const order=orders.find(o=>o.reference===reference)||
                 orders.filter(o=>o.pago==='wompi'&&o.status==='pending').pop();
     if(order){
@@ -3788,15 +3956,15 @@ async function pagarBold(){
   if(!ok){const e=$('ferr');if(e)e.classList.add('show');return;}
   cData=d;
   const rows=Object.values(cart);
-  const subBruto=rows.reduce((s,{p,qty})=>s+p.price*qty,0);
-  const desc=cuponDesc(subBruto);
-  const tot=subBruto-desc;                 // Bold cobra el subtotal con cupón (envío gratis)
+  const pricing=cartPricing(rows);
+  const tot=pricing.sub;                   // Bold cobra el subtotal (combo o con cupón; envío gratis)
   const reference='STR-'+Date.now();
-  const totalPares=rows.reduce((s,{qty})=>s+qty,0);
+  const totalPares=pricing.pares;
   const bOrder={
     id:Date.now(),fecha:new Date().toISOString(),
     items:rows.map(({p,qty,type})=>({label:p.modelo||(type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer')),type,id:p.id,brand:p.brand||null,qty,precio:p.price*qty})),
     subtotal:tot,envio:0,total:tot,pares:totalPares,pago:'bold',status:'pending',session_id:SESSION_ID,cupon:cuponAplicado||null,
+    combo:pricing.combo?pricing.combo.id:null,
     nombre:d.nombre,cedula:d.cedula,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,direccion:d.direccion,
     reference,utm:{...getUTM(),...getFbAttribution(),...getVisitCtx()},referrer:getReferrer(),seccion:gSel
   };
@@ -3833,6 +4001,7 @@ async function checkBoldReturn(){
     }catch(e){}
   }
   if(verified){
+    comboActivo=null;try{sessionStorage.removeItem('ss_combo');}catch(e){}   // ciclo del combo cerrado
     const order=orders.find(o=>o.reference===reference)||orders.filter(o=>o.pago==='bold'&&o.status==='pending').pop();
     if(order){
       order.status='venta';saveState();
@@ -4027,6 +4196,8 @@ async function loadState(){
     WELCOME_ON=cfg.welcome_popup!=='false';   // activo por defecto; admin puede apagarlo
     {const sw=$('swWelcome');if(sw)sw.checked=WELCOME_ON;}
     try{heroSlides=JSON.parse(cfg.hero_slides||'[]');}catch(e){heroSlides=[];}
+    try{const cb=cfg.combos?JSON.parse(cfg.combos):null;if(Array.isArray(cb)&&cb.length)combos=cb;}catch(e){}
+    restaurarCombo();
     try{featuredIds=JSON.parse(cfg.featured_ids||'[]');}catch(e){featuredIds=[];}
     try{bannerMujer=cfg.banner_mujer?JSON.parse(cfg.banner_mujer):null;}catch(e){bannerMujer=null;}
     try{bannerHombre=cfg.banner_hombre?JSON.parse(cfg.banner_hombre):null;}catch(e){bannerHombre=null;}
@@ -4170,6 +4341,9 @@ if(localStorage.getItem('ss_reserve_until')&&!_reserveTimer){_reserveTimer=setIn
   renderPreview();     // preview de 2 columnas del inicio
   renderFooter();      // footer: redes + newsletter
   renderTestimonios(); // sección clientes felices
+  renderCombos();      // tarjetas de combos mundialistas (sección Ofertas)
+  renderComboBar();    // barra de progreso si hay combo activo de la sesión
+  renderCombosAdmin(); // editor de combos en el panel admin
   renderFeaturedAdmin();renderColAdmin();renderTestiAdmin();   // estado en el panel admin
   renderGrid();
   if(checkPedidoLink())return;   // ?pedido= → mostrar solo el pedido con fotos (link del vendedor)

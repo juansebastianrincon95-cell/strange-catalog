@@ -163,7 +163,7 @@ module.exports = async (req, res) => {
   if (action === 'list_orders') {
     const { data: rows, error } = await sb
       .from('orders')
-      .select('id,created_at,fecha,nombre,cedula,tel,ciudad,barrio,direccion,pago,subtotal,envio,total,pares,items,status,reference,seccion,utm,wa_status,temperatura,motivo_no_venta,nota,seguimiento')
+      .select('id,created_at,fecha,nombre,cedula,tel,ciudad,barrio,direccion,pago,subtotal,envio,total,pares,items,status,reference,seccion,utm,combo,wa_status,temperatura,motivo_no_venta,nota,seguimiento')
       .order('created_at', { ascending: false })
       .limit(500);
     if (error) return res.status(500).json({ error: error.message });

@@ -153,6 +153,7 @@ alter table orders add column if not exists temperatura text;
 alter table orders add column if not exists motivo_no_venta text;
 alter table orders add column if not exists nota text;
 alter table orders add column if not exists seguimiento date;   -- fecha de seguimiento del lead
+alter table orders add column if not exists combo text;          -- id del combo mundialista aplicado (precio fijo validado server-side)
 create index if not exists orders_reference_idx on orders(reference);
 create index if not exists orders_session_status_idx on orders(session_id, status);
 create index if not exists orders_status_created_idx on orders(status, created_at);

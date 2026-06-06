@@ -68,13 +68,30 @@ async function calculateOrder(input) {
   const sb = serviceClient();
   const items = await priceItems(sb, input.items);
   const subBruto = items.reduce((s, i) => s + i.precio, 0);
-  const cupon = input.cupon ? String(input.cupon).trim().toUpperCase() : null;
-  const desc = cuponDesc(cupon, subBruto);
-  const subtotal = subBruto - desc;
   const pares = items.reduce((s, i) => s + i.qty, 0);
+  // COMBO mundialista: precio fijo del bundle, validado SERVER-SIDE contra settings.combos.
+  // Solo aplica si el combo existe, está activo y el carrito trae EXACTAMENTE sus pares.
+  // Si no matchea, se ignora en silencio y se cobra normal (anti-manipulación).
+  let combo = null;
+  const comboId = cleanText(input.combo, 30);
+  if (comboId) {
+    try {
+      const { data: row } = await sb.from('settings').select('value').eq('key', 'combos').single();
+      const lista = row && row.value ? JSON.parse(row.value) : [];
+      const c = Array.isArray(lista) ? lista.find(x => x && x.id === comboId && x.activo !== false) : null;
+      const precio = c ? parseInt(c.precio, 10) : NaN;
+      if (c && parseInt(c.pares, 10) === pares && Number.isFinite(precio) && precio >= 1000) {
+        combo = { id: c.id, precio };
+      }
+    } catch (e) { /* settings.combos ausente o corrupto → sin combo */ }
+  }
+  // Cupones NO acumulables con combo.
+  const cupon = combo ? null : (input.cupon ? String(input.cupon).trim().toUpperCase() : null);
+  const desc = combo ? 0 : cuponDesc(cupon, subBruto);
+  const subtotal = combo ? combo.precio : (subBruto - desc);
   const pago = cleanText(input.pago || input.payment_method || 'pending', 50);
   const envio = pago === 'contra_entrega' ? calcFlete(pares) : 0;
-  return { items, subBruto, desc, subtotal, envio, total: subtotal + envio, pares, pago, cupon };
+  return { items, subBruto, desc, subtotal, envio, total: subtotal + envio, pares, pago, cupon, combo: combo ? combo.id : null };
 }
 
 async function createOrder(input, defaultStatus = 'pending') {
@@ -99,6 +116,7 @@ async function createOrder(input, defaultStatus = 'pending') {
     // El cliente solo puede crear 'pending' o 'abandoned'. 'venta'/'no_venta' se marcan
     // únicamente server-side (confirmPaidOrder o panel admin) — evita ventas falsas inyectadas.
     status: (cleanText(input.status, 20) || defaultStatus) === 'abandoned' ? 'abandoned' : 'pending',
+    combo: calc.combo,
     reference,
     utm: input.utm && typeof input.utm === 'object' && !Array.isArray(input.utm) ? input.utm : null,
     referrer: cleanText(input.referrer, 300),
