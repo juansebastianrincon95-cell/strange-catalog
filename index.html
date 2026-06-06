@@ -723,6 +723,9 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .hero-slide picture{display:block;width:100%;height:100%}
 .hero-slide img{width:100%;height:100%;object-fit:cover;display:block;-webkit-user-drag:none;user-select:none}
 .hero-ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:rgba(0,0,0,.30);color:#fff;text-align:center}
+/* HERO: el botón va ABAJO — centrado en móvil, abajo a la DERECHA en escritorio (no tapa el
+   arte de la imagen). Solo aplica al hero: los banners M/H/U conservan su propio layout. */
+.hero .hero-ov{justify-content:flex-end;padding:0 24px 38px;background:linear-gradient(to top,rgba(0,0,0,.35) 0%,rgba(0,0,0,.08) 30%,transparent 55%)}
 .hero-tit{font-size:24px;font-weight:700;line-height:1.1;letter-spacing:.02em;text-transform:uppercase;text-shadow:0 2px 16px rgba(0,0,0,.5)}
 .hero-sub{font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;opacity:.92;margin-top:8px;text-shadow:0 1px 10px rgba(0,0,0,.45)}
 .hero-cta{margin-top:18px;display:inline-block;background:rgba(0,0,0,.14);color:#fff;border:1.5px solid #fff;border-radius:8px;padding:10px 24px;font-family:var(--font);font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:transform .12s,background .15s}
@@ -733,7 +736,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .hero-dot.on{width:20px;border-radius:5px;background:var(--white)}
 @media(min-width:700px){
   /* el alto del hero lo da calc(100vh - barras) con las vars de escritorio (no override aquí) */
-  .hero-ov{padding:24px}   /* título + botón centrados (vertical y horizontal) en escritorio */
+  .hero .hero-ov{align-items:flex-end;text-align:right;padding:0 56px 48px}   /* botón abajo-DERECHA */
   .hero-tit{font-size:40px}
   .hero-sub{font-size:13px}
   .hero-cta{font-size:13px;padding:12px 30px}
