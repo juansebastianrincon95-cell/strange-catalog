@@ -46,11 +46,15 @@ function resumenDe(ventas, costos) {
     if (Array.isArray(o.items) && o.items.length) {
       let b = 0;
       o.items.forEach(it => {
-        const precio = parseInt(it.precio) || 0, qty = parseInt(it.qty) || 1;
-        b += precio * qty;
+        // OJO (hallazgo Codex #6): items[].precio YA es el TOTAL DE LÍNEA (price×qty,
+        // ver _orders.js priceItems). NO volver a multiplicar por qty. Para el margen
+        // se usa unit_price (o línea÷qty como fallback de pedidos viejos).
+        const linea = parseInt(it.precio) || 0, qty = parseInt(it.qty) || 1;
+        const unit = it.unit_price != null ? (parseInt(it.unit_price) || 0) : Math.round(linea / qty);
+        b += linea;
         totalItems++;
         const costo = costos[`${it.type === 'liq' ? 'liq' : 'cat'}:${parseInt(it.id)}`];
-        if (costo != null) { margen += (precio - costo) * qty; margenItems++; }
+        if (costo != null) { margen += (unit - costo) * qty; margenItems++; }
       });
       brutas += b;
     } else {
@@ -95,6 +99,7 @@ module.exports = async (req, res) => {
     // se cortan en memoria (mismo dato, sin 3 round-trips).
     let todas = [];
     let costos = {};
+    let truncadoVentas = false, truncadoEvents = false;   // flags si pegamos los límites (Codex #6)
     if (sbSvc) {
       const [v, c] = await Promise.all([
         sbSvc.from('orders')
@@ -103,6 +108,7 @@ module.exports = async (req, res) => {
         sbSvc.from('product_costs').select('ptype,pid,costo')
       ]);
       todas = v.data || [];
+      truncadoVentas = todas.length === 5000;
       (c.data || []).forEach(r => { costos[`${r.ptype}:${r.pid}`] = r.costo; });
     }
     todas.forEach(o => { o._dia = dayKeyOf(o.created_at); });
@@ -212,23 +218,29 @@ module.exports = async (req, res) => {
       if (since) qe = qe.gte('created_at', since + 'T00:00:00');
       if (until) qe = qe.lte('created_at', until + 'T23:59:59');
       const { data: evs } = await qe;
-      // Embudo por SESIONES ÚNICAS en cada paso (como Shopify): 1 sesión que vio 5 productos
-      // cuenta 1 vez — así las tasas paso a paso nunca superan el 100%.
+      truncadoEvents = (evs || []).length === 20000;
+      // Embudo por SESIONES ÚNICAS y ENCADENADO (hallazgo Codex #6): el paso N solo cuenta
+      // sesiones que también pasaron por TODOS los pasos anteriores → embudo siempre
+      // decreciente y tasas ≤100%, aunque haya eventos parciales o datos viejos.
       const porPaso = { page_view: new Set(), view_product: new Set(), add_to_cart: new Set(), initiate_checkout: new Set(), lead: new Set() };
       (evs || []).forEach(e => {
         if (porPaso[e.type]) porPaso[e.type].add(e.session_id);
-        const pid = parseInt(e.product_id);
-        if (pid && (e.type === 'view_product' || e.type === 'add_to_cart')) {
-          if (!prodStats[pid]) prodStats[pid] = { views: 0, atc: 0 };
-          if (e.type === 'view_product') prodStats[pid].views++; else prodStats[pid].atc++;
+        // product_id: 'L34' = liquidación, '34' = catálogo (numéricos viejos se asumen cat)
+        const m = /^(L?)(\d+)$/i.exec(String(e.product_id || ''));
+        if (m && (e.type === 'view_product' || e.type === 'add_to_cart')) {
+          const key = (m[1] ? 'liq' : 'cat') + ':' + parseInt(m[2]);
+          if (!prodStats[key]) prodStats[key] = { views: 0, atc: 0 };
+          if (e.type === 'view_product') prodStats[key].views++; else prodStats[key].atc++;
         }
       });
+      let cadena = porPaso.page_view;
+      const paso = s => { cadena = new Set([...s].filter(x => cadena.has(x))); return cadena.size; };
       funnel = {
         sessions: porPaso.page_view.size,
-        view_product: porPaso.view_product.size,
-        add_to_cart: porPaso.add_to_cart.size,
-        initiate_checkout: porPaso.initiate_checkout.size,
-        leads: porPaso.lead.size,
+        view_product: paso(porPaso.view_product),
+        add_to_cart: paso(porPaso.add_to_cart),
+        initiate_checkout: paso(porPaso.initiate_checkout),
+        leads: paso(porPaso.lead),
         ventas: compras
       };
     }
@@ -239,12 +251,11 @@ module.exports = async (req, res) => {
       const id = parseInt(it.id); if (!id) return;
       const key = `${it.type === 'liq' ? 'liq' : 'cat'}:${id}`;
       if (!prodMap[key]) prodMap[key] = { id, type: it.type === 'liq' ? 'liq' : 'cat', label: it.label || ('#' + id), unidades: 0, ingresos: 0 };
-      const qty = parseInt(it.qty) || 1;
-      prodMap[key].unidades += qty;
-      prodMap[key].ingresos += (parseInt(it.precio) || 0) * qty;
+      prodMap[key].unidades += parseInt(it.qty) || 1;
+      prodMap[key].ingresos += parseInt(it.precio) || 0;   // precio YA es total de línea (no ×qty)
     }));
     const productos = Object.values(prodMap).map(p => {
-      const st = prodStats[p.id] || { views: 0, atc: 0 };
+      const st = prodStats[`${p.type}:${p.id}`] || { views: 0, atc: 0 };
       return {
         ...p, views: st.views, atc: st.atc,
         conv_view_cart: st.views ? +(st.atc / st.views * 100).toFixed(1) : null,
@@ -254,13 +265,20 @@ module.exports = async (req, res) => {
 
     // ── 5. CAMPAÑAS: ventas por utm + gasto/CTR/CPC/CPM de Meta ────────────
     const norm = s => String(s || '').trim().toLowerCase();
-    const ventasPorCampana = {};
+    // Cruce por campaign_id PRIMERO (hallazgo Codex #6): el id es estable aunque renombren
+    // la campaña en Meta; el nombre (utm_campaign) queda como fallback para ventas viejas.
+    const ventasPorId = {};      // campaign_id → {facturacion, compras, label}
+    const ventasPorNombre = {};  // norm(utm_campaign) → idem
     ventas.forEach(o => {
-      const camp = (o.utm && (o.utm.utm_campaign)) || '(sin_campaña)';
-      const k = norm(camp);
-      if (!ventasPorCampana[k]) ventasPorCampana[k] = { facturacion: 0, compras: 0, label: camp };
-      ventasPorCampana[k].facturacion += (o.subtotal != null ? o.subtotal : (o.total || 0));
-      ventasPorCampana[k].compras += 1;
+      const u = o.utm || {};
+      const val = o.subtotal != null ? o.subtotal : (o.total || 0);
+      const cid = u.campaign_id && !/\{\{/.test(String(u.campaign_id)) ? String(u.campaign_id) : null;
+      const label = u.utm_campaign || '(sin_campaña)';
+      const bucket = cid
+        ? (ventasPorId[cid] = ventasPorId[cid] || { facturacion: 0, compras: 0, label })
+        : (ventasPorNombre[norm(label)] = ventasPorNombre[norm(label)] || { facturacion: 0, compras: 0, label });
+      bucket.facturacion += val;
+      bucket.compras += 1;
     });
 
     const TOKEN   = (process.env.META_USER_TOKEN || '').trim();
@@ -295,23 +313,10 @@ module.exports = async (req, res) => {
       const range = since && until ? `&time_range={"since":"${since}","until":"${until}"}` : '';
       const ci = await graphGet(`${ACCOUNT}/insights?level=campaign&fields=campaign_id,campaign_name,spend,impressions,clicks,ctr,cpc,cpm${range}&limit=200&access_token=${TOKEN}`);
       if (ci && ci.body && Array.isArray(ci.body.data)) {
-        const spendByCamp = {};
-        ci.body.data.forEach(row => {
-          spendByCamp[norm(row.campaign_name)] = {
-            spend: Math.round(parseFloat(row.spend || 0)), name: row.campaign_name, id: row.campaign_id,
-            impressions: parseInt(row.impressions) || 0, clicks: parseInt(row.clicks) || 0,
-            ctr: row.ctr != null ? +parseFloat(row.ctr).toFixed(2) : null,
-            cpc: row.cpc != null ? Math.round(parseFloat(row.cpc)) : null,
-            cpm: row.cpm != null ? Math.round(parseFloat(row.cpm)) : null
-          };
-        });
-        const keys = new Set([...Object.keys(spendByCamp), ...Object.keys(ventasPorCampana)]);
-        campanas = [...keys].map(k => {
-          const s = spendByCamp[k] || {};
-          const v = ventasPorCampana[k] || {};
-          const inv = s.spend || 0, fac = v.facturacion || 0, cmp = v.compras || 0;
+        const fila = (s, v) => {
+          const inv = s.spend || 0, fac = (v && v.facturacion) || 0, cmp = (v && v.compras) || 0;
           return {
-            campana: s.name || v.label || k,
+            campana: s.name || (v && v.label) || '(sin nombre)',
             campaign_id: s.id || null,
             inversion: inv, facturacion: fac, compras: cmp,
             roas: inv > 0 ? +(fac / inv).toFixed(2) : null,
@@ -319,11 +324,37 @@ module.exports = async (req, res) => {
             impressions: s.impressions || 0, clicks: s.clicks || 0,
             ctr: s.ctr != null ? s.ctr : null, cpc: s.cpc != null ? s.cpc : null, cpm: s.cpm != null ? s.cpm : null
           };
-        }).sort((a, b) => (b.roas || 0) - (a.roas || 0));
+        };
+        const usadosId = new Set(), usadosNombre = new Set();
+        campanas = ci.body.data.map(row => {
+          const s = {
+            spend: Math.round(parseFloat(row.spend || 0)), name: row.campaign_name, id: String(row.campaign_id || ''),
+            impressions: parseInt(row.impressions) || 0, clicks: parseInt(row.clicks) || 0,
+            ctr: row.ctr != null ? +parseFloat(row.ctr).toFixed(2) : null,
+            cpc: row.cpc != null ? Math.round(parseFloat(row.cpc)) : null,
+            cpm: row.cpm != null ? Math.round(parseFloat(row.cpm)) : null
+          };
+          // match por id primero; nombre normalizado como fallback (sin doble conteo)
+          let v = null;
+          if (s.id && ventasPorId[s.id]) { v = ventasPorId[s.id]; usadosId.add(s.id); }
+          else if (ventasPorNombre[norm(s.name)]) { v = ventasPorNombre[norm(s.name)]; usadosNombre.add(norm(s.name)); }
+          return fila(s, v);
+        });
+        // ventas que no matchearon con ninguna campaña de Meta (orgánico, ids viejos, otra cuenta)
+        Object.entries(ventasPorId).forEach(([id, v]) => { if (!usadosId.has(id)) campanas.push(fila({ id }, v)); });
+        Object.entries(ventasPorNombre).forEach(([k, v]) => { if (!usadosNombre.has(k)) campanas.push(fila({}, v)); });
+        campanas.sort((a, b) => (b.roas || 0) - (a.roas || 0));
       } else if (ci && ci.body && ci.body.error) {
         campanas_error = ci.body.error.message || 'meta campaign insights error';
       }
     }
+
+    // ROAS ATRIBUIDO (Codex #6): solo campañas con gasto Y cruce — mide TUS campañas del
+    // catálogo, sin que otras campañas de la cuenta Meta (otras marcas/pruebas) lo ensucien.
+    const conGasto = campanas.filter(c => c.inversion > 0);
+    const invAtr = conGasto.reduce((s, c) => s + c.inversion, 0);
+    const facAtr = conGasto.reduce((s, c) => s + c.facturacion, 0);
+    const roas_atribuido = invAtr > 0 ? +(facAtr / invAtr).toFixed(2) : null;
 
     return res.json({
       periodo: since && until ? { since, until } : 'lifetime',
@@ -336,8 +367,11 @@ module.exports = async (req, res) => {
       compras_totales:    compras,
       ticket_promedio,
       roas_promedio:      roas,
+      roas_atribuido,                         // solo campañas del catálogo con gasto cruzado
+      inversion_atribuida: invAtr || null,
       cpa_promedio:       cpa,
       por_campana:        campanas,
+      truncado: (truncadoVentas || truncadoEvents) ? { ventas: truncadoVentas, events: truncadoEvents } : null,
       // ── analytics (FASE K) ──
       resumen,            // brutas/descuentos/netas/envios/total_cobrado/pedidos/aov/margen
       resumen_prev,       // misma estructura, ventana anterior (null si lifetime)
@@ -345,7 +379,7 @@ module.exports = async (req, res) => {
       clientes,           // nuevos/recurrentes/returning_rate/ventas por grupo/frecuencia/días entre compras
       funnel,             // sessions/view_product/add_to_cart/initiate_checkout/leads/ventas
       productos,          // top 10 por ingresos con views/ATC/conversiones
-      nota: 'Ventas netas (subtotal, post-descuento) es la base de ROAS. total_cobrado = caja (con envío). margen_estimado solo cubre ítems con costo registrado (ver margen_cobertura). Solo pedidos status=venta cuentan.',
+      nota: 'Ventas netas (subtotal, post-descuento) es la base de ROAS. total_cobrado = caja (con envío). margen_estimado solo cubre ítems con costo registrado (ver margen_cobertura). Solo pedidos status=venta cuentan. El embudo es encadenado: cada paso cuenta sesiones que completaron todos los pasos anteriores. roas_atribuido cruza solo campañas con gasto; roas_promedio usa el gasto de TODA la cuenta Meta.',
       meta_error,
       campanas_error
     });

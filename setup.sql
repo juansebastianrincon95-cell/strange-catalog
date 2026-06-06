@@ -202,6 +202,11 @@ alter table events add column if not exists adset_id text;
 alter table events add column if not exists ad_id text;
 alter table events add column if not exists landing text;
 alter table events add column if not exists device text;
+-- Índices para el analytics (FASE L, hallazgo Codex: el dashboard consulta events por rango
+-- de fecha y agrega por tipo/producto — sin índices, con tráfico fuerte se degrada).
+create index if not exists events_created_idx on events(created_at);
+create index if not exists events_type_created_idx on events(type, created_at);
+create index if not exists events_product_idx on events(product_id);
 
 -- ─── SUBSCRIBERS (popup de bienvenida $20.000 OFF) ───────────
 -- Leads capturados por el popup. Se escribe/lee SOLO con service_role

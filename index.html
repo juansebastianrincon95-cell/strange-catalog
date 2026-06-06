@@ -2622,7 +2622,7 @@ function openPhoto(id,type){
   const _vcat=type==='liq'?'liquidacion':p.g;
   const _vnm=type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer');
   px('ViewContent',{content_ids:[String(id)],content_type:'product',content_category:_vcat,content_name:_vnm,value:p.price,currency:'COP',...getUTM()});
-  trackEvent('view_product',{product_id:String(id),price:p.price,gender:type==='liq'?null:p.g||null});
+  trackEvent('view_product',{product_id:(type==='liq'?'L':'')+id,price:p.price,gender:type==='liq'?null:p.g||null});
   $('photoModal').classList.add('on');
   lockScroll();
   // Resetear el scroll de la ficha al ABRIR (si no, reabre donde quedó el anterior → en iOS el
@@ -3444,7 +3444,9 @@ async function renderAnalytics(){
   const key=anaRango+'|'+anaGroup;
   window._anaCache=window._anaCache||{};
   const hit=window._anaCache[key];
-  let j=hit&&(Date.now()-hit.t<5*60*1000)?hit.j:null;   // cache 5 min (no golpear Meta en cada render)
+  // Cache: 60s si el rango incluye HOY (datos vivos), 5 min para rangos cerrados (Codex #6)
+  const ttl=(anaRango==='ayer'||anaRango==='mespasado')?5*60*1000:60*1000;
+  let j=hit&&(Date.now()-hit.t<ttl)?hit.j:null;
   if(!j){
     box.innerHTML=chips+`<div style="padding:28px;text-align:center;color:var(--ink3);font-size:12px">📊 Cargando analytics…</div>`;
     try{
@@ -3470,7 +3472,7 @@ async function renderAnalytics(){
     ${tcard('Ventas netas',_abrev(R.ventas_netas),_delta(R.ventas_netas,P?P.ventas_netas:null,fmt),'Producto post-descuento, sin flete → base del ROAS')}
     ${tcard('Pedidos (ventas)',R.pedidos||0,_delta(R.pedidos,P?P.pedidos:null),'Solo pedidos marcados como VENTA')}
     ${tcard('Valor medio pedido',_abrev(R.aov),_delta(R.aov,P?P.aov:null,fmt),'Ventas netas ÷ pedidos (AOV)')}
-    ${tcard('ROAS',j.roas_promedio!=null?j.roas_promedio:'—',`<span style="font-size:10px;color:var(--ink3)">${j.inversion_total!=null?'inv. '+_abrev(j.inversion_total):'sin dato de Meta'}</span>`,'Ventas netas ÷ inversión en Meta del rango')}
+    ${tcard('ROAS',j.roas_atribuido!=null?j.roas_atribuido:(j.roas_promedio!=null?j.roas_promedio:'—'),`<span style="font-size:10px;color:var(--ink3)">${j.roas_atribuido!=null&&j.roas_promedio!=null&&j.roas_atribuido!==j.roas_promedio?`cuenta: ${j.roas_promedio} · `:''}${j.inversion_atribuida!=null?'inv. '+_abrev(j.inversion_atribuida):(j.inversion_total!=null?'inv. '+_abrev(j.inversion_total):'sin dato de Meta')}</span>`,'ROAS atribuido: ventas de TUS campañas ÷ su gasto. "cuenta" = contra el gasto de toda la cuenta Meta (puede incluir otras campañas)')}
     ${tcard('Margen estimado',_abrev(R.margen_estimado),_delta(R.margen_estimado,P?P.margen_estimado:null,fmt),'Ventas − costo · solo ítems con costo registrado ('+Math.round((R.margen_cobertura||0)*100)+'% cubierto) → utilidad')}
     ${tcard('Clientes habituales',(C.returning_rate!=null?C.returning_rate:0)+'%',`<span style="font-size:10px;color:var(--ink3)">${C.recurrentes||0} de ${(C.nuevos||0)+(C.recurrentes||0)} clientes</span>`,'% de clientes del rango que ya habían comprado antes (returning customer rate)')}
   </div>`;
@@ -3519,7 +3521,8 @@ async function renderAnalytics(){
     </table></div>`
     +(j.meta_error?`<div style="font-size:10px;color:var(--ink3);margin-top:7px">⚠ Sin datos de inversión de Meta: ${escHtml(String(j.meta_error).slice(0,90))}</div>`:''))
     :(j.meta_error?_anaBloque('📣 Campañas',`<div style="font-size:11.5px;color:var(--ink3)">⚠ Sin conexión con Meta (${escHtml(String(j.meta_error).slice(0,90))}). Las ventas por campaña aparecerán cuando lleguen pedidos con utm_campaign.</div>`):'');
-  box.innerHTML=chips+cards+serieBloque+desglose+embudoBloque+clientesBloque+prodBloque+campBloque;
+  const aviso=j.truncado?`<div style="font-size:10px;color:var(--ink3);text-align:center;padding:4px 0 10px">⚠ Datos al límite (${j.truncado.ventas?'5.000 ventas':''}${j.truncado.ventas&&j.truncado.events?' · ':''}${j.truncado.events?'20.000 eventos':''}) — usa un rango más corto para cifras completas.</div>`:'';
+  box.innerHTML=chips+aviso+cards+serieBloque+desglose+embudoBloque+clientesBloque+prodBloque+campBloque;
 }
 
 /* ── LEADS (Venta / No venta) ── */
