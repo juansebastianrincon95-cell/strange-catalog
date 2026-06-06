@@ -6,7 +6,8 @@ module.exports = async (req, res) => {
     process.env.SUPABASE_ANON_KEY
   );
 
-  const storeUrl = process.env.STORE_URL || `https://${req.headers.host}`;
+  // .trim() + sin "/" final: un env mal pegado (BOM/CRLF/slash) ya ensució los links del feed una vez.
+  const storeUrl = (process.env.STORE_URL || `https://${req.headers.host}`).trim().replace(/\/+$/, '');
 
   const [{ data: cats }, { data: liqs }, { data: settings }] = await Promise.all([
     sb.from('products').select('*').eq('sold', false),
