@@ -194,6 +194,14 @@ create policy "service all events"
   on events for all to service_role using (true) with check (true);
 -- Migración para instalaciones existentes (aquí y no arriba: la tabla debe existir primero)
 drop policy if exists "anon insert events" on events;
+-- Atribución completa por anuncio (FASE H)
+alter table events add column if not exists utm_content text;
+alter table events add column if not exists utm_term text;
+alter table events add column if not exists campaign_id text;
+alter table events add column if not exists adset_id text;
+alter table events add column if not exists ad_id text;
+alter table events add column if not exists landing text;
+alter table events add column if not exists device text;
 
 -- ─── SUBSCRIBERS (popup de bienvenida $20.000 OFF) ───────────
 -- Leads capturados por el popup. Se escribe/lee SOLO con service_role

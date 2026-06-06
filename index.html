@@ -409,6 +409,18 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .av-top{flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:max(12px,env(safe-area-inset-top)) 14px 12px;background:var(--white);border-bottom:1px solid var(--line)}
 .av-burger{width:38px;height:38px;border:none;background:var(--bg);border-radius:9px;font-size:17px;color:var(--ink);cursor:pointer;flex-shrink:0}
 .av-title{font-size:16px;font-weight:700;letter-spacing:-.02em;color:var(--ink)}
+/* BÚSQUEDA GLOBAL del admin: productos + pedidos + clientes desde un solo campo (en memoria) */
+.av-search{position:relative;flex:1;max-width:430px;margin:0 8px}
+.av-search input{width:100%;padding:9px 13px;background:var(--bg);border:1.5px solid var(--line);border-radius:9px;font-family:var(--font);font-size:13px;color:var(--ink);outline:none;transition:border-color .15s}
+.av-search input:focus{border-color:var(--ink)}
+#avSearchRes{display:none;position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--white);border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 40px rgba(0,0,0,.16);max-height:60vh;overflow-y:auto;z-index:30}
+#avSearchRes.on{display:block}
+.avs-h{font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);padding:9px 12px 4px;border-top:1px solid var(--line)}
+.avs-h:first-child{border-top:none}
+.avs-item{display:flex;align-items:center;gap:9px;padding:8px 12px;cursor:pointer;font-size:12.5px;color:var(--ink);line-height:1.35}
+.avs-item:hover{background:var(--bg)}
+.avs-item img{width:30px;height:30px;border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--bg)}
+@media(max-width:699px){.av-search{margin:0 4px}.av-search input{font-size:16px;padding:8px 11px}}
 .av-body{flex:1;display:flex;min-height:0;position:relative}
 .av-side{width:200px;flex-shrink:0;background:var(--white);border-right:1px solid var(--line);display:flex;flex-direction:column;gap:2px;padding:12px 8px;overflow-y:auto}
 .av-nav{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:none;background:none;border-radius:9px;padding:10px 12px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink2);cursor:pointer;transition:background .12s}
@@ -1095,6 +1107,12 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
   <div class="av-top">
     <button class="av-burger" onclick="toggleAvSide()" aria-label="Menú">☰</button>
     <div class="av-title" id="avTitle">Inicio</div>
+    <div class="av-search" id="avSearchWrap">
+      <input id="avSearch" type="search" placeholder="🔍 Buscar producto, pedido o cliente…" autocomplete="off"
+        oninput="clearTimeout(window._avsT);window._avsT=setTimeout(()=>buscarGlobal(this.value),200)"
+        onkeydown="if(event.key==='Escape'){this.value='';cerrarBusqueda();this.blur();}">
+      <div id="avSearchRes"></div>
+    </div>
     <div style="display:flex;gap:6px;align-items:center;margin-left:auto"><button class="admin-pill" style="font-size:10px;padding:5px 10px" onclick="logoutAdmin()">Salir</button><button class="ax" onclick="closeAdmin()">✕</button></div>
   </div>
   <div class="av-body">
@@ -2378,7 +2396,15 @@ function px(event,params,eid){
 }
 function trackEvent(type,extra={}){
   const utm=getUTM();
-  fetch('/api/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:SESSION_ID,type,utm_source:utm.utm_source||null,utm_medium:utm.utm_medium||null,utm_campaign:utm.utm_campaign||null,referrer:getReferrer()||null,...extra})}).catch(()=>{});
+  const ctx=getVisitCtx();
+  // Atribución completa: cada evento del funnel lleva campaña/conjunto/anuncio + landing/device.
+  fetch('/api/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    session_id:SESSION_ID,type,
+    utm_source:utm.utm_source||null,utm_medium:utm.utm_medium||null,utm_campaign:utm.utm_campaign||null,
+    utm_content:utm.utm_content||null,utm_term:utm.utm_term||null,
+    campaign_id:utm.campaign_id||null,adset_id:utm.adset_id||null,ad_id:utm.ad_id||null,
+    landing:ctx.landing||null,device:ctx.device||null,
+    referrer:getReferrer()||null,...extra})}).catch(()=>{});
 }
 
 /* ── UTM ── */
@@ -2923,6 +2949,59 @@ function avGo(sec,filtro){
   if(filtro)leadFilter=filtro;
   setAdminSection(sec);
 }
+/* ── BÚSQUEDA GLOBAL (estilo Shopify): productos + pedidos + clientes, todo en memoria ── */
+function buscarGlobal(q){
+  const box=$('avSearchRes');if(!box)return;
+  q=(q||'').trim().toLowerCase();
+  if(q.length<2){box.classList.remove('on');box.innerHTML='';return;}
+  const out=[];
+  // Productos (catálogo + ofertas): por modelo, marca o #id
+  const pr=[...prods.map(p=>({...p,_t:'cat'})),...liqs.map(p=>({...p,_t:'liq'}))].filter(p=>
+    (p.modelo||'').toLowerCase().includes(q)
+    ||(BRAND_LABELS[p.brand]||'').toLowerCase().includes(q)
+    ||String(p.id)===q.replace('#','')
+  ).slice(0,5);
+  if(pr.length)out.push(`<div class="avs-h">📦 Productos</div>`+pr.map(p=>
+    `<div class="avs-item" onclick="irProducto(${p.id},'${p._t}')"><img src="${escHtml(p.img||'')}" onerror="this.style.visibility='hidden'"><span>${escHtml(p.modelo||((BRAND_LABELS[p.brand]||'Par')+' '+(p._t==='liq'?'Oferta':(p.g==='h'?'Hombre':'Mujer'))))} · <b>#${p.id}</b> · ${fmt(p.price)}${p.sold?' · <span style="color:var(--red)">agotado</span>':''}</span></div>`).join(''));
+  // Pedidos: por nombre, teléfono, ciudad o referencia
+  const stBadge=o=>o.status==='venta'?'✓ venta':o.status==='no_venta'?'✕ no venta':o.status==='abandoned'?'🛒 abandonó':'⏳ pendiente';
+  const pe=orders.filter(o=>
+    String(o.nombre||'').toLowerCase().includes(q)||String(o.tel||'').includes(q)
+    ||String(o.ciudad||'').toLowerCase().includes(q)||String(o.reference||'').toLowerCase().includes(q)
+  ).slice(0,5);
+  if(pe.length)out.push(`<div class="avs-h">🧾 Pedidos</div>`+pe.map(o=>
+    `<div class="avs-item" onclick="irPedido(${o.id})"><span><b>${escHtml(o.nombre||'Sin nombre')}</b> · ${fmt(o.total||0)} · ${stBadge(o)}${o.fecha?` · ${new Date(o.fecha).toLocaleDateString('es-CO',{day:'2-digit',month:'short'})}`:''}</span></div>`).join(''));
+  // Clientes: por nombre, teléfono o ciudad
+  const cl=buildClientes().filter(c=>
+    c.nombre.toLowerCase().includes(q)||c.tel.includes(q)||c.ciudad.toLowerCase().includes(q)
+  ).slice(0,5);
+  if(cl.length)out.push(`<div class="avs-h">👥 Clientes</div>`+cl.map(c=>
+    `<div class="avs-item" onclick="irCliente('${c.tel}')"><span><b>${escHtml(c.nombre||'Sin nombre')}</b> · ${c.tel} · ${c.pedidos.length} pedido${c.pedidos.length===1?'':'s'}${c.total?` · ${fmt(c.total)}`:''}</span></div>`).join(''));
+  box.innerHTML=out.length?out.join(''):`<div style="padding:14px;font-size:12px;color:var(--ink3);text-align:center">Sin resultados para "${escHtml(q)}"</div>`;
+  box.classList.add('on');
+}
+function cerrarBusqueda(){const b=$('avSearchRes');if(b){b.classList.remove('on');b.innerHTML='';}}
+function irProducto(id,t){
+  cerrarBusqueda();
+  setAdminSection(t==='liq'?'ofertas':'productos');
+  setTimeout(()=>{
+    const btn=$('galbtn'+(t==='liq'?'liq':'cat')+id);
+    const row=btn?btn.closest('.arow'):null;
+    if(row){row.scrollIntoView({block:'center'});row.style.transition='background .3s';row.style.background='#fff3cd';setTimeout(()=>row.style.background='',1800);}
+  },400);
+}
+function irPedido(id){
+  cerrarBusqueda();
+  setAdminSection('pedidos');
+  setTimeout(()=>{const d=$('pedDet'+id);if(d&&d.style.display==='none')togPedDetail(id);const card=d?d.parentElement:null;if(card)card.scrollIntoView({block:'center'});},500);
+}
+function irCliente(tel){
+  cerrarBusqueda();
+  setAdminSection('clientes');
+  setTimeout(()=>{const d=$('cliDet'+tel);if(d&&d.style.display==='none')togCliDetail(tel);const card=d?d.parentElement:null;if(card)card.scrollIntoView({block:'center'});},500);
+}
+// Cerrar el dropdown al hacer click fuera del buscador
+document.addEventListener('click',e=>{if(!e.target.closest('.av-search'))cerrarBusqueda();});
 function toggleAvSide(force){
   const s=$('avSide'),sc=$('avScrim');
   const abrir=typeof force==='boolean'?force:!(s&&s.classList.contains('open'));
@@ -3306,6 +3385,7 @@ function renderLeadsTab(){
           ${o.ciudad?`📍 ${escHtml(o.ciudad)}${o.barrio?', '+escHtml(o.barrio):''}<br>`:''}
           ${itemsTxt(o)?`👟 ${itemsTxt(o)}<br>`:''}
           💰 <b>${fmt(o.total||0)}</b>${o.pago?` · ${escHtml(pagoLabels[o.pago]||o.pago)}`:''}${o.combo?` · <b style="color:#b3541e">🏆 ${escHtml(o.combo)}</b>`:''}
+          ${o.utm&&o.utm.utm_campaign?`<br>📣 <span style="color:#5D2D91;font-weight:600">${escHtml(o.utm.utm_campaign)}</span>${o.utm.utm_content?` · ad: ${escHtml(o.utm.utm_content)}`:''}`:''}
           ${o.fecha?`<br><span style="color:var(--ink3);font-size:10px">${new Date(o.fecha).toLocaleString('es-CO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</span>`:''}
         </div>
         ${o.motivo_no_venta?`<div style="font-size:11px;color:#b3541e;background:#fdf3ec;border-radius:8px;padding:6px 9px;margin-top:7px">✕ Motivo: ${escHtml(o.motivo_no_venta)}</div>`:''}
