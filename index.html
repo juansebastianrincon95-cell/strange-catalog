@@ -2212,9 +2212,11 @@ function trackEvent(type,extra={}){
 /* ── UTM ── */
 function captureUTM(){
   const p=new URLSearchParams(window.location.search);
-  const keys=['utm_source','utm_medium','utm_campaign','utm_content','utm_term'];
+  // campaign_id/adset_id/ad_id llegan si los anuncios usan los parámetros dinámicos de Meta
+  // ({{campaign.id}} etc. en "Parámetros de URL" del anuncio) → ROAS por anuncio.
+  const keys=['utm_source','utm_medium','utm_campaign','utm_content','utm_term','campaign_id','adset_id','ad_id'];
   const utm={};
-  keys.forEach(k=>{if(p.get(k))utm[k]=p.get(k);});
+  keys.forEach(k=>{const v=p.get(k);if(v&&!v.startsWith('{{'))utm[k]=v;});   // ignora placeholders sin reemplazar
   // fbclid: clic desde un anuncio de Meta. Se persiste para atribución (cookie _fbc la deriva el Pixel).
   const fbclid=p.get('fbclid');
   if(fbclid)localStorage.setItem('ss_fbclid',fbclid);
@@ -2678,7 +2680,7 @@ async function loadOrders(){
         id:o.id,fecha:o.fecha||o.created_at,subtotal:o.subtotal,envio:o.envio,total:o.total||0,pares:o.pares,
         pago:o.pago,ciudad:o.ciudad,barrio:o.barrio,nombre:o.nombre,tel:o.tel,
         cedula:o.cedula,direccion:o.direccion,utm:o.utm||null,
-        wa_status:o.wa_status,temperatura:o.temperatura,motivo_no_venta:o.motivo_no_venta,nota:o.nota,
+        wa_status:o.wa_status,temperatura:o.temperatura,motivo_no_venta:o.motivo_no_venta,nota:o.nota,seguimiento:o.seguimiento,
         items:o.items,status:o.status,reference:o.reference,seccion:o.seccion
       }));
     }
@@ -2890,6 +2892,7 @@ function togPedDetail(id){
     +fila('Montos',`Subtotal <b>${fmt(o.subtotal!=null?o.subtotal:o.total)}</b>${o.envio?` · Envío <b>${fmt(o.envio)}</b>`:''} · Total <b>${fmt(o.total||0)}</b>`)
     +fila('Referencia',o.reference?escHtml(o.reference):'')
     +fila('Campaña',utmLinea||'<span style="color:var(--ink3)">sin UTMs (directo / orgánico)</span>')
+    +fila('Anuncio',[u.campaign_id?'campaña: '+escHtml(u.campaign_id):'',u.adset_id?'conjunto: '+escHtml(u.adset_id):'',u.ad_id?'anuncio: '+escHtml(u.ad_id):''].filter(Boolean).join(' · '))
     +fila('Meta',[u.fbclid?'fbclid: '+corto(u.fbclid):'',u.fbp?'fbp: '+corto(u.fbp):'',u.fbc?'fbc: '+corto(u.fbc):''].filter(Boolean).join(' · '))
     +fila('Contexto',[u.landing?'Landing: '+escHtml(u.landing):'',u.device?'Dispositivo: '+escHtml(u.device):''].filter(Boolean).join(' · '))
     +fila('Fecha',o.fecha?new Date(o.fecha).toLocaleString('es-CO',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}):'');
@@ -3015,6 +3018,9 @@ function renderStatsTab(){
   if(sinContactar)tareas.push({txt:`Escribir a <b>${sinContactar} lead${sinContactar===1?'':'s'} sin contactar</b> por WhatsApp`,go:`avGo('leads','pending')`,ic:'📱'});
   const calientes=orders.filter(o=>o.temperatura==='caliente'&&o.status!=='venta'&&o.status!=='no_venta').length;
   if(calientes)tareas.push({txt:`Cerrar <b>${calientes} lead${calientes===1?'':'s'} caliente${calientes===1?'':'s'}</b> 🔥 — están listos para comprar`,go:`avGo('leads','pending')`,ic:'🔥'});
+  const hoyISO=new Date().toISOString().slice(0,10);
+  const seguirHoy=orders.filter(o=>o.seguimiento&&o.seguimiento<=hoyISO&&o.status!=='venta'&&o.status!=='no_venta').length;
+  if(seguirHoy)tareas.push({txt:`Hacer seguimiento a <b>${seguirHoy} lead${seguirHoy===1?'':'s'}</b> con fecha cumplida 📅`,go:`avGo('leads','pending')`,ic:'📅'});
   if(aban24)tareas.push({txt:`Contactar <b>${aban24} carrito${aban24===1?'':'s'} abandonado${aban24===1?'':'s'}</b> de las últimas 24h`,go:`avGo('leads','abandoned')`,ic:'🛒'});
   if(agotados)tareas.push({txt:`<b>${agotados} producto${agotados===1?'':'s'} agotado${agotados===1?'':'s'}</b> — repón stock o libera la vitrina`,go:`avGo('productos')`,ic:'📦'});
   const card=(lbl,val,sub,go,color)=>`<div onclick="${go||''}" style="background:var(--white);border:1px solid var(--line);border-radius:14px;padding:14px 15px;${go?'cursor:pointer;':''}transition:box-shadow .15s" ${go?`onmouseover="this.style.boxShadow='0 6px 18px rgba(0,0,0,.08)'" onmouseout="this.style.boxShadow='none'"`:''}>
@@ -3048,6 +3054,24 @@ function renderStatsTab(){
         <span style="color:var(--ink3);font-size:13px">→</span>
       </div>`).join(''):`<div style="font-size:12.5px;color:var(--green);font-weight:600;padding:4px 0">✅ Al día — no hay tareas pendientes.</div>`}
     </div>
+    ${(()=>{ // 📣 Campañas con ventas: SOLO plata real (status='venta'), agrupada por utm_campaign
+      if(!ventas.length)return '';
+      const camp={};
+      ventas.forEach(o=>{
+        const k=(o.utm&&o.utm.utm_campaign)||'(sin campaña)';
+        if(!camp[k])camp[k]={n:0,ing:0};
+        camp[k].n++;camp[k].ing+=prodVal(o);
+      });
+      const top=Object.entries(camp).sort((a,b)=>b[1].ing-a[1].ing).slice(0,5);
+      return `<div style="background:var(--white);border:1px solid var(--line);border-radius:14px;padding:13px 15px;margin-bottom:14px">
+        <div style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);margin-bottom:9px">📣 Campañas con ventas</div>
+        ${top.map(([k,v],i)=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;${i<top.length-1?'border-bottom:1px solid var(--line)':''}">
+          <span style="flex:1;min-width:0;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(k)}</span>
+          <span style="font-size:11px;color:var(--ink2);font-weight:600;flex-shrink:0">${v.n} venta${v.n===1?'':'s'}</span>
+          <b style="font-size:12.5px;color:var(--green);flex-shrink:0">${fmt(v.ing)}</b>
+        </div>`).join('')}
+      </div>`;
+    })()}
     <div style="background:var(--bg);border-radius:12px;padding:12px 14px;margin-bottom:8px">
       <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:8px">🏙 Top ciudades</div>
       ${topCiudades.map(([c,n],i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;${i<topCiudades.length-1?'border-bottom:1px solid var(--line)':''}">
@@ -3114,7 +3138,7 @@ function renderLeadsTab(){
         ${o.motivo_no_venta?`<div style="font-size:11px;color:#b3541e;background:#fdf3ec;border-radius:8px;padding:6px 9px;margin-top:7px">✕ Motivo: ${escHtml(o.motivo_no_venta)}</div>`:''}
         ${o.nota?`<div style="font-size:11px;color:var(--ink2);background:#fffbe8;border-radius:8px;padding:6px 9px;margin-top:6px">📝 ${escHtml(o.nota)}</div>`:''}
         <div style="display:flex;gap:5px;margin-top:9px;flex-wrap:wrap">
-          ${chipWa(o)}${chipTemp(o)}
+          ${chipWa(o)}${chipTemp(o)}${chipSeg(o)}
           <button onclick="leadNota(${o.id})" style="padding:6px 10px;border:1px solid var(--line);border-radius:14px;background:var(--white);font-family:var(--font);font-size:10.5px;font-weight:700;color:var(--ink2);cursor:pointer">📝 Nota</button>
         </div>
         <div style="display:flex;gap:6px;margin-top:9px">
@@ -3126,10 +3150,17 @@ function renderLeadsTab(){
 }
 async function updateOrderStatus(id,status){
   const o=orders.find(x=>x.id===id);if(!o)return;
-  // Al marcar NO VENTA, pedir el motivo (contexto para remarketing y para aprender qué falla).
+  // NO VENTA exige el MOTIVO (contexto para remarketing y para aprender qué falla).
+  // Cancelar el prompt = NO se marca. Vacío = se vuelve a pedir.
   if(status==='no_venta'&&o.status!=='no_venta'){
-    const motivo=prompt('¿Por qué no compró? (precio, talla, desconfianza, dejó de responder…)',o.motivo_no_venta||'');
-    if(motivo!==null&&motivo.trim())updateOrderMeta(id,{motivo_no_venta:motivo.trim()});
+    let motivo=null;
+    while(true){
+      motivo=prompt('MOTIVO de la no venta (obligatorio):\nprecio · talla · desconfianza · dejó de responder · envío · pago…',o.motivo_no_venta||'');
+      if(motivo===null)return;            // canceló → no se marca
+      motivo=motivo.trim();
+      if(motivo)break;                    // vacío → repreguntar
+    }
+    await updateOrderMeta(id,{motivo_no_venta:motivo});
   }
   const prev=o.status;o.status=status;renderLeadsTab();
   try{await adminWrite('update_order',{id,data:{status}});}
@@ -3164,6 +3195,30 @@ function leadNota(id){
   const nota=prompt('Nota interna del vendedor:',o.nota||'');
   if(nota===null)return;
   updateOrderMeta(id,{nota:nota.trim()||null});
+}
+/* Fecha de seguimiento (dd/mm/aaaa, hoy o futuro) → tarea "hacer seguimiento" en Inicio */
+function chipSeg(o){
+  if(!o.seguimiento)return `<button onclick="leadSeguimiento(${o.id})" style="padding:6px 10px;border:1px solid var(--line);border-radius:14px;background:var(--white);font-family:var(--font);font-size:10.5px;font-weight:700;color:var(--ink2);cursor:pointer">📅 Seguimiento</button>`;
+  const hoyISO=new Date().toISOString().slice(0,10);
+  const vencido=o.seguimiento<=hoyISO;
+  const [y,m,d]=o.seguimiento.split('-');
+  const estilo=vencido?'background:#E8200A;color:#fff;border-color:#E8200A':'background:var(--ink);color:#fff;border-color:var(--ink)';
+  return `<button onclick="leadSeguimiento(${o.id})" style="padding:6px 10px;border:1px solid var(--line);border-radius:14px;font-family:var(--font);font-size:10.5px;font-weight:700;cursor:pointer;${estilo}">📅 ${d}/${m}${vencido?' ¡HOY!':''}</button>`;
+}
+function leadSeguimiento(id){
+  const o=orders.find(x=>x.id===id);if(!o)return;
+  const actual=o.seguimiento?o.seguimiento.split('-').reverse().join('/'):'';
+  const v=prompt('Fecha de seguimiento (dd/mm/aaaa).\nDeja vacío para quitarla:',actual);
+  if(v===null)return;
+  const t=v.trim();
+  if(!t){updateOrderMeta(id,{seguimiento:null});return;}
+  const m=t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(!m){alert('Formato inválido. Usa dd/mm/aaaa (ej. 15/06/2026).');return;}
+  const dd=parseInt(m[1]),mm=parseInt(m[2]),yy=parseInt(m[3]);
+  const f=new Date(yy,mm-1,dd);
+  if(f.getDate()!==dd||f.getMonth()!==mm-1||f.getFullYear()!==yy){alert('Esa fecha no existe.');return;}
+  const iso=`${yy}-${String(mm).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
+  updateOrderMeta(id,{seguimiento:iso});
 }
 async function updateOrderMeta(id,campos){
   const o=orders.find(x=>x.id===id);if(!o)return;

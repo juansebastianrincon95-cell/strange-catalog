@@ -149,6 +149,11 @@ module.exports = async (req, res) => {
     }
     if ('motivo_no_venta' in d) upd.motivo_no_venta = d.motivo_no_venta == null ? null : String(d.motivo_no_venta).slice(0, 300);
     if ('nota' in d) upd.nota = d.nota == null ? null : String(d.nota).slice(0, 500);
+    if ('seguimiento' in d) {
+      if (d.seguimiento !== null && !/^\d{4}-\d{2}-\d{2}$/.test(d.seguimiento))
+        return res.status(400).json({ error: 'invalid seguimiento (YYYY-MM-DD)' });
+      upd.seguimiento = d.seguimiento;
+    }
     if (!Object.keys(upd).length) return res.status(400).json({ error: 'nothing to update' });
     const { error } = await sb.from('orders').update(upd).eq('id', id);
     if (error) return res.status(500).json({ error: error.message });
@@ -158,7 +163,7 @@ module.exports = async (req, res) => {
   if (action === 'list_orders') {
     const { data: rows, error } = await sb
       .from('orders')
-      .select('id,created_at,fecha,nombre,cedula,tel,ciudad,barrio,direccion,pago,subtotal,envio,total,pares,items,status,reference,seccion,utm,wa_status,temperatura,motivo_no_venta,nota')
+      .select('id,created_at,fecha,nombre,cedula,tel,ciudad,barrio,direccion,pago,subtotal,envio,total,pares,items,status,reference,seccion,utm,wa_status,temperatura,motivo_no_venta,nota,seguimiento')
       .order('created_at', { ascending: false })
       .limit(500);
     if (error) return res.status(500).json({ error: error.message });

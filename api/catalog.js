@@ -160,7 +160,8 @@ module.exports = async (req, res) => {
         nombre: o.nombre, tel: o.tel, ciudad: o.ciudad,
         subtotal: prodValue(o), items: o.items, utm: o.utm, fecha: o.fecha,
         wa_status: o.wa_status || null, temperatura: o.temperatura || null,
-        motivo_no_venta: o.motivo_no_venta || null, nota: o.nota || null
+        motivo_no_venta: o.motivo_no_venta || null, nota: o.nota || null,
+        seguimiento: o.seguimiento || null
       })),
       // Carritos abandonados: llenaron datos pero no confirmaron → remarketing más caliente aún
       abandoned_contacts: abandonados.map(o => ({
