@@ -2990,15 +2990,19 @@ function irProducto(id,t){
     if(row){row.scrollIntoView({block:'center'});row.style.transition='background .3s';row.style.background='#fff3cd';setTimeout(()=>row.style.background='',1800);}
   },400);
 }
+// "Focus pendiente": la sección se re-renderiza al refrescar pedidos desde la BD (~1s después),
+// así que el detalle se reabre en CADA render mientras el focus esté vivo (2.5s).
 function irPedido(id){
   cerrarBusqueda();
+  window._pedFocus=id;
+  setTimeout(()=>{window._pedFocus=null;},2500);
   setAdminSection('pedidos');
-  setTimeout(()=>{const d=$('pedDet'+id);if(d&&d.style.display==='none')togPedDetail(id);const card=d?d.parentElement:null;if(card)card.scrollIntoView({block:'center'});},500);
 }
 function irCliente(tel){
   cerrarBusqueda();
+  window._cliFocus=tel;
+  setTimeout(()=>{window._cliFocus=null;},2500);
   setAdminSection('clientes');
-  setTimeout(()=>{const d=$('cliDet'+tel);if(d&&d.style.display==='none')togCliDetail(tel);const card=d?d.parentElement:null;if(card)card.scrollIntoView({block:'center'});},500);
 }
 // Cerrar el dropdown al hacer click fuera del buscador
 document.addEventListener('click',e=>{if(!e.target.closest('.av-search'))cerrarBusqueda();});
@@ -3057,6 +3061,12 @@ function renderPedidosList(){
       </div>
       <div id="pedDet${o.id}" style="display:none;border-top:1px solid var(--line);background:var(--bg);padding:12px 14px;font-size:12px;color:var(--ink2);line-height:1.7"></div>
     </div>`;}).join(''):`<div style="padding:24px 8px;text-align:center;color:var(--ink3);font-size:12.5px">Sin resultados para "${escHtml(pedidosQ)}"</div>`);
+  // Focus pendiente desde la búsqueda global: abrir el detalle y centrar (sobrevive al refresh)
+  if(window._pedFocus){
+    const fid=window._pedFocus;
+    const d=$('pedDet'+fid);
+    if(d){if(d.style.display==='none')togPedDetail(fid);d.parentElement.scrollIntoView({block:'center'});}
+  }
 }
 /* ── CLIENTES v1: agrupa los pedidos por teléfono (sin tabla nueva) ── */
 let clientesQ='';
@@ -3110,6 +3120,12 @@ function renderClientesList(){
       </div>
       <div id="cliDet${c.tel}" style="display:none;border-top:1px solid var(--line);background:var(--bg);padding:10px 14px"></div>
     </div>`).join(''):`<div style="padding:24px 8px;text-align:center;color:var(--ink3);font-size:12.5px">Sin resultados para "${escHtml(clientesQ)}"</div>`);
+  // Focus pendiente desde la búsqueda global (sobrevive al refresh de pedidos)
+  if(window._cliFocus){
+    const ft=window._cliFocus;
+    const d=$('cliDet'+ft);
+    if(d){if(d.style.display==='none')togCliDetail(ft);d.parentElement.scrollIntoView({block:'center'});}
+  }
 }
 function togCliDetail(tel){
   const det=$('cliDet'+tel),chev=$('cliChev'+tel);if(!det)return;
