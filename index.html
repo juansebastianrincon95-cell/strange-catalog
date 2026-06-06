@@ -3397,7 +3397,7 @@ function _svgSerie(serie){
   let xlab='';
   serie.forEach((p,i)=>{if(i%step===0||i===serie.length-1)xlab+=`<text x="${X(i).toFixed(1)}" y="${H-8}" text-anchor="middle" font-size="9.5" fill="#8a8a85">${escHtml(_kLabel(p.k))}</text>`;});
   // 3 guías horizontales
-  let guias='';[1,0.5,0].forEach(f=>{const y=(pT+ih-f*ih).toFixed(1);guias+=`<line x1="${pL}" y1="${y}" x2="${W-pR}" y2="${y}" stroke="#eceae6" stroke-width="1"/><text x="${pL-5}" y="${+y+3}" text-anchor="end" font-size="9.5" fill="#8a8a85">${_abrev(maxV*f)}</text>`;});
+  let guias='';[1,0.5,0].forEach(f=>{const y=(pT+ih-f*ih).toFixed(1);const lab=maxV<=1?(f===0?'$0':''):_abrev(maxV*f);guias+=`<line x1="${pL}" y1="${y}" x2="${W-pR}" y2="${y}" stroke="#eceae6" stroke-width="1"/><text x="${pL-5}" y="${+y+3}" text-anchor="end" font-size="9.5" fill="#8a8a85">${lab}</text>`;});
   return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block">
     <defs><linearGradient id="anaGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1BA94C" stop-opacity=".22"/><stop offset="100%" stop-color="#1BA94C" stop-opacity="0"/></linearGradient></defs>
     ${guias}

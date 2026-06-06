@@ -212,20 +212,25 @@ module.exports = async (req, res) => {
       if (since) qe = qe.gte('created_at', since + 'T00:00:00');
       if (until) qe = qe.lte('created_at', until + 'T23:59:59');
       const { data: evs } = await qe;
-      const sess = new Set(); let vp = 0, atc = 0, ic = 0, leads = 0;
+      // Embudo por SESIONES ÚNICAS en cada paso (como Shopify): 1 sesión que vio 5 productos
+      // cuenta 1 vez — así las tasas paso a paso nunca superan el 100%.
+      const porPaso = { page_view: new Set(), view_product: new Set(), add_to_cart: new Set(), initiate_checkout: new Set(), lead: new Set() };
       (evs || []).forEach(e => {
-        if (e.type === 'page_view') sess.add(e.session_id);
-        else if (e.type === 'view_product') vp++;
-        else if (e.type === 'add_to_cart') atc++;
-        else if (e.type === 'initiate_checkout') ic++;
-        else if (e.type === 'lead') leads++;
+        if (porPaso[e.type]) porPaso[e.type].add(e.session_id);
         const pid = parseInt(e.product_id);
         if (pid && (e.type === 'view_product' || e.type === 'add_to_cart')) {
           if (!prodStats[pid]) prodStats[pid] = { views: 0, atc: 0 };
           if (e.type === 'view_product') prodStats[pid].views++; else prodStats[pid].atc++;
         }
       });
-      funnel = { sessions: sess.size, view_product: vp, add_to_cart: atc, initiate_checkout: ic, leads, ventas: compras };
+      funnel = {
+        sessions: porPaso.page_view.size,
+        view_product: porPaso.view_product.size,
+        add_to_cart: porPaso.add_to_cart.size,
+        initiate_checkout: porPaso.initiate_checkout.size,
+        leads: porPaso.lead.size,
+        ventas: compras
+      };
     }
 
     // Ranking de productos: ventas del rango (items) × comportamiento (events)
