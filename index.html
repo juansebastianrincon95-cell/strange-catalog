@@ -1057,7 +1057,8 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
   </div>
   <div class="av-body">
     <div class="av-scrim" id="avScrim" onclick="toggleAvSide(false)"></div>
-    <nav class="av-side" id="avSide">
+    <!-- aside (NO <nav>): el selector global nav{height:var(--navH)} pisaría la altura -->
+    <aside class="av-side" id="avSide">
       <button class="av-nav on" data-nav="inicio" onclick="setAdminSection('inicio')">🏠 Inicio</button>
       <button class="av-nav" data-nav="productos" onclick="setAdminSection('productos')">📦 Productos</button>
       <button class="av-nav" data-nav="ofertas" onclick="setAdminSection('ofertas')">🔥 Ofertas</button>
@@ -1066,7 +1067,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
       <button class="av-nav" data-nav="pedidos" onclick="setAdminSection('pedidos')">🧾 Pedidos</button>
       <button class="av-nav" data-nav="leads" onclick="setAdminSection('leads')">🎯 Leads</button>
       <button class="av-nav" data-nav="ajustes" onclick="setAdminSection('ajustes')">⚙ Ajustes</button>
-    </nav>
+    </aside>
     <div class="av-main" id="avMain">
   <div class="astats" data-sec="inicio" data-disp="flex">
     <div class="ast"><div class="astn" id="aTot">0</div><div class="astl">Total</div></div>
