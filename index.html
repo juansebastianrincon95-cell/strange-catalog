@@ -2679,7 +2679,7 @@ async function loadOrders(){
     const j=await r.json();
     if(Array.isArray(j.orders)){
       orders=j.orders.map(o=>({
-        id:o.id,fecha:o.fecha||o.created_at,total:o.total||0,pares:o.pares,
+        id:o.id,fecha:o.fecha||o.created_at,subtotal:o.subtotal,envio:o.envio,total:o.total||0,pares:o.pares,
         pago:o.pago,ciudad:o.ciudad,barrio:o.barrio,nombre:o.nombre,tel:o.tel,
         items:o.items,status:o.status,reference:o.reference,seccion:o.seccion
       }));
@@ -2882,10 +2882,14 @@ function renderStatsTab(){
     return;
   }
   const tot=orders.length;
-  const ingresos=orders.reduce((s,o)=>s+o.total,0);
-  const avg=Math.round(ingresos/tot);
+  // INGRESOS HONESTOS: solo ventas confirmadas (status='venta') y solo producto (subtotal sin
+  // flete) — consistente con /api/dashboard y /api/catalog. Antes sumaba TODOS los pedidos.
+  const prodVal=o=>(o.subtotal!=null?o.subtotal:(o.total||0));
+  const ventas=orders.filter(o=>o.status==='venta');
+  const ingresos=ventas.reduce((s,o)=>s+prodVal(o),0);
+  const avg=ventas.length?Math.round(ingresos/ventas.length):0;
   const hace30=Date.now()-30*24*60*60*1000;
-  const ult30=orders.filter(o=>new Date(o.fecha).getTime()>=hace30).length;
+  const ventas30=ventas.filter(o=>new Date(o.fecha).getTime()>=hace30).length;
   const ciudadMap={};
   orders.forEach(o=>{const c=(o.ciudad||'?').trim().toLowerCase();ciudadMap[c]=(ciudadMap[c]||0)+1;});
   const topCiudades=Object.entries(ciudadMap).sort((a,b)=>b[1]-a[1]).slice(0,3);
@@ -2896,20 +2900,22 @@ function renderStatsTab(){
   el.innerHTML=`<div style="padding:14px 16px 24px;overflow-y:auto;flex:1;min-height:0">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
       <div style="background:var(--bg);border-radius:12px;padding:12px 14px">
-        <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px">Total pedidos</div>
-        <div style="font-size:26px;font-weight:700;letter-spacing:-.04em">${tot}</div>
-      </div>
-      <div style="background:var(--bg);border-radius:12px;padding:12px 14px">
-        <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px">Ingresos totales</div>
+        <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px">Ingresos (ventas confirmadas)</div>
         <div style="font-size:18px;font-weight:700;letter-spacing:-.03em;color:var(--green)">${fmt(ingresos)}</div>
+        <div style="font-size:9.5px;color:var(--ink3);margin-top:3px">Solo producto, sin flete</div>
       </div>
       <div style="background:var(--bg);border-radius:12px;padding:12px 14px">
-        <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px">Promedio / pedido</div>
+        <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px">Ventas confirmadas</div>
+        <div style="font-size:26px;font-weight:700;letter-spacing:-.04em;color:var(--green)">${ventas.length}</div>
+        <div style="font-size:9.5px;color:var(--ink3);margin-top:3px">de ${tot} pedidos totales</div>
+      </div>
+      <div style="background:var(--bg);border-radius:12px;padding:12px 14px">
+        <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px">Ticket promedio</div>
         <div style="font-size:22px;font-weight:700;letter-spacing:-.04em">${fmt(avg)}</div>
       </div>
       <div style="background:var(--bg);border-radius:12px;padding:12px 14px">
-        <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px">Últimos 30 días</div>
-        <div style="font-size:26px;font-weight:700;letter-spacing:-.04em;color:var(--blue)">${ult30}</div>
+        <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px">Ventas últimos 30 días</div>
+        <div style="font-size:26px;font-weight:700;letter-spacing:-.04em;color:var(--blue)">${ventas30}</div>
       </div>
     </div>
     <div style="background:var(--bg);border-radius:12px;padding:12px 14px;margin-bottom:8px">
@@ -2924,7 +2930,6 @@ function renderStatsTab(){
       <div style="font-size:15px;font-weight:700">${escHtml(pagoLabels[topPago[0]]||topPago[0])} <span style="color:var(--ink3);font-size:12px;font-weight:500">${topPago[1]} pedido${topPago[1]>1?'s':''}</span></div>
     </div>`:''}
     <button onclick="exportOrders()" style="width:100%;padding:11px;background:var(--ink);color:#fff;border:none;border-radius:11px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;margin-bottom:8px">📤 Exportar datos para IA</button>
-    <button onclick="clearOrders()" style="width:100%;padding:10px;background:var(--bg);border:1.5px solid var(--line);border-radius:11px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--red);cursor:pointer">🗑 Borrar historial de pedidos</button>
   </div>`;
 }
 function exportOrders(){
@@ -2933,10 +2938,6 @@ function exportOrders(){
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download=`pedidos-${STORE_NAME.toLowerCase()}-${new Date().toISOString().slice(0,10)}.json`;
   a.click();URL.revokeObjectURL(a.href);
-}
-function clearOrders(){
-  if(!confirm(`¿Borrar los ${orders.length} pedidos del historial? Esta acción no se puede deshacer.`))return;
-  orders=[];saveState();renderStatsTab();
 }
 
 /* ── LEADS (Venta / No venta) ── */

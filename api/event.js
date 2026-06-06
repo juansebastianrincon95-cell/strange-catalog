@@ -20,7 +20,9 @@ module.exports = async (req, res) => {
   const { session_id, type, product_id, price, gender, utm_source, utm_medium, utm_campaign, referrer } = req.body || {};
   if (!session_id || !ALLOWED_TYPES.includes(type)) return res.status(400).json({ error: 'invalid' });
 
-  const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+  // service_role: la policy de insert anónimo se eliminó (la anon key es pública y permitía
+  // ensuciar datos saltándose esta API). Fallback a anon solo para instalaciones sin service key.
+  const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY);
   await sb.from('events').insert({
     session_id:   String(session_id).slice(0, 64),
     type,

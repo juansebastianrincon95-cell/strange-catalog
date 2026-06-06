@@ -111,7 +111,7 @@ module.exports = async (req, res) => {
   if (action === 'list_orders') {
     const { data: rows, error } = await sb
       .from('orders')
-      .select('id,created_at,fecha,nombre,tel,ciudad,barrio,pago,total,pares,items,status,reference,seccion')
+      .select('id,created_at,fecha,nombre,tel,ciudad,barrio,pago,subtotal,envio,total,pares,items,status,reference,seccion')
       .order('created_at', { ascending: false })
       .limit(500);
     if (error) return res.status(500).json({ error: error.message });

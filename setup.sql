@@ -82,8 +82,8 @@ create policy "public read images"
   on storage.objects for select
   using (bucket_id = 'product-images');
 
--- Subida de imágenes desde el browser (admin panel) — sigue siendo anon
--- Sin policy de delete anónimo: borrar imágenes requiere service_role
+-- La subida de imágenes ya NO es anónima: va por /api/admin (action upload_image, service_role).
+-- Sin policies de insert/delete anónimo: escribir en storage requiere service_role.
 
 -- ─── TABLA: orders ──────────────────────────────────────────
 create table if not exists orders (
@@ -112,12 +112,13 @@ create table if not exists orders (
 
 alter table orders enable row level security;
 
-create policy "anon insert orders"
-  on orders for insert to anon with check (true);
+-- Solo service_role escribe pedidos: el frontend pasa por /api/orders (recálculo + rate limit).
+-- La policy de insert anónimo se eliminó (la anon key es pública → permitía ensuciar datos).
 create policy "service all orders"
   on orders for all to service_role using (true) with check (true);
 
 -- Migraciones idempotentes para instalaciones existentes
+drop policy if exists "anon insert orders" on orders;
 alter table products add column if not exists brand text;
 alter table products add column if not exists imgs text;        -- galería: fotos secundarias (JSON array de URLs)
 alter table liq_products add column if not exists imgs text;
@@ -159,10 +160,11 @@ create table if not exists events (
 
 alter table events enable row level security;
 
-create policy "anon insert events"
-  on events for insert to anon with check (true);
+-- Solo service_role escribe eventos: el frontend pasa por /api/event (whitelist + rate limit).
 create policy "service all events"
   on events for all to service_role using (true) with check (true);
+-- Migración para instalaciones existentes (aquí y no arriba: la tabla debe existir primero)
+drop policy if exists "anon insert events" on events;
 
 -- ─── SUBSCRIBERS (popup de bienvenida $20.000 OFF) ───────────
 -- Leads capturados por el popup. Se escribe/lee SOLO con service_role
