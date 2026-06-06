@@ -1692,7 +1692,7 @@ function heroDraftImg(file,which){
       const t=$(isD?'heroDraftThumbD':'heroDraftThumb');if(t){t.src=url;t.style.display='block';}
       if(lbl)lbl.textContent=(isD?'Escritorio':'Móvil')+' lista ✓ (cambiar)';
     }catch(e){if(lbl)lbl.textContent=baseLbl;alert('❌ No se pudo subir la imagen:\n'+(e.message||e));}
-  },false);
+  },false,BANNER_MAX);
 }
 async function heroAdd(){
   if(!_heroDraft.img){alert('Sube al menos la imagen MÓVIL del banner.');return;}
@@ -1761,7 +1761,7 @@ function heroEditFileChange(file){
       await saveHeroSlides();
       alert('✓ Imagen '+(which==='escritorio'?'de escritorio':'móvil')+' actualizada. Ya está publicada.');
     }catch(e){alert('❌ No se pudo subir la imagen:\n'+(e.message||e));}
-  },false);
+  },false,BANNER_MAX);
 }
 async function heroEditText(i){
   const s=heroSlides[i];
@@ -1864,7 +1864,7 @@ function colDraftImg(file,g,which){
       const t=$('col'+g+(isD?'ThumbD':'Thumb'));if(t){t.src=url;t.style.display='block';}
       if(lbl)lbl.textContent=(isD?'Escritorio':'Móvil')+' lista ✓ (cambiar)';
     }catch(e){if(lbl)lbl.textContent=baseLbl;alert('❌ No se pudo subir:\n'+(e.message||e));}
-  },false);
+  },false,BANNER_MAX);
 }
 async function saveColBanner(g){
   const d=_colDraft[g], prev=(g==='m'?bannerMujer:g==='h'?bannerHombre:bannerUnisex);
@@ -3293,14 +3293,15 @@ async function togSold(id,type){
 }
 
 /* ── SUBIR FOTOS ── */
-const IMG_MAX=1400;   // resolución máxima (lado mayor / lienzo cuadrado) — nítida en compu y zoom
-const IMG_Q=0.88;     // calidad WebP (88%) — buen detalle, peso razonable
-function compressImg(file,cb,square=false){
+const IMG_MAX=1400;     // resolución máxima de PRODUCTOS (lado mayor / lienzo cuadrado)
+const BANNER_MAX=2560;  // resolución máxima de BANNERS full-bleed — nítidos en monitores grandes
+const IMG_Q=0.88;       // calidad WebP (88%) — buen detalle, peso razonable
+function compressImg(file,cb,square=false,max=IMG_MAX){
   const r=new FileReader();
   r.onload=e=>{
     const img=new Image();
     img.onload=()=>{
-      const MAX=IMG_MAX;
+      const MAX=max;
       if(square){
         // Lienzo cuadrado con relleno blanco; el zapato se centra "contain" (sin recorte).
         const SIZE=IMG_MAX;
