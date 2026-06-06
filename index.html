@@ -3424,12 +3424,15 @@ function _embudo(f){
   return pasos.map((p,i)=>{
     const prev=i?pasos[i-1][1]:null;
     const tasa=prev?Math.round(p[1]/prev*100):null;
+    // "Venta" viene de pedidos clasificados (no de sesiones): puede superar al paso anterior
+    // si la venta se clasificó sin sesión rastreada en el rango → se muestra "100%+".
+    const tasaTxt=tasa==null?'':(tasa>100?'100%+':tasa+'%');
     const w=Math.max(2,p[1]/max*100);
-    return `<div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+    return `<div style="display:flex;align-items:center;gap:8px;padding:4px 0" ${tasa!=null&&tasa>100?'title="Más ventas que leads rastreados: ventas clasificadas a mano pueden no tener sesión en este rango"':''}>
       <span style="flex:0 0 148px;font-size:11px;font-weight:600;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p[0]}</span>
       <div style="flex:1;background:var(--bg);border-radius:6px;height:18px;overflow:hidden"><div style="width:${w}%;height:100%;background:${i===pasos.length-1?'var(--green)':'#b9b4ab'};border-radius:6px"></div></div>
       <b style="flex:0 0 44px;text-align:right;font-size:12px">${p[1]}</b>
-      <span style="flex:0 0 44px;text-align:right;font-size:10px;color:${tasa!=null&&tasa<10?'var(--red)':'var(--ink3)'}">${tasa!=null?tasa+'%':''}</span>
+      <span style="flex:0 0 44px;text-align:right;font-size:10px;color:${tasa!=null&&tasa<10?'var(--red)':'var(--ink3)'}">${tasaTxt}</span>
     </div>`;
   }).join('');
 }
