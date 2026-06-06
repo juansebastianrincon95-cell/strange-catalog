@@ -1,6 +1,28 @@
 const { createClient } = require('@supabase/supabase-js');
 const { rateLimit } = require('./_rate_limit');
-const { anonClient, serviceClient, cleanText, createOrder, getOrderByReference, confirmPaidOrder } = require('./_orders');
+const { anonClient, serviceClient, cleanText, createOrder, getOrderByReference, confirmPaidOrder, contentIdsDe } = require('./_orders');
+const { sendEvent } = require('./_capi');
+
+/* Lead por CAPI (FASE N8, plan Codex): misma señal que el px('Lead') del navegador pero
+   server-side con teléfono/ciudad/nombre hasheados + fbp/fbc — Meta dedup por el MISMO
+   eventId ({session_id}_lead). Solo pedidos reales con datos de contacto. Fire-and-forget. */
+function capiLead(order, req) {
+  if (!order || order.status === 'abandoned' || !order.tel || !order.session_id) return;
+  const utm = order.utm || {};
+  sendEvent({
+    eventName: 'Lead',
+    value: order.subtotal != null ? order.subtotal : order.total,
+    currency: 'COP',
+    contentIds: contentIdsDe(order.items),
+    phone: order.tel, city: order.ciudad, name: order.nombre,
+    fbp: utm.fbp, fbc: utm.fbc,
+    clientIp: String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || undefined,
+    clientUserAgent: req.headers['user-agent'],
+    eventId: String(order.session_id) + '_lead',
+    actionSource: 'website',
+    eventSourceUrl: 'https://strangesneakers.com/'
+  }).catch(() => {});
+}
 
 const ALLOWED_ORIGINS = ['https://strangesneakers.com', 'https://www.strangesneakers.com', 'https://catalogo.strangesneakers.com', 'https://strange-catalog.vercel.app'];
 const CODIGO_BIENVENIDA = 'BIENVENIDO20';
@@ -136,12 +158,14 @@ module.exports = async (req, res) => {
     if (kind === 'bold_status') return handleBoldStatus(req, res);
     if (kind === 'create_order') {
       const order = await createOrder(req.body, req.body.status || 'pending');
+      capiLead(order, req);
       return res.status(201).json({ ok: true, order });
     }
 
     // Compatibilidad con el frontend anterior: si vienen items, recalcular siempre server-side.
     if (Array.isArray(req.body && req.body.items) && req.body.items.length) {
       const order = await createOrder(req.body, req.body.status || 'pending');
+      capiLead(order, req);
       return res.status(201).json({ ok: true, order });
     }
 
