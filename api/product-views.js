@@ -1,6 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 
-const ALLOWED_ORIGINS = ['https://catalogo.strangesneakers.com', 'https://strange-catalog.vercel.app'];
+const ALLOWED_ORIGINS = ['https://strangesneakers.com', 'https://www.strangesneakers.com', 'https://catalogo.strangesneakers.com', 'https://strange-catalog.vercel.app'];
 
 // Devuelve cuántas veces se vio cada producto en los últimos 7 días (prueba social real).
 // Lee de la tabla 'events' (RLS solo deja insertar a anon → se usa service_role para contar).

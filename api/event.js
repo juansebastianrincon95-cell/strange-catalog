@@ -2,7 +2,7 @@ const { createClient } = require('@supabase/supabase-js');
 const { rateLimit } = require('./_rate_limit');
 
 const ALLOWED_TYPES   = ['page_view', 'view_product', 'add_to_cart', 'initiate_checkout', 'lead', 'purchase'];
-const ALLOWED_ORIGINS = ['https://catalogo.strangesneakers.com', 'https://strange-catalog.vercel.app'];
+const ALLOWED_ORIGINS = ['https://strangesneakers.com', 'https://www.strangesneakers.com', 'https://catalogo.strangesneakers.com', 'https://strange-catalog.vercel.app'];
 
 module.exports = async (req, res) => {
   const origin = (req.headers.origin || '').trim();

@@ -159,7 +159,7 @@ async function confirmPaidOrder({ reference, amount, amountInCents, currency = '
       fbp: utm.fbp, fbc: utm.fbc, clientIp, clientUserAgent: req && req.headers['user-agent'],
       eventId: String(order.reference || order.id) + '_purchase',
       actionSource: 'website',
-      eventSourceUrl: eventSourceUrl || 'https://catalogo.strangesneakers.com/'
+      eventSourceUrl: eventSourceUrl || 'https://strangesneakers.com/'
     }).catch(() => {});
   }
   return { ok: true, order: { ...order, status: 'venta' } };

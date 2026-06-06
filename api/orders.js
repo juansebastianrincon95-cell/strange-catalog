@@ -2,7 +2,7 @@ const { createClient } = require('@supabase/supabase-js');
 const { rateLimit } = require('./_rate_limit');
 const { anonClient, serviceClient, cleanText, createOrder, getOrderByReference, confirmPaidOrder } = require('./_orders');
 
-const ALLOWED_ORIGINS = ['https://catalogo.strangesneakers.com', 'https://strange-catalog.vercel.app'];
+const ALLOWED_ORIGINS = ['https://strangesneakers.com', 'https://www.strangesneakers.com', 'https://catalogo.strangesneakers.com', 'https://strange-catalog.vercel.app'];
 const CODIGO_BIENVENIDA = 'BIENVENIDO20';
 
 function allowedOrigin(req, res) {
@@ -69,7 +69,7 @@ async function handleBoldLink(req, res) {
         amount_type: 'CLOSE',
         amount: { currency: 'COP', total_amount: amount, tip_amount: 0 },
         description,
-        callback_url: 'https://catalogo.strangesneakers.com/?bold=1'
+        callback_url: 'https://strangesneakers.com/?bold=1'
       })
     });
     const j = await r.json().catch(() => ({}));

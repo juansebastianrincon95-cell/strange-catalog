@@ -3929,14 +3929,14 @@ async function enviarWA(tipo){
   rows.forEach(({p,qty,type})=>{const s=p.price*qty;const lbl=p.modelo||(type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer'));const mk=p.brand?(BRAND_LABELS[p.brand]||p.brand)+' · ':'';items+=`  • ${mk}${lbl} · #${p.id} x${qty} — ${fmt(s)}\n`;});
   // UN solo link que abre TODO el pedido con fotos (más fácil para el vendedor que link por link).
   const pedidoCode=rows.map(({p,qty,type})=>(type==='liq'?'L':'')+p.id+'x'+qty).join(',');
-  const pedidoLink=`https://catalogo.strangesneakers.com/?pedido=${pedidoCode}`;
+  const pedidoLink=`https://strangesneakers.com/?pedido=${pedidoCode}`;
   const envioLinea=tipo==='contra_entrega'?`🚚 *Envío (se paga primero):* ${fmt(flete)}\n👟 *Zapatos (pagas al recibir en casa):* ${fmt(sub)}`:`📦 *Envío: GRATIS ✓*`;
   const descLinea=pricing.combo
     ?`🏆 *${pricing.combo.nombre}: ${pricing.combo.pares} pares por ${fmt(pricing.sub)}* (ahorra ${fmt(subBruto-pricing.sub)})\n${pricing.camiseta?`🎁 *CAMISETA GRATIS de su selección* — pedirle la talla ⚽\n`:''}`
     :(desc>0?`🏷️ *Descuento ${cuponAplicado}:* -${fmt(desc)}\n`:'');
   const pagoLbl=tipo==='contra_entrega'?'Contra entrega 📦':tipo==='credito'?'Crédito (Addi / Sistecrédito) 🧾':'Pago anticipado 💸';
   const instruccion=tipo==='contra_entrega'?`El cliente paga primero el *ENVÍO* (${fmt(flete)}) y los *zapatos al recibir* en casa. Coordinemos el pago del envío 🙏`:tipo==='credito'?'El cliente quiere pagar a *CRÉDITO*. Indícale si aplica por *Addi* o *Sistecrédito* y el paso a paso 🙏':'Enviar comprobante de pago para procesar el envío 🙏';
-  const msg=`🛍️ *NUEVO PEDIDO — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n📸 *Ver el pedido con fotos:*\n${pedidoLink}\n━━━━━━━━━━━━━━━━━━━━\n💰 *Subtotal: ${fmt(subBruto)}*\n${descLinea}${envioLinea}\n💰 *TOTAL: ${fmt(tot)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${d.nombre}\n• Cédula: ${d.cedula}\n• Celular: ${d.celular}\n• Dirección: ${d.direccion}\n• Barrio: ${d.barrio}\n• Ciudad: ${d.ciudad}\n━━━━━━━━━━━━━━━━━━━━\n💳 *Pago:* ${pagoLbl}\n━━━━━━━━━━━━━━━━━━━━\n${instruccion}\n\n🎁 *Tu regalo — Guía de cuidado de tus sneakers:*\nhttps://catalogo.strangesneakers.com/?regalo=cuidado`;
+  const msg=`🛍️ *NUEVO PEDIDO — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n📸 *Ver el pedido con fotos:*\n${pedidoLink}\n━━━━━━━━━━━━━━━━━━━━\n💰 *Subtotal: ${fmt(subBruto)}*\n${descLinea}${envioLinea}\n💰 *TOTAL: ${fmt(tot)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${d.nombre}\n• Cédula: ${d.cedula}\n• Celular: ${d.celular}\n• Dirección: ${d.direccion}\n• Barrio: ${d.barrio}\n• Ciudad: ${d.ciudad}\n━━━━━━━━━━━━━━━━━━━━\n💳 *Pago:* ${pagoLbl}\n━━━━━━━━━━━━━━━━━━━━\n${instruccion}\n\n🎁 *Tu regalo — Guía de cuidado de tus sneakers:*\nhttps://strangesneakers.com/?regalo=cuidado`;
   const orderObj={
     id:Date.now(),fecha:new Date().toISOString(),
     items:rows.map(({p,qty,type})=>({label:p.modelo||(type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer')),type,id:p.id,brand:p.brand||null,qty,precio:p.price*qty})),
@@ -4043,8 +4043,8 @@ async function checkWompiReturn(){
       px('Purchase',{value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',num_items:order.pares||1,...getUTM()},(order.reference||order.id)+'_purchase');
       trackEvent('purchase',{price:order.subtotal!=null?order.subtotal:order.total});
       let items='';
-      order.items.forEach(it=>{const mk=it.brand?(BRAND_LABELS[it.brand]||it.brand)+' · ':'';const ref=it.id?` · #${it.id}`:'';const tp=it.type==='liq'?'liq':'cat';const ln=it.id?`\n     👉 https://catalogo.strangesneakers.com/?type=${tp}&id=${it.id}`:'';items+=`  • ${mk}${it.label}${ref} x${it.qty} — ${fmt(it.precio)}${ln}\n`;});
-      const msg=`✅ *PAGO CONFIRMADO — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n📦 *Envío: GRATIS ✓*\n💰 *TOTAL: ${fmt(order.total)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${order.nombre}\n• Cédula: ${order.cedula||'-'}\n• Celular: ${order.tel}\n• Dirección: ${order.direccion||'-'}\n• Barrio: ${order.barrio}\n• Ciudad: ${order.ciudad}\n• Ref: ${reference}\n━━━━━━━━━━━━━━━━━━━━\n💜 *Pago Wompi:* Confirmado ✓\n━━━━━━━━━━━━━━━━━━━━\n¡Gracias por tu compra! Tu pedido está siendo procesado 🙏\n\n🎁 *Tu regalo — Guía de cuidado de tus sneakers:*\nhttps://catalogo.strangesneakers.com/?regalo=cuidado`;
+      order.items.forEach(it=>{const mk=it.brand?(BRAND_LABELS[it.brand]||it.brand)+' · ':'';const ref=it.id?` · #${it.id}`:'';const tp=it.type==='liq'?'liq':'cat';const ln=it.id?`\n     👉 https://strangesneakers.com/?type=${tp}&id=${it.id}`:'';items+=`  • ${mk}${it.label}${ref} x${it.qty} — ${fmt(it.precio)}${ln}\n`;});
+      const msg=`✅ *PAGO CONFIRMADO — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n📦 *Envío: GRATIS ✓*\n💰 *TOTAL: ${fmt(order.total)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${order.nombre}\n• Cédula: ${order.cedula||'-'}\n• Celular: ${order.tel}\n• Dirección: ${order.direccion||'-'}\n• Barrio: ${order.barrio}\n• Ciudad: ${order.ciudad}\n• Ref: ${reference}\n━━━━━━━━━━━━━━━━━━━━\n💜 *Pago Wompi:* Confirmado ✓\n━━━━━━━━━━━━━━━━━━━━\n¡Gracias por tu compra! Tu pedido está siendo procesado 🙏\n\n🎁 *Tu regalo — Guía de cuidado de tus sneakers:*\nhttps://strangesneakers.com/?regalo=cuidado`;
       setTimeout(()=>{
         alert('✅ ¡Pago confirmado!\nEn un momento recibirás confirmación por WhatsApp.');
         window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,'_blank');
@@ -4120,8 +4120,8 @@ async function checkBoldReturn(){
       if(PIXEL_ID&&typeof fbq==='function'){const np=String(order.nombre||'').trim().toLowerCase().split(' ');fbq('init',PIXEL_ID,{ph:String(order.tel||'').replace(/\D/g,''),fn:np[0]||'',ln:np.slice(1).join(' ')||'',ct:String(order.ciudad||'').trim().toLowerCase(),country:'co'});}
       px('Purchase',{value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',num_items:order.pares||1,...getUTM()},(order.reference||order.id)+'_purchase');
       trackEvent('purchase',{price:order.subtotal!=null?order.subtotal:order.total});
-      let items='';order.items.forEach(it=>{const mk=it.brand?(BRAND_LABELS[it.brand]||it.brand)+' · ':'';const ref=it.id?` · #${it.id}`:'';const tp=it.type==='liq'?'liq':'cat';const ln=it.id?`\n     👉 https://catalogo.strangesneakers.com/?type=${tp}&id=${it.id}`:'';items+=`  • ${mk}${it.label}${ref} x${it.qty} — ${fmt(it.precio)}${ln}\n`;});
-      const msg=`✅ *PAGO CONFIRMADO — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n📦 *Envío: GRATIS ✓*\n💰 *TOTAL: ${fmt(order.total)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${order.nombre}\n• Celular: ${order.tel}\n• Dirección: ${order.direccion||'-'}\n• Ciudad: ${order.ciudad}\n• Ref: ${reference}\n━━━━━━━━━━━━━━━━━━━━\n💳 *Pago Bold:* Confirmado ✓\n━━━━━━━━━━━━━━━━━━━━\n¡Gracias por tu compra! 🙏\n\n🎁 *Tu regalo — Guía de cuidado:*\nhttps://catalogo.strangesneakers.com/?regalo=cuidado`;
+      let items='';order.items.forEach(it=>{const mk=it.brand?(BRAND_LABELS[it.brand]||it.brand)+' · ':'';const ref=it.id?` · #${it.id}`:'';const tp=it.type==='liq'?'liq':'cat';const ln=it.id?`\n     👉 https://strangesneakers.com/?type=${tp}&id=${it.id}`:'';items+=`  • ${mk}${it.label}${ref} x${it.qty} — ${fmt(it.precio)}${ln}\n`;});
+      const msg=`✅ *PAGO CONFIRMADO — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n📦 *Envío: GRATIS ✓*\n💰 *TOTAL: ${fmt(order.total)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${order.nombre}\n• Celular: ${order.tel}\n• Dirección: ${order.direccion||'-'}\n• Ciudad: ${order.ciudad}\n• Ref: ${reference}\n━━━━━━━━━━━━━━━━━━━━\n💳 *Pago Bold:* Confirmado ✓\n━━━━━━━━━━━━━━━━━━━━\n¡Gracias por tu compra! 🙏\n\n🎁 *Tu regalo — Guía de cuidado:*\nhttps://strangesneakers.com/?regalo=cuidado`;
       setTimeout(()=>{alert('✅ ¡Pago confirmado!\nEn un momento recibirás confirmación por WhatsApp.');window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,'_blank');},300);
     }else{setTimeout(()=>alert('✅ ¡Pago confirmado con Bold!\nTu pedido está en camino. Pronto te contactamos.'),300);}
   }else{
@@ -4149,7 +4149,7 @@ function checkPedidoLink(){
   }).join('');
   const ov=document.createElement('div');
   ov.className='ped-view';
-  ov.innerHTML=`<div class="ped-bar"><span class="ped-logo">CATALOGO SNEAKERS</span><span class="ped-sub">Pedido del cliente</span></div><div class="ped-body"><div class="ped-head">📦 Pedido · ${tot} ${tot===1?'par':'pares'}</div>${rowsHtml}<div class="ped-total"><span>Total</span><span>${fmt(total)}</span></div><a class="ped-cta" href="https://catalogo.strangesneakers.com/">Ver catálogo completo →</a></div>`;
+  ov.innerHTML=`<div class="ped-bar"><span class="ped-logo">CATALOGO SNEAKERS</span><span class="ped-sub">Pedido del cliente</span></div><div class="ped-body"><div class="ped-head">📦 Pedido · ${tot} ${tot===1?'par':'pares'}</div>${rowsHtml}<div class="ped-total"><span>Total</span><span>${fmt(total)}</span></div><a class="ped-cta" href="https://strangesneakers.com/">Ver catálogo completo →</a></div>`;
   document.body.appendChild(ov);
   document.body.style.overflow='hidden';
   return true;

@@ -26,7 +26,7 @@ async function handleWebhook(req, res) {
       amountInCents: tx.amount_in_cents,
       currency: tx.currency || 'COP',
       req,
-      eventSourceUrl: 'https://catalogo.strangesneakers.com/'
+      eventSourceUrl: 'https://strangesneakers.com/'
     });
     return res.json(out);
   }
@@ -59,7 +59,7 @@ module.exports = async (req, res) => {
       amountInCents: t.amount_in_cents,
       currency: t.currency || 'COP',
       req,
-      eventSourceUrl: 'https://catalogo.strangesneakers.com/'
+      eventSourceUrl: 'https://strangesneakers.com/'
     }).catch(() => null);
     confirmed = !!(out && out.ok);
   }
