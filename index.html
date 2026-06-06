@@ -774,9 +774,13 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .catview-title{font-size:15px;font-weight:700;color:var(--ink)}
 
 /* TOGGLE Móvil/Escritorio (admin banners) */
-.dev-tog{display:flex;gap:6px;margin-bottom:8px}
-.dev-tog button{flex:1;padding:8px;border:1.5px solid var(--line);background:var(--white);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer}
-.dev-tog button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+/* Subida de banner: las DOS versiones (móvil + escritorio) visibles a la vez, lado a lado.
+   (Antes un toggle escondía la de escritorio → los banners quedaban sin esa versión.) */
+.up2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.upcell{background:var(--white);border:1.5px dashed var(--ink3);border-radius:10px;padding:9px;display:flex;flex-direction:column;gap:7px;cursor:pointer;min-width:0}
+.upcell-t{font-size:11px;font-weight:800;color:var(--ink);line-height:1.25;text-align:center}
+.upcell-s{font-size:9.5px;color:var(--ink3);font-weight:600;text-align:center;line-height:1.3}
+.upcell img{width:100%;max-height:110px;object-fit:cover;border-radius:7px;display:none}
 
 /* TOAST */
 .toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:24px;font-size:13px;font-weight:600;z-index:700;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;box-shadow:0 6px 24px rgba(0,0,0,.32);max-width:90vw;text-align:center}
@@ -1098,14 +1102,10 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
       <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">🖼 Banners del inicio (hero)</div>
       <input type="file" accept="image/*" id="heroEditFile" style="display:none" onchange="heroEditFileChange(this.files[0])">
       <div id="heroAdminList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>
-      <div class="dev-tog"><button type="button" id="hero_btnM" class="on" onclick="bannerDev('hero','m')">📱 Móvil</button><button type="button" id="hero_btnE" onclick="bannerDev('hero','e')">🖥 Escritorio</button></div>
-      <div id="hero_devM">
-        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:var(--white);border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">📱 <span id="heroFileLbl">Imagen móvil (vertical)</span><input type="file" accept="image/*" id="heroFile" style="display:none" onchange="heroDraftImg(this.files[0],'movil');this.value=''"></label>
-        <img id="heroDraftThumb" style="display:none;width:100%;max-height:140px;object-fit:cover;border-radius:9px;margin-top:8px">
-      </div>
-      <div id="hero_devE" style="display:none">
-        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:var(--white);border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">🖥 <span id="heroFileLblD">Imagen escritorio (horizontal)</span><input type="file" accept="image/*" id="heroFileD" style="display:none" onchange="heroDraftImg(this.files[0],'escritorio');this.value=''"></label>
-        <img id="heroDraftThumbD" style="display:none;width:100%;max-height:110px;object-fit:cover;border-radius:9px;margin-top:8px">
+      <div style="font-size:10.5px;font-weight:700;color:var(--ink2);margin-bottom:6px">Nuevo banner — sube las DOS versiones:</div>
+      <div class="up2">
+        <label class="upcell"><span class="upcell-t">📱 MÓVIL<br>(obligatoria)</span><span class="upcell-s" id="heroFileLbl">Vertical 1080×1920 · toca para subir</span><img id="heroDraftThumb"><input type="file" accept="image/*" id="heroFile" style="display:none" onchange="heroDraftImg(this.files[0],'movil');this.value=''"></label>
+        <label class="upcell"><span class="upcell-t">🖥 ESCRITORIO<br>(recomendada)</span><span class="upcell-s" id="heroFileLblD">Horizontal 2560×1280 · toca para subir</span><img id="heroDraftThumbD"><input type="file" accept="image/*" id="heroFileD" style="display:none" onchange="heroDraftImg(this.files[0],'escritorio');this.value=''"></label>
       </div>
       <input id="heroTit" type="text" placeholder="Título (ej. Lo nuevo de Nike)" style="margin-top:8px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
       <input id="heroSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
@@ -1127,51 +1127,36 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
     </div>
     <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#fdeef7">
       <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">👩 Banner Colección Mujer</div>
-      <div class="dev-tog"><button type="button" id="colm_btnM" class="on" onclick="bannerDev('colm','m')">📱 Móvil</button><button type="button" id="colm_btnE" onclick="bannerDev('colm','e')">🖥 Escritorio</button></div>
-      <div id="colm_devM">
-        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:var(--white);border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">📱 <span id="colmLbl">Móvil (vertical)</span><input type="file" accept="image/*" id="colmFile" style="display:none" onchange="colDraftImg(this.files[0],'m','movil');this.value=''"></label>
-        <img id="colmThumb" style="display:none;width:100%;max-height:130px;object-fit:cover;border-radius:9px;margin-top:8px">
+      <div class="up2">
+        <label class="upcell"><span class="upcell-t">📱 MÓVIL</span><span class="upcell-s" id="colmLbl">Vertical 1080×1350 · toca para subir</span><img id="colmThumb"><input type="file" accept="image/*" id="colmFile" style="display:none" onchange="colDraftImg(this.files[0],'m','movil');this.value=''"></label>
+        <label class="upcell"><span class="upcell-t">🖥 ESCRITORIO</span><span class="upcell-s" id="colmLblD">Horizontal 1920×1280 · toca para subir</span><img id="colmThumbD"><input type="file" accept="image/*" id="colmFileD" style="display:none" onchange="colDraftImg(this.files[0],'m','escritorio');this.value=''"></label>
       </div>
-      <div id="colm_devE" style="display:none">
-        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:var(--white);border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">🖥 <span id="colmLblD">Escritorio (horizontal)</span><input type="file" accept="image/*" id="colmFileD" style="display:none" onchange="colDraftImg(this.files[0],'m','escritorio');this.value=''"></label>
-        <img id="colmThumbD" style="display:none;width:100%;max-height:100px;object-fit:cover;border-radius:9px;margin-top:8px">
-        <div style="margin-top:9px;font-size:11px;font-weight:700;color:var(--ink2)">🖥 Encuadre escritorio (arriba ←→ abajo): <span id="colmPosV">50%</span></div>
-        <input type="range" id="colmPos" min="0" max="100" value="50" oninput="document.getElementById('colmPosV').textContent=this.value+'%'" style="width:100%;margin-top:5px">
-      </div>
+      <div style="margin-top:9px;font-size:11px;font-weight:700;color:var(--ink2)">🖥 Encuadre escritorio (arriba ←→ abajo): <span id="colmPosV">50%</span></div>
+      <input type="range" id="colmPos" min="0" max="100" value="50" oninput="document.getElementById('colmPosV').textContent=this.value+'%'" style="width:100%;margin-top:5px">
       <input id="colmTit" type="text" placeholder="Título (ej. Colección Mujer)" style="margin-top:8px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
       <input id="colmSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
       <button onclick="saveColBanner('m')" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">💾 Guardar banner Mujer</button>
     </div>
     <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#eef3fd">
       <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">👨 Banner Colección Hombre</div>
-      <div class="dev-tog"><button type="button" id="colh_btnM" class="on" onclick="bannerDev('colh','m')">📱 Móvil</button><button type="button" id="colh_btnE" onclick="bannerDev('colh','e')">🖥 Escritorio</button></div>
-      <div id="colh_devM">
-        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:var(--white);border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">📱 <span id="colhLbl">Móvil (vertical)</span><input type="file" accept="image/*" id="colhFile" style="display:none" onchange="colDraftImg(this.files[0],'h','movil');this.value=''"></label>
-        <img id="colhThumb" style="display:none;width:100%;max-height:130px;object-fit:cover;border-radius:9px;margin-top:8px">
+      <div class="up2">
+        <label class="upcell"><span class="upcell-t">📱 MÓVIL</span><span class="upcell-s" id="colhLbl">Vertical 1080×1350 · toca para subir</span><img id="colhThumb"><input type="file" accept="image/*" id="colhFile" style="display:none" onchange="colDraftImg(this.files[0],'h','movil');this.value=''"></label>
+        <label class="upcell"><span class="upcell-t">🖥 ESCRITORIO</span><span class="upcell-s" id="colhLblD">Horizontal 1920×1280 · toca para subir</span><img id="colhThumbD"><input type="file" accept="image/*" id="colhFileD" style="display:none" onchange="colDraftImg(this.files[0],'h','escritorio');this.value=''"></label>
       </div>
-      <div id="colh_devE" style="display:none">
-        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:var(--white);border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">🖥 <span id="colhLblD">Escritorio (horizontal)</span><input type="file" accept="image/*" id="colhFileD" style="display:none" onchange="colDraftImg(this.files[0],'h','escritorio');this.value=''"></label>
-        <img id="colhThumbD" style="display:none;width:100%;max-height:100px;object-fit:cover;border-radius:9px;margin-top:8px">
-        <div style="margin-top:9px;font-size:11px;font-weight:700;color:var(--ink2)">🖥 Encuadre escritorio (arriba ←→ abajo): <span id="colhPosV">50%</span></div>
-        <input type="range" id="colhPos" min="0" max="100" value="50" oninput="document.getElementById('colhPosV').textContent=this.value+'%'" style="width:100%;margin-top:5px">
-      </div>
+      <div style="margin-top:9px;font-size:11px;font-weight:700;color:var(--ink2)">🖥 Encuadre escritorio (arriba ←→ abajo): <span id="colhPosV">50%</span></div>
+      <input type="range" id="colhPos" min="0" max="100" value="50" oninput="document.getElementById('colhPosV').textContent=this.value+'%'" style="width:100%;margin-top:5px">
       <input id="colhTit" type="text" placeholder="Título (ej. Colección Hombre)" style="margin-top:8px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
       <input id="colhSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
       <button onclick="saveColBanner('h')" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">💾 Guardar banner Hombre</button>
     </div>
     <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#f3f1ff">
       <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">🧢 Banner Colección Unisex</div>
-      <div class="dev-tog"><button type="button" id="colu_btnM" class="on" onclick="bannerDev('colu','m')">📱 Móvil</button><button type="button" id="colu_btnE" onclick="bannerDev('colu','e')">🖥 Escritorio</button></div>
-      <div id="colu_devM">
-        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:var(--white);border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">📱 <span id="coluLbl">Móvil (vertical)</span><input type="file" accept="image/*" id="coluFile" style="display:none" onchange="colDraftImg(this.files[0],'u','movil');this.value=''"></label>
-        <img id="coluThumb" style="display:none;width:100%;max-height:130px;object-fit:cover;border-radius:9px;margin-top:8px">
+      <div class="up2">
+        <label class="upcell"><span class="upcell-t">📱 MÓVIL</span><span class="upcell-s" id="coluLbl">Vertical 1080×1350 · toca para subir</span><img id="coluThumb"><input type="file" accept="image/*" id="coluFile" style="display:none" onchange="colDraftImg(this.files[0],'u','movil');this.value=''"></label>
+        <label class="upcell"><span class="upcell-t">🖥 ESCRITORIO</span><span class="upcell-s" id="coluLblD">Horizontal 1920×1280 · toca para subir</span><img id="coluThumbD"><input type="file" accept="image/*" id="coluFileD" style="display:none" onchange="colDraftImg(this.files[0],'u','escritorio');this.value=''"></label>
       </div>
-      <div id="colu_devE" style="display:none">
-        <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:var(--white);border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer">🖥 <span id="coluLblD">Escritorio (horizontal)</span><input type="file" accept="image/*" id="coluFileD" style="display:none" onchange="colDraftImg(this.files[0],'u','escritorio');this.value=''"></label>
-        <img id="coluThumbD" style="display:none;width:100%;max-height:100px;object-fit:cover;border-radius:9px;margin-top:8px">
-        <div style="margin-top:9px;font-size:11px;font-weight:700;color:var(--ink2)">🖥 Encuadre escritorio (arriba ←→ abajo): <span id="coluPosV">50%</span></div>
-        <input type="range" id="coluPos" min="0" max="100" value="50" oninput="document.getElementById('coluPosV').textContent=this.value+'%'" style="width:100%;margin-top:5px">
-      </div>
+      <div style="margin-top:9px;font-size:11px;font-weight:700;color:var(--ink2)">🖥 Encuadre escritorio (arriba ←→ abajo): <span id="coluPosV">50%</span></div>
+      <input type="range" id="coluPos" min="0" max="100" value="50" oninput="document.getElementById('coluPosV').textContent=this.value+'%'" style="width:100%;margin-top:5px">
       <input id="coluTit" type="text" placeholder="Título (ej. Colección Unisex)" style="margin-top:8px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
       <input id="coluSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
       <button onclick="saveColBanner('u')" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">💾 Guardar banner Unisex</button>
@@ -1698,7 +1683,7 @@ function heroDraftImg(file,which){
   if(!file)return;
   const isD=(which==='escritorio');
   const lbl=$(isD?'heroFileLblD':'heroFileLbl');
-  const baseLbl=isD?'Imagen escritorio (horizontal) — opcional':'Imagen móvil (vertical)';
+  const baseLbl=isD?'Horizontal 2560×1280 · toca para subir':'Vertical 1080×1920 · toca para subir';
   if(lbl)lbl.textContent='Subiendo…';
   compressImg(file,async dataUrl=>{
     try{
@@ -1710,7 +1695,9 @@ function heroDraftImg(file,which){
   },false);
 }
 async function heroAdd(){
-  if(!_heroDraft.img){alert('Sube al menos la imagen móvil del banner.');return;}
+  if(!_heroDraft.img){alert('Sube al menos la imagen MÓVIL del banner.');return;}
+  // Sin versión de escritorio, en computador se muestra la vertical recortada — avisar.
+  if(!_heroDraft.img_desktop&&!confirm('Este banner NO tiene imagen de ESCRITORIO 🖥\n\nEn computador se verá la imagen vertical recortada.\n¿Agregarlo igual? (puedes subirla después con "🖥 Cambiar escritorio")'))return;
   const slide={
     img:_heroDraft.img,
     titulo:($('heroTit').value||'').trim(),
@@ -1725,8 +1712,8 @@ async function heroAdd(){
   $('heroTit').value='';$('heroSub').value='';
   const t=$('heroDraftThumb');if(t){t.src='';t.style.display='none';}
   const td=$('heroDraftThumbD');if(td){td.src='';td.style.display='none';}
-  const lbl=$('heroFileLbl');if(lbl)lbl.textContent='Imagen móvil (vertical)';
-  const lblD=$('heroFileLblD');if(lblD)lblD.textContent='Imagen escritorio (horizontal) — opcional';
+  const lbl=$('heroFileLbl');if(lbl)lbl.textContent='Vertical 1080×1920 · toca para subir';
+  const lblD=$('heroFileLblD');if(lblD)lblD.textContent='Horizontal 2560×1280 · toca para subir';
 }
 function heroDestLabel(s){
   if(s.link_type==='product')return 'Producto #'+s.link_value;
@@ -1739,8 +1726,13 @@ function renderHeroAdmin(){
   if(!heroSlides.length){box.innerHTML='<div style="font-size:11px;color:var(--ink3)">Aún no hay banners. Agrega el primero abajo 👇</div>';return;}
   box.innerHTML=heroSlides.map((s,i)=>`<div style="background:var(--white);border:1px solid var(--line);border-radius:9px;padding:6px">
     <div style="display:flex;align-items:center;gap:8px">
-      <img src="${escHtml(s.img)}" style="width:38px;height:48px;object-fit:cover;border-radius:6px;flex-shrink:0">
-      <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(s.titulo)||'(sin título)'}</div><div style="font-size:10px;color:var(--ink3)">${escHtml(heroDestLabel(s))} · ${s.img_desktop?'🖥 con escritorio':'🖥 sin escritorio'}</div></div>
+      <div style="display:flex;gap:4px;flex-shrink:0">
+        <div style="text-align:center"><img src="${escHtml(s.img)}" style="width:30px;height:44px;object-fit:cover;border-radius:5px;display:block"><span style="font-size:8px;color:var(--ink3)">📱</span></div>
+        ${s.img_desktop
+          ?`<div style="text-align:center"><img src="${escHtml(s.img_desktop)}" style="width:58px;height:44px;object-fit:cover;border-radius:5px;display:block"><span style="font-size:8px;color:var(--ink3)">🖥</span></div>`
+          :`<div onclick="heroPickImg(${i},'escritorio')" title="Falta la imagen de escritorio — toca para subirla" style="width:58px;height:44px;border:1.5px dashed var(--red);border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:var(--red);font-weight:700;line-height:1.15"><span style="font-size:11px">＋🖥</span><span style="font-size:7.5px">FALTA</span></div>`}
+      </div>
+      <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(s.titulo)||'(sin título)'}</div><div style="font-size:10px;color:var(--ink3)">${escHtml(heroDestLabel(s))}</div></div>
       <button onclick="heroMove(${i},-1)" ${i===0?'disabled':''} style="border:none;background:var(--bg);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;${i===0?'opacity:.3':''}">↑</button>
       <button onclick="heroMove(${i},1)" ${i===heroSlides.length-1?'disabled':''} style="border:none;background:var(--bg);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;${i===heroSlides.length-1?'opacity:.3':''}">↓</button>
       <button onclick="heroDel(${i})" style="border:none;background:#ffe9e6;color:var(--red);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px">🗑</button>
@@ -1863,7 +1855,7 @@ function colDraftImg(file,g,which){
   if(!file)return;
   const isD=(which==='escritorio');
   const lbl=$('col'+g+(isD?'LblD':'Lbl'));
-  const baseLbl=isD?'Escritorio (opcional)':'Móvil (vertical)';
+  const baseLbl=isD?'Horizontal 1920×1280 · toca para subir':'Vertical 1080×1350 · toca para subir';
   if(lbl)lbl.textContent='Subiendo…';
   compressImg(file,async dataUrl=>{
     try{
@@ -1892,19 +1884,9 @@ function renderColAdmin(){
     const tit=$('col'+g+'Tit');if(tit)tit.value=b.titulo||'';
     const sub=$('col'+g+'Sub');if(sub)sub.value=b.subtitulo||'';
     const pos=$('col'+g+'Pos');if(pos){const n=parseFloat(b.pos);const v=isFinite(n)?n:({top:18,center:50,bottom:82}[b.pos]||50);pos.value=v;const lbl=$('col'+g+'PosV');if(lbl)lbl.textContent=v+'%';}
-    const t=$('col'+g+'Thumb');if(t&&b.img){t.src=b.img;t.style.display='block';}
-    const td=$('col'+g+'ThumbD');if(td&&b.img_desktop){td.src=b.img_desktop;td.style.display='block';}
+    const t=$('col'+g+'Thumb');if(t&&b.img){t.src=b.img;t.style.display='block';const l=$('col'+g+'Lbl');if(l)l.textContent='Actual cargada ✓ · toca para cambiar';}
+    const td=$('col'+g+'ThumbD');if(td&&b.img_desktop){td.src=b.img_desktop;td.style.display='block';const ld=$('col'+g+'LblD');if(ld)ld.textContent='Actual cargada ✓ · toca para cambiar';}
   });
-}
-
-// Toggle Móvil/Escritorio en el admin de banners: muestra el panel del dispositivo elegido.
-function bannerDev(scope,dev){
-  const esc=dev==='e';
-  const M=$(scope+'_devM'),E=$(scope+'_devE'),bM=$(scope+'_btnM'),bE=$(scope+'_btnE');
-  if(M)M.style.display=esc?'none':'';
-  if(E)E.style.display=esc?'':'none';
-  if(bM)bM.classList.toggle('on',!esc);
-  if(bE)bE.classList.toggle('on',esc);
 }
 
 /* ── CATÁLOGO COMPLETO (vista a pantalla completa) + PREVIEW del inicio ── */
