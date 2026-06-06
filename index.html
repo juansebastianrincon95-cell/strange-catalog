@@ -380,15 +380,27 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 /* (estilos pm-add/pm-scrim definidos arriba en el bloque mini-landing) */
 
 /* ADMIN */
-.ascrim{position:fixed;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(6px);z-index:200;display:none}
-.ascrim.on{display:block}
-.apanel{position:fixed;bottom:0;left:0;right:0;max-width:500px;margin:0 auto;background:var(--white);border-radius:22px 22px 0 0;z-index:210;transform:translateY(100%);transition:transform .36s cubic-bezier(.32,.72,0,1);height:92vh;max-height:92vh;display:flex;flex-direction:column;padding-bottom:max(16px,env(safe-area-inset-bottom));box-shadow:0 -4px 40px rgba(0,0,0,.13)}
-.apanel.on{transform:translateY(0)}
-/* ESCRITORIO: panel admin como modal grande centrado. Móvil intacto. */
-@media(min-width:700px){
-  .apanel{left:50%;right:auto;top:50%;bottom:auto;margin:0;width:920px;max-width:920px;height:88vh;max-height:88vh;border-radius:18px;transform:translate(-50%,-50%) scale(.96);opacity:0;pointer-events:none;transition:transform .3s cubic-bezier(.16,1,.3,1),opacity .3s}
-  .apanel.on{transform:translate(-50%,-50%) scale(1);opacity:1;pointer-events:auto}
+/* ADMIN "Shopify-lite": VENTANA a pantalla completa con sidebar (escritorio) / drawer ☰ (móvil) */
+.apanel{position:fixed;inset:0;background:var(--bg);z-index:615;display:none;flex-direction:column;animation:pmPage .3s cubic-bezier(.16,1,.3,1) both}
+.apanel.on{display:flex}
+.av-top{flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:max(12px,env(safe-area-inset-top)) 14px 12px;background:var(--white);border-bottom:1px solid var(--line)}
+.av-burger{width:38px;height:38px;border:none;background:var(--bg);border-radius:9px;font-size:17px;color:var(--ink);cursor:pointer;flex-shrink:0}
+.av-title{font-size:16px;font-weight:700;letter-spacing:-.02em;color:var(--ink)}
+.av-body{flex:1;display:flex;min-height:0;position:relative}
+.av-side{width:200px;flex-shrink:0;background:var(--white);border-right:1px solid var(--line);display:flex;flex-direction:column;gap:2px;padding:12px 8px;overflow-y:auto}
+.av-nav{display:flex;align-items:center;gap:9px;width:100%;text-align:left;border:none;background:none;border-radius:9px;padding:10px 12px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink2);cursor:pointer;transition:background .12s}
+.av-nav:hover{background:var(--bg)}
+.av-nav.on{background:var(--ink);color:#fff}
+.av-scrim{display:none}
+.av-main{flex:1;min-width:0;display:flex;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+#avMain [data-sec]{flex-shrink:0}
+/* MÓVIL: sidebar = drawer lateral que abre el ☰ */
+@media(max-width:699px){
+  .av-side{position:absolute;left:0;top:0;bottom:0;z-index:6;transform:translateX(-105%);transition:transform .28s cubic-bezier(.32,.72,0,1);box-shadow:4px 0 30px rgba(0,0,0,.18)}
+  .av-side.open{transform:translateX(0)}
+  .av-scrim.on{display:block;position:absolute;inset:0;z-index:5;background:rgba(0,0,0,.4)}
 }
+@media(min-width:700px){.av-burger{display:none}}
 .adrag{width:36px;height:3px;background:var(--line);border-radius:2px;margin:10px auto 0;flex-shrink:0}
 .ahead{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;flex-shrink:0;border-bottom:1px solid var(--line)}
 .atitle{font-size:17px;font-weight:700;letter-spacing:-.03em}
@@ -1037,20 +1049,32 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 </div>
 
 <!-- ADMIN -->
-<div class="ascrim" id="ascrim" onclick="closeAdmin()"></div>
 <div class="apanel" id="apanel">
-  <div class="adrag"></div>
-  <div class="ahead"><div class="atitle">⚙ Admin</div><div style="display:flex;gap:6px;align-items:center"><button class="admin-pill" style="font-size:10px;padding:5px 10px" onclick="logoutAdmin()">Salir</button><button class="ax" onclick="closeAdmin()">✕</button></div></div>
-  <div class="astats">
+  <div class="av-top">
+    <button class="av-burger" onclick="toggleAvSide()" aria-label="Menú">☰</button>
+    <div class="av-title" id="avTitle">Inicio</div>
+    <div style="display:flex;gap:6px;align-items:center;margin-left:auto"><button class="admin-pill" style="font-size:10px;padding:5px 10px" onclick="logoutAdmin()">Salir</button><button class="ax" onclick="closeAdmin()">✕</button></div>
+  </div>
+  <div class="av-body">
+    <div class="av-scrim" id="avScrim" onclick="toggleAvSide(false)"></div>
+    <nav class="av-side" id="avSide">
+      <button class="av-nav on" data-nav="inicio" onclick="setAdminSection('inicio')">🏠 Inicio</button>
+      <button class="av-nav" data-nav="productos" onclick="setAdminSection('productos')">📦 Productos</button>
+      <button class="av-nav" data-nav="ofertas" onclick="setAdminSection('ofertas')">🔥 Ofertas</button>
+      <button class="av-nav" data-nav="banners" onclick="setAdminSection('banners')">🖼 Banners</button>
+      <button class="av-nav" data-nav="testimonios" onclick="setAdminSection('testimonios')">⭐ Testimonios</button>
+      <button class="av-nav" data-nav="pedidos" onclick="setAdminSection('pedidos')">🧾 Pedidos</button>
+      <button class="av-nav" data-nav="leads" onclick="setAdminSection('leads')">🎯 Leads</button>
+      <button class="av-nav" data-nav="ajustes" onclick="setAdminSection('ajustes')">⚙ Ajustes</button>
+    </nav>
+    <div class="av-main" id="avMain">
+  <div class="astats" data-sec="inicio" data-disp="flex">
     <div class="ast"><div class="astn" id="aTot">0</div><div class="astl">Total</div></div>
     <div class="ast"><div class="astn" id="aH">0</div><div class="astl">Hombre</div></div>
     <div class="ast"><div class="astn" id="aM">0</div><div class="astl">Mujer</div></div>
     <div class="ast"><div class="astn" id="aSold">0</div><div class="astl">Agotados</div></div>
   </div>
-  <button id="cfgToggle" onclick="toggleCfg()" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:11px 16px;background:var(--bg);border:none;border-bottom:1px solid var(--line);font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer;flex-shrink:0">
-    <span>⚙ Configuración de la tienda</span><span id="cfgChevron" style="font-size:11px;transition:transform .2s">▼</span>
-  </button>
-  <div id="cfgBlock" style="display:none;overflow-y:auto;flex-shrink:0;max-height:40vh;-webkit-overflow-scrolling:touch;border-bottom:1px solid var(--line)">
+  <div data-sec="ofertas">
     <div class="trow">
       <div><div class="trow-lbl">🏷 Promoción global</div><div class="trow-sub">Muestra descuento en todos los pares</div></div>
       <label class="sw"><input type="checkbox" id="swPromo" onchange="toggleGlobal(this.checked)"><div class="sw-tr"></div><div class="sw-th"></div></label>
@@ -1059,10 +1083,14 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
       <div><div class="trow-lbl">🔥 Banner precio especial</div><div class="trow-sub">Muestra el banner negro arriba</div></div>
       <label class="sw"><input type="checkbox" id="swBanner" onchange="toggleBanner(this.checked)"><div class="sw-tr"></div><div class="sw-th"></div></label>
     </div>
+  </div>
+  <div data-sec="ajustes">
     <div class="trow" style="background:#fff0f0">
       <div><div class="trow-lbl">🎁 Popup de bienvenida</div><div class="trow-sub">$20.000 OFF (código BIENVENIDO20) al dejar datos</div></div>
       <label class="sw"><input type="checkbox" id="swWelcome" onchange="toggleWelcome(this.checked)"><div class="sw-tr"></div><div class="sw-th"></div></label>
     </div>
+  </div>
+  <div data-sec="banners">
     <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#f3f1ff">
       <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">🖼 Banners del inicio (hero)</div>
       <input type="file" accept="image/*" id="heroEditFile" style="display:none" onchange="heroEditFileChange(this.files[0])">
@@ -1145,6 +1173,8 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
       <input id="coluSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
       <button onclick="saveColBanner('u')" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">💾 Guardar banner Unisex</button>
     </div>
+  </div>
+  <div data-sec="ajustes">
     <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#eefcf6">
       <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">📱 Redes sociales (footer)</div>
       <input id="cfgIg" type="url" placeholder="Instagram (https://instagram.com/...)" onchange="saveSocials()" style="width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:500;color:var(--ink);outline:none">
@@ -1152,6 +1182,8 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
       <input id="cfgFb" type="url" placeholder="Facebook (https://facebook.com/...)" onchange="saveSocials()" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:500;color:var(--ink);outline:none">
       <div style="font-size:10px;color:var(--ink3);margin-top:6px;text-align:center">WhatsApp usa el número que ya configuraste. Solo se muestran las redes con enlace.</div>
     </div>
+  </div>
+  <div data-sec="testimonios">
     <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#fffbeb">
       <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">⭐ Clientes felices (testimonios)</div>
       <label style="font-size:11px;font-weight:600;color:var(--ink2)">Nº de reseñas a mostrar (marketing)</label>
@@ -1165,6 +1197,8 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
       <select id="testiProdSel" style="margin-top:6px;width:100%;padding:9px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"></select>
       <button onclick="testiAdd()" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">➕ Agregar testimonio</button>
     </div>
+  </div>
+  <div data-sec="ajustes">
     <div id="storageWarn" style="display:none;margin:8px 14px;padding:8px 12px;background:#fff8e1;border:1px solid #ffc107;border-radius:8px;font-size:11px;color:#7a5800;font-weight:600"></div>
     <div class="trow" style="background:#f8f8f6">
       <div style="flex:1;margin-right:10px">
@@ -1216,13 +1250,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
       </label>
     </div>
   </div>
-  <div class="atabs">
-    <button class="atab" id="atab0" onclick="setAdminTab(0)" style="background:var(--ink);color:#fff">📦 Catálogo</button>
-    <button class="atab" id="atab1" onclick="setAdminTab(1)" style="background:var(--bg);color:#6B6B67">🔥 Liq.</button>
-    <button class="atab" id="atab2" onclick="setAdminTab(2)" style="background:var(--bg);color:#6B6B67">📊 Stats</button>
-    <button class="atab" id="atab3" onclick="setAdminTab(3)" style="background:var(--bg);color:#6B6B67">🎯 Leads</button>
-  </div>
-  <div id="panCat" style="display:flex;flex-direction:column;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0">
+  <div id="panCat" data-sec="productos" data-disp="flex" style="display:flex;flex-direction:column;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0">
     <div class="mode-row" id="modeRowCat">
       <button class="mode-btn on" id="mBtnNormCat" onclick="set360('cat',false)">📸 Una por una</button>
       <button class="mode-btn" id="mBtnSpinCat" onclick="set360('cat',true)">🔄 360° Spin</button>
@@ -1245,7 +1273,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
     <div class="alist-hdr"><span>Foto</span><span>Género</span><span>Precio</span><span>Agotado</span><span></span></div>
     <div class="alist" id="listCat"></div>
   </div>
-  <div id="panLiq" style="display:none;flex-direction:column;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0">
+  <div id="panLiq" data-sec="ofertas" data-disp="flex" style="display:none;flex-direction:column;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0">
     <div class="mode-row" id="modeRowLiq">
       <button class="mode-btn on" id="mBtnNormLiq" onclick="set360('liq',false)">📸 Una por una</button>
       <button class="mode-btn" id="mBtnSpinLiq" onclick="set360('liq',true)">🔄 360° Spin</button>
@@ -1266,8 +1294,11 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
     <div class="alist-hdr"><span>Foto</span><span>Estado</span><span>Precio liq.</span><span>Agotado</span><span></span></div>
     <div class="alist" id="listLiq"></div>
   </div>
-  <div id="panStats" style="display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0"></div>
-  <div id="panLeads" style="display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0"></div>
+  <div id="panStats" data-sec="inicio" data-disp="flex" style="display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0"></div>
+  <div id="panPedidos" data-sec="pedidos" data-disp="flex" style="display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0"></div>
+  <div id="panLeads" data-sec="leads" data-disp="flex" style="display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0"></div>
+    </div>
+  </div>
 </div>
 
 <!-- CART -->
@@ -1474,7 +1505,7 @@ const P_DEF=180000, P_ANT=240000;
 let prods=[],liqs=[];
 let qC=[],qL=[];
 let cart={};
-let gSel='all',promoG=false,bannerOn=false,aTab=0;
+let gSel='all',promoG=false,bannerOn=false;
 let step=0,cData={};
 let pmId=null,pmType=null;
 let is360Cat=false,is360Liq=false,v360Id=null,v360Type=null,v360Pos=0,v360Dragging=false,v360LastX=0,_preview360Frames=null,_v360Images=[];
@@ -2656,7 +2687,6 @@ async function loadOrders(){
 }
 function _showAdmin(){
   renderAdmin();
-  loadOrders().then(()=>{if(aTab===2)renderStatsTab();});
   const swP=$('swPromo');if(swP)swP.checked=promoG;
   const swB=$('swBanner');if(swB)swB.checked=bannerOn;
   const cfgN=$('cfgNombre');if(cfgN)cfgN.value=STORE_NAME;
@@ -2666,7 +2696,8 @@ function _showAdmin(){
   const cfgWo=$('cfgWompi');if(cfgWo)cfgWo.value=WOMPI_PK;
   const cfgCl=$('cfgClarity');if(cfgCl)cfgCl.value=CLARITY_ID;
   checkStorageQuota();
-  $('ascrim').classList.add('on');$('apanel').classList.add('on');lockScroll();
+  $('apanel').classList.add('on');lockScroll();
+  setAdminSection('inicio');
 }
 async function _startAdminSession(pin){
   try{
@@ -2687,31 +2718,79 @@ async function logoutAdmin(){
   ADMIN_OK=false;
   closeAdmin();
 }
-function closeAdmin(){$('ascrim').classList.remove('on');$('apanel').classList.remove('on');unlockScroll();}
+function closeAdmin(){$('apanel').classList.remove('on');unlockScroll();}
 async function toggleBanner(on){bannerOn=on;$('banner').classList.toggle('off',!on);await adminWrite('upsert_settings',{data:{key:'banner_on',value:String(on)}});}
 async function toggleGlobal(on){promoG=on;renderGrid();renderAdmin();await adminWrite('upsert_settings',{data:{key:'promo_global',value:String(on)}});}
 async function toggleWelcome(on){WELCOME_ON=on;await adminWrite('upsert_settings',{data:{key:'welcome_popup',value:String(on)}});}
-function setAdminTab(n){
-  aTab=n;
-  $('panCat').style.display=n===0?'flex':'none';
-  $('panLiq').style.display=n===1?'flex':'none';
-  $('panStats').style.display=n===2?'flex':'none';
-  $('panLeads').style.display=n===3?'flex':'none';
-  $('atab0').style.cssText=`background:${n===0?'#0E0E0C':'#F2F1EE'};color:${n===0?'#fff':'#6B6B67'}`;
-  $('atab1').style.cssText=`background:${n===1?'#E8200A':'#F2F1EE'};color:${n===1?'#fff':'#6B6B67'}`;
-  $('atab2').style.cssText=`background:${n===2?'#0066FF':'#F2F1EE'};color:${n===2?'#fff':'#6B6B67'}`;
-  $('atab3').style.cssText=`background:${n===3?'#0E0E0C':'#F2F1EE'};color:${n===3?'#fff':'#6B6B67'}`;
-  if(n===1)renderLiqAdmin();
-  if(n===2){renderStatsTab();loadOrders().then(()=>{if(aTab===2)renderStatsTab();});}
-  if(n===3){renderLeadsTab();loadOrders().then(()=>{if(aTab===3)renderLeadsTab();});}
+/* ── ADMIN "Shopify-lite": navegación por secciones (sidebar) ── */
+let avSec='inicio';
+const AV_TITLES={inicio:'Inicio',productos:'Productos',ofertas:'Ofertas',banners:'Banners',testimonios:'Testimonios',pedidos:'Pedidos',leads:'Leads',ajustes:'Ajustes'};
+function setAdminSection(name){
+  avSec=name;
+  document.querySelectorAll('#avMain [data-sec]').forEach(el=>{
+    el.style.display=el.dataset.sec===name?(el.dataset.disp||'block'):'none';
+  });
+  document.querySelectorAll('#avSide .av-nav').forEach(b=>b.classList.toggle('on',b.dataset.nav===name));
+  const t=$('avTitle');if(t)t.textContent=AV_TITLES[name]||name;
+  toggleAvSide(false);
+  const m=$('avMain');if(m)m.scrollTop=0;
+  if(name==='inicio'){renderStatsTab();loadOrders().then(()=>{if(avSec==='inicio')renderStatsTab();});}
+  if(name==='productos')renderAdmin();
+  if(name==='ofertas')renderLiqAdmin();
+  if(name==='banners'){renderHeroAdmin();renderFeaturedAdmin();renderColAdmin();}
+  if(name==='testimonios')renderTestiAdmin();
+  if(name==='pedidos'){renderPedidos();loadOrders().then(()=>{if(avSec==='pedidos')renderPedidos();});}
+  if(name==='leads'){renderLeadsTab();loadOrders().then(()=>{if(avSec==='leads')renderLeadsTab();});}
 }
-
-function toggleCfg(){
-  const b=$('cfgBlock'),c=$('cfgChevron');
-  if(!b)return;
-  const abierto=b.style.display!=='none';
-  b.style.display=abierto?'none':'block';
-  if(c)c.style.transform=abierto?'rotate(0deg)':'rotate(180deg)';
+function toggleAvSide(force){
+  const s=$('avSide'),sc=$('avScrim');
+  const abrir=typeof force==='boolean'?force:!(s&&s.classList.contains('open'));
+  if(s)s.classList.toggle('open',abrir);
+  if(sc)sc.classList.toggle('on',abrir);
+}
+/* ── PEDIDOS: lista completa con buscador ── */
+let pedidosQ='';
+function renderPedidos(){
+  const el=$('panPedidos');if(!el)return;
+  if(!el.dataset.built){
+    el.dataset.built='1';
+    el.innerHTML=`<div style="padding:12px 14px 8px;flex-shrink:0">
+      <input type="search" placeholder="Buscar por nombre, teléfono, ciudad o referencia…" value="${escHtml(pedidosQ)}"
+        oninput="pedidosQ=this.value;clearTimeout(window._pedT);window._pedT=setTimeout(renderPedidosList,200)"
+        style="width:100%;padding:10px 13px;background:var(--white);border:1.5px solid var(--line);border-radius:10px;font-family:var(--font);font-size:16px;color:var(--ink);outline:none">
+    </div>
+    <div id="pedList" style="overflow-y:auto;flex:1;min-height:0;padding:0 14px 24px"></div>`;
+  }
+  renderPedidosList();
+}
+function renderPedidosList(){
+  const box=$('pedList');if(!box)return;
+  const pagoLabels={contra_entrega:'Contra entrega',pago_anticipado:'Pago anticipado',wompi:'Wompi',bold:'Bold',credito:'Crédito (Addi/Sistecrédito)',nequi:'Nequi',bancolombia:'Bancolombia',addi:'Addi',sistecredito:'Sistecrédito'};
+  const badge=o=>o.status==='venta'?`<span style="background:var(--green);color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px">✓ VENTA</span>`
+    :o.status==='no_venta'?`<span style="background:#E8200A;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px">✕ NO VENTA</span>`
+    :o.status==='abandoned'?`<span style="background:#8A6D00;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px">🛒 ABANDONÓ</span>`
+    :`<span style="background:#F2A900;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px">⏳ PENDIENTE</span>`;
+  const itemsTxt=o=>Array.isArray(o.items)?o.items.map(it=>`${escHtml(it.label||'?')}${it.id?' #'+parseInt(it.id):''}${it.qty?` x${parseInt(it.qty)||1}`:''}`).join(', '):'';
+  const q=pedidosQ.trim().toLowerCase();
+  const lista=orders.filter(o=>!q
+    ||String(o.nombre||'').toLowerCase().includes(q)
+    ||String(o.tel||'').includes(q)
+    ||String(o.ciudad||'').toLowerCase().includes(q)
+    ||String(o.reference||'').toLowerCase().includes(q));
+  if(!orders.length){box.innerHTML=`<div style="padding:32px 8px;text-align:center;color:var(--ink3);font-size:13px;line-height:1.7">🧾 Aún no hay pedidos.</div>`;return;}
+  box.innerHTML=`<div style="font-size:11px;color:var(--ink3);font-weight:600;padding:2px 2px 8px">${lista.length} pedido${lista.length===1?'':'s'}${q?' (filtro activo)':''}</div>`
+    +(lista.length?lista.map(o=>`
+    <div style="background:var(--white);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+        <span style="font-size:13.5px;font-weight:700">${escHtml(o.nombre||'Sin nombre')}</span>${badge(o)}
+      </div>
+      <div style="font-size:12px;color:var(--ink2);line-height:1.6">
+        ${o.tel?`📱 <a href="https://wa.me/57${String(o.tel).replace(/\D/g,'').slice(-10)}" target="_blank" style="color:var(--blue);text-decoration:none">${escHtml(o.tel)}</a> · `:''}${o.ciudad?`📍 ${escHtml(o.ciudad)}`:''}<br>
+        ${itemsTxt(o)?`👟 ${itemsTxt(o)}<br>`:''}
+        💰 <b>${fmt(o.total||0)}</b>${o.pago?` · ${escHtml(pagoLabels[o.pago]||o.pago)}`:''}${o.reference?` · <span style="color:var(--ink3);font-size:10.5px">${escHtml(o.reference)}</span>`:''}
+        ${o.fecha?`<br><span style="color:var(--ink3);font-size:10px">${new Date(o.fecha).toLocaleString('es-CO',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</span>`:''}
+      </div>
+    </div>`).join(''):`<div style="padding:24px 8px;text-align:center;color:var(--ink3);font-size:12.5px">Sin resultados para "${escHtml(pedidosQ)}"</div>`);
 }
 function renderAdmin(){
   $('aTot').textContent=prods.length;
