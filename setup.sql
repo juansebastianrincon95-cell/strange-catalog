@@ -14,7 +14,8 @@ create table if not exists products (
   promo        boolean default false,
   sold         boolean default false,
   img_url      text,
-  imgs_360     text
+  imgs_360     text,
+  imgs         text
 );
 
 -- ─── TABLA: liq_products ────────────────────────────────────
@@ -25,7 +26,8 @@ create table if not exists liq_products (
   price_before integer,
   sold         boolean default false,
   img_url      text,
-  imgs_360     text
+  imgs_360     text,
+  imgs         text
 );
 
 -- ─── TABLA: settings ────────────────────────────────────────
@@ -117,6 +119,8 @@ create policy "service all orders"
 
 -- Migraciones idempotentes para instalaciones existentes
 alter table products add column if not exists brand text;
+alter table products add column if not exists imgs text;        -- galería: fotos secundarias (JSON array de URLs)
+alter table liq_products add column if not exists imgs text;
 alter table orders add column if not exists subtotal integer;
 alter table orders add column if not exists envio integer;
 alter table orders add column if not exists session_id text;

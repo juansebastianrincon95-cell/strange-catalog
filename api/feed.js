@@ -20,6 +20,11 @@ module.exports = async (req, res) => {
   // Etiquetas legibles de marca para el feed de Meta
   const BRAND_LABELS = { adidas:'Adidas', nike:'Nike', reebok:'Reebok', new_balance:'New Balance', on_cloud:'On Cloud', puma:'Puma', lecoq_sportif:'Le Coq Sportif', jordan:'Jordan' };
   const brandLabel = b => BRAND_LABELS[b] || null;
+  // Galería: fotos secundarias (columna imgs = JSON array) → additional_image_link (máx 10)
+  const extraImgs = p => {
+    try { const a = JSON.parse(p.imgs || '[]'); return Array.isArray(a) && a.length ? { additional_image_link: a.slice(0, 10) } : {}; }
+    catch { return {}; }
+  };
 
   const all = [
     ...(cats || []).map(p => {
@@ -35,6 +40,7 @@ module.exports = async (req, res) => {
       ...(p.price_before && p.price_before > p.price ? { sale_price: p.price + ' COP' } : {}),
       link:         storeUrl + '/?type=cat&id=' + p.id,
       image_link:   p.img_url || '',
+      ...extraImgs(p),
       brand:        bl || brand,                       // marca real si existe; si no, la tienda
       google_product_category: '187'
     };}),
@@ -48,6 +54,7 @@ module.exports = async (req, res) => {
       ...(p.price_before && p.price_before > p.price ? { sale_price: p.price + ' COP' } : {}),
       link:         storeUrl + '/?type=liq&id=' + p.id,
       image_link:   p.img_url || '',
+      ...extraImgs(p),
       brand:        brand,
       google_product_category: '187'
     }))
