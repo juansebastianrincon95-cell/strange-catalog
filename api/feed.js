@@ -61,6 +61,23 @@ module.exports = async (req, res) => {
     }))
   ];
 
+  // ?format=csv → formato que Meta Commerce acepta como feed PROGRAMADO (JSON no es válido
+  // para data sources con schedule; CSV sí). El JSON se mantiene como default (lo usan
+  // el agente y otras integraciones).
+  if ((req.query || {}).format === 'csv') {
+    const cols = ['id','title','description','availability','condition','price','sale_price','link','image_link','additional_image_link','brand','google_product_category'];
+    const esc = v => {
+      if (v == null) return '';
+      const s = Array.isArray(v) ? v.join(',') : String(v);
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    const lines = [cols.join(',')];
+    all.forEach(p => lines.push(cols.map(c => esc(p[c])).join(',')));
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    return res.send(lines.join('\n'));
+  }
+
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.json({ data: all });
