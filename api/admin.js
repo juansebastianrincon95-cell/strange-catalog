@@ -99,14 +99,17 @@ module.exports = async (req, res) => {
     // Nota: IP/UA NO se envían aquí (serían los del vendedor, no del cliente); sí fbp/fbc del pedido.
     if (status === 'venta' && order && order.status !== 'venta') {
       const utm = order.utm || {};
-      sendEvent({
+      // await (Codex #8) + fallback UNIFICADO con _orders.js y el navegador (Codex se quedó
+      // corto: su fallback era order_{id} mientras los otros 2 caminos usan {id} → las 8
+      // órdenes legacy sin reference no dedupaban entre caminos).
+      await sendEvent({
         eventName: 'Purchase',
         value: order.subtotal != null ? order.subtotal : order.total,
         currency: 'COP',
         contentIds: contentIdsDe(order.items),
         phone: order.tel, city: order.ciudad, name: order.nombre,
         fbp: utm.fbp, fbc: utm.fbc,
-        eventId: String(order.reference || ('order_' + id)) + '_purchase',
+        eventId: String(order.reference || id) + '_purchase',
         actionSource: 'business_messaging'
       }).catch(() => {});
     }

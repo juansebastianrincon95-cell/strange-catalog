@@ -46,7 +46,7 @@ function post(path, body) {
  * Falla en silencio si faltan credenciales o Meta no responde.
  * @returns {Promise<boolean>} true si Meta aceptó el evento
  */
-async function sendEvent({ eventName, value, currency = 'COP', phone, city, name,
+async function sendEvent({ eventName, value, currency = 'COP', phone, city, name, email,
                            eventId, actionSource = 'website', eventSourceUrl,
                            contentIds, fbp, fbc, clientIp, clientUserAgent }) {
   const PIXEL = (process.env.META_PIXEL_ID || '').trim();
@@ -55,6 +55,7 @@ async function sendEvent({ eventName, value, currency = 'COP', phone, city, name
 
   const np = name ? String(name).trim().toLowerCase().split(/\s+/) : [];
   const user_data = {};
+  const em = hash(email);       if (em) user_data.em = [em];   // email hasheado (Codex #8: Lead de suscriptores)
   const ph = hashPhone(phone);  if (ph) user_data.ph = [ph];
   const ct = hash(city);        if (ct) user_data.ct = [ct];
   const fn = hash(np[0]);       if (fn) user_data.fn = [fn];

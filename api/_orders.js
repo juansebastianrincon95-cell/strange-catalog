@@ -158,7 +158,8 @@ async function confirmPaidOrder({ reference, amount, amountInCents, currency = '
     if (error) return { ok: false, error: error.message };
     const utm = order.utm || {};
     const clientIp = req ? String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || undefined : undefined;
-    sendEvent({
+    // await (Codex #8): en serverless el fire-and-forget puede morir al responder.
+    await sendEvent({
       eventName: 'Purchase',
       value: expected,
       currency: 'COP',

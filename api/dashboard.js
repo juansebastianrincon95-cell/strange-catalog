@@ -380,7 +380,7 @@ module.exports = async (req, res) => {
       clientes,           // nuevos/recurrentes/returning_rate/ventas por grupo/frecuencia/días entre compras
       funnel,             // sessions/view_product/add_to_cart/initiate_checkout/leads/ventas
       productos,          // top 10 por ingresos con views/ATC/conversiones
-      nota: 'Ventas netas (subtotal, post-descuento) es la base de ROAS. total_cobrado = caja (con envío). margen_estimado solo cubre ítems con costo registrado (ver margen_cobertura). Solo pedidos status=venta cuentan. El embudo es encadenado: cada paso cuenta sesiones que completaron todos los pasos anteriores. roas_atribuido cruza solo campañas con gasto; roas_promedio usa el gasto de TODA la cuenta Meta.',
+      nota: 'Ventas netas (subtotal, post-descuento) es la base de ROAS. total_cobrado = caja (con envío). margen_estimado solo cubre ítems con costo registrado (ver margen_cobertura). Solo pedidos status=venta cuentan. El embudo es encadenado: cada paso cuenta sesiones que completaron todos los pasos anteriores. roas_atribuido cruza solo campañas con gasto Y ventas atribuidas (las de gasto sin ventas se ven en por_campana pero no entran); roas_promedio usa el gasto de TODA la cuenta Meta.',
       meta_error,
       campanas_error
     });

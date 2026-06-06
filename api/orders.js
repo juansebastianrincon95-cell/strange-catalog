@@ -5,11 +5,13 @@ const { sendEvent } = require('./_capi');
 
 /* Lead por CAPI (FASE N8, plan Codex): misma señal que el px('Lead') del navegador pero
    server-side con teléfono/ciudad/nombre hasheados + fbp/fbc — Meta dedup por el MISMO
-   eventId ({session_id}_lead). Solo pedidos reales con datos de contacto. Fire-and-forget. */
+   eventId ({session_id}_lead). Solo pedidos reales con datos de contacto. Se AWAITEA en el
+   handler (Codex #8: en serverless un fire-and-forget puede morir al responder); el catch
+   garantiza que un fallo de Meta jamás rompa el checkout. */
 function capiLead(order, req) {
-  if (!order || order.status === 'abandoned' || !order.tel || !order.session_id) return;
+  if (!order || order.status === 'abandoned' || !order.tel || !order.session_id) return Promise.resolve();
   const utm = order.utm || {};
-  sendEvent({
+  return sendEvent({
     eventName: 'Lead',
     value: order.subtotal != null ? order.subtotal : order.total,
     currency: 'COP',
@@ -45,6 +47,18 @@ async function handleSubscribe(req, res) {
   const session_id = cleanText(d.session_id, 64);
   const sb = sbForPrivateWrites();
 
+  // Lead por CAPI para suscriptores (Codex #8): popup/newsletter también son señal para Meta.
+  // eventId con el MISMO sufijo que el px del navegador ({session}_news / {session}_subscribe)
+  // → dedup. Solo con session_id; await + catch para no romper el registro.
+  const capiSubLead = (eid, extra) => session_id
+    ? sendEvent({ eventName: 'Lead', currency: 'COP',
+        fbp: utm && utm.fbp, fbc: utm && utm.fbc,
+        clientIp: String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || undefined,
+        clientUserAgent: req.headers['user-agent'],
+        eventId: String(session_id) + eid, actionSource: 'website',
+        eventSourceUrl: 'https://strangesneakers.com/', ...extra }).catch(() => {})
+    : Promise.resolve();
+
   const email = cleanText(d.email, 200) || '';
   if (d.source === 'footer' || (email && !d.whatsapp)) {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'email invalido' });
@@ -52,6 +66,7 @@ async function handleSubscribe(req, res) {
     if (!prev || !prev.length) {
       const { error } = await sb.from('subscribers').insert({ email, utm, session_id, source: 'footer' });
       if (error) return res.status(500).json({ error: error.message });
+      await capiSubLead('_news', { email });
     }
     return res.status(201).json({ ok: true });
   }
@@ -67,6 +82,7 @@ async function handleSubscribe(req, res) {
       nombre, whatsapp, cumple, utm, session_id, source: 'popup_bienvenida'
     });
     if (error) return res.status(500).json({ error: error.message });
+    await capiSubLead('_subscribe', { phone: whatsapp, name: nombre });
   }
   return res.status(201).json({ ok: true, codigo: CODIGO_BIENVENIDA });
 }
@@ -158,14 +174,14 @@ module.exports = async (req, res) => {
     if (kind === 'bold_status') return handleBoldStatus(req, res);
     if (kind === 'create_order') {
       const order = await createOrder(req.body, req.body.status || 'pending');
-      capiLead(order, req);
+      await capiLead(order, req);
       return res.status(201).json({ ok: true, order });
     }
 
     // Compatibilidad con el frontend anterior: si vienen items, recalcular siempre server-side.
     if (Array.isArray(req.body && req.body.items) && req.body.items.length) {
       const order = await createOrder(req.body, req.body.status || 'pending');
-      capiLead(order, req);
+      await capiLead(order, req);
       return res.status(201).json({ ok: true, order });
     }
 
