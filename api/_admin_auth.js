@@ -69,4 +69,18 @@ function requireAdmin(req, res) {
   return true;
 }
 
-module.exports = { safeEq, makeSession, cookieHeader, clearCookieHeader, requireAdmin, validateSession };
+/* Expiración DESLIZANTE por inactividad: cada acción del admin renueva la cookie si ya pasó
+   más de la mitad de su vida. Mientras el panel se use, la sesión no caduca; tras 8h sin
+   actividad, vuelve a pedir PIN. (Renovar solo a media vida evita un Set-Cookie por request.) */
+function renewIfActive(req, res) {
+  const raw = parseCookies(req)[COOKIE];
+  if (!raw || !raw.includes('.')) return;
+  try {
+    const payload = JSON.parse(Buffer.from(raw.split('.')[0], 'base64url').toString('utf8'));
+    if (payload.exp && payload.exp - Date.now() < (MAX_AGE * 1000) / 2) {
+      res.setHeader('Set-Cookie', cookieHeader(makeSession()));
+    }
+  } catch {}
+}
+
+module.exports = { safeEq, makeSession, cookieHeader, clearCookieHeader, requireAdmin, validateSession, renewIfActive };

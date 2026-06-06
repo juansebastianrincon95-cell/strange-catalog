@@ -2873,6 +2873,12 @@ async function _startAdminSession(pin){
   }catch(e){ADMIN_OK=false;return false;}
 }
 async function openAdmin(){
+  // Si la sesión del servidor sigue viva (8h deslizantes desde la última actividad),
+  // entrar DIRECTO sin pedir PIN — refrescar o salir y volver ya no obliga a reloguear.
+  try{
+    const r=await fetch('/api/admin-setup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'check'})});
+    if(r.ok){ADMIN_OK=true;_showAdmin();return;}
+  }catch(e){}
   const input=prompt('PIN de administrador:');
   if(input===null)return;
   const ok=await _startAdminSession(input);

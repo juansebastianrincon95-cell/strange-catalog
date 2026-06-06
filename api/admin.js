@@ -1,6 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const { sendEvent } = require('./_capi');
-const { requireAdmin } = require('./_admin_auth');
+const { requireAdmin, renewIfActive } = require('./_admin_auth');
 const crypto = require('crypto');
 
 const ALLOWED_TABLES = ['products', 'liq_products', 'settings'];
@@ -14,6 +14,7 @@ module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).end();
 
   if (!requireAdmin(req, res)) return;
+  renewIfActive(req, res);   // actividad del admin = reinicia el reloj de inactividad (sesión deslizante)
 
   if (!process.env.SUPABASE_SERVICE_KEY) {
     return res.status(500).json({ error: 'SUPABASE_SERVICE_KEY not configured' });

@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
-const { safeEq, makeSession, cookieHeader, clearCookieHeader } = require('./_admin_auth');
+const { safeEq, makeSession, cookieHeader, clearCookieHeader, validateSession } = require('./_admin_auth');
 
 const MAX_ATTEMPTS = 5;
 const WINDOW_MS    = 15 * 60 * 1000; // 15 minutos
@@ -29,6 +29,16 @@ module.exports = async (req, res) => {
   if (req.body && req.body.action === 'logout') {
     res.setHeader('Set-Cookie', clearCookieHeader());
     return res.json({ ok: true });
+  }
+
+  // 'check': ¿la sesión sigue viva? Si sí, entrar SIN pedir PIN y renovar la cookie
+  // (cada entrada reinicia el reloj de inactividad de 8h). No cuenta para el rate limit.
+  if (req.body && req.body.action === 'check') {
+    if (validateSession(req)) {
+      res.setHeader('Set-Cookie', cookieHeader(makeSession()));
+      return res.json({ ok: true });
+    }
+    return res.status(401).json({ ok: false });
   }
 
   const ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
