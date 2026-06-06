@@ -1170,10 +1170,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
       </div>
       <input id="heroTit" type="text" placeholder="Título (ej. Lo nuevo de Nike)" style="margin-top:8px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
       <input id="heroSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
-      <div style="display:flex;gap:6px;margin-top:6px">
-        <select id="heroLinkType" onchange="heroLinkTypeChange()" style="flex:1;padding:9px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"><option value="product">📦 Producto</option><option value="brand">🏷 Marca</option><option value="gender">👥 Colección</option></select>
-        <select id="heroLinkVal" style="flex:1.4;padding:9px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"></select>
-      </div>
+      <div style="font-size:10px;color:var(--ink3);margin-top:6px;background:var(--bg);border-radius:7px;padding:6px 9px">🎯 El botón de todos los banners lleva a <b>Ofertas</b> (estrategia de combos).</div>
       <button onclick="heroAdd()" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">➕ Agregar banner</button>
       <div style="font-size:10px;color:var(--ink3);margin-top:6px;text-align:center">Imagen vertical recomendada: 1080×1920 (móvil) · 1920×1080 (escritorio).</div>
     </div>
@@ -1798,7 +1795,7 @@ function copyWelcomeCode(){
 }
 
 /* ── HERO CARRUSEL ── */
-let heroSlides=[];        // [{img,titulo,subtitulo,link_type,link_value}] desde settings.hero_slides
+let heroSlides=[];        // [{img,img_desktop,titulo,subtitulo,pos}] desde settings.hero_slides
 let heroCur=0,_heroTimer=null,_heroTouchX=null;
 const escHtml=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function renderHero(){
@@ -1841,34 +1838,10 @@ function heroApply(){
 }
 function heroGo(i){heroCur=i;heroApply();}
 function heroGoStop(i){heroGo(i);if(_heroTimer){clearInterval(_heroTimer);_heroTimer=setInterval(()=>heroGo(heroCur+1),5000);}} // navegación manual reinicia el timer
-function heroCTA(idx){
-  const slides=(heroSlides||[]).filter(s=>s&&s.img);
-  const s=slides[idx];if(!s)return;
-  if(s.link_type==='product'){
-    const id=parseInt(s.link_value);
-    const inLiq=liqs.find(x=>x.id===id);
-    const p=inLiq||prods.find(x=>x.id===id);
-    if(p)openPhoto(id,inLiq?'liq':'cat');
-    return;
-  }
-  // marca/género: abrir el catálogo completo (vista aparte) ya filtrado
-  if(s.link_type==='gender')openCatalog({gender:s.link_value==='m'?'m':'h'});
-  else if(s.link_type==='brand')openCatalog({brand:s.link_value||'all'});
-  else openCatalog();
-}
-
-/* ── HERO: admin (gestionar banners) ── */
+/* ── HERO: admin (gestionar banners) ──
+   Nota: el destino del CTA es fijo (Ofertas, estrategia de combos). El selector de destino
+   por banner y heroCTA() se eliminaron — eran código muerto (hallazgo Codex #5). */
 let _heroDraft={img:null,img_desktop:null};
-function heroLinkTypeChange(){
-  const t=($('heroLinkType')||{}).value,sel=$('heroLinkVal');if(!sel)return;
-  if(t==='product'){
-    sel.innerHTML=prods.length?prods.map(p=>`<option value="${p.id}">${p.g==='h'?'Hombre':'Mujer'} · ${BRAND_LABELS[p.brand]||'—'} · ${fmt(p.price)} (#${p.id})</option>`).join(''):'<option value="">(no hay productos)</option>';
-  }else if(t==='brand'){
-    sel.innerHTML=Object.entries(BRAND_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
-  }else{
-    sel.innerHTML='<option value="h">Hombre</option><option value="m">Mujer</option>';
-  }
-}
 function heroDraftImg(file,which){
   if(!file)return;
   const isD=(which==='escritorio');
@@ -1891,9 +1864,7 @@ async function heroAdd(){
   const slide={
     img:_heroDraft.img,
     titulo:($('heroTit').value||'').trim(),
-    subtitulo:($('heroSub').value||'').trim(),
-    link_type:($('heroLinkType')||{}).value||'product',
-    link_value:($('heroLinkVal')||{}).value||''
+    subtitulo:($('heroSub').value||'').trim()
   };
   if(_heroDraft.img_desktop)slide.img_desktop=_heroDraft.img_desktop;
   heroSlides.push(slide);
@@ -1905,14 +1876,8 @@ async function heroAdd(){
   const lbl=$('heroFileLbl');if(lbl)lbl.textContent='Vertical 1080×1920 · toca para subir';
   const lblD=$('heroFileLblD');if(lblD)lblD.textContent='Horizontal 2560×1280 · toca para subir';
 }
-function heroDestLabel(s){
-  if(s.link_type==='product')return 'Producto #'+s.link_value;
-  if(s.link_type==='brand')return 'Marca: '+(BRAND_LABELS[s.link_value]||s.link_value);
-  return 'Colección: '+(s.link_value==='m'?'Mujer':'Hombre');
-}
 function renderHeroAdmin(){
   const box=$('heroAdminList');if(!box)return;
-  heroLinkTypeChange();   // refresca el selector de producto/marca con el inventario actual
   if(!heroSlides.length){box.innerHTML='<div style="font-size:11px;color:var(--ink3)">Aún no hay banners. Agrega el primero abajo 👇</div>';return;}
   box.innerHTML=heroSlides.map((s,i)=>`<div style="background:var(--white);border:1px solid var(--line);border-radius:9px;padding:6px">
     <div style="display:flex;align-items:center;gap:8px">
@@ -1922,7 +1887,7 @@ function renderHeroAdmin(){
           ?`<div style="text-align:center"><img src="${escHtml(s.img_desktop)}" style="width:58px;height:44px;object-fit:cover;border-radius:5px;display:block"><span style="font-size:8px;color:var(--ink3)">🖥</span></div>`
           :`<div onclick="heroPickImg(${i},'escritorio')" title="Falta la imagen de escritorio — toca para subirla" style="width:58px;height:44px;border:1.5px dashed var(--red);border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:var(--red);font-weight:700;line-height:1.15"><span style="font-size:11px">＋🖥</span><span style="font-size:7.5px">FALTA</span></div>`}
       </div>
-      <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(s.titulo)||'(sin título)'}</div><div style="font-size:10px;color:var(--ink3)">${escHtml(heroDestLabel(s))}</div></div>
+      <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(s.titulo)||'(sin título)'}</div><div style="font-size:10px;color:var(--ink3)">Botón → Ofertas</div></div>
       <button onclick="heroMove(${i},-1)" ${i===0?'disabled':''} style="border:none;background:var(--bg);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;${i===0?'opacity:.3':''}">↑</button>
       <button onclick="heroMove(${i},1)" ${i===heroSlides.length-1?'disabled':''} style="border:none;background:var(--bg);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;${i===heroSlides.length-1?'opacity:.3':''}">↓</button>
       <button onclick="heroDel(${i})" style="border:none;background:#ffe9e6;color:var(--red);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px">🗑</button>
@@ -3027,6 +2992,58 @@ function renderPedidos(){
   }
   renderPedidosList();
 }
+/* ── Agrupación temporal (Pedidos y Leads): Día / Semana / Mes, en hora Colombia ──
+   Todo en memoria sobre `orders`; los encabezados muestran cuántos pedidos y cuánta plata
+   hay en cada día/semana/mes para encontrar rápido "los 4 del 6 de junio". */
+function _dKey(o){if(!o.fecha)return'';const d=new Date(o.fecha);return isNaN(d)?'':d.toLocaleDateString('en-CA',{timeZone:'America/Bogota'});}
+function _hoyKey(off){return new Date(Date.now()-(off||0)*86400000).toLocaleDateString('en-CA',{timeZone:'America/Bogota'});}
+function _semKey(k){const [y,m,d]=k.split('-').map(Number);const t=Date.UTC(y,m-1,d);const dow=new Date(t).getUTCDay();return new Date(t-((dow+6)%7)*86400000).toISOString().slice(0,10);}
+function _dLabel(k){ // 'Hoy' / 'Ayer' / 'viernes, 6 jun' (+año si no es el actual)
+  if(k===_hoyKey(0))return 'Hoy';
+  if(k===_hoyKey(1))return 'Ayer';
+  const [y,m,d]=k.split('-').map(Number);
+  const s=new Date(Date.UTC(y,m-1,d)).toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'short',timeZone:'UTC'});
+  const anio=y!==new Date().getFullYear()?` ${y}`:'';
+  return s.charAt(0).toUpperCase()+s.slice(1)+anio;
+}
+function _rangoSem(lun){ // '2 – 8 jun' del lunes dado
+  const [y,m,d]=lun.split('-').map(Number);const t=Date.UTC(y,m-1,d);
+  const f=ts=>new Date(ts).toLocaleDateString('es-CO',{day:'numeric',month:'short',timeZone:'UTC'});
+  return `${f(t)} – ${f(t+6*86400000)}`;
+}
+function _gLabel(key,modo){
+  if(!key)return 'Sin fecha';
+  if(modo==='dia')return _dLabel(key);
+  if(modo==='sem'){
+    if(key===_semKey(_hoyKey(0)))return `Esta semana (${_rangoSem(key)})`;
+    if(key===_semKey(_hoyKey(7)))return `Semana pasada (${_rangoSem(key)})`;
+    return `Semana del ${_rangoSem(key)}`;
+  }
+  const [y,m]=key.split('-').map(Number);
+  const s=new Date(Date.UTC(y,m-1,1)).toLocaleDateString('es-CO',{month:'long',timeZone:'UTC'});
+  return s.charAt(0).toUpperCase()+s.slice(1)+' '+y;
+}
+function _renderGrupos(lista,modo,renderCard,unidad,hdrBg){
+  const sorted=[...lista].sort((a,b)=>(new Date(b.fecha).getTime()||0)-(new Date(a.fecha).getTime()||0));
+  const kOf=o=>{const k=_dKey(o);return !k?'':modo==='sem'?_semKey(k):modo==='mes'?k.slice(0,7):k;};
+  let html='',curKey=null,buf=[],n=0,suma=0;
+  const flush=()=>{ if(!n)return;
+    html+=`<div style="position:sticky;top:0;z-index:2;background:${hdrBg};padding:10px 2px 6px;display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+      <span style="font-size:11.5px;font-weight:800;color:var(--ink)">📅 ${_gLabel(curKey,modo)}</span>
+      <span style="font-size:10.5px;font-weight:700;color:var(--ink3);white-space:nowrap">${n} ${unidad}${n===1?'':'s'} · ${fmt(suma)}</span>
+    </div>`+buf.join('');
+    buf=[];n=0;suma=0;
+  };
+  sorted.forEach(o=>{const k=kOf(o);if(k!==curKey){flush();curKey=k;}buf.push(renderCard(o));n++;suma+=(o.total||0);});
+  flush();
+  return html;
+}
+function _vistaChips(cur,fnName){
+  const b=(v,t)=>`<button onclick="${fnName}('${v}')" style="padding:5px 13px;border:1px solid ${cur===v?'var(--ink)':'var(--line)'};border-radius:14px;background:${cur===v?'var(--ink)':'var(--white)'};color:${cur===v?'#fff':'var(--ink2)'};font-family:var(--font);font-size:10.5px;font-weight:700;cursor:pointer">${t}</button>`;
+  return `<div style="display:flex;gap:5px;margin:0 0 8px">${b('dia','📅 Día')}${b('sem','📆 Semana')}${b('mes','🗓 Mes')}</div>`;
+}
+let pedVista='dia';
+function setPedVista(v){pedVista=v;renderPedidosList();}
 function renderPedidosList(){
   const box=$('pedList');if(!box)return;
   const pagoLabels={contra_entrega:'Contra entrega',pago_anticipado:'Pago anticipado',wompi:'Wompi',bold:'Bold',credito:'Crédito (Addi/Sistecrédito)',nequi:'Nequi',bancolombia:'Bancolombia',addi:'Addi',sistecredito:'Sistecrédito'};
@@ -3042,8 +3059,7 @@ function renderPedidosList(){
     ||String(o.ciudad||'').toLowerCase().includes(q)
     ||String(o.reference||'').toLowerCase().includes(q));
   if(!orders.length){box.innerHTML=`<div style="padding:32px 8px;text-align:center;color:var(--ink3);font-size:13px;line-height:1.7">🧾 Aún no hay pedidos.</div>`;return;}
-  box.innerHTML=`<div style="font-size:11px;color:var(--ink3);font-weight:600;padding:2px 2px 8px">${lista.length} pedido${lista.length===1?'':'s'}${q?' (filtro activo)':''}</div>`
-    +(lista.length?lista.map(o=>{
+  const cardPed=o=>{
     const camp=o.utm&&o.utm.utm_campaign?escHtml(String(o.utm.utm_campaign).slice(0,28)):'';
     return `
     <div style="background:var(--white);border:1px solid var(--line);border-radius:12px;margin-bottom:8px;overflow:hidden">
@@ -3060,7 +3076,10 @@ function renderPedidosList(){
         </div>
       </div>
       <div id="pedDet${o.id}" style="display:none;border-top:1px solid var(--line);background:var(--bg);padding:12px 14px;font-size:12px;color:var(--ink2);line-height:1.7"></div>
-    </div>`;}).join(''):`<div style="padding:24px 8px;text-align:center;color:var(--ink3);font-size:12.5px">Sin resultados para "${escHtml(pedidosQ)}"</div>`);
+    </div>`;};
+  box.innerHTML=`<div style="font-size:11px;color:var(--ink3);font-weight:600;padding:2px 2px 8px">${lista.length} pedido${lista.length===1?'':'s'}${q?' (filtro activo)':''}</div>`
+    +_vistaChips(pedVista,'setPedVista')
+    +(lista.length?_renderGrupos(lista,pedVista,cardPed,'pedido','var(--bg)'):`<div style="padding:24px 8px;text-align:center;color:var(--ink3);font-size:12.5px">Sin resultados para "${escHtml(pedidosQ)}"</div>`);
   // Focus pendiente desde la búsqueda global: abrir el detalle y centrar (sobrevive al refresh)
   if(window._pedFocus){
     const fid=window._pedFocus;
@@ -3071,18 +3090,35 @@ function renderPedidosList(){
 /* ── CLIENTES v1: agrupa los pedidos por teléfono (sin tabla nueva) ── */
 let clientesQ='';
 function _telKey(t){return String(t||'').replace(/\D/g,'').slice(-10);}
+function _cedKey(o){const c=String(o.cedula||'').replace(/\D/g,'');return c.length>=4?c:'';}
 function buildClientes(){
   const map={};
   orders.forEach(o=>{
     const k=_telKey(o.tel);if(!k)return;
-    if(!map[k])map[k]={tel:k,nombre:'',ciudad:'',pedidos:[],ventas:0,total:0,ultima:0};
+    if(!map[k])map[k]={tel:k,nombre:'',ciudad:'',pedidos:[],ventas:0,total:0,ultima:0,ceds:{}};
     const c=map[k];
     c.pedidos.push(o);
+    const ck=_cedKey(o);if(ck)c.ceds[ck]=1;
     const ts=new Date(o.fecha).getTime()||0;
     if(ts>=c.ultima){c.ultima=ts;c.nombre=o.nombre||c.nombre;c.ciudad=o.ciudad||c.ciudad;}
     if(o.status==='venta'){c.ventas++;c.total+=(o.subtotal!=null?o.subtotal:(o.total||0));}
   });
-  return Object.values(map).sort((a,b)=>b.ultima-a.ultima);
+  // 2ª pasada: el MISMO cliente con OTRO teléfono pero la MISMA cédula = un solo perfil.
+  // Se queda como "principal" el perfil de la compra más reciente; los teléfonos extra van a c.tels.
+  const porCed={},final=[];
+  Object.values(map).sort((a,b)=>b.ultima-a.ultima).forEach(c=>{
+    c.tels=[c.tel];
+    const dueno=Object.keys(c.ceds).map(k=>porCed[k]).find(Boolean);
+    if(dueno){
+      dueno.pedidos.push(...c.pedidos);dueno.ventas+=c.ventas;dueno.total+=c.total;
+      if(!dueno.tels.includes(c.tel))dueno.tels.push(c.tel);
+      Object.keys(c.ceds).forEach(k=>{porCed[k]=dueno;});
+    }else{
+      Object.keys(c.ceds).forEach(k=>{porCed[k]=c;});
+      final.push(c);
+    }
+  });
+  return final.sort((a,b)=>b.ultima-a.ultima);
 }
 function renderClientes(){
   const el=$('panClientes');if(!el)return;
@@ -3101,7 +3137,7 @@ function renderClientesList(){
   const box=$('cliList');if(!box)return;
   const clientes=buildClientes();
   const q=clientesQ.trim().toLowerCase();
-  const lista=clientes.filter(c=>!q||c.nombre.toLowerCase().includes(q)||c.tel.includes(q)||c.ciudad.toLowerCase().includes(q));
+  const lista=clientes.filter(c=>!q||c.nombre.toLowerCase().includes(q)||(c.tels||[c.tel]).some(t=>t.includes(q))||c.ciudad.toLowerCase().includes(q));
   if(!clientes.length){box.innerHTML=`<div style="padding:32px 8px;text-align:center;color:var(--ink3);font-size:13px;line-height:1.7">👥 Aún no hay clientes.<br>Aparecen cuando llegan pedidos con teléfono.</div>`;return;}
   box.innerHTML=`<div style="font-size:11px;color:var(--ink3);font-weight:600;padding:2px 2px 8px">${lista.length} cliente${lista.length===1?'':'s'}${q?' (filtro activo)':''}</div>`
     +(lista.length?lista.map(c=>`
@@ -3133,7 +3169,9 @@ function togCliDetail(tel){
   if(abierto){det.style.display='none';if(chev)chev.textContent='Ver perfil ▾';return;}
   const c=buildClientes().find(x=>x.tel===tel);if(!c)return;
   const badge=o=>o.status==='venta'?'✓ Venta':o.status==='no_venta'?'✕ No venta':o.status==='abandoned'?'🛒 Abandonó':'⏳ Pendiente';
-  det.innerHTML=c.pedidos.sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)).map(o=>`
+  const tels2=(c.tels||[]).slice(1);
+  det.innerHTML=`<div style="font-size:11px;color:var(--ink3);font-weight:600;padding-bottom:6px;border-bottom:1px solid var(--line)">🧾 ${c.pedidos.length} pedido${c.pedidos.length===1?'':'s'} · ✓ ${c.ventas} venta${c.ventas===1?'':'s'}${tels2.length?` · 📱 también: ${tels2.map(escHtml).join(', ')}`:''}</div>`
+    +c.pedidos.sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)).map(o=>`
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:11.5px;color:var(--ink2)">
       <span style="flex:0 0 auto;color:var(--ink3)">${o.fecha?new Date(o.fecha).toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'2-digit'}):''}</span>
       <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${Array.isArray(o.items)?o.items.map(it=>escHtml(it.label||'?')).join(', '):''}</span>
@@ -3364,8 +3402,10 @@ function exportOrders(){
 
 /* ── LEADS (Venta / No venta) ── */
 let leadFilter='pending';
+let leadVista='dia';
 const _isClasificado=o=>o.status==='venta'||o.status==='no_venta';
 function setLeadFilter(f){leadFilter=f;renderLeadsTab();}
+function setLeadVista(v){leadVista=v;renderLeadsTab();}
 function renderLeadsTab(){
   const el=$('panLeads');if(!el)return;
   if(!orders.length){
@@ -3386,11 +3426,7 @@ function renderLeadsTab(){
     :o.status==='no_venta'?`<span style="background:#E8200A;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px">✕ NO VENTA</span>`
     :o.status==='abandoned'?`<span style="background:#8A6D00;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px">🛒 ABANDONÓ</span>`
     :`<span style="background:#F2A900;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px">⏳ PENDIENTE</span>`;
-  el.innerHTML=`<div style="display:flex;gap:5px;padding:12px 14px 8px;flex-wrap:wrap">
-      ${chip('pending','⏳',nPend,'#F2A900')}${chip('venta','✓',nVta,'#1BA94C')}${chip('no_venta','✕',nNo,'#E8200A')}${chip('abandoned','🛒',nAban,'#8A6D00')}${chip('all','Todos',orders.length,'#0E0E0C')}
-    </div>
-    <div style="overflow-y:auto;flex:1;min-height:0;padding:0 14px 16px">
-    ${lista.length?lista.map(o=>`
+  const cardLead=o=>`
       <div style="background:var(--bg);border-radius:12px;padding:12px 14px;margin-bottom:8px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
           <span style="font-size:14px;font-weight:700">${escHtml(o.nombre||'Sin nombre')}</span>
@@ -3414,7 +3450,13 @@ function renderLeadsTab(){
           <button onclick="updateOrderStatus(${o.id},'venta')" style="flex:1;padding:9px;border:none;border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;background:${o.status==='venta'?'#1BA94C':'#E7F6EC'};color:${o.status==='venta'?'#fff':'#1BA94C'}">✓ Venta</button>
           <button onclick="updateOrderStatus(${o.id},'no_venta')" style="flex:1;padding:9px;border:none;border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;background:${o.status==='no_venta'?'#E8200A':'#FDEAE8'};color:${o.status==='no_venta'?'#fff':'#E8200A'}">✕ No venta</button>
         </div>
-      </div>`).join(''):`<div style="padding:24px;text-align:center;color:var(--ink3);font-size:12px">No hay leads en esta categoría.</div>`}
+      </div>`;
+  el.innerHTML=`<div style="display:flex;gap:5px;padding:12px 14px 8px;flex-wrap:wrap">
+      ${chip('pending','⏳',nPend,'#F2A900')}${chip('venta','✓',nVta,'#1BA94C')}${chip('no_venta','✕',nNo,'#E8200A')}${chip('abandoned','🛒',nAban,'#8A6D00')}${chip('all','Todos',orders.length,'#0E0E0C')}
+    </div>
+    <div style="padding:0 14px">${_vistaChips(leadVista,'setLeadVista')}</div>
+    <div style="overflow-y:auto;flex:1;min-height:0;padding:0 14px 16px">
+    ${lista.length?_renderGrupos(lista,leadVista,cardLead,'lead','var(--bg)'):`<div style="padding:24px;text-align:center;color:var(--ink3);font-size:12px">No hay leads en esta categoría.</div>`}
     </div>`;
 }
 async function updateOrderStatus(id,status){
