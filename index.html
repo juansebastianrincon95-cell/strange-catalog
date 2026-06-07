@@ -2923,7 +2923,7 @@ async function loadOrders(){
         pago:o.pago,ciudad:o.ciudad,barrio:o.barrio,nombre:o.nombre,tel:o.tel,
         cedula:o.cedula,direccion:o.direccion,utm:o.utm||null,combo:o.combo||null,
         wa_status:o.wa_status,temperatura:o.temperatura,motivo_no_venta:o.motivo_no_venta,nota:o.nota,seguimiento:o.seguimiento,
-        items:o.items,status:o.status,reference:o.reference,seccion:o.seccion
+        items:o.items,status:o.status,reference:o.reference,seccion:o.seccion,session_id:o.session_id||null
       }));
     }
   }catch(e){}
@@ -3399,6 +3399,24 @@ function renderStatsTab(){
   if(seguirHoy)tareas.push({txt:`Hacer seguimiento a <b>${seguirHoy} lead${seguirHoy===1?'':'s'}</b> con fecha cumplida 📅`,go:`avGo('leads','pending')`,ic:'📅'});
   if(aban24)tareas.push({txt:`Contactar <b>${aban24} carrito${aban24===1?'':'s'} abandonado${aban24===1?'':'s'}</b> de las últimas 24h`,go:`avGo('leads','abandoned')`,ic:'🛒'});
   if(agotados)tareas.push({txt:`<b>${agotados} producto${agotados===1?'':'s'} agotado${agotados===1?'':'s'}</b> — repón stock o libera la vitrina`,go:`avGo('productos')`,ic:'📦'});
+  // Suscriptores con cupón de bienvenida por vencer (1-3 días) y sin pedido → escribirles HOY.
+  if(subsData===null){loadSubscribers().then(()=>{if(avSec==='inicio')renderStatsTab();});}
+  else{
+    const telsPedidos=new Set(orders.map(o=>String(o.tel||'').replace(/\D/g,'').slice(-10)).filter(Boolean));
+    const porVencer=subsData.filter(s=>{
+      if(s.source!=='popup_bienvenida')return false;
+      const v=cuponVigencia(s.welcome_issued_at||s.created_at);
+      if(!v||v.vencido||v.dias>3)return false;
+      const tel=String(s.whatsapp||'').replace(/\D/g,'').slice(-10);
+      return tel&&!telsPedidos.has(tel);
+    }).slice(0,3);
+    porVencer.forEach(s=>{
+      const v=cuponVigencia(s.welcome_issued_at||s.created_at);
+      const names=interesadoEn(s.session_id);
+      tareas.push({txt:`Escribir a <b>${escHtml(s.nombre||s.whatsapp)}</b>${names.length?` — miró <b>${escHtml(names[0])}</b>`:''}, su cupón vence en <b>${v.dias} día${v.dias===1?'':'s'}</b>`,go:`avGo('suscriptores')`,ic:'🎟'});
+    });
+    loadActivity(porVencer.map(s=>s.session_id)).then(ok=>{if(ok&&avSec==='inicio')renderStatsTab();});
+  }
   el.innerHTML=`<div style="padding:14px 16px 24px;overflow-y:auto;flex:1;min-height:0">
     <div style="background:var(--white);border:1px solid var(--line);border-radius:14px;padding:13px 15px;margin-bottom:14px">
       <div style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);margin-bottom:9px">✅ Tareas de hoy</div>
@@ -3621,10 +3639,92 @@ async function loadSubscribers(){
   }catch(e){}
   return subsData;
 }
+/* ── RECORRIDO DEL CLIENTE: eventos por sesión para "Interesado en" + timeline ──
+   Carga BATCH (una llamada por pestaña) vía la acción session_activity de /api/admin. */
+let activityBySession={};          // session_id -> [eventos desc]
+const _actLoaded=new Set();        // sesiones ya pedidas (no repedir)
+async function loadActivity(ids){
+  const need=[...new Set((ids||[]).filter(s=>s&&!_actLoaded.has(s)))].slice(0,200);
+  if(!need.length)return false;
+  need.forEach(s=>_actLoaded.add(s));
+  try{
+    const r=await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'session_activity',data:{session_ids:need}})});
+    const j=await r.json();
+    if(j&&j.ok&&Array.isArray(j.events)){
+      j.events.forEach(e=>{(activityBySession[e.session_id]=activityBySession[e.session_id]||[]).push(e);});
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
+const EV_LABELS={page_view:'Entró a la tienda',view_product:'Vio',add_to_cart:'Agregó al carrito 🛒',initiate_checkout:'Empezó el pedido',lead:'Dejó sus datos / abrió WhatsApp',purchase:'Compra confirmada ✓',popup_shown:'Vio el popup de descuento',apply_coupon:'Aplicó cupón',select_payment:'Eligió pagar con',reached_payment:'Llegó al paso de pago 💳'};
+const FUENTES={ig:'Instagram',fb:'Facebook',google:'Google',wa:'WhatsApp'};
+function resolveProdName(pid){
+  if(!pid)return '';
+  const s=String(pid);
+  let m=s.match(/^combo_(.+)$/);
+  if(m){const c=combos.find(x=>x.id===m[1]);return c?c.nombre:('Combo '+m[1]);}
+  m=s.match(/^(?:cat_)?(\d+)$/);
+  if(m){const p=prods.find(x=>String(x.id)===m[1]);if(p)return p.modelo||((BRAND_LABELS[p.brand]||'Par')+' #'+p.id);}
+  m=s.match(/^(?:L|liq_)(\d+)$/i);
+  if(m){const p=liqs.find(x=>String(x.id)===m[1]);if(p)return (p.modelo||'Oferta #'+p.id);}
+  return s;   // detalle plano (método de pago, código de cupón…)
+}
+// Cupón de bienvenida: vigencia de 7 días desde welcome_issued_at.
+function cuponVigencia(issued){
+  if(!issued)return null;
+  const vence=new Date(issued).getTime()+7*24*60*60*1000;
+  const dias=Math.ceil((vence-Date.now())/(24*60*60*1000));
+  return {dias,vencido:dias<=0};
+}
+function cuponBadge(issued){
+  const v=cuponVigencia(issued);
+  if(!v)return '';
+  if(v.vencido)return `<span style="font-size:9.5px;font-weight:700;color:var(--ink3)">🎟 cupón vencido</span>`;
+  const urgente=v.dias<=3;
+  return `<span style="font-size:9.5px;font-weight:700;color:${urgente?'#E8200A':'var(--green)'}">🎟 cupón vence en ${v.dias} día${v.dias===1?'':'s'}</span>`;
+}
+// Productos que la persona miró/agregó en su visita (únicos, recientes primero, máx 3).
+function interesadoEn(sid){
+  const evs=activityBySession[sid]||[];
+  const names=[];
+  evs.forEach(e=>{
+    if(e.type!=='view_product'&&e.type!=='add_to_cart')return;
+    const n=resolveProdName(e.product_id);
+    if(n&&!names.includes(n))names.push(n);
+  });
+  return names.slice(0,3);
+}
+function interesadoEnLinea(sid){
+  const names=interesadoEn(sid);
+  return names.length?`<div style="font-size:10.5px;color:#5D2D91;font-weight:700;margin-top:3px">👁 Interesado en: ${escHtml(names.join(', '))}</div>`:'';
+}
+function timelineHTML(sid){
+  const evs=(activityBySession[sid]||[]).slice().reverse();   // cronológico
+  if(!evs.length)return `<div style="font-size:11px;color:var(--ink3);padding:8px 0">Sin actividad registrada en esa visita.</div>`;
+  const fuente=evs.map(e=>e.utm_source).find(Boolean);
+  const dev=evs.map(e=>e.device).find(Boolean);
+  const ctx=[fuente?('📣 '+(FUENTES[fuente]||fuente)):'',dev?(dev==='movil'?'📱 móvil':'🖥 escritorio'):''].filter(Boolean).join(' · ');
+  return `${ctx?`<div style="font-size:10px;color:var(--ink3);margin-bottom:5px">${escHtml(ctx)}</div>`:''}
+    ${evs.map(e=>{
+      const h=new Date(e.created_at).toLocaleString('es-CO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+      const det=(e.type==='page_view'||e.type==='initiate_checkout'||e.type==='lead'||e.type==='popup_shown'||e.type==='reached_payment')?'':resolveProdName(e.product_id);
+      return `<div style="display:flex;gap:8px;font-size:11px;color:var(--ink2);padding:3px 0">
+        <span style="color:var(--ink3);flex:0 0 auto">${h}</span>
+        <span>${EV_LABELS[e.type]||e.type}${det?` <b>${escHtml(det)}</b>`:''}${e.price&&e.type!=='page_view'?` <span style="color:var(--ink3)">(${fmt(e.price)})</span>`:''}</span>
+      </div>`;
+    }).join('')}`;
+}
+function togActividad(key){
+  const d=$('act_'+key);if(!d)return;
+  d.style.display=d.style.display==='none'?'block':'none';
+}
 function renderSubsTab(){
   const el=$('subsList');if(!el)return;
   if(subsData===null){el.innerHTML='<div style="padding:24px;text-align:center;color:var(--ink3);font-size:12px">Cargando…</div>';return;}
   if(!subsData.length){el.innerHTML='<div style="padding:24px;text-align:center;color:var(--ink3);font-size:12px">Aún no hay suscriptores.<br>Aparecen aquí cuando alguien deja sus datos en el popup de bienvenida o el newsletter.</div>';return;}
+  // Recorrido: pedir la actividad de las sesiones aún no cargadas y re-pintar al llegar.
+  loadActivity(subsData.map(s=>s.session_id)).then(ok=>{if(ok&&avSec==='suscriptores')renderSubsTab();});
   const fGen=g=>g==='h'?'Él':g==='m'?'Ella':'';
   const head=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--white);z-index:1">
     <div style="font-size:12px;font-weight:800">${subsData.length} suscriptor${subsData.length===1?'':'es'}</div>
@@ -3639,16 +3739,24 @@ function renderSubsTab(){
       :(s.email?'✉️ '+escHtml(s.email):'—');
     const pref=[s.talla?('👟 '+escHtml(s.talla)):'',fGen(s.genero)].filter(Boolean).join(' · ');
     const f=s.created_at?new Date(s.created_at).toLocaleDateString('es-CO',{day:'2-digit',month:'short'}):'';
-    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line)">
-      <div style="min-width:0">
-        <div style="font-size:12.5px;font-weight:700">${escHtml(s.nombre||'(sin nombre)')}</div>
-        <div style="font-size:11px;color:var(--ink2);margin-top:2px">${contacto}</div>
-        <div style="font-size:10px;color:var(--ink3);margin-top:2px">📣 ${escHtml(camp)} · ${escHtml(s.source||'')}</div>
+    const cupon=s.source==='popup_bienvenida'?cuponBadge(s.welcome_issued_at||s.created_at):'';
+    const tieneAct=!!(activityBySession[s.session_id]||[]).length;
+    return `<div style="padding:10px 14px;border-bottom:1px solid var(--line)">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;${tieneAct?'cursor:pointer':''}" ${tieneAct?`onclick="togActividad('s_${s.id}')"`:''}>
+        <div style="min-width:0">
+          <div style="font-size:12.5px;font-weight:700">${escHtml(s.nombre||'(sin nombre)')}</div>
+          <div style="font-size:11px;color:var(--ink2);margin-top:2px" onclick="event.stopPropagation()">${contacto}</div>
+          <div style="font-size:10px;color:var(--ink3);margin-top:2px">📣 ${escHtml(camp)} · ${escHtml(s.source||'')}</div>
+          ${interesadoEnLinea(s.session_id)}
+        </div>
+        <div style="text-align:right;flex:0 0 auto">
+          <div style="font-size:11px;font-weight:700">${pref||'—'}</div>
+          <div style="font-size:10px;color:var(--ink3);margin-top:2px">${f}</div>
+          ${cupon?`<div style="margin-top:2px">${cupon}</div>`:''}
+          ${tieneAct?`<div style="font-size:9.5px;color:var(--blue);font-weight:700;margin-top:3px">👁 ver recorrido</div>`:''}
+        </div>
       </div>
-      <div style="text-align:right;flex:0 0 auto">
-        <div style="font-size:11px;font-weight:700">${pref||'—'}</div>
-        <div style="font-size:10px;color:var(--ink3);margin-top:2px">${f}</div>
-      </div>
+      ${tieneAct?`<div id="act_s_${s.id}" style="display:none;margin-top:8px;padding:8px 10px;background:var(--bg);border-radius:9px">${timelineHTML(s.session_id)}</div>`:''}
     </div>`;
   }).join('');
 }
@@ -3683,6 +3791,8 @@ function renderLeadsTab(){
     </div>`;
     return;
   }
+  // Recorrido: actividad de las sesiones de los pedidos visibles (batch, re-pinta al llegar).
+  loadActivity(orders.map(o=>o.session_id)).then(ok=>{if(ok&&avSec==='leads')renderLeadsTab();});
   const nPend=orders.filter(o=>!_isClasificado(o)&&o.status!=='abandoned').length;
   const nVta =orders.filter(o=>o.status==='venta').length;
   const nNo  =orders.filter(o=>o.status==='no_venta').length;
@@ -3709,6 +3819,9 @@ function renderLeadsTab(){
           ${o.utm&&o.utm.utm_campaign?`<br>📣 <span style="color:#5D2D91;font-weight:600">${escHtml(o.utm.utm_campaign)}</span>${o.utm.utm_content?` · ad: ${escHtml(o.utm.utm_content)}`:''}`:''}
           ${o.fecha?`<br><span style="color:var(--ink3);font-size:10px">${new Date(o.fecha).toLocaleString('es-CO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</span>`:''}
         </div>
+        ${interesadoEnLinea(o.session_id)}
+        ${(activityBySession[o.session_id]||[]).length?`<div onclick="togActividad('o_${o.id}')" style="font-size:10px;color:var(--blue);font-weight:700;margin-top:5px;cursor:pointer">👁 Ver recorrido en la tienda</div>
+        <div id="act_o_${o.id}" style="display:none;margin-top:6px;padding:8px 10px;background:var(--white);border-radius:9px">${timelineHTML(o.session_id)}</div>`:''}
         ${o.motivo_no_venta?`<div style="font-size:11px;color:#b3541e;background:#fdf3ec;border-radius:8px;padding:6px 9px;margin-top:7px">✕ Motivo: ${escHtml(o.motivo_no_venta)}</div>`:''}
         ${o.nota?`<div style="font-size:11px;color:var(--ink2);background:#fffbe8;border-radius:8px;padding:6px 9px;margin-top:6px">📝 ${escHtml(o.nota)}</div>`:''}
         <div style="display:flex;gap:5px;margin-top:9px;flex-wrap:wrap">

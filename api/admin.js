@@ -172,7 +172,7 @@ module.exports = async (req, res) => {
   if (action === 'list_subscribers') {
     const { data: rows, error } = await sb
       .from('subscribers')
-      .select('id,created_at,nombre,whatsapp,email,cumple,talla,genero,utm,source')
+      .select('id,created_at,nombre,whatsapp,email,cumple,talla,genero,utm,source,session_id,welcome_issued_at')
       .order('created_at', { ascending: false })
       .limit(1000);
     if (error) return res.status(500).json({ error: error.message });
@@ -182,11 +182,28 @@ module.exports = async (req, res) => {
   if (action === 'list_orders') {
     const { data: rows, error } = await sb
       .from('orders')
-      .select('id,created_at,fecha,nombre,cedula,tel,ciudad,barrio,direccion,pago,subtotal,envio,total,pares,items,status,reference,seccion,utm,combo,wa_status,temperatura,motivo_no_venta,nota,seguimiento')
+      .select('id,created_at,fecha,nombre,cedula,tel,ciudad,barrio,direccion,pago,subtotal,envio,total,pares,items,status,reference,seccion,utm,combo,wa_status,temperatura,motivo_no_venta,nota,seguimiento,session_id')
       .order('created_at', { ascending: false })
       .limit(500);
     if (error) return res.status(500).json({ error: error.message });
     return res.json({ ok: true, orders: rows || [] });
+  }
+
+  // Recorrido del cliente: eventos de las sesiones pedidas (batch), para "Interesado en"
+  // y el timeline expandible de Suscriptores/Leads.
+  if (action === 'session_activity') {
+    const ids = Array.isArray(data && data.session_ids)
+      ? data.session_ids.filter(s => typeof s === 'string' && s).map(s => s.slice(0, 64)).slice(0, 200)
+      : [];
+    if (!ids.length) return res.json({ ok: true, events: [] });
+    const { data: rows, error } = await sb
+      .from('events')
+      .select('session_id,created_at,type,product_id,price,device,utm_source,utm_campaign,ad_id')
+      .in('session_id', ids)
+      .order('created_at', { ascending: false })
+      .limit(4000);
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json({ ok: true, events: rows || [] });
   }
 
   return res.status(400).json({ error: 'unknown action' });
