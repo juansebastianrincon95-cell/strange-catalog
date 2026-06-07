@@ -1292,7 +1292,8 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
       <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:9px;margin-top:6px;background:var(--white);border:1.5px dashed var(--ink3);border-radius:8px;font-family:var(--font);font-size:11.5px;font-weight:700;color:var(--ink2);cursor:pointer"><span id="testiCapLbl">🧾 Pantallazo del pedido recibido (opcional)</span><input type="file" accept="image/*" id="testiCap" style="display:none" onchange="testiCapUp(this.files[0]);this.value=''"></label>
       <div style="font-size:10px;color:var(--ink3);margin-top:4px">💡 Tapa el número y la foto de perfil del cliente antes de subir el pantallazo.</div>
       <select id="testiProdSel" style="margin-top:6px;width:100%;padding:9px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"></select>
-      <button onclick="testiAdd()" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">➕ Agregar testimonio</button>
+      <button id="testiAddBtn" onclick="testiAdd()" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">➕ Agregar testimonio</button>
+      <button id="testiCancelBtn" onclick="testiEditCancel()" style="display:none;margin-top:6px;width:100%;padding:8px;background:var(--white);color:var(--ink2);border:1.5px solid var(--line);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">✕ Cancelar edición</button>
     </div>
   </div>
   <div data-sec="ajustes">
@@ -2269,7 +2270,7 @@ async function saveSocials(){
 
 /* ── CLIENTES FELICES (testimonios) ── */
 let testimonios=[];   // settings.testimonios [{nombre,fecha,texto,foto,productId}]
-let _tmProdId=null, _testiFoto=null, _testiCap=null, _testiList=[];
+let _tmProdId=null, _testiFoto=null, _testiCap=null, _testiList=[], _testiEditIdx=null;
 // Testimonios de EJEMPLO (fallback cuando el admin aún no cargó reales). Reemplazar por reales.
 // Testimonios de EJEMPLO con ciudad (sin foto → avatar de iniciales). Subir fotos reales o generar latinas.
 const DEFAULT_TESTIMONIOS=[
@@ -2337,6 +2338,7 @@ function renderTestiAdmin(){
   if(!testimonios.length){box.innerHTML='<div style="font-size:11px;color:var(--ink3)">Aún no hay testimonios. Agrega el primero abajo 👇</div>';return;}
   box.innerHTML=testimonios.map((t,i)=>`<div style="display:flex;align-items:center;gap:8px;background:var(--white);border:1px solid var(--line);border-radius:9px;padding:6px">
     <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--ink)">${escHtml(t.nombre||'')}${t.captura?' 🧾':''}${t.foto?' 📷':''}</div><div style="font-size:10px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(t.texto||(t.captura?'(pantallazo)':''))}</div></div>
+    <button onclick="testiEdit(${i})" style="border:none;background:#eef4ff;border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px">✏️</button>
     <button onclick="testiMove(${i},-1)" ${i===0?'disabled':''} style="border:none;background:var(--bg);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;${i===0?'opacity:.3':''}">↑</button>
     <button onclick="testiMove(${i},1)" ${i===testimonios.length-1?'disabled':''} style="border:none;background:var(--bg);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;${i===testimonios.length-1?'opacity:.3':''}">↓</button>
     <button onclick="testiDel(${i})" style="border:none;background:#ffe9e6;color:var(--red);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px">🗑</button>
@@ -2360,14 +2362,38 @@ async function testiAdd(){
   const fecha=($('testiFecha').value||'').trim()||new Date().toLocaleDateString('es-CO');
   const ciudad=($('testiCiudad')||{}).value?$('testiCiudad').value.trim():'';
   const productId=parseInt(($('testiProdSel')||{}).value)||null;
-  testimonios.push({nombre,ciudad,fecha,texto,foto:_testiFoto||null,captura:_testiCap||null,productId});
+  const obj={nombre,ciudad,fecha,texto,foto:_testiFoto||null,captura:_testiCap||null,productId};
+  if(_testiEditIdx!==null&&testimonios[_testiEditIdx])testimonios[_testiEditIdx]=obj;   // editar en sitio
+  else testimonios.push(obj);
   await saveTestimonios();
-  _testiFoto=null;_testiCap=null;$('testiNombre').value='';$('testiTexto').value='';$('testiFecha').value='';if($('testiCiudad'))$('testiCiudad').value='';
+  _testiFormReset();
+}
+// Cargar un testimonio existente en el formulario para editarlo.
+function testiEdit(i){
+  const t=testimonios[i];if(!t)return;
+  _testiEditIdx=i;
+  $('testiNombre').value=t.nombre||'';$('testiTexto').value=t.texto||'';$('testiFecha').value=t.fecha||'';
+  if($('testiCiudad'))$('testiCiudad').value=t.ciudad||'';
+  if($('testiProdSel'))$('testiProdSel').value=t.productId||'';
+  _testiFoto=t.foto||null;_testiCap=t.captura||null;
+  const lbl=$('testiFotoLbl');if(lbl)lbl.textContent=_testiFoto?'Foto lista ✓ (cambiar)':'📷 Foto del cliente (opcional)';
+  const lbc=$('testiCapLbl');if(lbc)lbc.textContent=_testiCap?'Pantallazo listo ✓ (cambiar)':'🧾 Pantallazo del pedido recibido (opcional)';
+  const btn=$('testiAddBtn');if(btn)btn.textContent='💾 Guardar cambios';
+  const cb=$('testiCancelBtn');if(cb)cb.style.display='block';
+  const inp=$('testiNombre');if(inp)inp.scrollIntoView({block:'center',behavior:'smooth'});
+}
+function testiEditCancel(){_testiFormReset();}
+function _testiFormReset(){
+  _testiEditIdx=null;_testiFoto=null;_testiCap=null;
+  $('testiNombre').value='';$('testiTexto').value='';$('testiFecha').value='';
+  if($('testiCiudad'))$('testiCiudad').value='';if($('testiProdSel'))$('testiProdSel').value='';
   const lbl=$('testiFotoLbl');if(lbl)lbl.textContent='📷 Foto del cliente (opcional)';
   const lbc=$('testiCapLbl');if(lbc)lbc.textContent='🧾 Pantallazo del pedido recibido (opcional)';
+  const btn=$('testiAddBtn');if(btn)btn.textContent='➕ Agregar testimonio';
+  const cb=$('testiCancelBtn');if(cb)cb.style.display='none';
 }
-async function testiMove(i,dir){const j=i+dir;if(j<0||j>=testimonios.length)return;[testimonios[i],testimonios[j]]=[testimonios[j],testimonios[i]];await saveTestimonios();}
-async function testiDel(i){testimonios.splice(i,1);await saveTestimonios();}
+async function testiMove(i,dir){const j=i+dir;if(j<0||j>=testimonios.length)return;if(_testiEditIdx!==null)_testiFormReset();[testimonios[i],testimonios[j]]=[testimonios[j],testimonios[i]];await saveTestimonios();}
+async function testiDel(i){if(_testiEditIdx!==null)_testiFormReset();testimonios.splice(i,1);await saveTestimonios();}
 async function saveTestimonios(){await adminWrite('upsert_settings',{data:{key:'testimonios',value:JSON.stringify(testimonios)}});renderTestimonios();renderTestiAdmin();}
 async function saveReviews(){reviewsCount=parseInt(($('cfgReviews')||{}).value)||0;await adminWrite('upsert_settings',{data:{key:'reviews_count',value:String(reviewsCount)}});renderTestimonios();}
 
