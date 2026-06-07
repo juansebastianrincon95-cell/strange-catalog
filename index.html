@@ -865,6 +865,9 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 @media(min-width:700px){.testi-card{margin-bottom:14px}}
 .testi-card-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
 .testi-card-foto{width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--bg)}
+/* Pantallazo/foto del pedido recibido — grande arriba de la tarjeta (estilo elena) */
+.testi-card-cap{width:100%;height:auto;display:block;border-radius:10px;margin-bottom:10px;background:var(--bg)}
+.tm-cap{width:100%;height:auto;display:block;border-radius:12px;margin-top:12px;background:var(--bg)}
 .testi-card-name{font-size:13px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:4px}
 .testi-card-verif{color:#1aad49;font-size:11px}
 .testi-card-date{font-size:10px;color:var(--ink3)}
@@ -1031,6 +1034,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
     <div class="tm-head"><img id="tmFoto" class="tm-foto" style="display:none" alt=""><div><div class="tm-name" id="tmName"></div><div class="tm-date" id="tmDate"></div></div></div>
     <div class="tm-stars">★★★★★</div>
     <div class="tm-text" id="tmText"></div>
+    <img id="tmCap" class="tm-cap" style="display:none" alt="Pedido recibido">
     <button class="tm-prod" id="tmProd" style="display:none" onclick="testiVerProducto()">Ver el producto &nbsp;→</button>
   </div>
 </div>
@@ -1285,6 +1289,8 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
       <input id="testiFecha" type="text" placeholder="Fecha (ej. 28/05/2026) — opcional" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
       <textarea id="testiTexto" placeholder="Testimonio / recomendación del cliente" rows="2" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none;resize:vertical"></textarea>
       <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:9px;margin-top:6px;background:var(--white);border:1.5px dashed var(--ink3);border-radius:8px;font-family:var(--font);font-size:11.5px;font-weight:700;color:var(--ink2);cursor:pointer"><span id="testiFotoLbl">📷 Foto del cliente (opcional)</span><input type="file" accept="image/*" id="testiFoto" style="display:none" onchange="testiFotoUp(this.files[0]);this.value=''"></label>
+      <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:9px;margin-top:6px;background:var(--white);border:1.5px dashed var(--ink3);border-radius:8px;font-family:var(--font);font-size:11.5px;font-weight:700;color:var(--ink2);cursor:pointer"><span id="testiCapLbl">🧾 Pantallazo del pedido recibido (opcional)</span><input type="file" accept="image/*" id="testiCap" style="display:none" onchange="testiCapUp(this.files[0]);this.value=''"></label>
+      <div style="font-size:10px;color:var(--ink3);margin-top:4px">💡 Tapa el número y la foto de perfil del cliente antes de subir el pantallazo.</div>
       <select id="testiProdSel" style="margin-top:6px;width:100%;padding:9px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"></select>
       <button onclick="testiAdd()" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">➕ Agregar testimonio</button>
     </div>
@@ -2263,7 +2269,7 @@ async function saveSocials(){
 
 /* ── CLIENTES FELICES (testimonios) ── */
 let testimonios=[];   // settings.testimonios [{nombre,fecha,texto,foto,productId}]
-let _tmProdId=null, _testiFoto=null, _testiList=[];
+let _tmProdId=null, _testiFoto=null, _testiCap=null, _testiList=[];
 // Testimonios de EJEMPLO (fallback cuando el admin aún no cargó reales). Reemplazar por reales.
 // Testimonios de EJEMPLO con ciudad (sin foto → avatar de iniciales). Subir fotos reales o generar latinas.
 const DEFAULT_TESTIMONIOS=[
@@ -2301,7 +2307,9 @@ function renderTestimonios(){
     const foto=t.foto?`<img class="testi-card-foto" src="${escHtml(t.foto)}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`+_avatar(t.nombre,true):_avatar(t.nombre,false);
     const prod=p?`<div class="testi-card-prod"><img src="${escHtml(p.img)}" alt=""><span>${escHtml((BRAND_LABELS[p.brand]||'')+' '+(p.g==='h'?'Hombre':'Mujer'))}</span></div>`:'';
     const meta=[t.ciudad,t.fecha].filter(Boolean).map(escHtml).join(' · ');
+    const cap=t.captura?`<img class="testi-card-cap" src="${escHtml(t.captura)}" alt="Pedido recibido" loading="lazy" onerror="this.style.display='none'">`:'';
     return `<div class="testi-card" onclick="openTesti(${i})">
+      ${cap}
       <div class="testi-card-top">${foto}<div><div class="testi-card-name">${escHtml(t.nombre||'Cliente')} <span class="testi-card-verif">✓</span></div><div class="testi-card-date">${meta}</div></div></div>
       <div class="testi-card-stars">★★★★★</div>
       <div class="testi-card-text">${escHtml(t.texto||'')}</div>
@@ -2315,6 +2323,7 @@ function openTesti(i){
   $('tmDate').textContent=[t.ciudad,t.fecha].filter(Boolean).join(' · ');
   $('tmText').textContent=t.texto||'';
   const f=$('tmFoto');if(f){if(t.foto){f.src=t.foto;f.style.display='';}else f.style.display='none';}
+  const cp=$('tmCap');if(cp){if(t.captura){cp.src=t.captura;cp.style.display='';}else cp.style.display='none';}
   _tmProdId=(t.productId&&prods.find(x=>x.id===t.productId))?t.productId:null;
   const pb=$('tmProd');if(pb)pb.style.display=_tmProdId?'':'none';
   $('testiModal').classList.add('on');lockScroll();
@@ -2327,11 +2336,17 @@ function renderTestiAdmin(){
   const box=$('testiList');if(!box)return;
   if(!testimonios.length){box.innerHTML='<div style="font-size:11px;color:var(--ink3)">Aún no hay testimonios. Agrega el primero abajo 👇</div>';return;}
   box.innerHTML=testimonios.map((t,i)=>`<div style="display:flex;align-items:center;gap:8px;background:var(--white);border:1px solid var(--line);border-radius:9px;padding:6px">
-    <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--ink)">${escHtml(t.nombre||'')}</div><div style="font-size:10px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(t.texto||'')}</div></div>
+    <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--ink)">${escHtml(t.nombre||'')}${t.captura?' 🧾':''}${t.foto?' 📷':''}</div><div style="font-size:10px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(t.texto||(t.captura?'(pantallazo)':''))}</div></div>
     <button onclick="testiMove(${i},-1)" ${i===0?'disabled':''} style="border:none;background:var(--bg);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;${i===0?'opacity:.3':''}">↑</button>
     <button onclick="testiMove(${i},1)" ${i===testimonios.length-1?'disabled':''} style="border:none;background:var(--bg);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;${i===testimonios.length-1?'opacity:.3':''}">↓</button>
     <button onclick="testiDel(${i})" style="border:none;background:#ffe9e6;color:var(--red);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px">🗑</button>
   </div>`).join('');
+}
+// Pantallazo del pedido recibido (se muestra GRANDE arriba de la tarjeta, estilo elena).
+function testiCapUp(file){
+  if(!file)return;
+  const lbl=$('testiCapLbl');if(lbl)lbl.textContent='Subiendo…';
+  compressImg(file,async d=>{try{const u=await uploadToStorage(d,0,false);_testiCap=u;if(lbl)lbl.textContent='Pantallazo listo ✓ (cambiar)';}catch(e){if(lbl)lbl.textContent='🧾 Pantallazo del pedido recibido (opcional)';alert('❌ No se pudo subir:\n'+(e.message||e));}},false);
 }
 function testiFotoUp(file){
   if(!file)return;
@@ -2340,14 +2355,16 @@ function testiFotoUp(file){
 }
 async function testiAdd(){
   const nombre=($('testiNombre').value||'').trim(), texto=($('testiTexto').value||'').trim();
-  if(!nombre||!texto){alert('Pon al menos el nombre y el testimonio.');return;}
+  // Con pantallazo, el texto es opcional (la captura ES el testimonio).
+  if(!nombre||(!texto&&!_testiCap)){alert('Pon el nombre y el testimonio (o sube el pantallazo).');return;}
   const fecha=($('testiFecha').value||'').trim()||new Date().toLocaleDateString('es-CO');
   const ciudad=($('testiCiudad')||{}).value?$('testiCiudad').value.trim():'';
   const productId=parseInt(($('testiProdSel')||{}).value)||null;
-  testimonios.push({nombre,ciudad,fecha,texto,foto:_testiFoto||null,productId});
+  testimonios.push({nombre,ciudad,fecha,texto,foto:_testiFoto||null,captura:_testiCap||null,productId});
   await saveTestimonios();
-  _testiFoto=null;$('testiNombre').value='';$('testiTexto').value='';$('testiFecha').value='';if($('testiCiudad'))$('testiCiudad').value='';
+  _testiFoto=null;_testiCap=null;$('testiNombre').value='';$('testiTexto').value='';$('testiFecha').value='';if($('testiCiudad'))$('testiCiudad').value='';
   const lbl=$('testiFotoLbl');if(lbl)lbl.textContent='📷 Foto del cliente (opcional)';
+  const lbc=$('testiCapLbl');if(lbc)lbc.textContent='🧾 Pantallazo del pedido recibido (opcional)';
 }
 async function testiMove(i,dir){const j=i+dir;if(j<0||j>=testimonios.length)return;[testimonios[i],testimonios[j]]=[testimonios[j],testimonios[i]];await saveTestimonios();}
 async function testiDel(i){testimonios.splice(i,1);await saveTestimonios();}
