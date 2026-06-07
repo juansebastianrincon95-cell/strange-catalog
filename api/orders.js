@@ -99,10 +99,17 @@ async function handleSubscribe(req, res) {
   const { data: prev } = await sb.from('subscribers').select('id').eq('whatsapp', whatsapp).limit(1);
   if (!prev || !prev.length) {
     const { error } = await sb.from('subscribers').insert({
-      nombre, whatsapp, cumple, talla, genero, utm, session_id, source: 'popup_bienvenida'
+      nombre, whatsapp, cumple, talla, genero, utm, session_id, source: 'popup_bienvenida',
+      welcome_issued_at: new Date().toISOString()
     });
     if (error) return res.status(500).json({ error: error.message });
     await capiSubLead('_subscribe', { phone: whatsapp, name: nombre });
+  } else {
+    // Re-registro del mismo WhatsApp: se entrega el código de nuevo → renovar la vigencia
+    // (el front también resetea ss_welcome_ts). Sin esto, el server quitaba el descuento
+    // de un cupón que el front mostraba como válido (hallazgo Codex #2).
+    await sb.from('subscribers').update({ welcome_issued_at: new Date().toISOString(), session_id })
+      .eq('id', prev[0].id);
   }
   return res.status(201).json({ ok: true, codigo: CODIGO_BIENVENIDA });
 }

@@ -100,9 +100,12 @@ async function calculateOrder(input) {
       if (dig.length >= 7) ors.push(`whatsapp.eq.${dig}`);
       if (sid) ors.push(`session_id.eq.${sid}`);
       if (ors.length) {
-        const { data: subs } = await sb.from('subscribers').select('created_at')
-          .or(ors.join(',')).order('created_at', { ascending: true }).limit(1);
-        const t = subs && subs[0] && Date.parse(subs[0].created_at);
+        // welcome_issued_at se renueva en cada entrega del código (re-registro incluido);
+        // created_at queda como fallback para suscriptores previos a la columna.
+        const { data: subs } = await sb.from('subscribers').select('created_at,welcome_issued_at')
+          .or(ors.join(',')).order('created_at', { ascending: false }).limit(1);
+        const s = subs && subs[0];
+        const t = s && Date.parse(s.welcome_issued_at || s.created_at);
         if (t && (Date.now() - t) > 7 * 24 * 60 * 60 * 1000) desc = 0;
       }
     } catch (e) { /* ante la duda, no bloquear la venta */ }

@@ -4275,10 +4275,11 @@ async function enviarWA(tipo){
   trackEvent('lead',{price:sub});
   orders.push(orderObj);
   saveState();
-  // OJO: fire-and-forget (sin await). Un await aquí rompe window.open en iOS Safari
-  // (pierde la activación del gesto → popup bloqueado → el cliente nunca llega a WhatsApp).
-  fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'create_order',...orderObj})}).catch(()=>{});
-  if(SHEETS_URL){fetch(SHEETS_URL,{method:'POST',body:JSON.stringify(orderObj),headers:{'Content-Type':'application/json'}}).catch(()=>{});}
+  // Fire-and-forget (sin await: un await rompe window.open en iOS Safari — pierde la
+  // activación del gesto → popup bloqueado). keepalive:true hace que el navegador complete
+  // el request aunque la pestaña navegue a WhatsApp — sin esto el pedido/lead podía perderse.
+  fetch('/api/orders',{method:'POST',keepalive:true,headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'create_order',...orderObj})}).catch(()=>{});
+  if(SHEETS_URL){fetch(SHEETS_URL,{method:'POST',keepalive:true,body:JSON.stringify(orderObj),headers:{'Content-Type':'application/json'}}).catch(()=>{});}
   window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,'_blank');
   return false;
 }
