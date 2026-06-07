@@ -106,11 +106,21 @@ module.exports = async (req, res) => {
       product_views:     allEvts.filter(e => e.type === 'view_product').length,
       add_to_cart:       allEvts.filter(e => e.type === 'add_to_cart').length,
       checkout_started:  allEvts.filter(e => e.type === 'initiate_checkout').length,
+      // reached_payment = llegó a la pantalla de métodos de pago (fuga datos→pago).
+      reached_payment:   allEvts.filter(e => e.type === 'reached_payment').length,
       // 'leads' = clientes que abrieron WhatsApp (incluye 'purchase' viejo por compat).
       leads:             allEvts.filter(e => e.type === 'lead' || e.type === 'purchase').length,
       // 'purchases' = ventas REALES confirmadas (desde orders, no desde eventos del navegador).
       purchases:         ventas.length,
     },
+    // Conversión del popup de bienvenida: registros (leads del popup) / veces mostrado.
+    popup_shown_7d:         allEvts.filter(e => e.type === 'popup_shown').length,
+    popup_to_lead_rate:     (() => {
+      const shown = new Set(allEvts.filter(e => e.type === 'popup_shown').map(e => e.session_id));
+      if (!shown.size) return null;
+      const conv = new Set(allEvts.filter(e => e.type === 'lead' && shown.has(e.session_id)).map(e => e.session_id));
+      return +(conv.size / shown.size).toFixed(2);
+    })(),
     cart_abandonment_rate:  didCart.length ? +(abandoned.length / didCart.length).toFixed(2) : 0,
     abandoned_sessions_24h: abandonedIds24h.size,
     traffic_sources:        Object.entries(sources).sort((a, b) => b[1] - a[1]).slice(0, 5),

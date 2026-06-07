@@ -1762,7 +1762,7 @@ function aplicarCupon(){
   const code=inp.value.trim().toUpperCase();
   const cupFail=msg=>{const e=$('cupErr');if(e){e.textContent=msg||'Código no válido';e.style.display='block';setTimeout(()=>{e.style.display='none';e.textContent='Código no válido';},3000);}};
   if(code==='BIENVENIDO20'&&welcomeVencido())return cupFail('Tu código de bienvenida venció (era válido por 7 días) 😢');
-  if(CUPONES[code]){cuponAplicado=code;localStorage.setItem('ss_cupon',code);rCart();}
+  if(CUPONES[code]){cuponAplicado=code;localStorage.setItem('ss_cupon',code);trackEvent('apply_coupon',{product_id:code});rCart();}
   else cupFail();
 }
 // Despliega/oculta el campo de código promocional (colapsado por defecto, estilo Adidas).
@@ -1777,7 +1777,9 @@ function toggleCupon(){
 let WELCOME_ON=true;                 // se sobreescribe desde settings (welcome_popup)
 const WELCOME_CODE='BIENVENIDO20';   // debe coincidir con CUPONES y api/subscribe.js
 let _wmOpen=false;
-function openWelcome(){const m=$('welcomeModal');if(m)m.classList.add('on');if(!_wmOpen){_wmOpen=true;lockScroll();}const t=$('wmReopen');if(t)t.classList.remove('show');}
+let _wmShownTracked=false;   // popup_shown: 1 vez por visita (mide tasa popup→registro)
+function openWelcome(){const m=$('welcomeModal');if(m)m.classList.add('on');if(!_wmOpen){_wmOpen=true;lockScroll();}const t=$('wmReopen');if(t)t.classList.remove('show');
+  if(!_wmShownTracked){_wmShownTracked=true;trackEvent('popup_shown');}}
 // Cerrar NO marca "visto": si no dejó sus datos, queda el tag anclado abajo para reabrirlo.
 function closeWelcome(){const m=$('welcomeModal');if(m)m.classList.remove('on');if(_wmOpen){_wmOpen=false;unlockScroll();}
   if(!localStorage.getItem('ss_subscribed')){const t=$('wmReopen');if(t)t.classList.add('show');}}
@@ -4209,6 +4211,8 @@ function goStep(n){
       trackEvent('initiate_checkout',{price:icTotal});
     }
   }
+  // reached_payment = llegó a la pantalla de métodos de pago (paso 3) — mide la fuga datos→pago.
+  if(n===2)trackEvent('reached_payment');
   step=n;renderStep();$('cbody').scrollTop=0;
 }
 function chQty(key,d){if(!cart[key])return;cart[key].qty=Math.max(1,cart[key].qty+d);syncDot();renderStep();}
@@ -4341,6 +4345,7 @@ function rPayChoice(){
 }
 async function enviarWA(tipo){
   tipo=tipo||'pago_anticipado';
+  trackEvent('select_payment',{product_id:tipo});
   const m={nombre:'fn',cedula:'fc',celular:'ft',direccion:'fd',barrio:'fb',ciudad:'fci'};
   let ok=true;const d={};
   Object.entries(m).forEach(([k,id])=>{const el=$(id);const v=el?el.value:(cData[k]||'');d[k]=v.trim();if(!v.trim())ok=false;});
@@ -4398,6 +4403,7 @@ async function enviarWA(tipo){
 }
 
 async function pagarWompi(){
+  trackEvent('select_payment',{product_id:'wompi'});
   const m={nombre:'fn',cedula:'fc',celular:'ft',direccion:'fd',barrio:'fb',ciudad:'fci'};
   let ok=true;const d={};
   Object.entries(m).forEach(([k,id])=>{const el=$(id);const v=el?el.value:(cData[k]||'');d[k]=v.trim();if(!v.trim())ok=false;});
@@ -4495,6 +4501,7 @@ async function checkWompiReturn(){
 
 /* ── PAGO EN LÍNEA: BOLD (Payment Link API; firma/llave en api/orders.js) ── */
 async function pagarBold(){
+  trackEvent('select_payment',{product_id:'bold'});
   const m={nombre:'fn',cedula:'fc',celular:'ft',direccion:'fd',barrio:'fb',ciudad:'fci'};
   let ok=true;const d={};
   Object.entries(m).forEach(([k,id])=>{const el=$(id);const v=el?el.value:(cData[k]||'');d[k]=v.trim();if(!v.trim())ok=false;});
