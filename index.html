@@ -1635,10 +1635,11 @@ let combos=DEFAULT_COMBOS.slice();
 let comboActivo=null;   // objeto del combo elegido (o null)
 let _comboCamisetaCelebrada=false;   // para disparar el toast UNA vez al completar
 function restaurarCombo(){
-  try{
-    const id=sessionStorage.getItem('ss_combo');
-    if(id)comboActivo=combos.find(c=>c.id===id&&c.activo!==false)||null;
-  }catch(e){}
+  // El carrito NO sobrevive un refresh (vive en memoria). Si el combo sí sobreviviera
+  // (sessionStorage), reaparecería su aviso al agregar un producto en una visita posterior
+  // sin haberlo escogido (bug combo fantasma). Ciclo de vida unificado: el combo vive y
+  // muere con el carrito. Aquí solo se limpia el residuo de pestañas con la versión vieja.
+  try{sessionStorage.removeItem('ss_combo');}catch(e){}
 }
 function comboPares(){return Object.values(cart).reduce((s,{qty})=>s+qty,0);}
 // PRECIOS DEL CARRITO centralizados: combo (precio fijo, sin cupón) o flujo normal con cupón.
@@ -1715,7 +1716,6 @@ function renderCombos(){
 function activarCombo(id){
   const c=(combos||[]).find(x=>x&&x.id===id&&x.activo!==false);if(!c)return;
   comboActivo=c;_comboCamisetaCelebrada=false;
-  try{sessionStorage.setItem('ss_combo',c.id);}catch(e){}
   trackEvent('view_product',{product_id:'combo_'+c.id});
   openCatalog({gender:'all'});
   renderComboBar();
@@ -1723,7 +1723,6 @@ function activarCombo(id){
 }
 function salirCombo(){
   comboActivo=null;_comboCamisetaCelebrada=false;
-  try{sessionStorage.removeItem('ss_combo');}catch(e){}
   renderComboBar();
   toast('Saliste del combo — precios normales');
   if(typeof rCart==='function'&&$('csheet')&&$('csheet').classList.contains('on')&&step===0)rCart();
@@ -4308,7 +4307,7 @@ async function checkWompiReturn(){
     }catch(e){}
   }
   if(verified){
-    comboActivo=null;try{sessionStorage.removeItem('ss_combo');}catch(e){}   // ciclo del combo cerrado
+    comboActivo=null;   // ciclo del combo cerrado
     const order=orders.find(o=>o.reference===reference)||
                 orders.filter(o=>o.pago==='wompi'&&o.status==='pending').pop();
     if(order){
@@ -4393,7 +4392,7 @@ async function checkBoldReturn(){
     }catch(e){}
   }
   if(verified){
-    comboActivo=null;try{sessionStorage.removeItem('ss_combo');}catch(e){}   // ciclo del combo cerrado
+    comboActivo=null;   // ciclo del combo cerrado
     const order=orders.find(o=>o.reference===reference)||orders.filter(o=>o.pago==='bold'&&o.status==='pending').pop();
     if(order){
       order.status='venta';saveState();
