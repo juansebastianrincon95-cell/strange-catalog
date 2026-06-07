@@ -1737,6 +1737,18 @@ function activarCombo(id){
   renderComboBar();
   toast(`🏆 ${c.nombre} activo — escoge ${c.pares} modelos`);
 }
+// Aplicar combo desde la SUGERENCIA del carrito: el cliente ya tiene los pares,
+// no hay que navegarlo al catálogo (a diferencia de activarCombo).
+function aplicarComboSug(id){
+  const c=(combos||[]).find(x=>x&&x.id===id&&x.activo!==false);if(!c)return;
+  comboActivo=c;_comboCamisetaCelebrada=false;
+  trackEvent('view_product',{product_id:'combo_'+c.id});
+  renderComboBar();
+  toast(`🏆 ${c.nombre} aplicado — precio de combo`);
+  rCart();
+}
+let _comboSugDismiss=false;   // el cliente cerró la sugerencia (por ciclo de carrito)
+function cerrarComboSug(){_comboSugDismiss=true;rCart();}
 function salirCombo(){
   comboActivo=null;_comboCamisetaCelebrada=false;
   renderComboBar();
@@ -4233,7 +4245,7 @@ async function addQueue(dest){
 // inflar el funnel de Meta. _icFired evita duplicarlo dentro de un mismo ciclo de carrito.
 let _icFired=false;
 function openCart(){
-  step=0;_icFired=false;renderStep();
+  step=0;_icFired=false;_comboSugDismiss=false;renderStep();
   $('cscrim').classList.add('on');$('csheet').classList.add('on');lockScroll();
 }
 function closeCart(){$('cscrim').classList.remove('on');$('csheet').classList.remove('on');unlockScroll();}
@@ -4291,6 +4303,21 @@ function rCart(){
   // 2 mensajes (estilo Adidas): no reservado + financiación
   const msgs=`<div class="cart-msg"><span class="cm-ic">🔒</span><span>Los artículos en tu carrito <b>no están reservados</b>. Termina tu compra ahora.</span></div>`
     +`<div class="cart-fin"><div class="cart-fin-tx">Llévalos hoy y <b>págalos después</b> con Addi y Sistecrédito</div><div class="cart-fin-logos"><img src="logos/addi.png" alt="Addi" onerror="this.remove()"><img src="logos/sistecredito.png" alt="Sistecrédito" onerror="this.remove()"></div></div>`;
+  // Sugerencia de combo: 2+ pares SIN combo elegido y existe un combo con esos pares exactos
+  // que sale más barato que lo que va a pagar → ofrecerlo con 1 toque (el cliente que agrega
+  // varios pares es el cliente ideal del combo, pero no suele venir de la sección Ofertas).
+  let comboSug='';
+  if(!comboActivo&&!_comboSugDismiss&&tot>=2){
+    const cand=(combos||[]).find(c=>c&&c.activo!==false&&c.pares===tot);
+    if(cand&&parseInt(cand.precio)<totalFinal){
+      const ahorraCombo=totalFinal-parseInt(cand.precio);
+      comboSug=`<div class="cart-line" style="display:block;background:#eafaf0;border-color:#bfe9cd;margin-top:12px;position:relative">
+        <button onclick="cerrarComboSug()" style="position:absolute;top:6px;right:8px;border:none;background:none;color:#137a3a;font-size:14px;cursor:pointer;padding:2px 6px">✕</button>
+        <div style="color:#137a3a;font-size:12.5px;line-height:1.5;padding-right:22px"><b>🏆 Tus ${tot} pares por ${fmt(parseInt(cand.precio))}</b> con el ${escHtml(cand.nombre)} ${cand.bandera||''} — ahorras <b>${fmt(ahorraCombo)}</b>${cand.camiseta?' + 🎁 camiseta GRATIS':''}</div>
+        <button onclick="aplicarComboSug('${cand.id}')" style="margin-top:8px;width:100%;padding:9px;background:#137a3a;color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:12.5px;font-weight:700;cursor:pointer">Aplicar combo y ahorrar ${fmt(ahorraCombo)}</button>
+      </div>`;
+    }
+  }
   // Aviso de combo en progreso (activo pero sin los pares exactos)
   const comboAviso=(comboActivo&&!pricing.combo)
     ? `<div class="cart-line" style="background:#fff8e6;color:#8a6d00;border-color:#f0dfa8;margin-top:12px"><span class="cl-ic">🏆</span><span><b>${escHtml(comboActivo.nombre)}</b>: ${pricing.pares<comboActivo.pares?`te falta${comboActivo.pares-pricing.pares===1?'':'n'} <b>${comboActivo.pares-pricing.pares} par${comboActivo.pares-pricing.pares===1?'':'es'}</b> para el precio de ${fmt(comboActivo.precio)}`:`tienes <b>${pricing.pares-comboActivo.pares} par${pricing.pares-comboActivo.pares===1?'':'es'} de más</b> — el combo es de ${comboActivo.pares}`}</span></div>`
@@ -4321,8 +4348,8 @@ function rCart(){
     ? `<div class="cart-line" style="background:#eafaf0;color:#137a3a;border-color:#bfe9cd;margin-top:12px;font-weight:700"><span class="cl-ic">🎉</span><span>¡Gracias por escoger tu selección ganadora! Liberaste una <b>CAMISETA GRATIS</b> de tu selección 🎁 (confírmanos la talla por WhatsApp)</span></div>`
     :'';
   const gift=`<div class="cart-line cart-regalo" style="margin-top:12px"><span class="cl-ic">🎁</span><span>Incluye <b>guía de cuidado</b> + <b>5%</b> en tu próximo par</span></div>`;
-  // Orden: mensajes → productos → aviso combo → resumen → camiseta → código → regalo
-  body.innerHTML=msgs+body.innerHTML+comboAviso+summary+camisetaHtml+cupHtml+gift;
+  // Orden: mensajes → productos → sugerencia combo → aviso combo → resumen → camiseta → código → regalo
+  body.innerHTML=msgs+body.innerHTML+comboSug+comboAviso+summary+camisetaHtml+cupHtml+gift;
   foot.innerHTML=`<button class="btnmain" onclick="goStep(1)">Ir a pagar &nbsp;→</button>`;
 }
 function rForm(){
