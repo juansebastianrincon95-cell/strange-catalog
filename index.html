@@ -2483,7 +2483,7 @@ function openWA(){
 /* Mini-anuncio del FAB: chat que llega preguntando por un combo = lead caliente precalificado.
    content_name distinto (whatsapp_combos) para medir cuántos leads trae la burbuja. */
 function openWACombos(){
-  const msg=`¡Hola ${STORE_NAME}! 🏆 Quiero saber más de los combos mundialistas ⚽`;
+  const msg=`¡Hola ${STORE_NAME}! 👟 Vengo del catálogo, estoy interesado en los combos mundialistas 🏆⚽ Dame más información...`;
   trackEvent('lead',{});
   if(typeof px==='function')px('Lead',{content_name:'whatsapp_combos',...getUTM()});
   hideWaBubble(true);
