@@ -4135,11 +4135,15 @@ function rCart(){
   const comboAviso=(comboActivo&&!pricing.combo)
     ? `<div class="cart-line" style="background:#fff8e6;color:#8a6d00;border-color:#f0dfa8;margin-top:12px"><span class="cl-ic">🏆</span><span><b>${escHtml(comboActivo.nombre)}</b>: ${pricing.pares<comboActivo.pares?`te falta${comboActivo.pares-pricing.pares===1?'':'n'} <b>${comboActivo.pares-pricing.pares} par${comboActivo.pares-pricing.pares===1?'':'es'}</b> para el precio de ${fmt(comboActivo.precio)}`:`tienes <b>${pricing.pares-comboActivo.pares} par${pricing.pares-comboActivo.pares===1?'':'es'} de más</b> — el combo es de ${comboActivo.pares}`}</span></div>`
     :'';
-  // Resumen del pedido
-  let sumRows=`<div class="csum-row"><span>Productos (${tot})</span><span class="v"${pricing.combo?' style="text-decoration:line-through;color:var(--ink3)"':''}>${fmt(pricing.combo?sub:orig)}</span></div>`;
+  // Resumen del pedido. Con combo, el ahorro se muestra COMPLETO: descuento de tienda
+  // (precio antes→ahora) + descuento del combo — el cliente debe ver todo lo que ahorra,
+  // no solo el tramo del combo (anclaje). Los montos cobrados no cambian.
+  let sumRows=`<div class="csum-row"><span>Productos (${tot})</span><span class="v"${pricing.combo?' style="text-decoration:line-through;color:var(--ink3)"':''}>${fmt(orig)}</span></div>`;
   if(pricing.combo){
+    if(ahorro>0)sumRows+=`<div class="csum-row disc"><span>Descuento tienda</span><span class="v">−${fmt(ahorro)}</span></div>`;
     sumRows+=`<div class="csum-row disc"><span>🏆 ${escHtml(pricing.combo.nombre)} (${pricing.combo.pares} pares)</span><span class="v">${fmt(pricing.sub)}</span></div>`;
     if(sub>pricing.sub)sumRows+=`<div class="csum-row disc"><span>Ahorro del combo</span><span class="v">−${fmt(sub-pricing.sub)}</span></div>`;
+    if(orig>pricing.sub)sumRows+=`<div class="csum-row disc" style="font-weight:800;font-size:13px"><span>🎉 Ahorras en total</span><span class="v">${fmt(orig-pricing.sub)}</span></div>`;
   }else{
     if(ahorro>0) sumRows+=`<div class="csum-row disc"><span>Descuento</span><span class="v">−${fmt(ahorro)}</span></div>`;
     if(desc>0)   sumRows+=`<div class="csum-row disc"><span>Cupón ${cuponAplicado}</span><span class="v">−${fmt(desc)}</span></div>`;
@@ -4243,8 +4247,10 @@ async function enviarWA(tipo){
   const pedidoCode=rows.map(({p,qty,type})=>(type==='liq'?'L':'')+p.id+'x'+qty).join(',');
   const pedidoLink=`https://strangesneakers.com/?pedido=${pedidoCode}`;
   const envioLinea=tipo==='contra_entrega'?`🚚 *Envío (se paga primero):* ${fmt(flete)}\n👟 *Zapatos (pagas al recibir en casa):* ${fmt(sub)}`:`📦 *Envío: GRATIS ✓*`;
+  // Ahorro REAL del combo: contra el precio original (antes→ahora + combo), igual que el carrito.
+  const origWA=rows.reduce((s,{p,qty})=>{const act=(p.promo||promoG)&&p.was&&p.was>p.price;return s+(act?p.was:p.price)*qty;},0);
   const descLinea=pricing.combo
-    ?`🏆 *${pricing.combo.nombre}: ${pricing.combo.pares} pares por ${fmt(pricing.sub)}* (ahorra ${fmt(subBruto-pricing.sub)})\n${pricing.camiseta?`🎁 *CAMISETA GRATIS de su selección* — pedirle la talla ⚽\n`:''}`
+    ?`🏆 *${pricing.combo.nombre}: ${pricing.combo.pares} pares por ${fmt(pricing.sub)}* (ahorra en total ${fmt(Math.max(origWA,subBruto)-pricing.sub)})\n${pricing.camiseta?`🎁 *CAMISETA GRATIS de su selección* — pedirle la talla ⚽\n`:''}`
     :(desc>0?`🏷️ *Descuento ${cuponAplicado}:* -${fmt(desc)}\n`:'');
   const pagoLbl=tipo==='contra_entrega'?'Contra entrega 📦':tipo==='credito'?'Crédito (Addi / Sistecrédito) 🧾':'Pago anticipado 💸';
   const instruccion=tipo==='contra_entrega'?`El cliente paga primero el *ENVÍO* (${fmt(flete)}) y los *zapatos al recibir* en casa. Coordinemos el pago del envío 🙏`:tipo==='credito'?'El cliente quiere pagar a *CRÉDITO*. Indícale si aplica por *Addi* o *Sistecrédito* y el paso a paso 🙏':'Enviar comprobante de pago para procesar el envío 🙏';
