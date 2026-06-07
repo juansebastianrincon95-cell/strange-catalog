@@ -222,7 +222,7 @@ module.exports = async (req, res) => {
       // Embudo por SESIONES ÚNICAS y ENCADENADO (hallazgo Codex #6): el paso N solo cuenta
       // sesiones que también pasaron por TODOS los pasos anteriores → embudo siempre
       // decreciente y tasas ≤100%, aunque haya eventos parciales o datos viejos.
-      const porPaso = { page_view: new Set(), view_product: new Set(), add_to_cart: new Set(), initiate_checkout: new Set(), lead: new Set() };
+      const porPaso = { page_view: new Set(), view_product: new Set(), add_to_cart: new Set(), initiate_checkout: new Set(), reached_payment: new Set(), lead: new Set() };
       (evs || []).forEach(e => {
         if (porPaso[e.type]) porPaso[e.type].add(e.session_id);
         // product_id: 'L34' = liquidación, '34' = catálogo (numéricos viejos se asumen cat)
@@ -235,11 +235,15 @@ module.exports = async (req, res) => {
       });
       let cadena = porPaso.page_view;
       const paso = s => { cadena = new Set([...s].filter(x => cadena.has(x))); return cadena.size; };
+      // reached_payment existe desde 2026-06-07: en rangos sin ese evento el paso se omite
+      // (null → el front lo oculta) para no romper la cadena de rangos históricos.
+      const hayRP = porPaso.reached_payment.size > 0;
       funnel = {
         sessions: porPaso.page_view.size,
         view_product: paso(porPaso.view_product),
         add_to_cart: paso(porPaso.add_to_cart),
         initiate_checkout: paso(porPaso.initiate_checkout),
+        reached_payment: hayRP ? paso(porPaso.reached_payment) : null,
         leads: paso(porPaso.lead),
         ventas: compras
       };

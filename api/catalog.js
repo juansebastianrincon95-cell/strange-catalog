@@ -113,6 +113,14 @@ module.exports = async (req, res) => {
       // 'purchases' = ventas REALES confirmadas (desde orders, no desde eventos del navegador).
       purchases:         ventas.length,
     },
+    // Mismo embudo pero por SESIONES ÚNICAS (una persona que agrega 5 pares = 1):
+    // evita leer eventos crudos como si fueran personas.
+    funnel_7d_personas: (() => {
+      const u = t => new Set(allEvts.filter(e => e.type === t).map(e => e.session_id)).size;
+      return { page_views: u('page_view'), product_views: u('view_product'), add_to_cart: u('add_to_cart'),
+               checkout_started: u('initiate_checkout'), reached_payment: u('reached_payment'),
+               leads: new Set(allEvts.filter(e => e.type === 'lead' || e.type === 'purchase').map(e => e.session_id)).size };
+    })(),
     // Conversión del popup de bienvenida: registros (leads del popup) / veces mostrado.
     popup_shown_7d:         allEvts.filter(e => e.type === 'popup_shown').length,
     popup_to_lead_rate:     (() => {

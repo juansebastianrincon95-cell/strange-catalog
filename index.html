@@ -3573,7 +3573,8 @@ function _svgSerie(serie){
 }
 function _embudo(f){
   if(!f)return '';
-  const pasos=[['👀 Sesiones',f.sessions],['👟 Vieron producto',f.view_product],['🛒 Agregaron al carrito',f.add_to_cart],['💳 Iniciaron checkout',f.initiate_checkout],['📱 Lead WhatsApp',f.leads],['✅ Venta',f.ventas]];
+  const pasos=[['👀 Sesiones',f.sessions],['👟 Vieron producto',f.view_product],['🛒 Agregaron al carrito',f.add_to_cart],['💳 Iniciaron checkout',f.initiate_checkout],['💰 Llegaron a pagar',f.reached_payment],['📱 Lead WhatsApp',f.leads],['✅ Venta',f.ventas]]
+    .filter(p=>p[1]!=null);   // reached_payment es null en rangos previos al 2026-06-07 → se oculta
   const max=Math.max(...pasos.map(p=>p[1]),1);
   return pasos.map((p,i)=>{
     const prev=i?pasos[i-1][1]:null;
