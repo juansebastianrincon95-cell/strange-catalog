@@ -87,7 +87,26 @@ async function calculateOrder(input) {
   }
   // Cupones NO acumulables con combo.
   const cupon = combo ? null : (input.cupon ? String(input.cupon).trim().toUpperCase() : null);
-  const desc = combo ? 0 : cuponDesc(cupon, subBruto);
+  let desc = combo ? 0 : cuponDesc(cupon, subBruto);
+  // Vigencia BIENVENIDO20: 7 días desde el registro en el popup. Si encontramos al suscriptor
+  // (por tel del pedido o session_id) y su registro es viejo, el cupón no aplica. Si NO lo
+  // encontramos, se respeta (mejor un falso positivo que perder una venta por $20.000).
+  if (cupon === 'BIENVENIDO20' && desc > 0) {
+    try {
+      const d = input.customer || input;
+      const dig = String(d.tel || d.celular || '').replace(/\D/g, '').slice(0, 20);
+      const sid = String(input.session_id || '').replace(/[^\w-]/g, '').slice(0, 64);
+      const ors = [];
+      if (dig.length >= 7) ors.push(`whatsapp.eq.${dig}`);
+      if (sid) ors.push(`session_id.eq.${sid}`);
+      if (ors.length) {
+        const { data: subs } = await sb.from('subscribers').select('created_at')
+          .or(ors.join(',')).order('created_at', { ascending: true }).limit(1);
+        const t = subs && subs[0] && Date.parse(subs[0].created_at);
+        if (t && (Date.now() - t) > 7 * 24 * 60 * 60 * 1000) desc = 0;
+      }
+    } catch (e) { /* ante la duda, no bloquear la venta */ }
+  }
   const subtotal = combo ? combo.precio : (subBruto - desc);
   const pago = cleanText(input.pago || input.payment_method || 'pending', 50);
   const envio = pago === 'contra_entrega' ? calcFlete(pares) : 0;

@@ -73,13 +73,33 @@ async function handleSubscribe(req, res) {
 
   const nombre = cleanText(d.nombre, 200) || '';
   const whatsapp = d.whatsapp ? String(d.whatsapp).replace(/\D/g, '').slice(0, 20) : '';
+  // Zero-party data (paso 2 del popup): talla y género llegan por clic en chips.
+  const talla = d.talla != null ? cleanText(String(d.talla), 10) : null;
+  const generoRaw = String(d.genero || '').toLowerCase();
+  const genero = generoRaw === 'h' || generoRaw === 'm' ? generoRaw : null;
+
+  // update=1 → solo actualizar preferencias del suscriptor ya registrado (por WhatsApp o session).
+  if (d.update) {
+    const upd = {};
+    if (talla) upd.talla = talla;
+    if (genero) upd.genero = genero;
+    if (!Object.keys(upd).length) return res.status(400).json({ error: 'nothing to update' });
+    let q = sb.from('subscribers').update(upd);
+    if (whatsapp.length >= 7) q = q.eq('whatsapp', whatsapp);
+    else if (session_id) q = q.eq('session_id', session_id);
+    else return res.status(400).json({ error: 'sin identificador' });
+    const { error } = await q;
+    if (error) return res.status(500).json({ error: error.message });
+    return res.status(200).json({ ok: true });
+  }
+
   if (!nombre) return res.status(400).json({ error: 'nombre requerido' });
   if (whatsapp.length < 7) return res.status(400).json({ error: 'whatsapp invalido' });
-  const cumple = cleanText(d.cumple, 20);
+  const cumple = cleanText(d.cumple, 20);   // compat: el popup ya no lo pide
   const { data: prev } = await sb.from('subscribers').select('id').eq('whatsapp', whatsapp).limit(1);
   if (!prev || !prev.length) {
     const { error } = await sb.from('subscribers').insert({
-      nombre, whatsapp, cumple, utm, session_id, source: 'popup_bienvenida'
+      nombre, whatsapp, cumple, talla, genero, utm, session_id, source: 'popup_bienvenida'
     });
     if (error) return res.status(500).json({ error: error.message });
     await capiSubLead('_subscribe', { phone: whatsapp, name: nombre });

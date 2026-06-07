@@ -708,7 +708,9 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .wm-card{position:relative;width:100%;max-width:360px;background:var(--white);border-radius:22px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.45);animation:pmIn .34s cubic-bezier(.16,1,.3,1) both;max-height:94vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .wm-close{position:absolute;top:10px;right:10px;width:38px;height:38px;border:none;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2}
 .wm-close:hover{background:rgba(255,255,255,.32)}
-.wm-head{background:var(--ink);color:#fff;padding:26px 22px 22px;text-align:center}
+.wm-head{background:var(--ink);color:#fff;padding:22px 22px 22px;text-align:center}
+.wm-brand{font-size:12px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;margin-bottom:12px}
+.wm-brand span{color:var(--red)}
 .wm-kick{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--orange);margin-bottom:8px}
 .wm-off{font-size:46px;font-weight:700;line-height:1;letter-spacing:-.02em}
 .wm-off span{color:var(--red)}
@@ -729,9 +731,19 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .wm-ok-ico{font-size:40px}
 .wm-ok-t{font-size:18px;font-weight:700;margin:6px 0 4px}
 .wm-ok-d{font-size:12.5px;color:var(--ink2);line-height:1.5;margin-bottom:14px}
-.wm-code{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--bg);border:2px dashed var(--red);border-radius:13px;padding:12px 16px;margin-bottom:6px}
+.wm-code{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--bg);border:2px dashed var(--red);border-radius:13px;padding:12px 16px;margin-bottom:6px;animation:wmPop .4s cubic-bezier(.16,1,.3,1) .15s both}
 .wm-code b{font-size:19px;font-weight:700;letter-spacing:.06em;color:var(--ink)}
 .wm-copy{border:none;background:var(--ink);color:#fff;font-family:var(--font);font-size:12px;font-weight:700;padding:8px 13px;border-radius:9px;cursor:pointer}
+@keyframes wmPop{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}
+/* Urgencia: el código vence a los 7 días */
+.wm-badge{display:inline-block;background:#fff4ec;color:#b4530a;border:1px solid #f3ddc9;border-radius:999px;font-size:10.5px;font-weight:700;padding:5px 12px;margin:4px 0 2px}
+/* Paso 2 (zero-party data): chips de talla y género — un clic, sin fricción */
+.wm-q{font-size:11px;font-weight:700;color:var(--ink2);margin:13px 0 7px}
+.wm-q small{font-weight:600;color:var(--ink3)}
+.wm-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.wm-chip{border:1.5px solid var(--line);background:var(--bg);color:var(--ink);font-family:var(--font);font-size:12.5px;font-weight:700;padding:8px 13px;border-radius:999px;cursor:pointer;transition:all .12s}
+.wm-chip.sel{background:var(--ink);color:#fff;border-color:var(--ink)}
+.wm-chip:active{transform:scale(.94)}
 /* Tag anclado para reabrir el popup de descuento (si lo cerró sin registrarse) */
 .wm-reopen{position:fixed;left:14px;bottom:max(16px,env(safe-area-inset-bottom));z-index:55;display:none;align-items:center;gap:7px;background:var(--white);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:10px 14px;font-family:var(--font);font-size:12px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.16);cursor:pointer;animation:pmIn .3s ease both}
 .wm-reopen.show{display:inline-flex}
@@ -739,7 +751,8 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 /* Popup más compacto en móvil */
 @media(max-width:480px){
   .wm-card{max-width:300px}
-  .wm-head{padding:16px 16px 14px}
+  .wm-head{padding:14px 16px 14px}
+  .wm-brand{font-size:10px;margin-bottom:8px}
   .wm-kick{font-size:10px;margin-bottom:5px}
   .wm-off{font-size:31px}
   .wm-sub{font-size:11.5px;margin-top:5px}
@@ -748,6 +761,8 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
   .wm-fld{margin-bottom:7px}
   .wm-fld input{padding:11px 13px}
   .wm-btn{padding:12px}
+  .wm-chip{font-size:11.5px;padding:7px 11px}
+  .wm-q{margin:11px 0 6px}
 }
 
 /* HERO CARRUSEL */
@@ -1078,16 +1093,16 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
   <div class="wm-card">
     <button class="wm-close" onclick="closeWelcome()" aria-label="Cerrar">✕</button>
     <div class="wm-head">
+      <div class="wm-brand">Strange <span>Sneakers</span></div>
       <div class="wm-kick">Regalo de bienvenida</div>
       <div class="wm-off"><span>$20.000</span> OFF</div>
-      <div class="wm-sub">en tu primera compra</div>
+      <div class="wm-sub">en tu primera compra · válido por 7 días</div>
     </div>
     <div class="wm-body" id="wmForm">
-      <div class="wm-intro">Déjanos tus datos y te damos un código de descuento para estrenar tu primer par.</div>
-      <div class="wm-fld"><label>Nombre completo</label><input id="wmNombre" type="text" placeholder="Juan García" autocomplete="name"></div>
+      <div class="wm-intro">Déjanos tu nombre y WhatsApp y te damos el código al instante.</div>
+      <div class="wm-fld"><label>Nombre</label><input id="wmNombre" type="text" placeholder="Juan García" autocomplete="name"></div>
       <div class="wm-fld"><label>WhatsApp</label><input id="wmWa" type="tel" inputmode="numeric" placeholder="300 000 0000" autocomplete="tel"></div>
-      <div class="wm-fld"><label>Cumpleaños</label><input id="wmCumple" type="text" inputmode="numeric" placeholder="dd/mm/aaaa" maxlength="10" autocomplete="bday" oninput="fmtCumple(this)"></div>
-      <div class="wm-err" id="wmErr">Completa tu nombre, WhatsApp y cumpleaños (dd/mm/aaaa) 🙏</div>
+      <div class="wm-err" id="wmErr">Completa tu nombre y WhatsApp 🙏</div>
       <button class="wm-btn" id="wmBtn" onclick="submitWelcome()">Quiero mi descuento</button>
       <div class="wm-fine">Te escribiremos solo con novedades y promos. Sin spam.</div>
     </div>
@@ -1096,7 +1111,26 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
       <div class="wm-ok-t">¡Tu descuento está listo!</div>
       <div class="wm-ok-d">Usa este código en el carrito y descuenta <b>$20.000</b> de tu primera compra.</div>
       <div class="wm-code"><b id="wmCode">BIENVENIDO20</b><button class="wm-copy" onclick="copyWelcomeCode()">Copiar</button></div>
+      <div class="wm-badge">⏳ Válido por 7 días — no lo dejes vencer</div>
       <div class="wm-fine">El código se aplica solo sobre el valor del producto.</div>
+      <div class="wm-q">¿Qué talla calzas? <small>(te avisamos cuando llegue algo en tu talla)</small></div>
+      <div class="wm-chips">
+        <button class="wm-chip" onclick="wmPref('talla','35',this)">35</button>
+        <button class="wm-chip" onclick="wmPref('talla','36',this)">36</button>
+        <button class="wm-chip" onclick="wmPref('talla','37',this)">37</button>
+        <button class="wm-chip" onclick="wmPref('talla','38',this)">38</button>
+        <button class="wm-chip" onclick="wmPref('talla','39',this)">39</button>
+        <button class="wm-chip" onclick="wmPref('talla','40',this)">40</button>
+        <button class="wm-chip" onclick="wmPref('talla','41',this)">41</button>
+        <button class="wm-chip" onclick="wmPref('talla','42',this)">42</button>
+        <button class="wm-chip" onclick="wmPref('talla','43',this)">43</button>
+        <button class="wm-chip" onclick="wmPref('talla','otra',this)">Otra</button>
+      </div>
+      <div class="wm-q">¿Para quién buscas?</div>
+      <div class="wm-chips">
+        <button class="wm-chip" onclick="wmPref('genero','m',this)">Para ella</button>
+        <button class="wm-chip" onclick="wmPref('genero','h',this)">Para él</button>
+      </div>
       <button class="wm-btn" style="margin-top:14px" onclick="closeWelcome()">Ver el catálogo</button>
     </div>
   </div>
@@ -1127,6 +1161,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
       <button class="av-nav" data-nav="pedidos" onclick="setAdminSection('pedidos')"><svg viewBox="0 0 24 24"><path d="M6 2h12v20l-2-1.5L14 22l-2-1.5L10 22l-2-1.5L6 22z"/><path d="M9.5 7.5h5M9.5 11h5M9.5 14.5h3"/></svg>Pedidos</button>
       <button class="av-nav" data-nav="clientes" onclick="setAdminSection('clientes')"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.4"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.6"/><path d="M16.5 14.6c2.6.4 4.5 2.4 4.5 5.4"/></svg>Clientes</button>
       <button class="av-nav" data-nav="leads" onclick="setAdminSection('leads')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2"/></svg>Leads</button>
+      <button class="av-nav" data-nav="suscriptores" onclick="setAdminSection('suscriptores')"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>Suscriptores</button>
       <button class="av-nav" data-nav="ajustes" onclick="setAdminSection('ajustes')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.01a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.01a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg>Ajustes</button>
     </aside>
     <div class="av-main" id="avMain">
@@ -1154,10 +1189,11 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
   </div>
   <div data-sec="ajustes">
     <div class="trow" style="background:#fff0f0">
-      <div><div class="trow-lbl">🎁 Popup de bienvenida</div><div class="trow-sub">$20.000 OFF (código BIENVENIDO20) al dejar datos</div></div>
+      <div><div class="trow-lbl">🎁 Popup de bienvenida</div><div class="trow-sub">$20.000 OFF (código BIENVENIDO20, vence a los 7 días) al dejar nombre y WhatsApp</div></div>
       <label class="sw"><input type="checkbox" id="swWelcome" onchange="toggleWelcome(this.checked)"><div class="sw-tr"></div><div class="sw-th"></div></label>
     </div>
   </div>
+  <div data-sec="suscriptores"><div id="subsList"></div></div>
   <div data-sec="banners">
     <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#f3f1ff">
       <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">🖼 Banners del inicio (hero)</div>
@@ -1580,8 +1616,10 @@ const CUPONES={
 };
 let cuponAplicado=null;   // null o el CÓDIGO aplicado (string)
 // Descuento real para un subtotal dado, según el cupón aplicado. Nunca deja el subtotal negativo.
+// BIENVENIDO20 tiene vigencia de 7 días desde el registro (welcomeVencido) — el server replica la regla.
 function cuponDesc(sub){
   const c=cuponAplicado&&CUPONES[cuponAplicado];if(!c)return 0;
+  if(cuponAplicado==='BIENVENIDO20'&&typeof welcomeVencido==='function'&&welcomeVencido())return 0;
   return c.tipo==='pct'?Math.round(sub*c.val):Math.min(c.val,sub);
 }
 
@@ -1714,8 +1752,10 @@ function renderComboBar(){
 function aplicarCupon(){
   const inp=$('cupInput');if(!inp)return;
   const code=inp.value.trim().toUpperCase();
+  const cupFail=msg=>{const e=$('cupErr');if(e){e.textContent=msg||'Código no válido';e.style.display='block';setTimeout(()=>{e.style.display='none';e.textContent='Código no válido';},3000);}};
+  if(code==='BIENVENIDO20'&&welcomeVencido())return cupFail('Tu código de bienvenida venció (era válido por 7 días) 😢');
   if(CUPONES[code]){cuponAplicado=code;localStorage.setItem('ss_cupon',code);rCart();}
-  else{const e=$('cupErr');if(e){e.style.display='block';setTimeout(()=>{e.style.display='none';},2500);}}
+  else cupFail();
 }
 // Despliega/oculta el campo de código promocional (colapsado por defecto, estilo Adidas).
 function toggleCupon(){
@@ -1734,6 +1774,7 @@ function openWelcome(){const m=$('welcomeModal');if(m)m.classList.add('on');if(!
 function closeWelcome(){const m=$('welcomeModal');if(m)m.classList.remove('on');if(_wmOpen){_wmOpen=false;unlockScroll();}
   if(!localStorage.getItem('ss_subscribed')){const t=$('wmReopen');if(t)t.classList.add('show');}}
 // Aparece en cada visita HASTA que el cliente se registre (ss_subscribed). Si está activo y sin otro modal abierto.
+// Delay 7s (benchmark 5-10s): que la persona vea producto antes de interrumpir — 2.2s era agresivo.
 function maybeWelcome(){
   if(!WELCOME_ON)return;
   if(localStorage.getItem('ss_subscribed'))return;
@@ -1742,43 +1783,35 @@ function maybeWelcome(){
     const open=document.querySelector('.photo-modal.on,.guia-modal.on,.csheet.on,.apanel.on,.viewer360.on');
     if(open)return;   // no interrumpir si el usuario ya está en otra cosa (deep link, etc.)
     openWelcome();
-  },2200);
+  },7000);
 }
-// Formatea el cumpleaños mientras se escribe: solo dígitos + "/" automáticas (12081992 → 12/08/1992).
-function fmtCumple(el){
-  const v=el.value.replace(/\D/g,'').slice(0,8);   // ddmmaaaa
-  let out=v;
-  if(v.length>4) out=v.slice(0,2)+'/'+v.slice(2,4)+'/'+v.slice(4);
-  else if(v.length>2) out=v.slice(0,2)+'/'+v.slice(2);
-  el.value=out;
+// Vigencia del código de bienvenida: 7 días desde el registro (ss_welcome_ts).
+// Sin timestamp local (registro viejo o de otro dispositivo) no bloquea: el server valida contra la BD.
+const WELCOME_DIAS=7;
+function welcomeVencido(){
+  const ts=parseInt(localStorage.getItem('ss_welcome_ts')||'0',10);
+  return !!ts&&(Date.now()-ts)>WELCOME_DIAS*24*60*60*1000;
 }
-// Valida dd/mm/aaaa real y devuelve aaaa-mm-dd (formato estándar para remarketing), o null si es inválida.
-function parseCumple(s){
-  const m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec((s||'').trim());
-  if(!m)return null;
-  const d=+m[1],mo=+m[2],y=+m[3],yNow=new Date().getFullYear();
-  if(mo<1||mo>12||d<1||d>31||y<1900||y>yNow)return null;
-  const dt=new Date(y,mo-1,d);
-  if(dt.getFullYear()!==y||dt.getMonth()!==mo-1||dt.getDate()!==d)return null;   // descarta 31/02, 31/04, etc.
-  return y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0');
-}
+// Suscriptores previos a la vigencia: su reloj de 7 días arranca hoy (no tenían timestamp).
+if(localStorage.getItem('ss_subscribed')&&!localStorage.getItem('ss_welcome_ts'))localStorage.setItem('ss_welcome_ts',String(Date.now()));
 function submitWelcome(){
   const nombre=($('wmNombre').value||'').trim();
   const whatsapp=($('wmWa').value||'').replace(/\D/g,'');
-  const cumple=parseCumple($('wmCumple').value);   // aaaa-mm-dd o null (obligatorio)
   const err=$('wmErr');
-  if(!nombre||whatsapp.length<7||!cumple){
-    if(err){err.textContent='Completa tu nombre, WhatsApp y cumpleaños (dd/mm/aaaa) 🙏';err.classList.add('show');}
+  if(!nombre||whatsapp.length<7){
+    if(err){err.textContent='Completa tu nombre y WhatsApp 🙏';err.classList.add('show');}
     return;
   }
   if(err)err.classList.remove('show');
   const btn=$('wmBtn');if(btn){btn.disabled=true;btn.textContent='Enviando…';}
   fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({kind:'subscriber',nombre,whatsapp,cumple,utm:{...getUTM(),...getFbAttribution(),...getVisitCtx()},session_id:SESSION_ID})})
+    body:JSON.stringify({kind:'subscriber',nombre,whatsapp,utm:{...getUTM(),...getFbAttribution(),...getVisitCtx()},session_id:SESSION_ID})})
     .then(r=>r.ok?r.json():Promise.reject(new Error('http')))
     .then(j=>{
       const code=(j&&j.codigo)||WELCOME_CODE;
       localStorage.setItem('ss_subscribed','1');   // ya se registró → el popup no vuelve a aparecer
+      localStorage.setItem('ss_welcome_ts',String(Date.now()));   // arranca el reloj de 7 días del código
+      localStorage.setItem('ss_wm_wa',whatsapp);   // para el paso 2 (chips talla/género → update)
       {const t=$('wmReopen');if(t)t.classList.remove('show');}   // ya no se necesita el tag de reapertura
       const cEl=$('wmCode');if(cEl)cEl.textContent=code;
       $('wmForm').style.display='none';$('wmOk').style.display='block';
@@ -1786,6 +1819,15 @@ function submitWelcome(){
       trackEvent('lead',{});
     })
     .catch(()=>{if(btn){btn.disabled=false;btn.textContent='Quiero mi descuento';}if(err){err.textContent='No se pudo enviar, revisa tu conexión y reintenta.';err.classList.add('show');}});
+}
+// Paso 2 (zero-party data): chips de talla/género en la pantalla de éxito. Un clic = update
+// silencioso del suscriptor (por WhatsApp o session_id). Si no responde, el registro ya quedó.
+function wmPref(kind,val,el){
+  if(el&&el.parentElement)el.parentElement.querySelectorAll('.wm-chip').forEach(b=>b.classList.toggle('sel',b===el));
+  const wa=localStorage.getItem('ss_wm_wa')||'';
+  const body={kind:'subscriber',update:1,whatsapp:wa,session_id:SESSION_ID};
+  body[kind]=val;
+  fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).catch(()=>{});
 }
 function copyWelcomeCode(){
   const code=($('wmCode').textContent||WELCOME_CODE).trim();
@@ -2899,7 +2941,7 @@ async function toggleGlobal(on){promoG=on;renderGrid();renderAdmin();await admin
 async function toggleWelcome(on){WELCOME_ON=on;await adminWrite('upsert_settings',{data:{key:'welcome_popup',value:String(on)}});}
 /* ── ADMIN "Shopify-lite": navegación por secciones (sidebar) ── */
 let avSec='inicio';
-const AV_TITLES={inicio:'Inicio',productos:'Productos',ofertas:'Ofertas',banners:'Banners',testimonios:'Testimonios',pedidos:'Pedidos',clientes:'Clientes',leads:'Leads',ajustes:'Ajustes'};
+const AV_TITLES={inicio:'Inicio',productos:'Productos',ofertas:'Ofertas',banners:'Banners',testimonios:'Testimonios',pedidos:'Pedidos',clientes:'Clientes',leads:'Leads',suscriptores:'Suscriptores',ajustes:'Ajustes'};
 function setAdminSection(name){
   avSec=name;
   document.querySelectorAll('#avMain [data-sec]').forEach(el=>{
@@ -2917,6 +2959,7 @@ function setAdminSection(name){
   if(name==='pedidos'){renderPedidos();loadOrders().then(()=>{if(avSec==='pedidos')renderPedidos();});}
   if(name==='clientes'){renderClientes();loadOrders().then(()=>{if(avSec==='clientes')renderClientes();});}
   if(name==='leads'){renderLeadsTab();loadOrders().then(()=>{if(avSec==='leads')renderLeadsTab();});}
+  if(name==='suscriptores'){renderSubsTab();loadSubscribers().then(()=>{if(avSec==='suscriptores')renderSubsTab();});}
 }
 // Navegar desde las tarjetas/tareas del Inicio: sección + filtro de leads opcional.
 function avGo(sec,filtro){
@@ -3535,6 +3578,68 @@ async function renderAnalytics(){
 let leadFilter='pending';
 let leadVista='dia';
 const _isClasificado=o=>o.status==='venta'||o.status==='no_venta';
+/* ── SUSCRIPTORES (popup + newsletter) — la base del remarketing ── */
+let subsData=null;   // null = sin cargar; [] = cargado vacío
+async function loadSubscribers(){
+  try{
+    const r=await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'list_subscribers'})});
+    const j=await r.json();
+    if(j&&j.ok)subsData=j.subscribers||[];
+  }catch(e){}
+  return subsData;
+}
+function renderSubsTab(){
+  const el=$('subsList');if(!el)return;
+  if(subsData===null){el.innerHTML='<div style="padding:24px;text-align:center;color:var(--ink3);font-size:12px">Cargando…</div>';return;}
+  if(!subsData.length){el.innerHTML='<div style="padding:24px;text-align:center;color:var(--ink3);font-size:12px">Aún no hay suscriptores.<br>Aparecen aquí cuando alguien deja sus datos en el popup de bienvenida o el newsletter.</div>';return;}
+  const fGen=g=>g==='h'?'Él':g==='m'?'Ella':'';
+  const head=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--white);z-index:1">
+    <div style="font-size:12px;font-weight:800">${subsData.length} suscriptor${subsData.length===1?'':'es'}</div>
+    <button class="admin-pill" style="font-size:10px;padding:6px 11px" onclick="exportSubsCSV()">⬇ CSV para Meta (Custom Audience)</button>
+  </div>`;
+  el.innerHTML=head+subsData.map(s=>{
+    const u=s.utm||{};
+    const camp=u.utm_campaign||(u.campaign_id&&!/\{\{/.test(String(u.campaign_id))?('camp '+u.campaign_id):'')||'orgánico';
+    const wa=(s.whatsapp||'').replace(/\D/g,'');
+    const contacto=wa
+      ?`<a href="https://wa.me/${wa.length===10?'57'+wa:wa}" target="_blank" rel="noopener" style="color:var(--ink);font-weight:700;text-decoration:none">📱 ${escHtml(s.whatsapp)}</a>`
+      :(s.email?'✉️ '+escHtml(s.email):'—');
+    const pref=[s.talla?('👟 '+escHtml(s.talla)):'',fGen(s.genero)].filter(Boolean).join(' · ');
+    const f=s.created_at?new Date(s.created_at).toLocaleDateString('es-CO',{day:'2-digit',month:'short'}):'';
+    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line)">
+      <div style="min-width:0">
+        <div style="font-size:12.5px;font-weight:700">${escHtml(s.nombre||'(sin nombre)')}</div>
+        <div style="font-size:11px;color:var(--ink2);margin-top:2px">${contacto}</div>
+        <div style="font-size:10px;color:var(--ink3);margin-top:2px">📣 ${escHtml(camp)} · ${escHtml(s.source||'')}</div>
+      </div>
+      <div style="text-align:right;flex:0 0 auto">
+        <div style="font-size:11px;font-weight:700">${pref||'—'}</div>
+        <div style="font-size:10px;color:var(--ink3);margin-top:2px">${f}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+// CSV con el formato de Meta Custom Audience (phone con indicativo 57, fn/ln en minúscula).
+// Se sube en: Audiencias → Crear audiencia personalizada → Lista de clientes.
+function exportSubsCSV(){
+  const rows=subsData||[];
+  const lines=['phone,fn,ln,email'];
+  rows.forEach(s=>{
+    const wa=(s.whatsapp||'').replace(/\D/g,'');
+    const phone=wa?(wa.length===10?'57'+wa:wa):'';
+    const np=String(s.nombre||'').trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const fn=np[0]||'',ln=np.slice(1).join(' ');
+    const email=(s.email||'').trim().toLowerCase();
+    if(phone||email)lines.push([phone,fn,ln,email].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(','));
+  });
+  const blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='suscriptores_meta_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();a.remove();
+  URL.revokeObjectURL(a.href);
+}
+
 function setLeadFilter(f){leadFilter=f;renderLeadsTab();}
 function setLeadVista(v){leadVista=v;renderLeadsTab();}
 function renderLeadsTab(){

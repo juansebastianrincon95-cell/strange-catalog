@@ -226,8 +226,12 @@ create table if not exists subscribers (
 alter table subscribers enable row level security;
 -- (sin policies anon: solo service_role puede leer/escribir)
 alter table subscribers add column if not exists email text;
+-- Zero-party data (paso 2 del popup): talla y género llegan por clic, sin fricción.
+alter table subscribers add column if not exists talla text;    -- '35'..'43' u 'otra'
+alter table subscribers add column if not exists genero text;   -- 'h' / 'm' (para quién busca)
 create index if not exists subscribers_whatsapp_idx on subscribers(whatsapp);
 create index if not exists subscribers_email_idx on subscribers(email);
+create index if not exists subscribers_session_idx on subscribers(session_id);
 
 -- ─── VERIFICACIÓN ───────────────────────────────────────────
 select 'products'     as tabla, count(*) as filas from products

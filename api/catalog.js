@@ -21,9 +21,9 @@ module.exports = async (req, res) => {
     ? sbSvc.from('events').select('*').gte('created_at', sevenDaysAgo)
     : Promise.resolve({ data: [] });
 
-  // Suscriptores (popup nombre/whatsapp/cumple + newsletter del footer email) → audiencia de remarketing.
+  // Suscriptores (popup nombre/whatsapp + talla/género por chips + newsletter del footer) → audiencia de remarketing.
   const subsQuery = sbSvc
-    ? sbSvc.from('subscribers').select('nombre,whatsapp,email,cumple,utm,source,created_at').order('created_at', { ascending: false }).limit(500)
+    ? sbSvc.from('subscribers').select('nombre,whatsapp,email,cumple,talla,genero,utm,source,created_at').order('created_at', { ascending: false }).limit(500)
     : Promise.resolve({ data: [] });
 
   const [{ data: prods }, { data: liqs }, { data: settings }, { data: orders }, { data: evts }, subsRes] = await Promise.all([
@@ -174,7 +174,7 @@ module.exports = async (req, res) => {
     subscribers: {
       total:    subs.length,
       contacts: subs.map(s => ({
-        nombre: s.nombre, whatsapp: s.whatsapp, email: s.email, cumple: s.cumple, source: s.source, utm: s.utm, fecha: s.created_at
+        nombre: s.nombre, whatsapp: s.whatsapp, email: s.email, cumple: s.cumple, talla: s.talla, genero: s.genero, source: s.source, utm: s.utm, fecha: s.created_at
       }))
     },
     behavior

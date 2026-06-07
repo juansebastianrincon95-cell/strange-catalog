@@ -168,6 +168,17 @@ module.exports = async (req, res) => {
     return res.json({ ok: true });
   }
 
+  // Suscriptores del popup/newsletter — para la vista del admin y el export a Meta Custom Audience.
+  if (action === 'list_subscribers') {
+    const { data: rows, error } = await sb
+      .from('subscribers')
+      .select('id,created_at,nombre,whatsapp,email,cumple,talla,genero,utm,source')
+      .order('created_at', { ascending: false })
+      .limit(1000);
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json({ ok: true, subscribers: rows || [] });
+  }
+
   if (action === 'list_orders') {
     const { data: rows, error } = await sb
       .from('orders')
