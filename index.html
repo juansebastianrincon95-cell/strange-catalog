@@ -1362,7 +1362,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
     <div class="q360-count" id="cnt360Cat"></div>
     <div class="uopts" id="optCat" style="display:none">
       <div class="uopt"><label>Género</label><select id="qGen"><option value="h">👨 Hombre</option><option value="m">👩 Mujer</option></select></div>
-      <div class="uopt"><label>Marca</label><select id="qBrand"><option value="">Sin marca</option><option value="adidas">Adidas</option><option value="nike">Nike</option><option value="reebok">Reebok</option><option value="new_balance">New Balance</option><option value="on_cloud">On Cloud</option><option value="puma">Puma</option><option value="lecoq_sportif">Le Coq Sportif</option><option value="jordan">Jordan</option></select></div>
+      <div class="uopt"><label>Marca</label><select id="qBrand"><option value="">Sin marca</option><option value="adidas">Adidas</option><option value="nike">Nike</option><option value="reebok">Reebok</option><option value="new_balance">New Balance</option><option value="on_cloud">On Cloud</option><option value="puma">Puma</option><option value="lecoq_sportif">Le Coq Sportif</option><option value="jordan">Jordan</option><option value="lacoste">Lacoste</option><option value="asics">Asics</option><option value="luxury">Luxury</option></select></div>
       <div class="uopt"><label>Precio</label><input id="qPrc" type="number" value="180000"></div>
       <div class="uopt"><label>Antes</label><input id="qAnt" type="number" value="240000"></div>
     </div>
@@ -2658,7 +2658,7 @@ function setG(v,btn){
   renderGrid();
 }
 /* ── FILTRO POR MARCA ── */
-const BRAND_LABELS={adidas:'Adidas',nike:'Nike',reebok:'Reebok',new_balance:'New Balance',on_cloud:'On Cloud',puma:'Puma',lecoq_sportif:'Le Coq Sportif',jordan:'Jordan'};
+const BRAND_LABELS={adidas:'Adidas',nike:'Nike',reebok:'Reebok',new_balance:'New Balance',on_cloud:'On Cloud',puma:'Puma',lecoq_sportif:'Le Coq Sportif',jordan:'Jordan',lacoste:'Lacoste',asics:'Asics',luxury:'Luxury'};
 let brandSel='all';
 function brandLabel(b){return BRAND_LABELS[b]||b;}
 function renderBrandBar(){
