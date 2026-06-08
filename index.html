@@ -1614,8 +1614,10 @@ let PIXEL_ID='';
 let WOMPI_PK='';
 let CLARITY_ID='';
 const SESSION_ID=(()=>{
-  let sid=sessionStorage.getItem('ss_sid');
-  if(!sid){sid=Date.now().toString(36)+Math.random().toString(36).slice(2);sessionStorage.setItem('ss_sid',sid);}
+  // localStorage (no sessionStorage): el ID persiste entre visitas/pestañas → cuenta VISITANTES
+  // ÚNICOS (≈personas), no sesiones de pestaña que mueren al cerrar (antes inflaba el conteo).
+  let sid=localStorage.getItem('ss_sid');
+  if(!sid){sid=Date.now().toString(36)+Math.random().toString(36).slice(2);localStorage.setItem('ss_sid',sid);}
   return sid;
 })();
 
@@ -2283,22 +2285,6 @@ async function saveSocials(){
 /* ── CLIENTES FELICES (testimonios) ── */
 let testimonios=[];   // settings.testimonios [{nombre,fecha,texto,foto,productId}]
 let _tmProdId=null, _testiFoto=null, _testiCap=null, _testiList=[], _testiEditIdx=null;
-// Testimonios de EJEMPLO (fallback cuando el admin aún no cargó reales). Reemplazar por reales.
-// Testimonios de EJEMPLO con ciudad (sin foto → avatar de iniciales). Subir fotos reales o generar latinas.
-const DEFAULT_TESTIMONIOS=[
-  {nombre:'Valentina Ríos',ciudad:'Medellín',fecha:'2025-09-12',texto:'La verdad estaba indecisa de comprar tenis por internet, pero pedí el viernes y el martes ya los tenía en la casa. Quedé encantada, se sienten muy bien hechos.'},
-  {nombre:'Andrés Gómez',ciudad:'Bogotá',fecha:'2025-08-03',texto:'Llegaron tal cual las fotos, ni más ni menos. Pagué contra entrega y el muchacho del envío súper amable. Todo bien 👌'},
-  {nombre:'Daniela Torres',ciudad:'Cali',fecha:'2025-10-21',texto:'Me quedaron perfectos de talla (yo calzo 37). El material se siente bueno, no como en otras páginas que decepcionan. Ya encargué otro par para mi hermana.'},
-  {nombre:'Juan David Martínez',ciudad:'Bucaramanga',fecha:'2025-07-18',texto:'Le escribí al WhatsApp porque no sabía si pedir la 42 o la 43 y me respondieron de una. Acerté con la talla, gracias por la paciencia jaja.'},
-  {nombre:'Carolina Ramírez',ciudad:'Bogotá',fecha:'2025-11-05',texto:'Los uso para trabajar y camino todo el día. Muy cómodos y el envío a Bogotá no me costó nada.'},
-  {nombre:'Sebastián Cardona',ciudad:'Medellín',fecha:'2025-06-29',texto:'Honestamente desconfiaba un poco por el precio, pensé que serían de mala calidad. Me sorprendieron, se ven bien hechos y originales.'},
-  {nombre:'Laura Jiménez',ciudad:'Barranquilla',fecha:'2025-09-30',texto:'Se los regalé a mi esposo para el cumpleaños y le fascinaron. Llegaron bien empacados en su caja.'},
-  {nombre:'Mateo Herrera',ciudad:'Pereira',fecha:'2025-08-22',texto:'En persona se ven mejor que en las fotos. Pedí los blancos y todavía no se me ensucian jaja. Buena compra.'},
-  {nombre:'Paola Castaño',ciudad:'Manizales',fecha:'2025-10-10',texto:'Pedí una talla y me quedó apretada, escribí y me hicieron el cambio sin ningún problema. Eso para mí vale mucho, repito tranquila.'},
-  {nombre:'Felipe Ospina',ciudad:'Cali',fecha:'2025-07-02',texto:'Pedí un lunes y el miércoles ya estaban acá en Cali. Cómodos desde el primer día, no tocó amansarlos.'},
-  {nombre:'Manuela Vargas',ciudad:'Bogotá',fecha:'2025-11-18',texto:'Ya es mi segunda compra. La primera vez pensé que había sido suerte, pero no, volvieron a cumplir con lo prometido.'},
-  {nombre:'Santiago León',ciudad:'Medellín',fecha:'2025-09-08',texto:'Pedimos dos pares, el mío y el de mi novia, y los dos llegaron perfectos. Buen precio comparado con lo del centro comercial.'}
-];
 const _AVCOL=['#E8200A','#0066FF','#1aad49','#FF7A00','#7b3fe4','#0aa6b8','#d6336c','#2b8a3e'];
 function _avatar(name,hidden){
   const parts=String(name||'C').trim().split(/\s+/);
@@ -2309,7 +2295,7 @@ function _avatar(name,hidden){
 }
 function renderTestimonios(){
   const sec=$('testimonios'),row=$('testiRow'),cnt=$('testiCount');
-  const ts=(Array.isArray(testimonios)&&testimonios.length)?testimonios:DEFAULT_TESTIMONIOS;
+  const ts=Array.isArray(testimonios)?testimonios:[];   // solo reales del admin; si no hay, la sección se oculta
   _testiList=ts;
   if(cnt)cnt.textContent=reviewsCount>0?`${reviewsCount.toLocaleString('es-CO')} reseñas`:`${ts.length} reseñas`;
   if(!row)return;
@@ -2729,8 +2715,8 @@ function openPhoto(id,type){
   const _mk=BRAND_LABELS[p.brand]||'';
   // Si el producto tiene MODELO (ej. "Nike Air Max 90"), ese es el título; si no, Marca · Género.
   $('pmTitle').textContent=p.modelo||((_mk?_mk+' · ':'')+(type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer')));
-  pmReviewN=reviewsForProduct(id);   // nº de reseñas estable por producto (paso 4)
-  {const rv=$('pmReviews');if(rv)rv.textContent=`(${pmReviewN.toLocaleString('es-CO')} reseñas)`;}
+  pmReviewN=reviewsCount;   // nº de reseñas = el de marketing del admin (settings.reviews_count)
+  {const rv=$('pmReviews');if(rv)rv.textContent=pmReviewN>0?`(${pmReviewN.toLocaleString('es-CO')} reseñas)`:'';}
   {const dd=$('pmDesc');if(dd)dd.textContent=genDescripcion(p,type);}
   {const wa=$('pmWas');if(wa){if(p.was&&p.was>p.price){wa.textContent=fmt(p.was);wa.style.display='';}else wa.style.display='none';}}
   $('pmPrice').textContent=fmt(p.price);
@@ -2779,26 +2765,19 @@ function genDescripcion(p,type){
   const g=p.g==='h'?'hombre':'mujer';
   return `Sneakers ${mk?mk+' ':''}para ${g}: diseño original, materiales de calidad y comodidad todo el día — perfectos para combinar con todo. Envío gratis a todo el país, pago contra entrega, cambios por talla y 100% garantía.`;
 }
-// Reseñas de ejemplo (genéricas, 5★) para la ficha. NOTA: son de muestra; reemplazar por reales
-// cuando se tengan, para no chocar con políticas de Meta ni con la confianza del cliente.
-const FICHA_REVIEWS=[
-  {nombre:'Andrés M.',texto:'Llegaron en dos días y tal cual la foto. Cómodos de una, no tocó amansarlos.'},
-  {nombre:'Laura G.',texto:'La talla me quedó perfecta y el material se siente bueno. Es mi segunda compra acá, repito sin pensarlo.'},
-  {nombre:'Camilo R.',texto:'Estaba inseguro de comprar por internet, pero pagué contra entrega y todo bien. Llegó en su caja original.'}
-];
-// Nº de reseñas por producto: pseudo-aleatorio pero ESTABLE por id (mismo valor siempre), rango ~80–399.
 let pmReviewN=0;
-function reviewsForProduct(id){
-  let h=0,s=String(id);
-  for(let i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))>>>0;}
-  return 80+(h%320);
-}
 function renderFichaReviews(){
   const c=$('pmRevList');if(!c)return;
+  // Reseñas REALES (las que el admin sube en settings.testimonios). Si no hay, se oculta el bloque
+  // (nunca mostramos reseñas inventadas → coherente con políticas de Meta y con la confianza real).
+  const revs=(Array.isArray(testimonios)?testimonios:[]).filter(r=>r&&r.texto).slice(0,6);
+  if(!revs.length){c.innerHTML='';c.style.display='none';return;}
+  c.style.display='';
   const cnt=pmReviewN>0?`${pmReviewN.toLocaleString('es-CO')} reseñas`:'';
-  c.innerHTML=`<div class="pm-rev-head"><h4>Dejamos que nuestros clientes hablen</h4><div class="pm-rev-bigstars">★★★★★</div>${cnt?`<div class="pm-rev-count">${cnt}</div>`:''}</div>`+FICHA_REVIEWS.map(r=>
-    `<div class="pm-rev"><div class="pm-rev-h"><b>${escHtml(r.nombre)}</b><span class="pm-rev-v">✓ Compra verificada</span></div><div class="pm-rev-s">★★★★★</div><div class="pm-rev-x">${escHtml(r.texto)}</div></div>`
-  ).join('');
+  c.innerHTML=`<div class="pm-rev-head"><h4>Dejamos que nuestros clientes hablen</h4><div class="pm-rev-bigstars">★★★★★</div>${cnt?`<div class="pm-rev-count">${cnt}</div>`:''}</div>`+revs.map(r=>{
+    const quien=[r.nombre||'Cliente',r.ciudad].filter(Boolean).map(escHtml).join(' · ');
+    return `<div class="pm-rev"><div class="pm-rev-h"><b>${quien}</b><span class="pm-rev-v">✓ Compra verificada</span></div><div class="pm-rev-s">★★★★★</div><div class="pm-rev-x">${escHtml(r.texto)}</div></div>`;
+  }).join('');
 }
 function addFromModal(){if(pmId===null)return;const id=pmId,t=pmType;closePhotoBtn();togCard(id,t);}
 function closePhotoBtn(){
