@@ -36,6 +36,8 @@ function post(path, body) {
       }
     );
     req.on('error', () => resolve(null));   // falla en silencio: nunca rompe el checkout
+    // Timeout: si Meta cuelga, abortar a los 2.5s → dispara 'error' → resolve(null) (no bloquea el await)
+    req.setTimeout(2500, () => req.destroy(new Error('capi-timeout')));
     req.write(data);
     req.end();
   });

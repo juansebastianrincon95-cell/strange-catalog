@@ -7,3 +7,7 @@ node_modules/
 .vercel
 
 .env*.local
+
+# Ignorar TODO archivo .env* (secretos) menos el ejemplo sin secretos
+.env*
+!.env.example

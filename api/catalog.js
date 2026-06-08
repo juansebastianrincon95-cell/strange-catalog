@@ -18,7 +18,10 @@ module.exports = async (req, res) => {
     : Promise.resolve({ data: [] });
 
   const eventsQuery = sbSvc
-    ? sbSvc.from('events').select('*').gte('created_at', sevenDaysAgo)
+    // Solo las columnas que usa el bloque "Behavioral analytics" (no select('*')) + límite, para no
+    // traer toda la tabla a memoria con tráfico fuerte.
+    ? sbSvc.from('events').select('session_id,type,created_at,utm_source,product_id')
+        .gte('created_at', sevenDaysAgo).order('created_at', { ascending: false }).limit(50000)
     : Promise.resolve({ data: [] });
 
   // Suscriptores (popup nombre/whatsapp + talla/género por chips + newsletter del footer) → audiencia de remarketing.

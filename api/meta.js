@@ -22,6 +22,8 @@ function graphRequest(method, path, body) {
       }
     );
     req.on('error', reject);
+    // Timeout: las llamadas Graph (insights/campañas) son lentas; abortar a los 8s → 'error' → reject (lo captura el try/catch del handler)
+    req.setTimeout(8000, () => req.destroy(new Error('graph-timeout')));
     if (data) req.write(data);
     req.end();
   });
