@@ -8,14 +8,17 @@ const VER   = 'v21.0';
 // Llamada GET a Graph API de Meta (mismo patrón que api/meta.js)
 function graphGet(path) {
   return new Promise((resolve) => {
-    https.get({ hostname: GRAPH, path: `/${VER}/${path}` }, res => {
+    const req = https.get({ hostname: GRAPH, path: `/${VER}/${path}` }, res => {
       let raw = '';
       res.on('data', c => raw += c);
       res.on('end', () => {
         try { resolve({ status: res.statusCode, body: JSON.parse(raw) }); }
         catch { resolve({ status: res.statusCode, body: raw }); }
       });
-    }).on('error', () => resolve(null));
+    });
+    req.on('error', () => resolve(null));
+    // Timeout: las llamadas Graph de analytics son lentas; abortar a los 8s → 'error' → resolve(null)
+    req.setTimeout(8000, () => req.destroy(new Error('graph-timeout')));
   });
 }
 
