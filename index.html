@@ -3405,6 +3405,14 @@ function togPedDetail(id){
   det.style.display='block';
   if(chev)chev.textContent='Ocultar ▴';
 }
+/* Badge de costo (privado, solo admin): verde con el monto si está puesto, rojo "Sin costo" si falta.
+   Sirve para ver de un vistazo a qué zapato ya se le asignó costo y a cuál no. (c!=null permite costo 0) */
+function costBadge(ptype,id){
+  const c=costos[ptype+':'+id];
+  return c!=null
+    ? `<div class="arow-cost" style="font-size:10px;font-weight:700;color:var(--green);margin-top:2px">💰 Costo: ${fmt(c)}</div>`
+    : `<div class="arow-cost" style="font-size:10px;font-weight:700;color:var(--red);margin-top:2px">⚠️ Sin costo</div>`;
+}
 function renderAdmin(){
   $('aTot').textContent=prods.length;
   $('aH').textContent=prods.filter(p=>p.g==='h').length;
@@ -3415,7 +3423,7 @@ function renderAdmin(){
     const m=p.img?`<img src="${p.img}" alt="">`:`<span style="font-size:20px">👟</span>`;
     return `<div class="arow">
       <div class="arow-img">${m}${p.sold?`<div class="arow-sov">Agot.</div>`:''}</div>
-      <div><div class="arow-gen">${p.modelo?escHtml(p.modelo):(p.g==='h'?'Hombre':'Mujer')}</div><div class="arow-st">${p.modelo?(p.g==='h'?'Hombre · ':'Mujer · '):''}${p.sold?'🔴 Agotado':'🟢 Disponible'}${p.imgs360?.length>=2?`<span style="color:var(--blue);font-size:9px;display:block">🔄 ${p.imgs360.length} frames</span>`:''}</div></div>
+      <div><div class="arow-gen">${p.modelo?escHtml(p.modelo):(p.g==='h'?'Hombre':'Mujer')}</div><div class="arow-st">${p.modelo?(p.g==='h'?'Hombre · ':'Mujer · '):''}${p.sold?'🔴 Agotado':'🟢 Disponible'}${p.imgs360?.length>=2?`<span style="color:var(--blue);font-size:9px;display:block">🔄 ${p.imgs360.length} frames</span>`:''}</div>${costBadge('cat',p.id)}</div>
       <div><div class="arow-price ${sp?'sale':''}">${fmt(p.price)}</div><button class="epbtn" onclick="startEP(${p.id},'cat')">Editar</button> <button class="epbtn" id="galbtncat${p.id}" onclick="togGal(${p.id},'cat')">📷 ${(p.imgs||[]).length}</button></div>
       <button class="sold-btn ${p.sold?'on':''}" onclick="togSold(${p.id},'cat')">${p.sold?'✓ Agot.':'Agotado'}</button>
       <button class="adel" onclick="delProd(${p.id},'cat')">✕</button>
@@ -3475,7 +3483,7 @@ function renderLiqAdmin(){
     const m=p.img?`<img src="${p.img}" alt="">`:`<span style="font-size:20px">🔥</span>`;
     return `<div class="arow">
       <div class="arow-img">${m}${p.sold?`<div class="arow-sov">Agot.</div>`:''}</div>
-      <div><div class="arow-gen" style="color:var(--red)">Liquidación</div><div class="arow-st">${p.sold?'🔴 Agotado':'🟢 Disponible'}${p.imgs360?.length>=2?`<span style="color:var(--blue);font-size:9px;display:block">🔄 ${p.imgs360.length} frames</span>`:''}</div></div>
+      <div><div class="arow-gen" style="color:var(--red)">Liquidación</div><div class="arow-st">${p.sold?'🔴 Agotado':'🟢 Disponible'}${p.imgs360?.length>=2?`<span style="color:var(--blue);font-size:9px;display:block">🔄 ${p.imgs360.length} frames</span>`:''}</div>${costBadge('liq',p.id)}</div>
       <div><div class="arow-price sale">${fmt(p.price)}</div><button class="epbtn" onclick="startEP(${p.id},'liq')">Editar</button> <button class="epbtn" id="galbtnliq${p.id}" onclick="togGal(${p.id},'liq')">📷 ${(p.imgs||[]).length}</button></div>
       <button class="sold-btn ${p.sold?'on':''}" onclick="togSold(${p.id},'liq')">${p.sold?'✓ Agot.':'Agotado'}</button>
       <button class="adel" onclick="delProd(${p.id},'liq')">✕</button>
@@ -4073,6 +4081,7 @@ async function saveEP(id,type){
     const nuevo=costRaw===''?null:parseInt(costRaw);
     if((costos[key]??null)!==(nuevo??null)){
       if(nuevo===null)delete costos[key]; else costos[key]=nuevo;
+      type==='liq'?renderLiqAdmin():renderAdmin();   // refresca el badge de costo al instante
       await adminWrite('upsert_cost',{data:{ptype,pid:id,costo:nuevo}}).catch(()=>{});
     }
   }
