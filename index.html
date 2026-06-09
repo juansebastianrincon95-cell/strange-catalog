@@ -3980,16 +3980,18 @@ async function saveEP(id,type){
   // Modelo (público) — título de ficha, tarjeta, ticket de WhatsApp y feed de Meta
   const mEl=$(type==='liq'?'eplm'+id:'epm'+id);
   if(mEl){const modelo=mEl.value.trim();if(p)p.modelo=modelo;data.modelo=modelo||null;}
+  // Costo (privado): LEER el input ANTES de renderAdmin(), que destruye la fila de edición.
+  // (Bug histórico: se leía después del re-render → el input ya no existía → el costo no se guardaba.)
+  const cEl=$(type==='liq'?'eplc'+id:'epc'+id);
+  const costRaw=cEl?cEl.value.trim():null;   // null = sin input → no tocar el costo
   if(p)p.price=val;
   renderGrid();renderPreview();renderFeatured();type==='liq'?renderLiqAdmin():renderAdmin();
   await adminWrite('update_product',{table:type==='liq'?'liq_products':'products',id,data});
-  // Costo (privado, tabla product_costs vía service_role — para el margen del Inicio)
-  const cEl=$(type==='liq'?'eplc'+id:'epc'+id);
-  if(cEl){
+  // Costo → tabla product_costs vía service_role (para el margen del Inicio)
+  if(costRaw!==null){
     const ptype=type==='liq'?'liq':'cat';
-    const raw=cEl.value.trim();
     const key=ptype+':'+id;
-    const nuevo=raw===''?null:parseInt(raw);
+    const nuevo=costRaw===''?null:parseInt(costRaw);
     if((costos[key]??null)!==(nuevo??null)){
       if(nuevo===null)delete costos[key]; else costos[key]=nuevo;
       await adminWrite('upsert_cost',{data:{ptype,pid:id,costo:nuevo}}).catch(()=>{});
