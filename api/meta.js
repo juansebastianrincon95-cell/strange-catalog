@@ -1,5 +1,6 @@
 const https = require('https');
 const requireApiKey = require('./_auth');
+const { rateLimit } = require('./_rate_limit');
 
 const GRAPH = 'graph.facebook.com';
 const VER   = 'v21.0';
@@ -32,6 +33,7 @@ function graphRequest(method, path, body) {
 module.exports = async (req, res) => {
   try {
   if (!requireApiKey(req, res)) return;
+  if (!(await rateLimit(req, res, { scope: 'meta', max: 60, windowMs: 60_000 }))) return;
 
   res.setHeader('Access-Control-Allow-Origin', '*');
 

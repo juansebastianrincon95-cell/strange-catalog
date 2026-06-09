@@ -12,7 +12,7 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).end();
-  if (!rateLimit(req, res, { scope: 'events', max: 120, windowMs: 60_000 })) return;
+  if (!(await rateLimit(req, res, { scope: 'events', max: 120, windowMs: 60_000 }))) return;
 
   if (!ALLOWED_ORIGINS.includes(origin)) {
     return res.status(403).json({ error: 'Forbidden' });

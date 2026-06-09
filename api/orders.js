@@ -192,7 +192,7 @@ module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).end();
   if (req.query && req.query.webhook === 'bold') return handleBoldWebhook(req, res);
   if (!okOrigin) return res.status(403).json({ error: 'Forbidden' });
-  if (!rateLimit(req, res, { scope: 'orders', max: 40, windowMs: 60_000 })) return;
+  if (!(await rateLimit(req, res, { scope: 'orders', max: 40, windowMs: 60_000 }))) return;
 
   try {
     const kind = req.body && req.body.kind;

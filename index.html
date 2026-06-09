@@ -13,7 +13,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="color-scheme" content="light">
 <meta name="theme-color" content="#F2F1EE">
-<title>Strange Sneakers</title>
+<title>Strange Sneakers — Sneakers exclusivos en Colombia</title>
+<meta name="description" content="Strange Sneakers: catálogo de sneakers exclusivos en Colombia. Envío a todo el país, pago contra entrega o por Wompi. Adidas, Nike, New Balance y más.">
+<link rel="canonical" href="https://strangesneakers.com/">
+<!-- DATOS ESTRUCTURADOS (SEO) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "name": "Strange Sneakers",
+      "url": "https://strangesneakers.com/",
+      "email": "mipangostore@gmail.com",
+      "areaServed": "CO"
+    },
+    {
+      "@type": "WebSite",
+      "name": "Strange Sneakers",
+      "url": "https://strangesneakers.com/",
+      "inLanguage": "es-CO"
+    }
+  ]
+}
+</script>
 <!-- OPEN GRAPH -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" id="ogSite" content="Strange Sneakers">
@@ -916,6 +939,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 </style>
 </head>
 <body>
+<h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">Strange Sneakers — Sneakers exclusivos en Colombia</h1>
 
 <header class="topbar" id="topbar">
 <div class="annbar" role="note" aria-label="Envío gratis a toda Colombia">
@@ -1056,11 +1080,25 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
       <div class="ftr-news-msg" id="ftrMsg"></div>
     </div>
   </div>
+  <div class="ftr-legal" style="display:flex;flex-wrap:wrap;gap:6px 16px;justify-content:center;padding:14px;border-top:1px solid var(--line);font-size:12px;font-weight:600">
+    <a href="#" onclick="openLegal('privacidad');return false" style="color:var(--ink2);text-decoration:none">Política de Privacidad</a>
+    <a href="#" onclick="openLegal('terminos');return false" style="color:var(--ink2);text-decoration:none">Términos y Condiciones</a>
+    <a href="#" onclick="openLegal('cookies');return false" style="color:var(--ink2);text-decoration:none">Política de Cookies</a>
+    <a href="#" onclick="openLegal('garantias');return false" style="color:var(--ink2);text-decoration:none">Cambios y Garantías</a>
+  </div>
   <div class="ftr-bottom">
     <div class="ftr-logo" id="ftrLogo">STRANGE®</div>
     <div class="ftr-copy">© <span id="ftrYear"></span> · Hecho con 🤍 en Colombia</div>
   </div>
 </footer>
+
+<!-- MODAL LEGAL (privacidad / términos / cookies / garantías) -->
+<div id="legalModal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.55);overscroll-behavior:contain" onclick="if(event.target===this)closeLegal()">
+  <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(680px,92vw);max-height:86vh;overflow-y:auto;background:var(--white);border-radius:16px;padding:26px 24px;box-shadow:0 20px 60px rgba(0,0,0,.35)">
+    <button onclick="closeLegal()" aria-label="Cerrar" style="position:absolute;right:14px;top:12px;background:none;border:none;font-size:26px;line-height:1;color:var(--ink2);cursor:pointer">×</button>
+    <div id="legalBody" style="font-size:13.5px;line-height:1.6;color:var(--ink)"></div>
+  </div>
+</div>
 
 <!-- CATÁLOGO COMPLETO (vista a pantalla completa; se abre con "Ver todo") -->
 <div class="catview" id="catView">
@@ -2263,6 +2301,47 @@ function renderFooter(){
   const yr=$('ftrYear');if(yr)yr.textContent=new Date().getFullYear();
   const f=$('siteFooter');if(f)f.style.display='';   // se muestra solo cuando ya cargó todo (evita verlo al inicio)
 }
+
+/* ── PÁGINAS LEGALES (modal) ── Email de contacto/responsable: cámbialo en UNA línea (LEGAL_EMAIL). */
+const LEGAL_EMAIL='mipangostore@gmail.com';
+const LEGAL_UPDATED='9 de junio de 2026';
+function legalContent(){
+  const marca=STORE_NAME||'Strange Sneakers';
+  const h=t=>`<h2 style="font-size:18px;margin:0 0 4px">${t}</h2><div style="font-size:11px;color:var(--ink3);margin-bottom:14px">Última actualización: ${LEGAL_UPDATED}</div>`;
+  return {
+    privacidad: h('Política de Privacidad y Tratamiento de Datos')+
+      `<p>En <strong>${marca}</strong> protegemos tus datos personales conforme a la <strong>Ley 1581 de 2012</strong> y el Decreto 1377 de 2013 (Colombia).</p>
+      <p style="margin-top:10px"><strong>Responsable:</strong> ${marca} · <strong>Contacto:</strong> <a href="mailto:${LEGAL_EMAIL}">${LEGAL_EMAIL}</a></p>
+      <p style="margin-top:10px"><strong>Datos que recolectamos:</strong> nombre, cédula, teléfono, dirección, ciudad, barrio, correo, talla/género y datos de navegación (cookies, identificadores de Meta Pixel y analítica) cuando realizas un pedido o navegas el sitio.</p>
+      <p style="margin-top:10px"><strong>Finalidad:</strong> procesar y entregar tus pedidos, contactarte por tu compra, prevenir fraude, mejorar el catálogo y enviarte comunicaciones comerciales solo si lo autorizas.</p>
+      <p style="margin-top:10px"><strong>Tus derechos:</strong> conocer, actualizar, rectificar y suprimir tus datos, y revocar la autorización, escribiendo a <a href="mailto:${LEGAL_EMAIL}">${LEGAL_EMAIL}</a>.</p>
+      <p style="margin-top:10px"><strong>Terceros:</strong> compartimos datos solo con proveedores necesarios para operar (pasarelas de pago Wompi/Bold, mensajería de entrega, Meta y Google para medición). No vendemos tus datos.</p>`,
+    terminos: h('Términos y Condiciones')+
+      `<p>Al comprar en <strong>${marca}</strong> aceptas estos términos.</p>
+      <p style="margin-top:10px"><strong>Precios:</strong> en pesos colombianos (COP), pueden cambiar sin previo aviso. El precio válido es el mostrado al confirmar el pedido.</p>
+      <p style="margin-top:10px"><strong>Pagos:</strong> aceptamos pago en línea (Wompi/Bold) y pago contra entrega según disponibilidad de la zona.</p>
+      <p style="margin-top:10px"><strong>Envíos:</strong> despachamos a todo Colombia; los tiempos dependen de la transportadora y la ciudad de destino.</p>
+      <p style="margin-top:10px"><strong>Disponibilidad:</strong> los productos están sujetos a inventario; si un artículo no está disponible te contactaremos para reembolso o cambio.</p>
+      <p style="margin-top:10px">Contacto: <a href="mailto:${LEGAL_EMAIL}">${LEGAL_EMAIL}</a>.</p>`,
+    cookies: h('Política de Cookies')+
+      `<p>Usamos cookies y tecnologías similares para que el sitio funcione, recordar tu carrito y medir el rendimiento.</p>
+      <p style="margin-top:10px"><strong>Tipos:</strong> técnicas (necesarias para el funcionamiento), de analítica (Google Analytics) y de publicidad/medición (Meta Pixel), que nos ayudan a entender el tráfico y mostrar anuncios relevantes.</p>
+      <p style="margin-top:10px">Puedes bloquear o eliminar las cookies desde la configuración de tu navegador. Si las desactivas, algunas funciones podrían no operar correctamente.</p>`,
+    garantias: h('Cambios y Garantías')+
+      `<p>Queremos que ames tus sneakers. Si hay un problema, escríbenos.</p>
+      <p style="margin-top:10px"><strong>Derecho de retracto:</strong> conforme a la Ley 1480 de 2011 (Estatuto del Consumidor), tienes hasta <strong>5 días hábiles</strong> tras recibir el producto para retractarte en compras a distancia, siempre que el producto esté sin uso y en su empaque original.</p>
+      <p style="margin-top:10px"><strong>Cambios de talla:</strong> sujetos a disponibilidad; el producto debe estar nuevo, sin uso y con su empaque.</p>
+      <p style="margin-top:10px"><strong>Garantía:</strong> cubre defectos de fabricación. No cubre desgaste normal ni mal uso.</p>
+      <p style="margin-top:10px">Para gestionar un cambio o garantía escribe a <a href="mailto:${LEGAL_EMAIL}">${LEGAL_EMAIL}</a>${WA?` o por WhatsApp al <a href="https://wa.me/${WA}" target="_blank" rel="noopener">+${WA}</a>`:''}.</p>`
+  };
+}
+function openLegal(key){
+  const m=$('legalModal'),b=$('legalBody');if(!m||!b)return;
+  b.innerHTML=(legalContent()[key]||'');
+  m.style.display='';document.body.style.overflow='hidden';
+}
+function closeLegal(){const m=$('legalModal');if(m)m.style.display='none';document.body.style.overflow='';}
+
 function subscribeFooter(){
   const inp=$('ftrEmail'),msg=$('ftrMsg'),btn=$('ftrBtn');
   const email=((inp&&inp.value)||'').trim();
@@ -4340,14 +4419,20 @@ function rForm(){
     <div class="frow"><div class="fld"><label>Cédula</label><input id="fc" type="number" placeholder="1000000000" value="${escHtml(cData.cedula||'')}"></div><div class="fld"><label>Celular</label><input id="ft" type="tel" placeholder="300 000 0000" value="${escHtml(cData.celular||'')}"></div></div>
     <div class="fld"><label>Dirección</label><input id="fd" type="text" placeholder="Calle 10 # 25-30" value="${escHtml(cData.direccion||'')}"></div>
     <div class="frow"><div class="fld"><label>Barrio</label><input id="fb" type="text" placeholder="El Poblado" value="${escHtml(cData.barrio||'')}"></div><div class="fld"><label>Ciudad</label><input id="fci" type="text" placeholder="Medellín" value="${escHtml(cData.ciudad||'')}"></div></div>
-    <div class="ferr" id="ferr">Completa todos los campos</div></div>`;
+    <label for="fconsent" style="display:flex;gap:9px;align-items:flex-start;margin-top:6px;font-size:12px;line-height:1.45;color:var(--ink2);cursor:pointer">
+      <input id="fconsent" type="checkbox" ${cData.consent?'checked':''} style="margin-top:2px;width:16px;height:16px;flex:0 0 auto;accent-color:var(--ink)">
+      <span>Autorizo el tratamiento de mis datos personales según la <a href="#" onclick="openLegal('privacidad');return false" style="color:var(--ink);font-weight:700">Política de Privacidad</a> (Ley 1581 de 2012).</span>
+    </label>
+    <div class="ferr" id="ferr">Completa todos los campos y acepta la política de datos</div></div>`;
   $('cfoot').innerHTML=`<button class="btnmain" onclick="saveFormAndNext()">Continuar &nbsp;→</button><button class="btnback" onclick="goStep(0)">← Volver</button>`;
 }
 function saveFormAndNext(){
   const m={nombre:'fn',cedula:'fc',celular:'ft',direccion:'fd',barrio:'fb',ciudad:'fci'};
   let ok=true;const d={};
   Object.entries(m).forEach(([k,id])=>{const v=($( id)||{}).value||'';d[k]=v.trim();if(!v.trim())ok=false;});
-  if(!ok){const e=$('ferr');if(e)e.classList.add('show');return;}
+  const consent=!!($('fconsent')||{}).checked;
+  if(!ok||!consent){const e=$('ferr');if(e)e.classList.add('show');return;}
+  d.consent=true;
   cData=d;
   captureLead(d);   // guarda el contacto YA (antes de pagar) por si abandona → remarketing
   goStep(2);
