@@ -1252,8 +1252,8 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
       <div id="heroAdminList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>
       <div style="font-size:10.5px;font-weight:700;color:var(--ink2);margin-bottom:6px">Nuevo banner — sube las DOS versiones:</div>
       <div class="up2">
-        <label class="upcell mov"><span class="upcell-t">📱 MÓVIL<br>(obligatoria)</span><span class="upcell-s" id="heroFileLbl">Vertical 1080×1920 · toca para subir</span><img id="heroDraftThumb"><input type="file" accept="image/*" id="heroFile" style="display:none" onchange="heroDraftImg(this.files[0],'movil');this.value=''"></label>
-        <label class="upcell esc"><span class="upcell-t">🖥 ESCRITORIO<br>(recomendada)</span><span class="upcell-s" id="heroFileLblD">Horizontal 2560×1280 · toca para subir</span><img id="heroDraftThumbD"><input type="file" accept="image/*" id="heroFileD" style="display:none" onchange="heroDraftImg(this.files[0],'escritorio');this.value=''"></label>
+        <label class="upcell mov"><span class="upcell-t">📱 MÓVIL<br>(obligatoria)</span><span class="upcell-s" id="heroFileLbl">Vertical 1080×1920 · toca para subir</span><img id="heroDraftThumb" alt=""><input type="file" accept="image/*" id="heroFile" style="display:none" onchange="heroDraftImg(this.files[0],'movil');this.value=''"></label>
+        <label class="upcell esc"><span class="upcell-t">🖥 ESCRITORIO<br>(recomendada)</span><span class="upcell-s" id="heroFileLblD">Horizontal 2560×1280 · toca para subir</span><img id="heroDraftThumbD" alt=""><input type="file" accept="image/*" id="heroFileD" style="display:none" onchange="heroDraftImg(this.files[0],'escritorio');this.value=''"></label>
       </div>
       <input id="heroTit" type="text" placeholder="Título (ej. Lo nuevo de Nike)" style="margin-top:8px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
       <input id="heroSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
@@ -1273,8 +1273,8 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
     <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#fdeef7">
       <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">👩 Banner Colección Mujer</div>
       <div class="up2">
-        <label class="upcell mov"><span class="upcell-t">📱 MÓVIL</span><span class="upcell-s" id="colmLbl">Vertical 1080×1350 · toca para subir</span><img id="colmThumb"><input type="file" accept="image/*" id="colmFile" style="display:none" onchange="colDraftImg(this.files[0],'m','movil');this.value=''"></label>
-        <label class="upcell esc"><span class="upcell-t">🖥 ESCRITORIO</span><span class="upcell-s" id="colmLblD">Horizontal 1920×1280 · toca para subir</span><img id="colmThumbD"><input type="file" accept="image/*" id="colmFileD" style="display:none" onchange="colDraftImg(this.files[0],'m','escritorio');this.value=''"></label>
+        <label class="upcell mov"><span class="upcell-t">📱 MÓVIL</span><span class="upcell-s" id="colmLbl">Vertical 1080×1350 · toca para subir</span><img id="colmThumb" alt=""><input type="file" accept="image/*" id="colmFile" style="display:none" onchange="colDraftImg(this.files[0],'m','movil');this.value=''"></label>
+        <label class="upcell esc"><span class="upcell-t">🖥 ESCRITORIO</span><span class="upcell-s" id="colmLblD">Horizontal 1920×1280 · toca para subir</span><img id="colmThumbD" alt=""><input type="file" accept="image/*" id="colmFileD" style="display:none" onchange="colDraftImg(this.files[0],'m','escritorio');this.value=''"></label>
       </div>
       <div style="margin-top:9px;font-size:11px;font-weight:700;color:var(--ink2)">🖥 Encuadre escritorio (arriba ←→ abajo): <span id="colmPosV">50%</span></div>
       <input type="range" id="colmPos" min="0" max="100" value="50" oninput="document.getElementById('colmPosV').textContent=this.value+'%'" style="width:100%;margin-top:5px">
@@ -1285,8 +1285,8 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
     <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#eef3fd">
       <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">👨 Banner Colección Hombre</div>
       <div class="up2">
-        <label class="upcell mov"><span class="upcell-t">📱 MÓVIL</span><span class="upcell-s" id="colhLbl">Vertical 1080×1350 · toca para subir</span><img id="colhThumb"><input type="file" accept="image/*" id="colhFile" style="display:none" onchange="colDraftImg(this.files[0],'h','movil');this.value=''"></label>
-        <label class="upcell esc"><span class="upcell-t">🖥 ESCRITORIO</span><span class="upcell-s" id="colhLblD">Horizontal 1920×1280 · toca para subir</span><img id="colhThumbD"><input type="file" accept="image/*" id="colhFileD" style="display:none" onchange="colDraftImg(this.files[0],'h','escritorio');this.value=''"></label>
+        <label class="upcell mov"><span class="upcell-t">📱 MÓVIL</span><span class="upcell-s" id="colhLbl">Vertical 1080×1350 · toca para subir</span><img id="colhThumb" alt=""><input type="file" accept="image/*" id="colhFile" style="display:none" onchange="colDraftImg(this.files[0],'h','movil');this.value=''"></label>
+        <label class="upcell esc"><span class="upcell-t">🖥 ESCRITORIO</span><span class="upcell-s" id="colhLblD">Horizontal 1920×1280 · toca para subir</span><img id="colhThumbD" alt=""><input type="file" accept="image/*" id="colhFileD" style="display:none" onchange="colDraftImg(this.files[0],'h','escritorio');this.value=''"></label>
       </div>
       <div style="margin-top:9px;font-size:11px;font-weight:700;color:var(--ink2)">🖥 Encuadre escritorio (arriba ←→ abajo): <span id="colhPosV">50%</span></div>
       <input type="range" id="colhPos" min="0" max="100" value="50" oninput="document.getElementById('colhPosV').textContent=this.value+'%'" style="width:100%;margin-top:5px">
@@ -1297,8 +1297,8 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
     <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#f3f1ff">
       <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">🧢 Banner Colección Unisex</div>
       <div class="up2">
-        <label class="upcell mov"><span class="upcell-t">📱 MÓVIL</span><span class="upcell-s" id="coluLbl">Vertical 1080×1350 · toca para subir</span><img id="coluThumb"><input type="file" accept="image/*" id="coluFile" style="display:none" onchange="colDraftImg(this.files[0],'u','movil');this.value=''"></label>
-        <label class="upcell esc"><span class="upcell-t">🖥 ESCRITORIO</span><span class="upcell-s" id="coluLblD">Horizontal 1920×1280 · toca para subir</span><img id="coluThumbD"><input type="file" accept="image/*" id="coluFileD" style="display:none" onchange="colDraftImg(this.files[0],'u','escritorio');this.value=''"></label>
+        <label class="upcell mov"><span class="upcell-t">📱 MÓVIL</span><span class="upcell-s" id="coluLbl">Vertical 1080×1350 · toca para subir</span><img id="coluThumb" alt=""><input type="file" accept="image/*" id="coluFile" style="display:none" onchange="colDraftImg(this.files[0],'u','movil');this.value=''"></label>
+        <label class="upcell esc"><span class="upcell-t">🖥 ESCRITORIO</span><span class="upcell-s" id="coluLblD">Horizontal 1920×1280 · toca para subir</span><img id="coluThumbD" alt=""><input type="file" accept="image/*" id="coluFileD" style="display:none" onchange="colDraftImg(this.files[0],'u','escritorio');this.value=''"></label>
       </div>
       <div style="margin-top:9px;font-size:11px;font-weight:700;color:var(--ink2)">🖥 Encuadre escritorio (arriba ←→ abajo): <span id="coluPosV">50%</span></div>
       <input type="range" id="coluPos" min="0" max="100" value="50" oninput="document.getElementById('coluPosV').textContent=this.value+'%'" style="width:100%;margin-top:5px">
@@ -1993,9 +1993,9 @@ function renderHeroAdmin(){
   box.innerHTML=heroSlides.map((s,i)=>`<div style="background:var(--white);border:1px solid var(--line);border-radius:9px;padding:6px">
     <div style="display:flex;align-items:center;gap:8px">
       <div style="display:flex;gap:4px;flex-shrink:0">
-        <div style="text-align:center"><img src="${escHtml(s.img)}" style="width:30px;height:44px;object-fit:cover;border-radius:5px;display:block"><span style="font-size:8px;color:var(--ink3)">📱</span></div>
+        <div style="text-align:center"><img src="${escHtml(s.img)}" alt="" style="width:30px;height:44px;object-fit:cover;border-radius:5px;display:block"><span style="font-size:8px;color:var(--ink3)">📱</span></div>
         ${s.img_desktop
-          ?`<div style="text-align:center"><img src="${escHtml(s.img_desktop)}" style="width:58px;height:44px;object-fit:cover;border-radius:5px;display:block"><span style="font-size:8px;color:var(--ink3)">🖥</span></div>`
+          ?`<div style="text-align:center"><img src="${escHtml(s.img_desktop)}" alt="" style="width:58px;height:44px;object-fit:cover;border-radius:5px;display:block"><span style="font-size:8px;color:var(--ink3)">🖥</span></div>`
           :`<div onclick="heroPickImg(${i},'escritorio')" title="Falta la imagen de escritorio — toca para subirla" style="width:58px;height:44px;border:1.5px dashed var(--red);border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:var(--red);font-weight:700;line-height:1.15"><span style="font-size:11px">＋🖥</span><span style="font-size:7.5px">FALTA</span></div>`}
       </div>
       <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(s.titulo)||'(sin título)'}</div><div style="font-size:10px;color:var(--ink3)">Botón → Ofertas</div></div>
@@ -2079,7 +2079,7 @@ function renderFeaturedAdmin(){
   box.innerHTML=featuredIds.map((id,i)=>{
     const p=prods.find(x=>x.id===id);if(!p)return '';
     return `<div style="display:flex;align-items:center;gap:8px;background:var(--white);border:1px solid var(--line);border-radius:9px;padding:6px">
-      <img src="${escHtml(p.img||'')}" style="width:34px;height:42px;object-fit:cover;border-radius:6px;flex-shrink:0">
+      <img src="${escHtml(p.img||'')}" alt="" style="width:34px;height:42px;object-fit:cover;border-radius:6px;flex-shrink:0">
       <div style="flex:1;min-width:0;font-size:11.5px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(prodLabel(p))}</div>
       <button onclick="featMove(${i},-1)" ${i===0?'disabled':''} style="border:none;background:var(--bg);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;${i===0?'opacity:.3':''}">↑</button>
       <button onclick="featMove(${i},1)" ${i===featuredIds.length-1?'disabled':''} style="border:none;background:var(--bg);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;${i===featuredIds.length-1?'opacity:.3':''}">↓</button>
@@ -2382,7 +2382,7 @@ function renderTestimonios(){
   if(sec)sec.style.display='';
   row.innerHTML=ts.map((t,i)=>{
     const p=t.productId?prods.find(x=>x.id===t.productId):null;
-    const foto=t.foto?`<img class="testi-card-foto" src="${escHtml(t.foto)}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`+_avatar(t.nombre,true):_avatar(t.nombre,false);
+    const foto=t.foto?`<img class="testi-card-foto" src="${escHtml(t.foto)}" alt="${escHtml(t.nombre||'Cliente')}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`+_avatar(t.nombre,true):_avatar(t.nombre,false);
     const prod=p?`<div class="testi-card-prod"><img src="${escHtml(p.img)}" alt=""><span>${escHtml((BRAND_LABELS[p.brand]||'')+' '+(p.g==='h'?'Hombre':'Mujer'))}</span></div>`:'';
     const meta=[t.ciudad,t.fecha].filter(Boolean).map(escHtml).join(' · ');
     const cap=t.captura?`<img class="testi-card-cap" src="${escHtml(t.captura)}" alt="Pedido recibido" loading="lazy" onerror="this.style.display='none'">`:'';
@@ -2636,7 +2636,7 @@ function cardHTML(p,i,prefix){
   const on=!!cart[p.id]&&!p.sold;
   const sp=p.promo||promoG;
   const pct=sp?dsc(p):0;
-  const m=p.img?`<img src="${p.img}" alt="par" loading="lazy">`:`<div class="noimg">👟</div>`;
+  const m=p.img?`<img src="${p.img}" alt="${altProd(p)}" loading="lazy">`:`<div class="noimg">👟</div>`;
   return `<div class="card ${on?'picked':''} ${p.sold?'sold':''}" id="${prefix}${p.id}" style="animation-delay:${Math.min(i*.02,.4)}s" onclick="cardClick(event,${p.id},'cat')">
       <div class="cphoto">
         ${m}
@@ -2687,7 +2687,7 @@ function renderLiqGrid(){
   $('liqGrid').innerHTML=liqs.map((p,i)=>{
     const on=!!cart['L'+p.id]&&!p.sold;
     const pct=dsc(p);
-    const m=p.img?`<img src="${p.img}" alt="liq" loading="lazy">`:`<div class="noimg">🔥</div>`;
+    const m=p.img?`<img src="${p.img}" alt="${altProd(p)}" loading="lazy">`:`<div class="noimg">🔥</div>`;
     return `<div class="liq-card ${on?'picked':''} ${p.sold?'sold':''}" id="lk${p.id}" style="animation-delay:${Math.min(i*.02,.4)}s" onclick="cardClick(event,${p.id},'liq')">
       <div class="lphoto">
         ${m}
@@ -2764,6 +2764,7 @@ function setG(v,btn){
 const BRAND_LABELS={adidas:'Adidas',nike:'Nike',reebok:'Reebok',new_balance:'New Balance',on_cloud:'On Cloud',puma:'Puma',lecoq_sportif:'Le Coq Sportif',jordan:'Jordan',lacoste:'Lacoste',asics:'Asics',onitsuka_tiger:'Onitsuka Tiger',luxury:'Luxury'};
 let brandSel='all';
 function brandLabel(b){return BRAND_LABELS[b]||b;}
+function altProd(p){return escHtml(p.modelo||((BRAND_LABELS[p.brand]||'Sneakers')+(p.g==='h'?' hombre':p.g==='m'?' mujer':'')));}
 function renderBrandBar(){
   const bar=$('brandbar');if(!bar)return;
   // Marcas presentes en el inventario disponible (no agotado)
@@ -2790,7 +2791,7 @@ function openPhoto(id,type){
   // La ficha SIEMPRE abre; el giro 360 (si existe) es un botón dentro de la galería.
   if(!p.img)return;
   pmId=id;pmType=type;
-  renderPmGal([p.img,...(p.imgs||[])],p.imgs360?.length>=2);
+  renderPmGal([p.img,...(p.imgs||[])],p.imgs360?.length>=2,altProd(p));
   const _mk=BRAND_LABELS[p.brand]||'';
   // Si el producto tiene MODELO (ej. "Nike Air Max 90"), ese es el título; si no, Marca · Género.
   $('pmTitle').textContent=p.modelo||((_mk?_mk+' · ':'')+(type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer')));
@@ -2866,11 +2867,11 @@ function closePhotoBtn(){
 }
 /* ── GALERÍA de la ficha ── */
 let _galIdx=0,_galN=1;
-function renderPmGal(urls,has360){
+function renderPmGal(urls,has360,altTxt){
   _galIdx=0;_galN=urls.length;
   const tr=$('pmGalTrack');if(!tr)return;
   tr.style.transform='translateX(0)';
-  tr.innerHTML=urls.map(u=>`<img src="${escHtml(u)}" alt="par" loading="lazy">`).join('');
+  tr.innerHTML=urls.map(u=>`<img src="${escHtml(u)}" alt="${altTxt||'Foto del producto'}" loading="lazy">`).join('');
   const dots=$('pmGalDots');
   if(dots)dots.innerHTML=_galN>1?urls.map((_,i)=>`<span class="pm-gal-dot${i===0?' on':''}"></span>`).join(''):'';
   const showArr=_galN>1?'':'none';
@@ -3127,7 +3128,7 @@ function buscarGlobal(q){
     ||String(p.id)===q.replace('#','')
   ).slice(0,5);
   if(pr.length)out.push(`<div class="avs-h">📦 Productos</div>`+pr.map(p=>
-    `<div class="avs-item" onclick="irProducto(${p.id},'${p._t}')"><img src="${escHtml(p.img||'')}" onerror="this.style.visibility='hidden'"><span>${escHtml(p.modelo||((BRAND_LABELS[p.brand]||'Par')+' '+(p._t==='liq'?'Oferta':(p.g==='h'?'Hombre':'Mujer'))))} · <b>#${p.id}</b> · ${fmt(p.price)}${p.sold?' · <span style="color:var(--red)">agotado</span>':''}</span></div>`).join(''));
+    `<div class="avs-item" onclick="irProducto(${p.id},'${p._t}')"><img src="${escHtml(p.img||'')}" alt="" onerror="this.style.visibility='hidden'"><span>${escHtml(p.modelo||((BRAND_LABELS[p.brand]||'Par')+' '+(p._t==='liq'?'Oferta':(p.g==='h'?'Hombre':'Mujer'))))} · <b>#${p.id}</b> · ${fmt(p.price)}${p.sold?' · <span style="color:var(--red)">agotado</span>':''}</span></div>`).join(''));
   // Pedidos: por nombre, teléfono, ciudad o referencia
   const stBadge=o=>o.status==='venta'?'✓ venta':o.status==='no_venta'?'✕ no venta':o.status==='abandoned'?'🛒 abandonó':'⏳ pendiente';
   const pe=orders.filter(o=>
@@ -3446,7 +3447,7 @@ function renderGalEditor(id,dest){
   const ims=p.imgs||[];
   el.innerHTML=`<div style="font-size:10px;font-weight:700;color:var(--ink2);margin-bottom:6px">📷 Fotos adicionales — se ven en la ficha como carrusel (la principal no cambia)</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      ${ims.map((u,i)=>`<div style="position:relative"><img src="${escHtml(u)}" style="width:54px;height:54px;object-fit:cover;border-radius:8px;border:1px solid var(--line);display:block"><button onclick="galDel(${id},'${dest}',${i})" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border:none;border-radius:50%;background:var(--red);color:#fff;font-size:10px;cursor:pointer;line-height:1">✕</button></div>`).join('')}
+      ${ims.map((u,i)=>`<div style="position:relative"><img src="${escHtml(u)}" alt="" style="width:54px;height:54px;object-fit:cover;border-radius:8px;border:1px solid var(--line);display:block"><button onclick="galDel(${id},'${dest}',${i})" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border:none;border-radius:50%;background:var(--red);color:#fff;font-size:10px;cursor:pointer;line-height:1">✕</button></div>`).join('')}
       <label id="galadd${dest}${id}" style="width:54px;height:54px;border:1.5px dashed var(--ink3);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--ink3);cursor:pointer">＋<input type="file" accept="image/*" multiple style="display:none" onchange="galAdd(${id},'${dest}',this.files);this.value=''"></label>
     </div>`;
 }
@@ -4366,7 +4367,7 @@ function rCart(){
   if(!rows.length){body.innerHTML=`<div class="cempty"><div class="cempty-i">👜</div><div class="cempty-t">Tu carrito está vacío.<br>Toca cualquier par para agregarlo.</div></div>`;foot.innerHTML='';return;}
   body.innerHTML=rows.map(({p,qty,type})=>{
     const key=type==='liq'?'L'+p.id:p.id;
-    const m=p.img?`<img src="${p.img}" alt="">`:`<span style="font-size:22px">${type==='liq'?'🔥':'👟'}</span>`;
+    const m=p.img?`<img src="${p.img}" alt="${altProd(p)}">`:`<span style="font-size:22px">${type==='liq'?'🔥':'👟'}</span>`;
     const lbl=type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer');
     return `<div class="crow"><div class="crimg">${m}</div><div class="crinfo"><div class="crname">${lbl}</div><div class="crprice">${fmt(p.price)} c/u</div></div><div class="cqc"><button class="cqb" onclick="chQty('${key}',-1)">−</button><span class="cqv">${qty}</span><button class="cqb" onclick="chQty('${key}',1)">+</button></div><button class="crm" onclick="rmItem('${key}')">✕</button></div>`;
   }).join('');
@@ -4739,7 +4740,7 @@ function checkPedidoLink(){
   const rowsHtml=list.map(({p,qty,isLiq})=>{
     const mk=p.brand?(BRAND_LABELS[p.brand]||p.brand)+' · ':'';
     const lbl=isLiq?'Liquidación':(p.g==='h'?'Hombre':'Mujer');
-    const img=p.img?`<img src="${escHtml(p.img)}" alt="">`:'👟';
+    const img=p.img?`<img src="${escHtml(p.img)}" alt="${altProd(p)}">`:'👟';
     return `<div class="ped-row"><div class="ped-img">${img}</div><div class="ped-info"><div class="ped-name">${escHtml(mk+lbl)} · #${p.id}</div><div class="ped-q">Cantidad: ${qty} · ${fmt(p.price)} c/u</div></div><div class="ped-pr">${fmt(p.price*qty)}</div></div>`;
   }).join('');
   const ov=document.createElement('div');
