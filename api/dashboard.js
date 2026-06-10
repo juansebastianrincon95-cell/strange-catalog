@@ -215,6 +215,7 @@ module.exports = async (req, res) => {
 
     // ── 4. FUNNEL + PRODUCTOS (events del rango) ────────────────────────────
     let funnel = null;
+    let visitantes = null;   // recurrencia de visitantes (incluye anónimos)
     const prodStats = {};   // id numérico → {views, atc}
     if (sbSvc) {
       let qe = sbSvc.from('events').select('session_id,type,product_id,created_at').limit(20000);
@@ -226,8 +227,10 @@ module.exports = async (req, res) => {
       // sesiones que también pasaron por TODOS los pasos anteriores → embudo siempre
       // decreciente y tasas ≤100%, aunque haya eventos parciales o datos viejos.
       const porPaso = { page_view: new Set(), view_product: new Set(), add_to_cart: new Set(), initiate_checkout: new Set(), reached_payment: new Set(), lead: new Set() };
+      const diasPorSesion = {};   // session_id → Set de días distintos con actividad (recurrencia)
       (evs || []).forEach(e => {
         if (porPaso[e.type]) porPaso[e.type].add(e.session_id);
+        if (e.session_id) (diasPorSesion[e.session_id] = diasPorSesion[e.session_id] || new Set()).add(dayKeyOf(e.created_at));
         // product_id: 'L34' = liquidación, '34' = catálogo (numéricos viejos se asumen cat)
         const m = /^(L?)(\d+)$/i.exec(String(e.product_id || ''));
         if (m && (e.type === 'view_product' || e.type === 'add_to_cart')) {
@@ -249,6 +252,21 @@ module.exports = async (req, res) => {
         reached_payment: hayRP ? paso(porPaso.reached_payment) : null,
         leads: paso(porPaso.lead),
         ventas: compras
+      };
+      // Visitantes recurrentes: sesiones con actividad en ≥2 días distintos del rango (incluye
+      // anónimos). Detección por dispositivo/navegador (mismo session_id persistente).
+      const hoyKey = dayKeyOf(Date.now());
+      const totalVis = Object.keys(diasPorSesion).length;
+      let recurrentes = 0, volvieronHoy = 0;
+      for (const sid in diasPorSesion) {
+        const dias = diasPorSesion[sid];
+        if (dias.size >= 2) { recurrentes++; if (dias.has(hoyKey)) volvieronHoy++; }
+      }
+      visitantes = {
+        total: totalVis,
+        recurrentes,
+        recurrentes_pct: totalVis ? +(recurrentes / totalVis * 100).toFixed(1) : 0,
+        volvieron_hoy: volvieronHoy
       };
     }
 
@@ -386,6 +404,7 @@ module.exports = async (req, res) => {
       serie,              // [{k, netas, pedidos, aov}] buckets continuos según group
       clientes,           // nuevos/recurrentes/returning_rate/ventas por grupo/frecuencia/días entre compras
       funnel,             // sessions/view_product/add_to_cart/initiate_checkout/leads/ventas
+      visitantes,         // total/recurrentes/recurrentes_pct/volvieron_hoy (incluye anónimos)
       productos,          // top 10 por ingresos con views/ATC/conversiones
       nota: 'Ventas netas (subtotal, post-descuento) es la base de ROAS. total_cobrado = caja (con envío). margen_estimado solo cubre ítems con costo registrado (ver margen_cobertura). Solo pedidos status=venta cuentan. El embudo es encadenado: cada paso cuenta sesiones que completaron todos los pasos anteriores. roas_atribuido cruza solo campañas con gasto Y ventas atribuidas (las de gasto sin ventas se ven en por_campana pero no entran); roas_promedio usa el gasto de TODA la cuenta Meta.',
       meta_error,

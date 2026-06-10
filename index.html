@@ -3716,6 +3716,14 @@ async function renderAnalytics(){
       ${mini('Margen est.',_abrev(R.margen_estimado),'Utilidad estimada (ítems con costo)')}
     </div>`);
   const embudoBloque=j.funnel?_anaBloque('🔻 Embudo del rango',_embudo(j.funnel)):'';
+  const V=j.visitantes||null;
+  const visitantesBloque=V?_anaBloque('👀 Visitantes recurrentes',
+    `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+      ${mini('Visitantes',V.total||0,'Personas únicas que entraron en el rango (por dispositivo/navegador). Incluye anónimos.')}
+      ${mini('Recurrentes',(V.recurrentes||0)+' · '+(V.recurrentes_pct||0)+'%','Volvieron en ≥2 días distintos. OJO: solo detecta el mismo dispositivo/navegador; otro celular o borrar cookies = visitante nuevo.')}
+      ${mini('Volvieron hoy',V.volvieron_hoy||0,'Visitantes recurrentes que entraron también hoy.')}
+    </div>
+    <div style="font-size:9.5px;color:var(--ink3);margin-top:7px;line-height:1.4">Incluye anónimos (sin contacto). Para reengancharlos usa las audiencias de remarketing en Meta — no se les puede escribir.</div>`):'';
   const clientesBloque=_anaBloque('👥 Clientes',
     `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:8px">
       ${mini('Nuevos',(C.nuevos||0)+' · '+_abrev(C.ventas_nuevos),'Primera compra dentro del rango')}
@@ -3746,7 +3754,7 @@ async function renderAnalytics(){
     +(j.meta_error?`<div style="font-size:10px;color:var(--ink3);margin-top:7px">⚠ Sin datos de inversión de Meta: ${escHtml(String(j.meta_error).slice(0,90))}</div>`:''))
     :(j.meta_error?_anaBloque('📣 Campañas',`<div style="font-size:11.5px;color:var(--ink3)">⚠ Sin conexión con Meta (${escHtml(String(j.meta_error).slice(0,90))}). Las ventas por campaña aparecerán cuando lleguen pedidos con utm_campaign.</div>`):'');
   const aviso=j.truncado?`<div style="font-size:10px;color:var(--ink3);text-align:center;padding:4px 0 10px">⚠ Datos al límite (${j.truncado.ventas?'5.000 ventas':''}${j.truncado.ventas&&j.truncado.events?' · ':''}${j.truncado.events?'20.000 eventos':''}) — usa un rango más corto para cifras completas.</div>`:'';
-  box.innerHTML=chips+aviso+cards+serieBloque+desglose+embudoBloque+clientesBloque+prodBloque+campBloque;
+  box.innerHTML=chips+aviso+cards+serieBloque+desglose+embudoBloque+visitantesBloque+clientesBloque+prodBloque+campBloque;
 }
 
 /* ── LEADS (Venta / No venta) ── */
