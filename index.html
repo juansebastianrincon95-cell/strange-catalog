@@ -2103,7 +2103,8 @@ function lanzStep(){const row=$('lanzRow');const c=row&&row.querySelector('.card
 function lanzNav(dir){
   const row=$('lanzRow');if(!row)return;
   const max=row.scrollWidth-row.clientWidth;
-  const atEnd=row.scrollLeft>=max-6, atStart=row.scrollLeft<=6;
+  // Umbral 14px: con scroll-snap + padding 10px el reposo nunca queda exacto en 0 ni en max.
+  const atEnd=row.scrollLeft>=max-14, atStart=row.scrollLeft<=14;
   if(dir>0&&atEnd)row.scrollTo({left:0,behavior:'smooth'});
   else if(dir<0&&atStart)row.scrollTo({left:max,behavior:'smooth'});
   else row.scrollBy({left:dir*lanzStep(),behavior:'smooth'});
