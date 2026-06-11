@@ -1,0 +1,248 @@
+<!-- ADMIN -->
+<div class="apanel" id="apanel">
+  <div class="av-top">
+    <button class="av-burger" onclick="toggleAvSide()" aria-label="Menú">☰</button>
+    <div class="av-title" id="avTitle">Inicio</div>
+    <div class="av-search" id="avSearchWrap">
+      <input id="avSearch" type="search" placeholder="🔍 Buscar producto, pedido o cliente…" autocomplete="off"
+        oninput="clearTimeout(window._avsT);window._avsT=setTimeout(()=>buscarGlobal(this.value),200)"
+        onkeydown="if(event.key==='Escape'){this.value='';cerrarBusqueda();this.blur();}">
+      <div id="avSearchRes"></div>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;margin-left:auto"><button class="admin-pill" style="font-size:10px;padding:5px 10px" onclick="logoutAdmin()">Salir</button><button class="ax" onclick="closeAdmin()">✕</button></div>
+  </div>
+  <div class="av-body">
+    <div class="av-scrim" id="avScrim" onclick="toggleAvSide(false)"></div>
+    <!-- aside (NO <nav>): el selector global nav{height:var(--navH)} pisaría la altura -->
+    <aside class="av-side" id="avSide">
+      <button class="av-nav on" data-nav="inicio" onclick="setAdminSection('inicio')"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h14V9.5"/><path d="M10 20v-6h4v6"/></svg>Inicio</button>
+      <button class="av-nav" data-nav="productos" onclick="setAdminSection('productos')"><svg viewBox="0 0 24 24"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg>Productos</button>
+      <button class="av-nav" data-nav="ofertas" onclick="setAdminSection('ofertas')"><svg viewBox="0 0 24 24"><path d="M20.6 13.4 11 3.8a2 2 0 0 0-1.4-.6H4a1 1 0 0 0-1 1v5.6c0 .5.2 1 .6 1.4l9.6 9.6a2 2 0 0 0 2.8 0l4.6-4.6a2 2 0 0 0 0-2.8z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg>Ofertas</button>
+      <button class="av-nav" data-nav="banners" onclick="setAdminSection('banners')"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="m3 17 5-5 4 4 3.5-3.5L21 18"/></svg>Banners</button>
+      <button class="av-nav" data-nav="testimonios" onclick="setAdminSection('testimonios')"><svg viewBox="0 0 24 24"><path d="m12 3 2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 16.9 6.6 19.8l1.1-6.1L3.2 9.4l6.1-.8z"/></svg>Testimonios</button>
+      <button class="av-nav" data-nav="pedidos" onclick="setAdminSection('pedidos')"><svg viewBox="0 0 24 24"><path d="M6 2h12v20l-2-1.5L14 22l-2-1.5L10 22l-2-1.5L6 22z"/><path d="M9.5 7.5h5M9.5 11h5M9.5 14.5h3"/></svg>Pedidos</button>
+      <button class="av-nav" data-nav="clientes" onclick="setAdminSection('clientes')"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.4"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.6"/><path d="M16.5 14.6c2.6.4 4.5 2.4 4.5 5.4"/></svg>Clientes</button>
+      <button class="av-nav" data-nav="leads" onclick="setAdminSection('leads')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2"/></svg>Leads</button>
+      <button class="av-nav" data-nav="suscriptores" onclick="setAdminSection('suscriptores')"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>Suscriptores</button>
+      <button class="av-nav" data-nav="ajustes" onclick="setAdminSection('ajustes')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.01a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.01a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg>Ajustes</button>
+    </aside>
+    <div class="av-main" id="avMain">
+  <div class="astats" data-sec="inicio" data-disp="flex">
+    <div class="ast"><div class="astn" id="aTot">0</div><div class="astl">Total</div></div>
+    <div class="ast"><div class="astn" id="aH">0</div><div class="astl">Hombre</div></div>
+    <div class="ast"><div class="astn" id="aM">0</div><div class="astl">Mujer</div></div>
+    <div class="ast"><div class="astn" id="aSold">0</div><div class="astl">Agotados</div></div>
+  </div>
+  <div data-sec="ofertas">
+    <div class="trow">
+      <div><div class="trow-lbl">🏷 Promoción global</div><div class="trow-sub">Muestra descuento en todos los pares</div></div>
+      <label class="sw"><input type="checkbox" id="swPromo" onchange="toggleGlobal(this.checked)"><div class="sw-tr"></div><div class="sw-th"></div></label>
+    </div>
+    <div class="trow" style="background:#fff8f0">
+      <div><div class="trow-lbl">🔥 Banner precio especial</div><div class="trow-sub">Muestra el banner negro arriba</div></div>
+      <label class="sw"><input type="checkbox" id="swBanner" onchange="toggleBanner(this.checked)"><div class="sw-tr"></div><div class="sw-th"></div></label>
+    </div>
+    <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#fdf6ec">
+      <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:4px">🏆 Combos Mundialistas</div>
+      <div style="font-size:10.5px;color:var(--ink3);margin-bottom:10px">Bundles a precio fijo. El precio lo valida también el servidor (anti-manipulación). La camiseta gratis solo aplica al combo que la tenga activada.</div>
+      <div id="combosAdminList" style="display:flex;flex-direction:column;gap:8px"></div>
+      <button onclick="guardarCombos()" style="margin-top:10px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">💾 Guardar combos</button>
+    </div>
+  </div>
+  <div data-sec="ajustes">
+    <div class="trow" style="background:#fff0f0">
+      <div><div class="trow-lbl">🎁 Popup de bienvenida</div><div class="trow-sub">$20.000 OFF (código BIENVENIDO20, vence a los 7 días) al dejar nombre y WhatsApp</div></div>
+      <label class="sw"><input type="checkbox" id="swWelcome" onchange="toggleWelcome(this.checked)"><div class="sw-tr"></div><div class="sw-th"></div></label>
+    </div>
+  </div>
+  <div data-sec="suscriptores"><div id="subsList"></div></div>
+  <div data-sec="banners">
+    <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#f3f1ff">
+      <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">🖼 Banners del inicio (hero)</div>
+      <input type="file" accept="image/*" id="heroEditFile" style="display:none" onchange="heroEditFileChange(this.files[0])">
+      <div id="heroAdminList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>
+      <div style="font-size:10.5px;font-weight:700;color:var(--ink2);margin-bottom:6px">Nuevo banner — sube las DOS versiones:</div>
+      <div class="up2">
+        <label class="upcell mov"><span class="upcell-t">📱 MÓVIL<br>(obligatoria)</span><span class="upcell-s" id="heroFileLbl">Vertical 1080×1920 · toca para subir</span><img id="heroDraftThumb" alt=""><input type="file" accept="image/*" id="heroFile" style="display:none" onchange="heroDraftImg(this.files[0],'movil');this.value=''"></label>
+        <label class="upcell esc"><span class="upcell-t">🖥 ESCRITORIO<br>(recomendada)</span><span class="upcell-s" id="heroFileLblD">Horizontal 2560×1280 · toca para subir</span><img id="heroDraftThumbD" alt=""><input type="file" accept="image/*" id="heroFileD" style="display:none" onchange="heroDraftImg(this.files[0],'escritorio');this.value=''"></label>
+      </div>
+      <input id="heroTit" type="text" placeholder="Título (ej. Lo nuevo de Nike)" style="margin-top:8px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
+      <input id="heroSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
+      <div style="font-size:10px;color:var(--ink3);margin-top:6px;background:var(--bg);border-radius:7px;padding:6px 9px">🎯 El botón de todos los banners lleva a <b>Ofertas</b> (estrategia de combos).</div>
+      <button onclick="heroAdd()" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">➕ Agregar banner</button>
+      <div style="font-size:10px;color:var(--ink3);margin-top:6px;text-align:center">Imagen vertical recomendada: 1080×1920 (móvil) · 1920×1080 (escritorio).</div>
+    </div>
+    <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#eefcf3">
+      <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">🚀 Últimos lanzamientos</div>
+      <div id="featList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>
+      <div style="font-size:10.5px;font-weight:700;color:var(--ink2);margin-bottom:6px">Toca tus fotos para destacarlas · <span id="lanzCnt"></span></div>
+      <div id="lanzPick" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-height:320px;overflow-y:auto;overscroll-behavior:contain"></div>
+      <div style="font-size:10px;color:var(--ink3);margin-top:6px;text-align:center">Los elegidos salen en "Últimos lanzamientos" del inicio. Al tocar la tarjeta, el cliente va directo al zapato.</div>
+    </div>
+    <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#fdeef7">
+      <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">👩 Banner Colección Mujer</div>
+      <div class="up2">
+        <label class="upcell mov"><span class="upcell-t">📱 MÓVIL</span><span class="upcell-s" id="colmLbl">Vertical 1080×1350 · toca para subir</span><img id="colmThumb" alt=""><input type="file" accept="image/*" id="colmFile" style="display:none" onchange="colDraftImg(this.files[0],'m','movil');this.value=''"></label>
+        <label class="upcell esc"><span class="upcell-t">🖥 ESCRITORIO</span><span class="upcell-s" id="colmLblD">Horizontal 1920×1280 · toca para subir</span><img id="colmThumbD" alt=""><input type="file" accept="image/*" id="colmFileD" style="display:none" onchange="colDraftImg(this.files[0],'m','escritorio');this.value=''"></label>
+      </div>
+      <div style="margin-top:9px;font-size:11px;font-weight:700;color:var(--ink2)">🖥 Encuadre escritorio (arriba ←→ abajo): <span id="colmPosV">50%</span></div>
+      <input type="range" id="colmPos" min="0" max="100" value="50" oninput="document.getElementById('colmPosV').textContent=this.value+'%'" style="width:100%;margin-top:5px">
+      <input id="colmTit" type="text" placeholder="Título (ej. Colección Mujer)" style="margin-top:8px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
+      <input id="colmSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
+      <button onclick="saveColBanner('m')" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">💾 Guardar banner Mujer</button>
+    </div>
+    <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#eef3fd">
+      <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">👨 Banner Colección Hombre</div>
+      <div class="up2">
+        <label class="upcell mov"><span class="upcell-t">📱 MÓVIL</span><span class="upcell-s" id="colhLbl">Vertical 1080×1350 · toca para subir</span><img id="colhThumb" alt=""><input type="file" accept="image/*" id="colhFile" style="display:none" onchange="colDraftImg(this.files[0],'h','movil');this.value=''"></label>
+        <label class="upcell esc"><span class="upcell-t">🖥 ESCRITORIO</span><span class="upcell-s" id="colhLblD">Horizontal 1920×1280 · toca para subir</span><img id="colhThumbD" alt=""><input type="file" accept="image/*" id="colhFileD" style="display:none" onchange="colDraftImg(this.files[0],'h','escritorio');this.value=''"></label>
+      </div>
+      <div style="margin-top:9px;font-size:11px;font-weight:700;color:var(--ink2)">🖥 Encuadre escritorio (arriba ←→ abajo): <span id="colhPosV">50%</span></div>
+      <input type="range" id="colhPos" min="0" max="100" value="50" oninput="document.getElementById('colhPosV').textContent=this.value+'%'" style="width:100%;margin-top:5px">
+      <input id="colhTit" type="text" placeholder="Título (ej. Colección Hombre)" style="margin-top:8px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
+      <input id="colhSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
+      <button onclick="saveColBanner('h')" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">💾 Guardar banner Hombre</button>
+    </div>
+    <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#f3f1ff">
+      <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">🧢 Banner Colección Unisex</div>
+      <div class="up2">
+        <label class="upcell mov"><span class="upcell-t">📱 MÓVIL</span><span class="upcell-s" id="coluLbl">Vertical 1080×1350 · toca para subir</span><img id="coluThumb" alt=""><input type="file" accept="image/*" id="coluFile" style="display:none" onchange="colDraftImg(this.files[0],'u','movil');this.value=''"></label>
+        <label class="upcell esc"><span class="upcell-t">🖥 ESCRITORIO</span><span class="upcell-s" id="coluLblD">Horizontal 1920×1280 · toca para subir</span><img id="coluThumbD" alt=""><input type="file" accept="image/*" id="coluFileD" style="display:none" onchange="colDraftImg(this.files[0],'u','escritorio');this.value=''"></label>
+      </div>
+      <div style="margin-top:9px;font-size:11px;font-weight:700;color:var(--ink2)">🖥 Encuadre escritorio (arriba ←→ abajo): <span id="coluPosV">50%</span></div>
+      <input type="range" id="coluPos" min="0" max="100" value="50" oninput="document.getElementById('coluPosV').textContent=this.value+'%'" style="width:100%;margin-top:5px">
+      <input id="coluTit" type="text" placeholder="Título (ej. Colección Unisex)" style="margin-top:8px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
+      <input id="coluSub" type="text" placeholder="Subtítulo (opcional)" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
+      <button onclick="saveColBanner('u')" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">💾 Guardar banner Unisex</button>
+    </div>
+  </div>
+  <div data-sec="ajustes">
+    <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#eefcf6">
+      <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">📱 Redes sociales (footer)</div>
+      <input id="cfgIg" type="url" placeholder="Instagram (https://instagram.com/...)" onchange="saveSocials()" style="width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:500;color:var(--ink);outline:none">
+      <input id="cfgTiktok" type="url" placeholder="TikTok (https://tiktok.com/@...)" onchange="saveSocials()" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:500;color:var(--ink);outline:none">
+      <input id="cfgFb" type="url" placeholder="Facebook (https://facebook.com/...)" onchange="saveSocials()" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:500;color:var(--ink);outline:none">
+      <div style="font-size:10px;color:var(--ink3);margin-top:6px;text-align:center">WhatsApp usa el número que ya configuraste. Solo se muestran las redes con enlace.</div>
+    </div>
+  </div>
+  <div data-sec="testimonios">
+    <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#fffbeb">
+      <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">⭐ Clientes felices (testimonios)</div>
+      <label style="font-size:11px;font-weight:600;color:var(--ink2)">Nº de reseñas a mostrar (marketing)</label>
+      <input id="cfgReviews" type="number" inputmode="numeric" placeholder="ej. 1562" onchange="saveReviews()" style="margin-top:4px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
+      <div id="testiList" style="display:flex;flex-direction:column;gap:6px;margin:10px 0"></div>
+      <input id="testiNombre" type="text" placeholder="Nombre del cliente (ej. Johanna M.)" style="width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
+      <input id="testiCiudad" type="text" placeholder="Ciudad (ej. Medellín) — opcional" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
+      <input id="testiFecha" type="text" placeholder="Fecha (ej. 28/05/2026) — opcional" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
+      <textarea id="testiTexto" placeholder="Testimonio / recomendación del cliente" rows="2" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none;resize:vertical"></textarea>
+      <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:9px;margin-top:6px;background:var(--white);border:1.5px dashed var(--ink3);border-radius:8px;font-family:var(--font);font-size:11.5px;font-weight:700;color:var(--ink2);cursor:pointer"><span id="testiFotoLbl">📷 Foto del cliente (opcional)</span><input type="file" accept="image/*" id="testiFoto" style="display:none" onchange="testiFotoUp(this.files[0]);this.value=''"></label>
+      <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:9px;margin-top:6px;background:var(--white);border:1.5px dashed var(--ink3);border-radius:8px;font-family:var(--font);font-size:11.5px;font-weight:700;color:var(--ink2);cursor:pointer"><span id="testiCapLbl">🧾 Pantallazo del pedido recibido (opcional)</span><input type="file" accept="image/*" id="testiCap" style="display:none" onchange="testiCapUp(this.files[0]);this.value=''"></label>
+      <div style="font-size:10px;color:var(--ink3);margin-top:4px">💡 Tapa el número y la foto de perfil del cliente antes de subir el pantallazo.</div>
+      <select id="testiProdSel" style="margin-top:6px;width:100%;padding:9px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"></select>
+      <button id="testiAddBtn" onclick="testiAdd()" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">➕ Agregar testimonio</button>
+      <button id="testiCancelBtn" onclick="testiEditCancel()" style="display:none;margin-top:6px;width:100%;padding:8px;background:var(--white);color:var(--ink2);border:1.5px solid var(--line);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">✕ Cancelar edición</button>
+    </div>
+  </div>
+  <div data-sec="ajustes">
+    <div id="storageWarn" style="display:none;margin:8px 14px;padding:8px 12px;background:#fff8e1;border:1px solid #ffc107;border-radius:8px;font-size:11px;color:#7a5800;font-weight:600"></div>
+    <div class="trow" style="background:#f8f8f6">
+      <div style="flex:1;margin-right:10px">
+        <div class="trow-lbl">⚙ Nombre del negocio</div>
+        <input id="cfgNombre" type="text" placeholder="STRANGE" style="margin-top:5px;width:100%;padding:7px 10px;background:var(--bg);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none" oninput="STORE_NAME=this.value.trim()||'STRANGE';applyStoreName();saveConfig()">
+      </div>
+    </div>
+    <div class="trow" style="background:#f8f8f6">
+      <div style="flex:1;margin-right:10px">
+        <div class="trow-lbl">📱 WhatsApp (solo números)</div>
+        <input id="cfgWA" type="tel" placeholder="573001234567" style="margin-top:5px;width:100%;padding:7px 10px;background:var(--bg);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none" oninput="WA=this.value.replace(/\D/g,'');saveConfig()">
+      </div>
+    </div>
+    <div class="trow" style="background:#f5f0ff">
+      <div style="flex:1;margin-right:10px">
+        <div class="trow-lbl">📣 Meta Pixel ID <span title="Ve a Meta Business Suite → Events Manager → Pixeles → copiar el ID numérico (ej: 1234567890123)" style="font-size:10px;color:var(--blue);cursor:help">ⓘ</span></div>
+        <input id="cfgPixel" type="text" placeholder="1234567890123" style="margin-top:5px;width:100%;padding:7px 10px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none" oninput="PIXEL_ID=this.value.trim();saveConfig();initPixel()">
+      </div>
+    </div>
+    <div class="trow" style="background:#f0f7ff">
+      <div style="flex:1;margin-right:10px">
+        <div class="trow-lbl">📊 Google Sheets URL <span title="Opcional. Pega la URL de tu Web App de Google Apps Script. Cada pedido se enviará automáticamente a tu hoja de cálculo. Ver instrucciones en el código fuente." style="font-size:10px;color:var(--blue);cursor:help">ⓘ</span></div>
+        <input id="cfgSheets" type="url" placeholder="https://script.google.com/macros/s/..." style="margin-top:5px;width:100%;padding:7px 10px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:11px;font-weight:500;color:var(--ink);outline:none" oninput="SHEETS_URL=this.value.trim();saveConfig()">
+      </div>
+    </div>
+    <div class="trow" style="background:#f5eeff">
+      <div style="flex:1;margin-right:10px">
+        <div class="trow-lbl">💜 Wompi Llave Pública <span title="wompi.com.co → Developers → Llaves de API → Llave pública (pub_test_... o pub_prod_...)" style="font-size:10px;color:var(--blue);cursor:help">ⓘ</span></div>
+        <input id="cfgWompi" type="text" placeholder="pub_test_xxxxxxxx" style="margin-top:5px;width:100%;padding:7px 10px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:11px;font-weight:500;color:var(--ink);outline:none" oninput="WOMPI_PK=this.value.trim();saveConfig()">
+      </div>
+    </div>
+    <div class="trow" style="background:#e8f5e9">
+      <div style="flex:1;margin-right:10px">
+        <div class="trow-lbl">📊 Microsoft Clarity ID <span title="clarity.microsoft.com → New project → copia el ID (ej: abc123xyz0)" style="font-size:10px;color:var(--blue);cursor:help">ⓘ</span></div>
+        <input id="cfgClarity" type="text" placeholder="ej: abc123xyz0" style="margin-top:5px;width:100%;padding:7px 10px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:11px;font-weight:500;color:var(--ink);outline:none" oninput="CLARITY_ID=this.value.trim();saveConfig()">
+      </div>
+    </div>
+    <div class="trow" style="background:#eef8f0">
+      <div style="flex:1;margin-right:10px">
+        <div class="trow-lbl">Sesión admin</div>
+        <div style="font-size:11px;color:var(--ink2);line-height:1.4">Activa con cookie segura. La clave privada ya no se guarda en este navegador.</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;padding:10px 14px">
+      <button onclick="exportMetaCatalog()" style="flex:1;padding:9px;background:#0066FF;color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📦 Catálogo Meta</button>
+      <button onclick="exportCatalog()" style="flex:1;padding:9px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">⬇ Exportar backup</button>
+      <label style="flex:1;padding:9px;background:var(--bg);border:1.5px solid var(--line);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;text-align:center;color:var(--ink2)">
+        ⬆ Importar backup<input type="file" accept=".json" style="display:none" onchange="importCatalog(this.files[0]);this.value=''">
+      </label>
+    </div>
+  </div>
+  <div id="panCat" data-sec="productos" data-disp="flex" style="display:flex;flex-direction:column;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0">
+    <div class="mode-row" id="modeRowCat">
+      <button class="mode-btn on" id="mBtnNormCat" onclick="set360('cat',false)">📸 Una por una</button>
+      <button class="mode-btn" id="mBtnSpinCat" onclick="set360('cat',true)">🔄 360° Spin</button>
+    </div>
+    <div class="uz" id="uzCat">
+      <input type="file" accept="image/*" multiple onchange="handleFiles(this.files,'cat')">
+      <div class="uz-ico">📸</div><div class="uz-txt">Toca para subir fotos</div><div class="uz-sub">Puedes seleccionar varias a la vez</div>
+    </div>
+    <label class="uz-ai-btn" id="aiBtn">✨ IA Studio — fondo blanco profesional<input type="file" accept="image/*" id="aiInpCat" style="display:none" onchange="handleAIFile(this.files[0],'cat');this.value=''"></label>
+    <div class="uqueue" id="qCat" style="display:none"></div>
+    <button class="prev360-btn" id="prevBtn360Cat" onclick="previewQueue360('cat')">▶ Previsualizar giro</button>
+    <div class="q360-count" id="cnt360Cat"></div>
+    <div class="uopts" id="optCat" style="display:none">
+      <div class="uopt"><label>Género</label><select id="qGen"><option value="h">👨 Hombre</option><option value="m">👩 Mujer</option></select></div>
+      <div class="uopt"><label>Marca</label><select id="qBrand"><option value="">Sin marca</option><option value="adidas">Adidas</option><option value="nike">Nike</option><option value="reebok">Reebok</option><option value="new_balance">New Balance</option><option value="on_cloud">On Cloud</option><option value="puma">Puma</option><option value="lecoq_sportif">Le Coq Sportif</option><option value="jordan">Jordan</option><option value="lacoste">Lacoste</option><option value="asics">Asics</option><option value="onitsuka_tiger">Onitsuka Tiger</option><option value="luxury">Luxury</option></select></div>
+      <div class="uopt"><label>Precio</label><input id="qPrc" type="number" value="180000"></div>
+      <div class="uopt"><label>Antes</label><input id="qAnt" type="number" value="240000"></div>
+    </div>
+    <button class="uadd" id="btnCat" style="display:none" onclick="addQueue('cat')">➕ Añadir al catálogo</button>
+    <div class="alist-hdr"><span>Foto</span><span>Género</span><span>Precio</span><span>Agotado</span><span></span></div>
+    <div class="alist" id="listCat"></div>
+  </div>
+  <div id="panLiq" data-sec="ofertas" data-disp="flex" style="display:none;flex-direction:column;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0">
+    <div class="mode-row" id="modeRowLiq">
+      <button class="mode-btn on" id="mBtnNormLiq" onclick="set360('liq',false)">📸 Una por una</button>
+      <button class="mode-btn" id="mBtnSpinLiq" onclick="set360('liq',true)">🔄 360° Spin</button>
+    </div>
+    <div class="uz" style="border-color:rgba(232,32,10,.3);background:#fff5f5">
+      <input type="file" accept="image/*" multiple onchange="handleFiles(this.files,'liq')">
+      <div class="uz-ico">🔥</div><div class="uz-txt" style="color:var(--red)">Subir fotos de liquidación</div><div class="uz-sub">Precios especiales</div>
+    </div>
+    <label class="uz-ai-btn" id="aiBtnLiq">✨ IA Studio — fondo blanco profesional<input type="file" accept="image/*" id="aiInpLiq" style="display:none" onchange="handleAIFile(this.files[0],'liq');this.value=''"></label>
+    <div class="uqueue" id="qLiq" style="display:none"></div>
+    <button class="prev360-btn" id="prevBtn360Liq" onclick="previewQueue360('liq')">▶ Previsualizar giro</button>
+    <div class="q360-count" id="cnt360Liq"></div>
+    <div class="uopts" id="optLiq" style="display:none">
+      <div class="uopt"><label>Precio liq.</label><input id="lPrc" type="number" value="99000"></div>
+      <div class="uopt"><label>Antes</label><input id="lAnt" type="number" value="240000"></div>
+    </div>
+    <button class="uadd" id="btnLiq" style="display:none;background:var(--red)" onclick="addQueue('liq')">🔥 Añadir a liquidación</button>
+    <div class="alist-hdr"><span>Foto</span><span>Estado</span><span>Precio liq.</span><span>Agotado</span><span></span></div>
+    <div class="alist" id="listLiq"></div>
+  </div>
+  <div id="panStats" data-sec="inicio" data-disp="flex" style="display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0"></div>
+  <div id="panPedidos" data-sec="pedidos" data-disp="flex" style="display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0"></div>
+  <div id="panClientes" data-sec="clientes" data-disp="flex" style="display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0"></div>
+  <div id="panLeads" data-sec="leads" data-disp="flex" style="display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0"></div>
+    </div>
+  </div>
+</div>

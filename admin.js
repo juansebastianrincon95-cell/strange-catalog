@@ -1863,8 +1863,15 @@ function avGo(sec,filtro){
 // Cerrar el dropdown al hacer click fuera del buscador
 document.addEventListener('click',e=>{if(!e.target.closest('.av-search'))cerrarBusqueda();});
 
-/* ── INIT del panel (corre al cargar admin.js) ── */
-renderHeroAdmin();renderCombosAdmin();renderFeaturedAdmin();renderColAdmin();renderTestiAdmin();
+/* ── INIT del panel (corre al cargar admin.js) ──
+   El markup del apanel vive en /admin.html: primero se trae e inyecta (hijo directo de body),
+   y SOLO después se pintan las secciones y se cuelgan los listeners. El stub openAdmin de
+   index.html espera window._adminInit antes de llamar _openAdminReal. */
+window._adminInit=(async()=>{
+  const r=await fetch('/admin.html');
+  if(!r.ok)throw new Error('admin.html '+r.status);
+  document.body.insertAdjacentHTML('beforeend',await r.text());
+  renderHeroAdmin();renderCombosAdmin();renderFeaturedAdmin();renderColAdmin();renderTestiAdmin();
 (function(){ /* drag & drop de las zonas de subida */
   const uzEl=$('uzCat');
   if(uzEl){
@@ -1879,4 +1886,5 @@ renderHeroAdmin();renderCombosAdmin();renderFeaturedAdmin();renderColAdmin();ren
     uzLiqEl.addEventListener('drop',e=>{e.preventDefault();uzLiqEl.classList.remove('drag');handleFiles(e.dataTransfer.files,'liq');});
   }
 })();
-window._adminReady=true;
+  window._adminReady=true;
+})();
