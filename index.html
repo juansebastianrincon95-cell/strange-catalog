@@ -2248,6 +2248,84 @@ function unlockScroll(){
   b.position='';b.top='';b.left='';b.right='';b.width='';b.overflow='';
   window.scrollTo(0,_slY);
 }
+/* ── ROUTER SPA (History API) ──
+   Las "vistas" (ficha, carrito, catálogo, info, legal…) son overlays; este mini-router les da
+   URL propia y hace que el botón ATRÁS cierre la capa de arriba en vez de salir del sitio
+   (clave en el navegador de Instagram). Modelo: pila _layers = capas abiertas en orden; cada
+   open hace navPush y cada close navRemove; los cambios de historial se COMMITEAN en un
+   microtask (batch) → los flujos compuestos (cerrar ficha + abrir carrito en el mismo tick)
+   quedan en UN solo replaceState, sin razas pushState/back. Capas sin URL (360, testimonios,
+   guía, menú) igual entran a la pila: consumen un "atrás" y heredan la URL de abajo. */
+const _layers=[];   // {key,url,title,doClose}
+let _navPopping=false,_navCommitQ=false;
+function _histD(){return (history.state&&typeof history.state.d==='number')?history.state.d:0;}
+function _navState(){ // URL y título según la capa con ruta más arriba de la pila
+  let url='/',title=STORE_NAME;
+  for(const l of _layers){if(l.url)url=l.url;if(l.title)title=l.title;}
+  return {url,title};
+}
+function navApplyMeta(){
+  const s=_navState();
+  document.title=s.title;
+  const og=$('ogUrl');if(og)og.content='https://strangesneakers.com'+s.url;
+  const can=document.querySelector('link[rel="canonical"]');if(can)can.href='https://strangesneakers.com'+s.url.split('?')[0];
+}
+function navCommit(){
+  if(_navCommitQ)return;_navCommitQ=true;
+  queueMicrotask(()=>{
+    _navCommitQ=false;
+    if(_navPopping)return;
+    const want=_layers.length,have=_histD();
+    if(want>have){
+      for(let i=have;i<want;i++){ // pushState es síncrono → se pueden apilar varias de una
+        let url='/';for(let j=0;j<=i;j++)if(_layers[j]&&_layers[j].url)url=_layers[j].url;
+        history.pushState({d:i+1},'',url);
+      }
+    }else if(want<have){
+      history.go(want-have); // el popstate posterior solo re-sincroniza (profundidades ya iguales)
+      navApplyMeta();return;
+    }
+    const s=_navState();
+    history.replaceState({d:want},'',s.url);
+    navApplyMeta();
+  });
+}
+function navPush(key,url,title,doClose){
+  const i=_layers.map(l=>l.key).lastIndexOf(key);
+  if(i>=0){_layers[i].url=url;_layers[i].title=title;} // re-abrir/filtrar la misma capa = actualizar
+  else _layers.push({key,url,title,doClose});
+  navCommit();
+}
+function navRemove(key){
+  const i=_layers.map(l=>l.key).lastIndexOf(key);
+  if(i<0)return;
+  _layers.splice(i,1);
+  navCommit();
+}
+window.addEventListener('popstate',e=>{
+  const d=(e.state&&typeof e.state.d==='number')?e.state.d:0;
+  if(d<_layers.length){ // ATRÁS del usuario (o go(-n)): cerrar capas hasta esa profundidad
+    _navPopping=true;
+    while(_layers.length>d){const l=_layers.pop();try{l.doClose();}catch(_){}}
+    _navPopping=false;
+  }
+  const s=_navState();
+  history.replaceState({d:_layers.length},'',s.url); // auto-cura cualquier desfase
+  navApplyMeta();
+});
+// El estado inicial del historial debe tener profundidad 0
+if(!history.state||typeof history.state.d!=='number')history.replaceState({d:0},'',location.href);
+function _slug(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40);}
+function navProdUrl(id,type,p){const sl=_slug(p&&p.modelo);return '/p/'+(type==='liq'?'L':'')+id+(sl?'-'+sl:'');}
+function navCatUrl(){
+  const g=gSel==='h'?'/hombre':gSel==='m'?'/mujer':gSel==='liq'?'/ofertas':'';
+  return '/catalogo'+g+(brandSel&&brandSel!=='all'?'?marca='+encodeURIComponent(brandSel):'');
+}
+function navUpdateCat(){ // al filtrar dentro del catálogo abierto, refrescar su URL
+  const i=_layers.map(l=>l.key).lastIndexOf('cat');
+  if(i>=0){_layers[i].url=navCatUrl();navCommit();}
+}
+
 function openCatalog(opts){
   opts=opts||{};
   const v=$('catView');if(!v)return;
@@ -2264,17 +2342,20 @@ function openCatalog(opts){
   }
   // Título del catálogo según la sección (las pestañas están ocultas).
   const tt=v.querySelector('.catview-title');
+  let _ct='Catálogo';
   if(tt){
     const map={h:'Hombre',m:'Mujer',liq:'Ofertas',all:'Productos'};
     tt.textContent = opts.brand ? (typeof BRAND_LABELS!=='undefined' && BRAND_LABELS[opts.brand] ? BRAND_LABELS[opts.brand] : 'Productos') : (map[opts.gender||'all']||'Catálogo');
+    _ct=tt.textContent;
   }
   v.scrollTop=0;
+  navPush('cat',navCatUrl(),_ct+' — '+STORE_NAME,closeCatalog);
 }
-function closeCatalog(){const v=$('catView');if(v)v.classList.remove('on');unlockScroll();}
+function closeCatalog(){if(!_navPopping)navRemove('cat');const v=$('catView');if(v)v.classList.remove('on');unlockScroll();}
 
 /* ── MENÚ MÓVIL (panel lateral ☰) ── */
-function openMenu(){const d=$('navDrawer');if(!d)return;d.classList.add('on');lockScroll();}
-function closeMenu(){const d=$('navDrawer');if(!d)return;d.classList.remove('on');unlockScroll();}
+function openMenu(){const d=$('navDrawer');if(!d)return;d.classList.add('on');lockScroll();navPush('menu',null,null,closeMenu);}
+function closeMenu(){if(!_navPopping)navRemove('menu');const d=$('navDrawer');if(!d)return;d.classList.remove('on');unlockScroll();}
 function navGo(t){
   closeMenu();
   if(t==='h')openCatalog({gender:'h'});
@@ -2317,8 +2398,9 @@ function openInfo(which){
   const t=$('infoTitle');if(t)t.textContent=which==='mayoristas'?'Mayoristas':'Cambios y Garantías';
   const m=$('infoModal');m.classList.add('on');lockScroll();
   const sc=m.querySelector('.info-scroll');if(sc)sc.scrollTop=0;
+  navPush('info',which==='mayoristas'?'/mayoristas':'/cambios',(which==='mayoristas'?'Mayoristas':'Cambios y Garantías')+' — '+STORE_NAME,closeInfo);
 }
-function closeInfo(){const m=$('infoModal');if(m)m.classList.remove('on');unlockScroll();}
+function closeInfo(){if(!_navPopping)navRemove('info');const m=$('infoModal');if(m)m.classList.remove('on');unlockScroll();}
 function waMayoristas(){
   const msg=`Hola ${STORE_NAME}, quiero ser mayorista. ¿Me puedes enviar precios, condiciones y catálogo disponible?`;
   try{trackEvent('lead',{});}catch(e){}
@@ -2415,8 +2497,10 @@ function openLegal(key){
   const m=$('legalModal'),b=$('legalBody');if(!m||!b)return;
   b.innerHTML=(legalContent()[key]||'');
   m.style.display='';document.body.style.overflow='hidden';
+  const _lt={privacidad:'Política de Privacidad',terminos:'Términos y Condiciones',cookies:'Política de Cookies',garantias:'Cambios y Garantías'};
+  navPush('legal','/legal/'+key,(_lt[key]||'Legal')+' — '+STORE_NAME,closeLegal);
 }
-function closeLegal(){const m=$('legalModal');if(m)m.style.display='none';document.body.style.overflow='';}
+function closeLegal(){if(!_navPopping)navRemove('legal');const m=$('legalModal');if(m)m.style.display='none';document.body.style.overflow='';}
 
 function subscribeFooter(){
   const inp=$('ftrEmail'),msg=$('ftrMsg'),btn=$('ftrBtn');
@@ -2481,8 +2565,9 @@ function openTesti(i){
   _tmProdId=(t.productId&&prods.find(x=>x.id===t.productId))?t.productId:null;
   const pb=$('tmProd');if(pb)pb.style.display=_tmProdId?'':'none';
   $('testiModal').classList.add('on');lockScroll();
+  navPush('testi',null,null,closeTesti);
 }
-function closeTesti(){$('testiModal').classList.remove('on');unlockScroll();}
+function closeTesti(){if(!_navPopping)navRemove('testi');$('testiModal').classList.remove('on');unlockScroll();}
 function testiVerProducto(){const id=_tmProdId;closeTesti();if(id)openPhoto(id,'cat');}
 function renderTestiAdmin(){
   const sel=$('testiProdSel');
@@ -2861,6 +2946,7 @@ function setG(v,btn){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
   btn.classList.add('on');
   renderGrid();
+  navUpdateCat();
 }
 /* ── FILTRO POR MARCA ── */
 const BRAND_LABELS={adidas:'Adidas',nike:'Nike',reebok:'Reebok',new_balance:'New Balance',on_cloud:'On Cloud',puma:'Puma',lecoq_sportif:'Le Coq Sportif',jordan:'Jordan',lacoste:'Lacoste',asics:'Asics',onitsuka_tiger:'Onitsuka Tiger',luxury:'Luxury'};
@@ -2883,6 +2969,7 @@ function setBrand(v,btn){
   document.querySelectorAll('.bchip').forEach(c=>c.classList.remove('on'));
   if(btn)btn.classList.add('on');
   renderGrid();
+  navUpdateCat();
 }
 
 /* ── MODAL FOTO ── */
@@ -2928,6 +3015,7 @@ function openPhoto(id,type){
   trackEvent('view_product',{product_id:(type==='liq'?'L':'')+id,price:p.price,gender:type==='liq'?null:p.g||null});
   $('photoModal').classList.add('on');
   lockScroll();
+  navPush('ficha',navProdUrl(id,type,p),$('pmTitle').textContent+' — '+STORE_NAME,closePhotoBtn);
   // Resetear el scroll de la ficha al ABRIR (si no, reabre donde quedó el anterior → en iOS el
   // header sticky no se ancla y toca subir para ver "CATALOGO SNEAKERS").
   const _ps=document.querySelector('.pm-scroll'), _pb=document.querySelector('.pm-body');
@@ -2963,6 +3051,7 @@ function renderFichaReviews(){
 }
 function addFromModal(){if(pmId===null)return;const id=pmId,t=pmType;closePhotoBtn();togCard(id,t);}
 function closePhotoBtn(){
+  if(!_navPopping)navRemove('ficha');
   $('photoModal').classList.remove('on');
   unlockScroll();
   setTimeout(()=>{const tr=$('pmGalTrack');if(tr)tr.innerHTML='';pmId=null;pmType=null;},300);
@@ -3006,8 +3095,9 @@ function openGuia(){
   const wa=$('guiaWa');
   if(wa)wa.href=`https://wa.me/${WA}?text=${encodeURIComponent('¡Hola '+STORE_NAME+'! Tengo una duda sobre el cuidado de mis sneakers 👟')}`;
   $('guiaModal').classList.add('on');lockScroll();
+  navPush('guia',null,null,closeGuia);
 }
-function closeGuia(){$('guiaModal').classList.remove('on');unlockScroll();}
+function closeGuia(){if(!_navPopping)navRemove('guia');$('guiaModal').classList.remove('on');unlockScroll();}
 // Descargar la guía: abre el diálogo de impresión con SOLO la guía (Guardar como PDF).
 function descargarGuia(){
   document.body.classList.add('printing-guia');
@@ -3097,9 +3187,11 @@ function open360(id,type){
   $('v360Hint').style.opacity='1';
   $('viewer360').classList.add('on');
   lockScroll();
+  navPush('v360',null,null,close360);
   _preload360(p.imgs360,()=>drawFrame360(0));
 }
 function close360(){
+  if(!_navPopping)navRemove('v360');
   $('viewer360').classList.remove('on');
   unlockScroll();
   $('v360Add').style.display='';
@@ -3118,6 +3210,7 @@ function previewQueue360(dest){
   $('v360Hint').style.opacity='1';
   $('viewer360').classList.add('on');
   lockScroll();
+  navPush('v360',null,null,close360);
   _preload360(_preview360Frames,()=>drawFrame360(0));
 }
 function addFrom360(){if(v360Id!==null){togCard(v360Id,v360Type);sync360Btn();}}
@@ -4429,8 +4522,9 @@ let _icFired=false;
 function openCart(){
   step=0;_icFired=false;_comboSugDismiss=false;renderStep();
   $('cscrim').classList.add('on');$('csheet').classList.add('on');lockScroll();
+  navPush('carrito','/carrito','Tu carrito — '+STORE_NAME,closeCart);
 }
-function closeCart(){$('cscrim').classList.remove('on');$('csheet').classList.remove('on');unlockScroll();}
+function closeCart(){if(!_navPopping)navRemove('carrito');$('cscrim').classList.remove('on');$('csheet').classList.remove('on');unlockScroll();}
 function updDots(){[0,1,2].forEach(i=>{const d=$('cs'+i);d.className='csd'+(i===step?' active':i<step?' done':'');});
   if(step===0){const n=Object.values(cart).reduce((s,i)=>s+i.qty,0);$('cttl').textContent=`Tu carrito (${n} ${n===1?'producto':'productos'})`;}
   else $('cttl').textContent=['Tu pedido','Tus datos','Pagar'][step]+`  ·  Paso ${step+1} de 3`;}
@@ -4740,7 +4834,7 @@ async function checkWompiReturn(){
       px('Purchase',{content_ids:_wIds,content_type:'product',value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',num_items:order.pares||1,...getUTM()},(order.reference||order.id)+'_purchase');
       trackEvent('purchase',{price:order.subtotal!=null?order.subtotal:order.total});
       let items='';
-      order.items.forEach(it=>{const mk=it.brand?(BRAND_LABELS[it.brand]||it.brand)+' · ':'';const ref=it.id?` · #${it.id}`:'';const tp=it.type==='liq'?'liq':'cat';const ln=it.id?`\n     👉 https://strangesneakers.com/?type=${tp}&id=${it.id}`:'';items+=`  • ${mk}${it.label}${ref} x${it.qty} — ${fmt(it.precio)}${ln}\n`;});
+      order.items.forEach(it=>{const mk=it.brand?(BRAND_LABELS[it.brand]||it.brand)+' · ':'';const ref=it.id?` · #${it.id}`:'';const ln=it.id?`\n     👉 https://strangesneakers.com/p/${it.type==='liq'?'L':''}${it.id}`:'';items+=`  • ${mk}${it.label}${ref} x${it.qty} — ${fmt(it.precio)}${ln}\n`;});
       const msg=`✅ *PAGO CONFIRMADO — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n📦 *Envío: GRATIS ✓*\n💰 *TOTAL: ${fmt(order.total)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${order.nombre}\n• Cédula: ${order.cedula||'-'}\n• Celular: ${order.tel}\n• Dirección: ${order.direccion||'-'}\n• Barrio: ${order.barrio}\n• Ciudad: ${order.ciudad}\n• Ref: ${reference}\n━━━━━━━━━━━━━━━━━━━━\n💜 *Pago Wompi:* Confirmado ✓\n━━━━━━━━━━━━━━━━━━━━\n¡Gracias por tu compra! Tu pedido está siendo procesado 🙏\n\n🎁 *Tu regalo — Guía de cuidado de tus sneakers:*\nhttps://strangesneakers.com/?regalo=cuidado`;
       setTimeout(()=>{
         alert('✅ ¡Pago confirmado!\nEn un momento recibirás confirmación por WhatsApp.');
@@ -4819,7 +4913,7 @@ async function checkBoldReturn(){
       const _bIds=Array.isArray(order.items)?order.items.map(it=>pxId(it.type,it.id)):[];
       px('Purchase',{content_ids:_bIds,content_type:'product',value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',num_items:order.pares||1,...getUTM()},(order.reference||order.id)+'_purchase');
       trackEvent('purchase',{price:order.subtotal!=null?order.subtotal:order.total});
-      let items='';order.items.forEach(it=>{const mk=it.brand?(BRAND_LABELS[it.brand]||it.brand)+' · ':'';const ref=it.id?` · #${it.id}`:'';const tp=it.type==='liq'?'liq':'cat';const ln=it.id?`\n     👉 https://strangesneakers.com/?type=${tp}&id=${it.id}`:'';items+=`  • ${mk}${it.label}${ref} x${it.qty} — ${fmt(it.precio)}${ln}\n`;});
+      let items='';order.items.forEach(it=>{const mk=it.brand?(BRAND_LABELS[it.brand]||it.brand)+' · ':'';const ref=it.id?` · #${it.id}`:'';const ln=it.id?`\n     👉 https://strangesneakers.com/p/${it.type==='liq'?'L':''}${it.id}`:'';items+=`  • ${mk}${it.label}${ref} x${it.qty} — ${fmt(it.precio)}${ln}\n`;});
       const msg=`✅ *PAGO CONFIRMADO — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n📦 *Envío: GRATIS ✓*\n💰 *TOTAL: ${fmt(order.total)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${order.nombre}\n• Celular: ${order.tel}\n• Dirección: ${order.direccion||'-'}\n• Ciudad: ${order.ciudad}\n• Ref: ${reference}\n━━━━━━━━━━━━━━━━━━━━\n💳 *Pago Bold:* Confirmado ✓\n━━━━━━━━━━━━━━━━━━━━\n¡Gracias por tu compra! 🙏\n\n🎁 *Tu regalo — Guía de cuidado:*\nhttps://strangesneakers.com/?regalo=cuidado`;
       setTimeout(()=>{alert('✅ ¡Pago confirmado!\nEn un momento recibirás confirmación por WhatsApp.');window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,'_blank');},300);
     }else{setTimeout(()=>alert('✅ ¡Pago confirmado con Bold!\nTu pedido está en camino. Pronto te contactamos.'),300);}
@@ -4864,7 +4958,7 @@ function exportMetaCatalog(){
     availability:'in stock',
     condition:'new',
     price:p.price+' COP',
-    link:base+'?type='+(prefix==='L'?'liq':'cat')+'&id='+p.id,
+    link:base.replace(/\/$/,'')+'/p/'+prefix+p.id,
     image_link:p.img||'',
     brand:STORE_NAME,
     google_product_category:'187'
@@ -4973,7 +5067,8 @@ function loadConfig(){
 }
 function applyStoreName(){
   // El encabezado del nav es marca fija "CATALOGO SNEAKERS" (no se sobreescribe con store_name).
-  document.title=STORE_NAME;
+  // El título lo gobierna el router (capa abierta = su título; sin capas = STORE_NAME).
+  navApplyMeta();
 }
 
 /* ── PERSISTENCIA ── */
@@ -5038,6 +5133,35 @@ async function loadState(){
 }
 function checkDeepLink(){
   const params=new URLSearchParams(location.search);
+  // ── Rutas SPA (path): /p/126, /carrito, /catalogo/hombre, /mayoristas, /cambios, /legal/x ──
+  // Al aterrizar directo en una ruta de capa se inyecta el home DEBAJO en el historial →
+  // el botón ATRÁS lleva al catálogo, no de vuelta a Instagram/WhatsApp.
+  const _path=location.pathname;
+  if(_path!=='/'&&_path!=='/index.html'){
+    const seg=_path.split('/').filter(Boolean);
+    const enter=fn=>{history.replaceState({d:0},'','/');setTimeout(fn,250);};
+    const home=()=>history.replaceState({d:0},'','/');
+    if(seg[0]==='p'&&seg[1]){
+      const m=seg[1].match(/^(L?)(\d+)/i);
+      const id=m?parseInt(m[2]):0;
+      const liq=!!(m&&m[1].toUpperCase()==='L');
+      const p=id?(liq?liqs.find(x=>x.id===id):prods.find(x=>x.id===id)):null;
+      if(p){enter(()=>openPhoto(id,liq?'liq':'cat'));}else home();
+      return;
+    }
+    if(seg[0]==='carrito'){enter(()=>openCart());return;}
+    if(seg[0]==='catalogo'){
+      const g={hombre:'h',mujer:'m',ofertas:'liq'}[seg[1]]||'all';
+      const marca=params.get('marca');
+      enter(()=>openCatalog(marca?{brand:marca}:{gender:g}));
+      return;
+    }
+    if(seg[0]==='mayoristas'){enter(()=>openInfo('mayoristas'));return;}
+    if(seg[0]==='cambios'){enter(()=>openInfo('cambios'));return;}
+    if(seg[0]==='legal'&&seg[1]&&legalContent()[seg[1]]){const k=seg[1];enter(()=>openLegal(k));return;}
+    home(); // ruta desconocida → home
+    return;
+  }
   // Entrada secreta al panel: ?admin abre el admin (pide PIN como siempre) y limpia la URL.
   if(params.has('admin')){
     history.replaceState(null,'',location.pathname);
@@ -5062,6 +5186,7 @@ function checkDeepLink(){
   const p=inLiq||inCat||fallbackCat||fallbackLiq;
   if(!p)return;
   const type=(inLiq||(!inCat&&!fallbackCat&&fallbackLiq))?'liq':'cat';
+  history.replaceState({d:0},'','/'); // normalizar el legacy ?type=&id= (la ficha pondrá /p/...)
   setTimeout(()=>openPhoto(id,type),300);
 }
 function checkStorageQuota(){
