@@ -247,7 +247,7 @@ async function reconciliarPendientes(req, res) {
         const p = j.payload || j;
         if (String(p.status || '') === 'PAID') {
           const c = await confirmPaidOrder({ reference: o.reference, amount: boldAmount(p), currency: 'COP', req });
-          out.push(o.reference + ':' + (c.ok ? 'VENTA' : c.error));
+          out.push(o.reference + ':' + (c.ok ? 'VENTA' : c.error + (c.paid != null ? '(paid=' + c.paid + ',exp=' + c.expected + ')' : '')));
         } else out.push(o.reference + ':' + (p.status || 'sin_estado'));
       } else {
         const key = (process.env.WOMPI_PRIVATE_KEY || '').trim();
