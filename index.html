@@ -832,10 +832,6 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .lanz-row::-webkit-scrollbar{display:none}
 .lanz-row .card{flex:0 0 44%;max-width:190px;scroll-snap-align:start}
 @media(min-width:700px){.lanz-row .card{flex:0 0 200px}}
-/* Galería de fotos de lanzamientos (modo "subir fotos" del admin): grandes, deslizables, sin precio */
-.lanz-foto{flex:0 0 78%;max-width:340px;scroll-snap-align:start;border-radius:14px;overflow:hidden;cursor:pointer;background:var(--white);border:1px solid var(--line)}
-.lanz-foto img{display:block;width:100%;aspect-ratio:4/5;object-fit:cover;-webkit-user-drag:none}
-@media(min-width:700px){.lanz-foto{flex:0 0 340px}}
 
 /* BANNERS DE COLECCIÓN (Mujer/Hombre) — reusan .hero-ov/.hero-tit/.hero-sub/.hero-cta */
 .cbanner{position:relative;width:100%;aspect-ratio:4/5;max-height:70vh;overflow:hidden;background:var(--ink)}
@@ -1268,8 +1264,9 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
     <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#eefcf3">
       <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">🚀 Últimos lanzamientos</div>
       <div id="featList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>
-      <label id="lanzUpBtn" style="display:block;text-align:center;padding:11px;background:var(--ink);color:#fff;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">⬆ Subir foto <span id="lanzUpCnt"></span><input type="file" accept="image/*" multiple style="display:none" onchange="lanzUpload(this.files);this.value=''"></label>
-      <div style="font-size:10px;color:var(--ink3);margin-top:6px;text-align:center">Se muestran como galería deslizable en el inicio (máx 10). Foto vertical recomendada: 1080×1350.</div>
+      <div style="font-size:10.5px;font-weight:700;color:var(--ink2);margin-bottom:6px">Toca tus fotos para destacarlas · <span id="lanzCnt"></span></div>
+      <div id="lanzPick" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-height:320px;overflow-y:auto;overscroll-behavior:contain"></div>
+      <div style="font-size:10px;color:var(--ink3);margin-top:6px;text-align:center">Los elegidos salen en "Últimos lanzamientos" del inicio. Al tocar la tarjeta, el cliente va directo al zapato.</div>
     </div>
     <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#fdeef7">
       <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:8px">👩 Banner Colección Mujer</div>
@@ -2059,61 +2056,60 @@ async function saveHeroSlides(){
   renderHero();renderHeroAdmin();
 }
 
-/* ── ÚLTIMOS LANZAMIENTOS ──
-   Modo nuevo: galería de fotos subidas por el admin (settings.lanz_fotos, máx 10) — grandes,
-   deslizables, sin precio; clic → abre el catálogo. Si no hay fotos, FALLBACK al modo viejo de
-   tarjetas de producto (settings.featured_ids) para no romper lo ya configurado. */
-let featuredIds=[];   // legado: ids de producto (solo fallback de render, ya sin UI de edición)
-let lanzFotos=[];     // settings.lanz_fotos (orden = orden de aparición)
+/* ── ÚLTIMOS LANZAMIENTOS (curado por producto, selector VISUAL) ──
+   El admin TOCA las fotos de sus productos (con modelo, #id y precio) para destacarlas (máx 10).
+   En el inicio se ven como tarjetas de producto; al tocar la tarjeta (o el +) el cliente va
+   DIRECTO a la ficha del zapato. */
+let featuredIds=[];   // settings.featured_ids (orden = orden de aparición)
 const LANZ_MAX=10;
 function prodLabel(p){return (p.g==='h'?'Hombre':'Mujer')+' · '+(BRAND_LABELS[p.brand]||'—')+' · '+fmt(p.price)+' (#'+p.id+')';}
 function renderFeatured(){
   const sec=$('lanz'),row=$('lanzRow');if(!row)return;
-  if(lanzFotos.length){
-    if(sec)sec.style.display='';
-    row.innerHTML=lanzFotos.map(u=>`<div class="lanz-foto" onclick="openCatalog()"><img src="${escHtml(u)}" alt="Lanzamiento" loading="lazy"></div>`).join('');
-    return;
-  }
   const items=featuredIds.map(id=>prods.find(p=>p.id===id)).filter(p=>p&&!p.sold);
   if(!items.length){if(sec)sec.style.display='none';row.innerHTML='';return;}
   if(sec)sec.style.display='';
-  row.innerHTML=items.map((p,i)=>cardHTML(p,i,'kl')).join('');
+  row.innerHTML=items.map((p,i)=>cardHTML(p,i,'kl',true)).join('');
 }
-function renderLanzAdmin(){
-  const cnt=$('lanzUpCnt');if(cnt)cnt.textContent=`(${lanzFotos.length}/${LANZ_MAX})`;
-  const box=$('featList');if(!box)return;
-  if(!lanzFotos.length){box.innerHTML='<div style="font-size:11px;color:var(--ink3)">Aún no hay fotos. Sube hasta 10 con el botón de abajo 👇</div>';return;}
-  box.innerHTML=lanzFotos.map((u,i)=>`<div style="display:flex;align-items:center;gap:8px;background:var(--white);border:1px solid var(--line);border-radius:9px;padding:6px">
-      <img src="${escHtml(u)}" alt="" style="width:34px;height:42px;object-fit:cover;border-radius:6px;flex-shrink:0">
-      <div style="flex:1;min-width:0;font-size:11.5px;font-weight:600;color:var(--ink)">Foto ${i+1}</div>
-      <button onclick="lanzMove(${i},-1)" ${i===0?'disabled':''} style="border:none;background:var(--bg);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;${i===0?'opacity:.3':''}">↑</button>
-      <button onclick="lanzMove(${i},1)" ${i===lanzFotos.length-1?'disabled':''} style="border:none;background:var(--bg);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;${i===lanzFotos.length-1?'opacity:.3':''}">↓</button>
-      <button onclick="lanzDel(${i})" style="border:none;background:#ffe9e6;color:var(--red);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px">🗑</button>
-    </div>`).join('');
+function renderFeaturedAdmin(){
+  const cnt=$('lanzCnt');if(cnt)cnt.textContent=`${featuredIds.length}/${LANZ_MAX} elegidos`;
+  const box=$('featList');
+  if(box){
+    box.innerHTML=featuredIds.length?featuredIds.map((id,i)=>{
+      const p=prods.find(x=>x.id===id);if(!p)return '';
+      return `<div style="display:flex;align-items:center;gap:8px;background:var(--white);border:1px solid var(--line);border-radius:9px;padding:6px">
+        <img src="${escHtml(p.img||'')}" alt="" style="width:34px;height:42px;object-fit:cover;border-radius:6px;flex-shrink:0">
+        <div style="flex:1;min-width:0;font-size:11.5px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(p.modelo||prodLabel(p))}<span style="color:var(--ink3);font-weight:500"> · #${p.id}</span></div>
+        <button onclick="featMove(${i},-1)" ${i===0?'disabled':''} style="border:none;background:var(--bg);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;${i===0?'opacity:.3':''}">↑</button>
+        <button onclick="featMove(${i},1)" ${i===featuredIds.length-1?'disabled':''} style="border:none;background:var(--bg);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;${i===featuredIds.length-1?'opacity:.3':''}">↓</button>
+        <button onclick="featDel(${i})" style="border:none;background:#ffe9e6;color:var(--red);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px">🗑</button>
+      </div>`;
+    }).join(''):'<div style="font-size:11px;color:var(--ink3)">Aún no hay lanzamientos. Toca las fotos de abajo para elegirlos 👇</div>';
+  }
+  const pick=$('lanzPick');if(!pick)return;
+  pick.innerHTML=prods.filter(p=>!p.sold).map(p=>{
+    const sel=featuredIds.includes(p.id);
+    return `<div onclick="featPickTog(${p.id})" style="position:relative;cursor:pointer;border:2px solid ${sel?'var(--ink)':'var(--line)'};border-radius:10px;overflow:hidden;background:var(--white)">
+      <img src="${escHtml(p.img||'')}" alt="" loading="lazy" style="display:block;width:100%;aspect-ratio:1/1;object-fit:cover">
+      ${sel?'<div style="position:absolute;top:4px;right:4px;background:var(--ink);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">✓</div>':''}
+      <div style="padding:4px 5px 0;font-size:9.5px;font-weight:700;line-height:1.25;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(p.modelo||brandLabel(p.brand)||(p.g==='h'?'Hombre':'Mujer'))}</div>
+      <div style="padding:0 5px 5px;font-size:9px;color:var(--ink3)">#${p.id} · ${fmt(p.price)}</div>
+    </div>`;
+  }).join('');
 }
-function lanzUpload(files){
-  const list=Array.from(files||[]);if(!list.length)return;
-  const cupo=LANZ_MAX-lanzFotos.length;
-  if(cupo<=0){alert(`Ya tienes ${LANZ_MAX} fotos (el máximo). Borra alguna para subir otra.`);return;}
-  if(list.length>cupo)alert(`Solo caben ${cupo} foto${cupo===1?'':'s'} más (máx ${LANZ_MAX}). Subiré la${cupo===1?'':'s'} primera${cupo===1?'':'s'} ${cupo}.`);
-  const btn=$('lanzUpBtn'),cnt=$('lanzUpCnt');
-  if(cnt)cnt.textContent='· Subiendo…';if(btn)btn.style.opacity='.6';
-  let pend=Math.min(list.length,cupo);
-  list.slice(0,cupo).forEach(file=>{
-    compressImg(file,async dataUrl=>{
-      try{
-        const url=await uploadToStorage(dataUrl,0,false);
-        lanzFotos.push(url);
-      }catch(e){alert('❌ No se pudo subir una foto:\n'+(e.message||e));}
-      if(--pend===0){if(btn)btn.style.opacity='';await saveLanzFotos();}
-    },false,IMG_MAX);
-  });
+async function featPickTog(id){
+  const i=featuredIds.indexOf(id);
+  if(i>=0)featuredIds.splice(i,1);
+  else{
+    if(featuredIds.length>=LANZ_MAX){alert(`Máximo ${LANZ_MAX} lanzamientos. Quita uno para agregar otro.`);return;}
+    featuredIds.push(id);
+  }
+  await saveFeatured();
 }
-async function lanzMove(i,dir){const j=i+dir;if(j<0||j>=lanzFotos.length)return;[lanzFotos[i],lanzFotos[j]]=[lanzFotos[j],lanzFotos[i]];await saveLanzFotos();}
-async function lanzDel(i){if(!confirm('¿Borrar esta foto de Últimos lanzamientos?'))return;lanzFotos.splice(i,1);await saveLanzFotos();}
-async function saveLanzFotos(){
-  await adminWrite('upsert_settings',{data:{key:'lanz_fotos',value:JSON.stringify(lanzFotos)}});
-  renderFeatured();renderLanzAdmin();
+async function featMove(i,dir){const j=i+dir;if(j<0||j>=featuredIds.length)return;[featuredIds[i],featuredIds[j]]=[featuredIds[j],featuredIds[i]];await saveFeatured();}
+async function featDel(i){featuredIds.splice(i,1);await saveFeatured();}
+async function saveFeatured(){
+  await adminWrite('upsert_settings',{data:{key:'featured_ids',value:JSON.stringify(featuredIds)}});
+  renderFeatured();renderFeaturedAdmin();
 }
 
 /* ── BANNERS DE COLECCIÓN (Mujer/Hombre/Unisex) ── */
@@ -2670,20 +2666,23 @@ function maybeWaBubble(){
 /* ── GRID ── */
 // Markup de una tarjeta de producto (reusado por el grid y por "Últimos lanzamientos").
 // prefix: 'k' en el grid, 'kl' en lanzamientos (evita IDs duplicados).
-function cardHTML(p,i,prefix){
+// toFicha: en lanzamientos TODO clic (tarjeta y botón +) lleva directo a la ficha del zapato.
+function cardHTML(p,i,prefix,toFicha){
   prefix=prefix||'k';
   const on=!!cart[p.id]&&!p.sold;
   const sp=p.promo||promoG;
   const pct=sp?dsc(p):0;
   const m=p.img?`<img src="${p.img}" alt="${altProd(p)}" loading="lazy">`:`<div class="noimg">👟</div>`;
-  return `<div class="card ${on?'picked':''} ${p.sold?'sold':''}" id="${prefix}${p.id}" style="animation-delay:${Math.min(i*.02,.4)}s" onclick="cardClick(event,${p.id},'cat')">
+  const goCard=toFicha?`openPhoto(${p.id},'cat')`:`cardClick(event,${p.id},'cat')`;
+  const goAdd=toFicha?`event.stopPropagation();openPhoto(${p.id},'cat')`:`event.stopPropagation();togCard(${p.id},'cat')`;
+  return `<div class="card ${on?'picked':''} ${p.sold?'sold':''}" id="${prefix}${p.id}" style="animation-delay:${Math.min(i*.02,.4)}s" onclick="${goCard}">
       <div class="cphoto">
         ${m}
         ${p.imgs360?.length>=2?`<div class="b360">360°</div>`:''}
         ${pct?`<div class="bdsc"${p.imgs360?.length>=2?' style="top:30px"':''}>-${pct}%</div>`:''}
         ${p.sold?`<div class="bsold">Agotado</div>`:''}
         <div class="bchk">✓</div>
-        <button class="add-circle" onclick="event.stopPropagation();togCard(${p.id},'cat')">${on?'✓':'+'}</button>
+        <button class="add-circle" onclick="${goAdd}">${on?'✓':'+'}</button>
       </div>
       <div class="cfoot-card">${p.modelo?`<div class="cbrand">${escHtml(p.modelo)}</div>`:p.brand?`<div class="cbrand">${brandLabel(p.brand)}</div>`:''}<div class="cprice ${sp?'sale':''}">${fmt(p.price)}</div>${sp&&p.was?`<div class="cwas">${fmt(p.was)}</div>`:''}</div>
     </div>`;
@@ -3142,7 +3141,7 @@ function setAdminSection(name){
   if(name==='inicio'){renderStatsTab();loadOrders().then(()=>{if(avSec==='inicio')renderStatsTab();});}
   if(name==='productos')renderAdmin();
   if(name==='ofertas')renderLiqAdmin();
-  if(name==='banners'){renderHeroAdmin();renderLanzAdmin();renderColAdmin();}
+  if(name==='banners'){renderHeroAdmin();renderFeaturedAdmin();renderColAdmin();}
   if(name==='testimonios')renderTestiAdmin();
   if(name==='pedidos'){renderPedidos();loadOrders().then(()=>{if(avSec==='pedidos')renderPedidos();});}
   if(name==='clientes'){renderClientes();loadOrders().then(()=>{if(avSec==='clientes')renderClientes();});}
@@ -4947,7 +4946,6 @@ async function loadState(){
     try{const cb=cfg.combos?JSON.parse(cfg.combos):null;if(Array.isArray(cb)&&cb.length)combos=cb;}catch(e){}
     restaurarCombo();
     try{featuredIds=JSON.parse(cfg.featured_ids||'[]');}catch(e){featuredIds=[];}
-    try{lanzFotos=JSON.parse(cfg.lanz_fotos||'[]');}catch(e){lanzFotos=[];}
     try{bannerMujer=cfg.banner_mujer?JSON.parse(cfg.banner_mujer):null;}catch(e){bannerMujer=null;}
     try{bannerHombre=cfg.banner_hombre?JSON.parse(cfg.banner_hombre):null;}catch(e){bannerHombre=null;}
     try{bannerUnisex=cfg.banner_unisex?JSON.parse(cfg.banner_unisex):null;}catch(e){bannerUnisex=null;}
@@ -5093,7 +5091,7 @@ if(localStorage.getItem('ss_reserve_until')&&!_reserveTimer){_reserveTimer=setIn
   renderCombos();      // tarjetas de combos mundialistas (sección Ofertas)
   renderComboBar();    // barra de progreso si hay combo activo de la sesión
   renderCombosAdmin(); // editor de combos en el panel admin
-  renderLanzAdmin();renderColAdmin();renderTestiAdmin();   // estado en el panel admin
+  renderFeaturedAdmin();renderColAdmin();renderTestiAdmin();   // estado en el panel admin
   renderGrid();
   if(checkPedidoLink())return;   // ?pedido= → mostrar solo el pedido con fotos (link del vendedor)
   checkDeepLink();
