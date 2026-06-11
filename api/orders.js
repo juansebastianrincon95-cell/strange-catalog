@@ -140,6 +140,15 @@ async function handleBoldLink(req, res) {
     const j = await r.json().catch(() => ({}));
     const p = j.payload || j;
     if (!r.ok || !(p && p.url)) return res.status(502).json({ error: 'bold_error' });
+    // Guardar el id del link en el pedido (utm jsonb, sin migración): es lo que permite a la
+    // RECONCILIACIÓN preguntarle a Bold por este pago aunque el cliente nunca vuelva a la tienda.
+    if (p.payment_link) {
+      try {
+        const sb = serviceClient();
+        const utm = Object.assign({}, order.utm || {}, { bold_link: p.payment_link });
+        await sb.from('orders').update({ utm }).eq('id', order.id);
+      } catch {}
+    }
     return res.status(200).json({ url: p.url, payment_link: p.payment_link, reference });
   } catch {
     return res.status(502).json({ error: 'bold_error' });
@@ -208,9 +217,62 @@ async function handleBoldWebhook(req, res) {
   return res.json(out);
 }
 
+/* ── RECONCILIACIÓN (cron cada 10 min) ── malla de seguridad bajo los webhooks: toma los
+   pedidos Wompi/Bold pendientes con 5+ min de vida y les pregunta DIRECTO a las pasarelas;
+   si el pago está aprobado, confirma la venta (idempotente: confirmPaidOrder valida monto y
+   no re-marca). Así una venta pagada nunca queda invisible aunque el webhook falle y el
+   cliente no vuelva a la tienda. */
+async function reconciliarPendientes(req, res) {
+  // Vercel Cron manda "Authorization: Bearer CRON_SECRET" automáticamente si la env existe.
+  const cs = (process.env.CRON_SECRET || '').trim();
+  if (cs && String(req.headers.authorization || '') !== 'Bearer ' + cs) return res.status(401).json({ ok: false });
+  const sb = serviceClient();
+  const desde = new Date(Date.now() - 7 * 864e5).toISOString();   // no mirar más de 7 días atrás
+  const hasta = new Date(Date.now() - 5 * 60e3).toISOString();    // dejar 5 min al flujo normal
+  const { data: pend } = await sb.from('orders').select('*')
+    .eq('status', 'pending').in('pago', ['wompi', 'bold'])
+    .gte('created_at', desde).lte('created_at', hasta)
+    .order('created_at', { ascending: false }).limit(20);
+  const out = [];
+  for (const o of (pend || [])) {
+    try {
+      if (o.pago === 'bold') {
+        const link = o.utm && o.utm.bold_link;
+        if (!link) { out.push(o.reference + ':sin_link'); continue; }
+        const key = process.env.BOLD_API_KEY;
+        if (!key) break;
+        const r = await fetch('https://integrations.api.bold.co/online/link/v1/' + encodeURIComponent(link),
+          { headers: { 'Authorization': 'x-api-key ' + key } });
+        const j = await r.json().catch(() => ({}));
+        const p = j.payload || j;
+        if (String(p.status || '') === 'PAID') {
+          const c = await confirmPaidOrder({ reference: o.reference, amount: boldAmount(p), currency: 'COP', req });
+          out.push(o.reference + ':' + (c.ok ? 'VENTA' : c.error));
+        } else out.push(o.reference + ':' + (p.status || 'sin_estado'));
+      } else {
+        const key = (process.env.WOMPI_PRIVATE_KEY || '').trim();
+        if (!key) break;
+        const r = await fetch('https://production.wompi.co/v1/transactions?reference=' + encodeURIComponent(o.reference),
+          { headers: { 'Authorization': 'Bearer ' + key } });
+        const j = await r.json().catch(() => ({}));
+        const tx = (Array.isArray(j.data) ? j.data : []).find(t => t.status === 'APPROVED');
+        if (tx) {
+          const c = await confirmPaidOrder({ reference: o.reference, amountInCents: tx.amount_in_cents, currency: tx.currency, req });
+          out.push(o.reference + ':' + (c.ok ? 'VENTA' : c.error));
+        } else out.push(o.reference + ':' + ((j.data && j.data[0] && j.data[0].status) || 'sin_tx'));
+      }
+    } catch { out.push((o.reference || o.id) + ':error'); }
+  }
+  return res.status(200).json({ ok: true, revisados: (pend || []).length, resultado: out });
+}
+
 module.exports = async (req, res) => {
   const okOrigin = allowedOrigin(req, res);
   if (req.method === 'OPTIONS') return res.status(200).end();
+  // Cron de reconciliación (GET): por query o por el user-agent oficial de Vercel Cron.
+  if (req.method === 'GET' && ((req.query && req.query.cron === 'reconciliar') || String(req.headers['user-agent'] || '').startsWith('vercel-cron'))) {
+    return reconciliarPendientes(req, res);
+  }
   if (req.method !== 'POST') return res.status(405).end();
   if (req.query && req.query.webhook === 'bold') return handleBoldWebhook(req, res);
   if (!okOrigin) return res.status(403).json({ error: 'Forbidden' });

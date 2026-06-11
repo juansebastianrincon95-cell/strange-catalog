@@ -44,5 +44,8 @@
   ],
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "crons": [
+    { "path": "/api/orders?cron=reconciliar", "schedule": "*/10 * * * *" }
   ]
 }

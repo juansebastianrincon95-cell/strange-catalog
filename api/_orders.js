@@ -167,6 +167,30 @@ function contentIdsDe(items) {
   return items.map(it => (it.type === 'liq' ? 'liq_' : 'cat_') + parseInt(it.id)).filter(s => !s.endsWith('_NaN'));
 }
 
+/* Aviso de venta al vendedor por Telegram. OPCIONAL: solo actúa si existen las envs
+   TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID (se activan cuando el usuario cree su bot).
+   Nunca bloquea la confirmación: timeout corto y errores silenciados. */
+async function notifyVentaTelegram(order) {
+  const token = (process.env.TELEGRAM_BOT_TOKEN || '').trim();
+  const chat = (process.env.TELEGRAM_CHAT_ID || '').trim();
+  if (!token || !chat) return;
+  const fmtCop = n => '$' + Number(n || 0).toLocaleString('es-CO');
+  const items = (Array.isArray(order.items) ? order.items : [])
+    .map(it => `• ${it.label || 'Producto'} #${it.id} x${it.qty}`).join('\n');
+  const text = `💰 VENTA CONFIRMADA (${order.pago || 'online'})\n` +
+    `${fmtCop(order.subtotal != null ? order.subtotal : order.total)} — ${order.nombre || ''}\n` +
+    `📍 ${order.ciudad || ''}${order.barrio ? ' · ' + order.barrio : ''}\n` +
+    `📞 ${order.tel || ''}\n${items}\nRef: ${order.reference || order.id}`;
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 2500);
+  try {
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chat, text }), signal: ctrl.signal
+    });
+  } catch {} finally { clearTimeout(t); }
+}
+
 async function confirmPaidOrder({ reference, amount, amountInCents, currency = 'COP', eventSourceUrl, req }) {
   const sb = serviceClient();
   const order = await getOrderByReference(reference);
@@ -192,6 +216,7 @@ async function confirmPaidOrder({ reference, amount, amountInCents, currency = '
       actionSource: 'website',
       eventSourceUrl: eventSourceUrl || 'https://strangesneakers.com/'
     }).catch(() => {});
+    await notifyVentaTelegram(order).catch(() => {});
   }
   return { ok: true, order: { ...order, status: 'venta' } };
 }
