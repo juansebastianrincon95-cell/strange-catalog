@@ -824,14 +824,20 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
   .hero-slide img{object-position:center var(--pos,50%)}   /* encuadre escritorio por slide */
 }
 
-/* ÚLTIMOS LANZAMIENTOS */
-.lanz{padding:22px 0 8px;background:var(--bg)}
+/* ÚLTIMOS LANZAMIENTOS — carrusel con burbujas de rotación */
+.lanz{padding:22px 0 8px;background:var(--bg);position:relative}
 .lanz-hdr{padding:0 16px 12px}
 .lanz-t{font-size:18px;font-weight:700;letter-spacing:-.01em;color:var(--ink)}
-.lanz-row{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding:0 16px 6px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.lanz-row{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;padding:0 10px 6px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .lanz-row::-webkit-scrollbar{display:none}
-.lanz-row .card{flex:0 0 44%;max-width:190px;scroll-snap-align:start}
-@media(min-width:700px){.lanz-row .card{flex:0 0 200px}}
+.lanz-row.centered{justify-content:center}
+.lanz-row .card{flex:0 0 52%;max-width:210px;scroll-snap-align:start}
+@media(min-width:700px){.lanz-row .card{flex:0 0 210px}}
+.lanz-nav{position:absolute;top:55%;transform:translateY(-50%);width:38px;height:38px;border-radius:50%;background:var(--white);border:1px solid var(--line);box-shadow:0 3px 12px rgba(0,0,0,.14);font-size:21px;font-weight:700;line-height:1;color:var(--ink);display:none;align-items:center;justify-content:center;cursor:pointer;z-index:5;padding:0 0 2px;font-family:var(--font);transition:transform .15s}
+.lanz-nav:active{transform:translateY(-50%) scale(.9)}
+.lanz-nav.prev{left:6px}
+.lanz-nav.next{right:6px}
+.lanz-nav.show{display:flex}
 
 /* BANNERS DE COLECCIÓN (Mujer/Hombre) — reusan .hero-ov/.hero-tit/.hero-sub/.hero-cta */
 .cbanner{position:relative;width:100%;aspect-ratio:4/5;max-height:70vh;overflow:hidden;background:var(--ink)}
@@ -1019,6 +1025,8 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 <section class="lanz" id="lanz" style="display:none">
   <div class="lanz-hdr"><span class="lanz-t">Últimos lanzamientos</span></div>
   <div class="lanz-row" id="lanzRow"></div>
+  <button class="lanz-nav prev" id="lanzPrev" onclick="lanzNav(-1)" aria-label="Anterior">‹</button>
+  <button class="lanz-nav next" id="lanzNext" onclick="lanzNav(1)" aria-label="Siguiente">›</button>
 </section>
 
 <!-- BANNERS DE COLECCIÓN (se llenan desde settings; ocultos si no hay imagen) -->
@@ -2066,10 +2074,43 @@ function prodLabel(p){return (p.g==='h'?'Hombre':'Mujer')+' · '+(BRAND_LABELS[p
 function renderFeatured(){
   const sec=$('lanz'),row=$('lanzRow');if(!row)return;
   const items=featuredIds.map(id=>prods.find(p=>p.id===id)).filter(p=>p&&!p.sold);
-  if(!items.length){if(sec)sec.style.display='none';row.innerHTML='';return;}
+  if(!items.length){if(sec)sec.style.display='none';row.innerHTML='';lanzAutoStop();return;}
   if(sec)sec.style.display='';
   row.innerHTML=items.map((p,i)=>cardHTML(p,i,'kl',true)).join('');
+  lanzSetup();
 }
+/* Carrusel de lanzamientos: burbujas ‹ › a los lados que ROTAN los modelos (con vuelta al inicio)
+   + auto-rotación cada 4s. Si las tarjetas caben sin desborde: fila centrada, sin burbujas ni timer. */
+let _lanzTimer=null;
+function lanzOverflow(){const r=$('lanzRow');return r&&r.scrollWidth>r.clientWidth+4;}
+function lanzSetup(){
+  const row=$('lanzRow');if(!row)return;
+  const ov=lanzOverflow();
+  row.classList.toggle('centered',!ov);
+  const pv=$('lanzPrev'),nx=$('lanzNext');
+  if(pv)pv.classList.toggle('show',ov);
+  if(nx)nx.classList.toggle('show',ov);
+  lanzAutoStop();
+  if(ov){
+    lanzAutoStart();
+    if(!row._lanzPause){ // pausa al tocar/agarrar; reanuda a los 6s (una sola vez por elemento)
+      row._lanzPause=true;
+      row.addEventListener('pointerdown',()=>{lanzAutoStop();clearTimeout(row._lanzRe);row._lanzRe=setTimeout(()=>{if(lanzOverflow())lanzAutoStart();},6000);},{passive:true});
+    }
+  }
+}
+function lanzStep(){const row=$('lanzRow');const c=row&&row.querySelector('.card');return c?c.getBoundingClientRect().width+10:220;}
+function lanzNav(dir){
+  const row=$('lanzRow');if(!row)return;
+  const max=row.scrollWidth-row.clientWidth;
+  const atEnd=row.scrollLeft>=max-6, atStart=row.scrollLeft<=6;
+  if(dir>0&&atEnd)row.scrollTo({left:0,behavior:'smooth'});
+  else if(dir<0&&atStart)row.scrollTo({left:max,behavior:'smooth'});
+  else row.scrollBy({left:dir*lanzStep(),behavior:'smooth'});
+  if(_lanzTimer){lanzAutoStop();lanzAutoStart();} // interactuar reinicia el ritmo
+}
+function lanzAutoStart(){if(_lanzTimer)return;_lanzTimer=setInterval(()=>{if(document.hidden)return;lanzNav(1);},4000);}
+function lanzAutoStop(){if(_lanzTimer){clearInterval(_lanzTimer);_lanzTimer=null;}}
 function renderFeaturedAdmin(){
   const cnt=$('lanzCnt');if(cnt)cnt.textContent=`${featuredIds.length}/${LANZ_MAX} elegidos`;
   const box=$('featList');
