@@ -178,11 +178,33 @@ async function handleBoldWebhook(req, res) {
   const got = req.headers['x-webhook-secret'] || req.headers['x-bold-signature'] || req.query.secret;
   if (!secret || got !== secret) return res.status(202).json({ ok: false, error: 'webhook_not_configured_or_invalid' });
   const d = req.body || {};
-  const p = d.payload || d;
-  if ((p.status || d.status) !== 'PAID' || !(p.reference || d.reference)) {
-    return res.json({ ok: true, ignored: true });
+  // Bold envía eventos {type:'SALE_APPROVED', data:{amount, metadata:{reference}, ...}}.
+  // Se acepta también el formato plano viejo {status:'PAID', reference} por compatibilidad.
+  const data = d.data || d.payload || d;
+  const type = String(d.type || data.status || d.status || '');
+  if (!/SALE_APPROVED|PAID/i.test(type)) return res.json({ ok: true, ignored: true, type });
+  let reference = String((data.metadata && data.metadata.reference) || data.reference || d.reference || '');
+  let amount = boldAmount(data);
+  if (!/^STR-/.test(reference)) {
+    // Pago de un payment link: la referencia del evento es el id del link (LNK_...).
+    // Consultar el link en Bold y sacar nuestra referencia de la descripción "Pedido STR-...".
+    const linkId = (reference.match(/LNK_[\w-]+/) || String(data.payment_link || '').match(/LNK_[\w-]+/) || [])[0];
+    const key = process.env.BOLD_API_KEY;
+    if (linkId && key) {
+      try {
+        const r = await fetch('https://integrations.api.bold.co/online/link/v1/' + encodeURIComponent(linkId),
+          { headers: { 'Authorization': 'x-api-key ' + key } });
+        const j = await r.json().catch(() => ({}));
+        const p = j.payload || j;
+        if (String(p.status || '') !== 'PAID') return res.json({ ok: true, ignored: true, link_status: p.status || null });
+        const m = String(p.description || '').match(/STR-\d+/);
+        if (m) reference = m[0];
+        if (amount == null) amount = boldAmount(p);
+      } catch {}
+    }
   }
-  const out = await confirmPaidOrder({ reference: p.reference || d.reference, amount: boldAmount(p), currency: 'COP', req });
+  if (!/^STR-/.test(reference)) return res.json({ ok: true, ignored: true, no_ref: true });
+  const out = await confirmPaidOrder({ reference, amount, currency: 'COP', req });
   return res.json(out);
 }
 
