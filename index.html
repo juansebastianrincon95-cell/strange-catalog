@@ -828,7 +828,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .lanz{padding:22px 0 8px;background:var(--bg);position:relative}
 .lanz-hdr{padding:0 16px 12px}
 .lanz-t{font-size:18px;font-weight:700;letter-spacing:-.01em;color:var(--ink)}
-.lanz-row{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;padding:0 10px 6px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.lanz-row{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding:0 10px 6px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .lanz-row::-webkit-scrollbar{display:none}
 .lanz-row.centered{justify-content:center}
 .lanz-row .card{flex:0 0 52%;max-width:210px;scroll-snap-align:start}
@@ -2079,37 +2079,59 @@ function renderFeatured(){
   row.innerHTML=items.map((p,i)=>cardHTML(p,i,'kl',true)).join('');
   lanzSetup();
 }
-/* Carrusel de lanzamientos: burbujas ‹ › a los lados que ROTAN los modelos (con vuelta al inicio)
-   + auto-rotación cada 4s. Si las tarjetas caben sin desborde: fila centrada, sin burbujas ni timer. */
-let _lanzTimer=null;
+/* Carrusel de lanzamientos: giro CIRCULAR real (360°) en ambas direcciones con burbujas ‹ ›
+   + auto-rotación cada 4s. Técnica de CLONES: se duplican tarjetas en los extremos y, cuando el
+   snap reposa en zona clonada, se salta instantáneo a la tarjeta real equivalente (el layout es
+   uniforme → imperceptible). Si las tarjetas caben sin desborde: fila centrada, sin burbujas ni timer. */
+let _lanzTimer=null,_lanzL=0,_lanzHome=0,_lanzWrapAt=0;
 function lanzOverflow(){const r=$('lanzRow');return r&&r.scrollWidth>r.clientWidth+4;}
 function lanzSetup(){
   const row=$('lanzRow');if(!row)return;
-  const ov=lanzOverflow();
+  row.querySelectorAll('.lanz-clone').forEach(c=>c.remove()); // idempotente (resize re-ejecuta)
+  _lanzL=0;
+  const reales=[...row.querySelectorAll('.card')];
+  const ov=lanzOverflow(); // medir SOLO con tarjetas reales
   row.classList.toggle('centered',!ov);
   const pv=$('lanzPrev'),nx=$('lanzNext');
   if(pv)pv.classList.toggle('show',ov);
   if(nx)nx.classList.toggle('show',ov);
   lanzAutoStop();
-  if(ov){
-    lanzAutoStart();
-    if(!row._lanzPause){ // pausa al tocar/agarrar; reanuda a los 6s (una sola vez por elemento)
-      row._lanzPause=true;
-      row.addEventListener('pointerdown',()=>{lanzAutoStop();clearTimeout(row._lanzRe);row._lanzRe=setTimeout(()=>{if(lanzOverflow())lanzAutoStart();},6000);},{passive:true});
-    }
+  if(!ov)return;
+  // Clones a cada lado: suficientes para llenar un viewport (los ids se quitan para no duplicar
+  // los de las tarjetas reales 'kl'; el onclick inline de abrir la ficha se conserva en la copia)
+  const M=reales.length,P=Math.min(M,Math.ceil(row.clientWidth/lanzStep()));
+  const clon=c=>{const k=c.cloneNode(true);k.classList.add('lanz-clone');k.removeAttribute('id');k.querySelectorAll('[id]').forEach(e=>e.removeAttribute('id'));return k;};
+  for(let i=0;i<P;i++){
+    row.insertBefore(clon(reales[M-P+i]),row.children[i]); // últimos P al frente (en orden)
+    row.appendChild(clon(reales[i]));                      // primeros P al final
   }
+  const apFirst=row.children[P+M];           // primer clon del bloque final
+  _lanzHome=reales[0].offsetLeft;            // reposo de la 1ª tarjeta real
+  _lanzWrapAt=apFirst.offsetLeft;            // desde aquí solo se ven clones del final
+  _lanzL=apFirst.offsetLeft-reales[0].offsetLeft; // ancho exacto del bloque real
+  row.scrollLeft=_lanzHome;                  // arrancar en la 1ª real (instantáneo)
+  if(!row._lanzPause){ // listeners una sola vez por elemento
+    row._lanzPause=true;
+    // pausa al tocar/agarrar; reanuda a los 6s
+    row.addEventListener('pointerdown',()=>{lanzAutoStop();clearTimeout(row._lanzRe);row._lanzRe=setTimeout(()=>{if(lanzOverflow())lanzAutoStart();},6000);},{passive:true});
+    // al asentarse el scroll (botón, auto-giro o swipe con momentum) corregir la vuelta circular
+    row.addEventListener('scroll',()=>{clearTimeout(row._lanzFix);row._lanzFix=setTimeout(lanzLoopFix,120);},{passive:true});
+  }
+  lanzAutoStart();
+}
+function lanzLoopFix(){ // si el reposo cayó en zona clonada, saltar a la tarjeta real equivalente
+  const row=$('lanzRow');if(!row||!_lanzL||!lanzOverflow())return;
+  if(row.scrollLeft>=_lanzWrapAt-1)row.scrollLeft-=_lanzL;
+  else if(row.scrollLeft<_lanzHome-1)row.scrollLeft+=_lanzL;
 }
 function lanzStep(){const row=$('lanzRow');const c=row&&row.querySelector('.card');return c?c.getBoundingClientRect().width+10:220;}
 function lanzNav(dir){
   const row=$('lanzRow');if(!row)return;
-  const max=row.scrollWidth-row.clientWidth;
-  // Umbral 14px: con scroll-snap + padding 10px el reposo nunca queda exacto en 0 ni en max.
-  const atEnd=row.scrollLeft>=max-14, atStart=row.scrollLeft<=14;
-  if(dir>0&&atEnd)row.scrollTo({left:0,behavior:'smooth'});
-  else if(dir<0&&atStart)row.scrollTo({left:max,behavior:'smooth'});
-  else row.scrollBy({left:dir*lanzStep(),behavior:'smooth'});
+  lanzLoopFix(); // si está en zona clonada, reubicar antes de avanzar
+  row.scrollBy({left:dir*lanzStep(),behavior:'smooth'});
   if(_lanzTimer){lanzAutoStop();lanzAutoStart();} // interactuar reinicia el ritmo
 }
+window.addEventListener('resize',()=>{clearTimeout(window._lanzRz);window._lanzRz=setTimeout(lanzSetup,200);});
 function lanzAutoStart(){if(_lanzTimer)return;_lanzTimer=setInterval(()=>{if(document.hidden)return;lanzNav(1);},4000);}
 function lanzAutoStop(){if(_lanzTimer){clearInterval(_lanzTimer);_lanzTimer=null;}}
 function renderFeaturedAdmin(){
