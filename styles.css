@@ -622,7 +622,10 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .guia-modal{position:fixed;inset:0;z-index:520;display:none}
 .guia-modal.on{display:block}
 .guia-scrim{position:absolute;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(6px)}
-.guia-wrap{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(94vw,540px);max-height:92vh;overflow-y:auto;background:var(--white);border-radius:24px;box-shadow:0 24px 70px rgba(0,0,0,.35);animation:pmIn .3s cubic-bezier(.16,1,.3,1) both;-webkit-overflow-scrolling:touch}
+/* OJO: este modal se centra con translate(-50%,-50%); usa guiaIn (no pmIn) porque el estado
+   final de pmIn pisaría el translate y dejaría la tarjeta descentrada (bug Fase 16). */
+.guia-wrap{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(94vw,540px);max-height:92vh;overflow-y:auto;background:var(--white);border-radius:24px;box-shadow:0 24px 70px rgba(0,0,0,.35);animation:guiaIn .3s cubic-bezier(.16,1,.3,1) both;-webkit-overflow-scrolling:touch}
+@keyframes guiaIn{from{opacity:0;transform:translate(-50%,-50%) scale(.92)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
 .guia-close{position:sticky;top:12px;float:right;margin:12px 12px 0 0;width:32px;height:32px;background:rgba(255,255,255,.85);border:1px solid var(--line);border-radius:50%;font-size:13px;cursor:pointer;z-index:3}
 .guia-head{padding:28px 24px 22px;text-align:center;background:linear-gradient(160deg,#1a1a18,#2c2c28);color:#fff;border-radius:24px 24px 0 0}
 .guia-logo{font-size:15px;font-weight:800;letter-spacing:-.02em;opacity:.9;margin-bottom:14px}
