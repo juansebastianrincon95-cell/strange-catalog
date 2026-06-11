@@ -1863,6 +1863,49 @@ function avGo(sec,filtro){
 // Cerrar el dropdown al hacer click fuera del buscador
 document.addEventListener('click',e=>{if(!e.target.closest('.av-search'))cerrarBusqueda();});
 
+/* ── Residuos del público (helpers solo-admin reubicados en paso 4) ── */
+/* ── Campos de operador: estado WhatsApp, temperatura, nota ── */
+const WA_STATES=[null,'sin_contactar','contactado','respondio','no_respondio'];
+
+const WA_LABELS={sin_contactar:'📵 Sin contactar',contactado:'📤 Contactado',respondio:'💬 Respondió',no_respondio:'🔇 No respondió'};
+
+const TEMP_STATES=[null,'frio','tibio','caliente'];
+
+const TEMP_LABELS={frio:'🧊 Frío',tibio:'🌤 Tibio',caliente:'🔥 Caliente'};
+
+function chipWa(o){
+  const v=o.wa_status||null;
+  const lbl=v?WA_LABELS[v]:'📱 Estado WA';
+  const on=v?'background:var(--ink);color:#fff;border-color:var(--ink)':'background:var(--white);color:var(--ink2)';
+  return `<button onclick="cycleLeadField(${o.id},'wa_status')" style="padding:6px 10px;border:1px solid var(--line);border-radius:14px;font-family:var(--font);font-size:10.5px;font-weight:700;cursor:pointer;${on}">${lbl}</button>`;
+}
+
+function chipTemp(o){
+  const v=o.temperatura||null;
+  const lbl=v?TEMP_LABELS[v]:'🌡 Temperatura';
+  const col=v==='caliente'?'background:#E8200A;color:#fff;border-color:#E8200A':v==='tibio'?'background:#F2A900;color:#fff;border-color:#F2A900':v==='frio'?'background:#5b9bd5;color:#fff;border-color:#5b9bd5':'background:var(--white);color:var(--ink2)';
+  return `<button onclick="cycleLeadField(${o.id},'temperatura')" style="padding:6px 10px;border:1px solid var(--line);border-radius:14px;font-family:var(--font);font-size:10.5px;font-weight:700;cursor:pointer;${col}">${lbl}</button>`;
+}
+
+/* Fecha de seguimiento (dd/mm/aaaa, hoy o futuro) → tarea "hacer seguimiento" en Inicio */
+function chipSeg(o){
+  if(!o.seguimiento)return `<button onclick="leadSeguimiento(${o.id})" style="padding:6px 10px;border:1px solid var(--line);border-radius:14px;background:var(--white);font-family:var(--font);font-size:10.5px;font-weight:700;color:var(--ink2);cursor:pointer">📅 Seguimiento</button>`;
+  const hoyISO=new Date().toISOString().slice(0,10);
+  const vencido=o.seguimiento<=hoyISO;
+  const [y,m,d]=o.seguimiento.split('-');
+  const estilo=vencido?'background:#E8200A;color:#fff;border-color:#E8200A':'background:var(--ink);color:#fff;border-color:var(--ink)';
+  return `<button onclick="leadSeguimiento(${o.id})" style="padding:6px 10px;border:1px solid var(--line);border-radius:14px;font-family:var(--font);font-size:10.5px;font-weight:700;cursor:pointer;${estilo}">📅 ${d}/${m}${vencido?' ¡HOY!':''}</button>`;
+}
+
+/* ── SUBIR FOTOS ── */
+const IMG_MAX=1400;
+
+// resolución máxima de PRODUCTOS (lado mayor / lienzo cuadrado)
+const BANNER_MAX=2560;
+
+// resolución máxima de BANNERS full-bleed — nítidos en monitores grandes
+const IMG_Q=0.88;
+
 /* ── INIT del panel (corre al cargar admin.js) ──
    El markup del apanel vive en /admin.html: primero se trae e inyecta (hijo directo de body),
    y SOLO después se pintan las secciones y se cuelgan los listeners. El stub openAdmin de
