@@ -1,0 +1,1014 @@
+/* ═══ TIENDA ═══ Todo el render público: home, hero, lanzamientos, catálogo, ficha,
+   galería, 360, testimonios, footer, popup, menú, info. ═══ */
+
+/* ── POPUP DE BIENVENIDA ($20.000 OFF) ── */
+let WELCOME_ON=true;
+
+// se sobreescribe desde settings (welcome_popup)
+const WELCOME_CODE='BIENVENIDO20';
+
+// debe coincidir con CUPONES y api/subscribe.js
+let _wmOpen=false;
+
+let _wmShownTracked=false;
+
+// popup_shown: 1 vez por visita (mide tasa popup→registro)
+function openWelcome(){const m=$('welcomeModal');if(m)m.classList.add('on');if(!_wmOpen){_wmOpen=true;lockScroll();}const t=$('wmReopen');if(t)t.classList.remove('show');
+  if(!_wmShownTracked){_wmShownTracked=true;trackEvent('popup_shown');}}
+
+// Cerrar NO marca "visto": si no dejó sus datos, queda el tag anclado abajo para reabrirlo.
+function closeWelcome(){const m=$('welcomeModal');if(m)m.classList.remove('on');if(_wmOpen){_wmOpen=false;unlockScroll();}
+  if(!localStorage.getItem('ss_subscribed')){const t=$('wmReopen');if(t)t.classList.add('show');}}
+
+// Aparece en cada visita HASTA que el cliente se registre (ss_subscribed). Si está activo y sin otro modal abierto.
+// Delay 7s (benchmark 5-10s): que la persona vea producto antes de interrumpir — 2.2s era agresivo.
+function maybeWelcome(){
+  if(!WELCOME_ON)return;
+  if(localStorage.getItem('ss_subscribed'))return;
+  setTimeout(()=>{
+    if(localStorage.getItem('ss_subscribed'))return;
+    const open=document.querySelector('.photo-modal.on,.guia-modal.on,.csheet.on,.apanel.on,.viewer360.on');
+    if(open)return;   // no interrumpir si el usuario ya está en otra cosa (deep link, etc.)
+    openWelcome();
+  },7000);
+}
+
+// Vigencia del código de bienvenida: 7 días desde el registro (ss_welcome_ts).
+// Sin timestamp local (registro viejo o de otro dispositivo) no bloquea: el server valida contra la BD.
+const WELCOME_DIAS=7;
+
+function welcomeVencido(){
+  const ts=parseInt(localStorage.getItem('ss_welcome_ts')||'0',10);
+  return !!ts&&(Date.now()-ts)>WELCOME_DIAS*24*60*60*1000;
+}
+
+// Suscriptores previos a la vigencia: su reloj de 7 días arranca hoy (no tenían timestamp).
+if(localStorage.getItem('ss_subscribed')&&!localStorage.getItem('ss_welcome_ts'))localStorage.setItem('ss_welcome_ts',String(Date.now()));
+
+function submitWelcome(){
+  const nombre=($('wmNombre').value||'').trim();
+  const whatsapp=($('wmWa').value||'').replace(/\D/g,'');
+  const err=$('wmErr');
+  if(!nombre||whatsapp.length<7){
+    if(err){err.textContent='Completa tu nombre y WhatsApp 🙏';err.classList.add('show');}
+    return;
+  }
+  if(err)err.classList.remove('show');
+  const btn=$('wmBtn');if(btn){btn.disabled=true;btn.textContent='Enviando…';}
+  fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({kind:'subscriber',nombre,whatsapp,utm:{...getUTM(),...getFbAttribution(),...getVisitCtx()},session_id:SESSION_ID})})
+    .then(r=>r.ok?r.json():Promise.reject(new Error('http')))
+    .then(j=>{
+      const code=(j&&j.codigo)||WELCOME_CODE;
+      localStorage.setItem('ss_subscribed','1');   // ya se registró → el popup no vuelve a aparecer
+      localStorage.setItem('ss_welcome_ts',String(Date.now()));   // arranca el reloj de 7 días del código
+      localStorage.setItem('ss_wm_wa',whatsapp);   // para el paso 2 (chips talla/género → update)
+      {const t=$('wmReopen');if(t)t.classList.remove('show');}   // ya no se necesita el tag de reapertura
+      const cEl=$('wmCode');if(cEl)cEl.textContent=code;
+      $('wmForm').style.display='none';$('wmOk').style.display='block';
+      if(typeof px==='function')px('Lead',{content_name:'popup_bienvenida',...getUTM()},SESSION_ID+'_subscribe');
+      trackEvent('lead',{});
+    })
+    .catch(()=>{if(btn){btn.disabled=false;btn.textContent='Quiero mi descuento';}if(err){err.textContent='No se pudo enviar, revisa tu conexión y reintenta.';err.classList.add('show');}});
+}
+
+// Paso 2 (zero-party data): chips de talla/género en la pantalla de éxito. Un clic = update
+// silencioso del suscriptor (por WhatsApp o session_id). Si no responde, el registro ya quedó.
+function wmPref(kind,val,el){
+  if(el&&el.parentElement)el.parentElement.querySelectorAll('.wm-chip').forEach(b=>b.classList.toggle('sel',b===el));
+  const wa=localStorage.getItem('ss_wm_wa')||'';
+  const body={kind:'subscriber',update:1,whatsapp:wa,session_id:SESSION_ID};
+  body[kind]=val;
+  fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).catch(()=>{});
+}
+
+function copyWelcomeCode(){
+  const code=($('wmCode').textContent||WELCOME_CODE).trim();
+  const done=()=>{const b=document.querySelector('.wm-copy');if(b){const t=b.textContent;b.textContent='¡Copiado!';setTimeout(()=>b.textContent=t,1600);}};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(code).then(done).catch(done);
+  else done();
+}
+
+/* ── HERO CARRUSEL ── */
+let heroSlides=[];
+
+// [{img,img_desktop,titulo,subtitulo,pos}] desde settings.hero_slides
+let heroCur=0,_heroTimer=null,_heroTouchX=null;
+
+function renderHero(){
+  const hero=$('hero'),track=$('heroTrack'),dots=$('heroDots'),hdr=document.querySelector('.hdr');
+  if(!hero||!track)return;
+  const slides=Array.isArray(heroSlides)?heroSlides.filter(s=>s&&s.img):[];
+  if(!slides.length){                         // sin banners → fallback al encabezado clásico
+    hero.classList.remove('on');
+    if(hdr)hdr.style.display='';
+    if(_heroTimer){clearInterval(_heroTimer);_heroTimer=null;}
+    return;
+  }
+  if(hdr)hdr.style.display='none';             // el carrusel reemplaza el encabezado
+  hero.classList.add('on');
+  const posMap={top:'18%',center:'50%',bottom:'82%'};
+  // CTA por slide: TODOS los botones llevan a la sección OFERTAS (los combos mundialistas).
+  // Solo cambia el texto: slide 1 "Ver ofertas", los demás "¡Comprar ya!".
+  track.innerHTML=slides.map((s,i)=>`<div class="hero-slide"><picture>${s.img_desktop?`<source media="(min-width:700px)" srcset="${escHtml(s.img_desktop)}">`:''}<img src="${escHtml(s.img)}" alt="${escHtml(s.titulo)}" loading="lazy" style="--pos:${posMap[s.pos]||'50%'}"></picture><div class="hero-ov">${s.titulo?`<div class="hero-tit">${escHtml(s.titulo)}</div>`:''}${s.subtitulo?`<div class="hero-sub">${escHtml(s.subtitulo)}</div>`:''}<button class="hero-cta" onclick="openCatalog({gender:'liq'})">${i===0?'Ver ofertas':'¡Comprar ya!'}</button></div></div>`).join('');
+  dots.innerHTML=slides.length>1?slides.map((_,i)=>`<span class="hero-dot${i===0?' on':''}" onclick="heroGoStop(${i})"></span>`).join(''):'';
+  heroCur=0;heroApply();
+  if(_heroTimer)clearInterval(_heroTimer);
+  if(slides.length>1)_heroTimer=setInterval(()=>heroGo(heroCur+1),5000);
+  // swipe táctil (una sola vez)
+  if(!track._heroBound){
+    track._heroBound=true;
+    track.addEventListener('touchstart',e=>{_heroTouchX=e.touches[0].clientX;},{passive:true});
+    track.addEventListener('touchend',e=>{
+      if(_heroTouchX==null)return;
+      const dx=e.changedTouches[0].clientX-_heroTouchX;_heroTouchX=null;
+      if(Math.abs(dx)>40)heroGoStop(heroCur+(dx<0?1:-1));
+    },{passive:true});
+  }
+}
+
+function heroApply(){
+  const track=$('heroTrack'),n=(heroSlides||[]).filter(s=>s&&s.img).length;
+  if(!track||!n)return;
+  heroCur=((heroCur%n)+n)%n;                   // circular
+  track.style.transform=`translateX(${-heroCur*100}%)`;
+  document.querySelectorAll('#heroDots .hero-dot').forEach((d,i)=>d.classList.toggle('on',i===heroCur));
+}
+
+function heroGo(i){heroCur=i;heroApply();}
+
+function heroGoStop(i){heroGo(i);if(_heroTimer){clearInterval(_heroTimer);_heroTimer=setInterval(()=>heroGo(heroCur+1),5000);}}
+
+/* Editar un slide EXISTENTE: reemplazar imagen móvil/escritorio o el texto, sin borrarlo */
+let _heroEdit=null;
+
+/* ── ÚLTIMOS LANZAMIENTOS (curado por producto, selector VISUAL) ──
+   El admin TOCA las fotos de sus productos (con modelo, #id y precio) para destacarlas (máx 10).
+   En el inicio se ven como tarjetas de producto; al tocar la tarjeta (o el +) el cliente va
+   DIRECTO a la ficha del zapato. */
+let featuredIds=[];
+
+// settings.featured_ids (orden = orden de aparición)
+const LANZ_MAX=10;
+
+function prodLabel(p){return (p.g==='h'?'Hombre':'Mujer')+' · '+(BRAND_LABELS[p.brand]||'—')+' · '+fmt(p.price)+' (#'+p.id+')';}
+
+function renderFeatured(){
+  const sec=$('lanz'),row=$('lanzRow');if(!row)return;
+  const items=featuredIds.map(id=>prods.find(p=>p.id===id)).filter(p=>p&&!p.sold);
+  if(!items.length){if(sec)sec.style.display='none';row.innerHTML='';lanzAutoStop();return;}
+  if(sec)sec.style.display='';
+  row.innerHTML=items.map((p,i)=>cardHTML(p,i,'kl',true)).join('');
+  lanzSetup();
+}
+
+/* Carrusel de lanzamientos: giro CIRCULAR real (360°) en ambas direcciones con burbujas ‹ ›
+   + auto-rotación cada 4s. Técnica de CLONES: se duplican tarjetas en los extremos y, cuando el
+   snap reposa en zona clonada, se salta instantáneo a la tarjeta real equivalente (el layout es
+   uniforme → imperceptible). Si las tarjetas caben sin desborde: fila centrada, sin burbujas ni timer. */
+let _lanzTimer=null,_lanzL=0,_lanzHome=0,_lanzWrapAt=0;
+
+function lanzOverflow(){const r=$('lanzRow');return r&&r.scrollWidth>r.clientWidth+4;}
+
+function lanzSetup(){
+  const row=$('lanzRow');if(!row)return;
+  row.querySelectorAll('.lanz-clone').forEach(c=>c.remove()); // idempotente (resize re-ejecuta)
+  _lanzL=0;
+  const reales=[...row.querySelectorAll('.card')];
+  const ov=lanzOverflow(); // medir SOLO con tarjetas reales
+  row.classList.toggle('centered',!ov);
+  const pv=$('lanzPrev'),nx=$('lanzNext');
+  if(pv)pv.classList.toggle('show',ov);
+  if(nx)nx.classList.toggle('show',ov);
+  lanzAutoStop();
+  if(!ov)return;
+  // Clones a cada lado: suficientes para llenar un viewport (los ids se quitan para no duplicar
+  // los de las tarjetas reales 'kl'; el onclick inline de abrir la ficha se conserva en la copia)
+  const M=reales.length,P=Math.min(M,Math.ceil(row.clientWidth/lanzStep()));
+  const clon=c=>{const k=c.cloneNode(true);k.classList.add('lanz-clone');k.removeAttribute('id');k.querySelectorAll('[id]').forEach(e=>e.removeAttribute('id'));return k;};
+  for(let i=0;i<P;i++){
+    row.insertBefore(clon(reales[M-P+i]),row.children[i]); // últimos P al frente (en orden)
+    row.appendChild(clon(reales[i]));                      // primeros P al final
+  }
+  const apFirst=row.children[P+M];           // primer clon del bloque final
+  _lanzHome=reales[0].offsetLeft;            // reposo de la 1ª tarjeta real
+  _lanzWrapAt=apFirst.offsetLeft;            // desde aquí solo se ven clones del final
+  _lanzL=apFirst.offsetLeft-reales[0].offsetLeft; // ancho exacto del bloque real
+  row.scrollLeft=_lanzHome;                  // arrancar en la 1ª real (instantáneo)
+  if(!row._lanzPause){ // listeners una sola vez por elemento
+    row._lanzPause=true;
+    // pausa al tocar/agarrar; reanuda a los 6s
+    row.addEventListener('pointerdown',()=>{lanzAutoStop();clearTimeout(row._lanzRe);row._lanzRe=setTimeout(()=>{if(lanzOverflow())lanzAutoStart();},6000);},{passive:true});
+    // al asentarse el scroll (botón, auto-giro o swipe con momentum) corregir la vuelta circular
+    row.addEventListener('scroll',()=>{clearTimeout(row._lanzFix);row._lanzFix=setTimeout(lanzLoopFix,120);},{passive:true});
+  }
+  lanzAutoStart();
+}
+
+function lanzLoopFix(){ // si el reposo cayó en zona clonada, saltar a la tarjeta real equivalente
+  const row=$('lanzRow');if(!row||!_lanzL||!lanzOverflow())return;
+  if(row.scrollLeft>=_lanzWrapAt-1)row.scrollLeft-=_lanzL;
+  else if(row.scrollLeft<_lanzHome-1)row.scrollLeft+=_lanzL;
+}
+
+function lanzStep(){const row=$('lanzRow');const c=row&&row.querySelector('.card');return c?c.getBoundingClientRect().width+10:220;}
+
+function lanzNav(dir){
+  const row=$('lanzRow');if(!row)return;
+  lanzLoopFix(); // si está en zona clonada, reubicar antes de avanzar
+  row.scrollBy({left:dir*lanzStep(),behavior:'smooth'});
+  if(_lanzTimer){lanzAutoStop();lanzAutoStart();} // interactuar reinicia el ritmo
+}
+
+window.addEventListener('resize',()=>{clearTimeout(window._lanzRz);window._lanzRz=setTimeout(lanzSetup,200);});
+
+function lanzAutoStart(){if(_lanzTimer)return;_lanzTimer=setInterval(()=>{if(document.hidden)return;lanzNav(1);},4000);}
+
+function lanzAutoStop(){if(_lanzTimer){clearInterval(_lanzTimer);_lanzTimer=null;}}
+
+/* ── BANNERS DE COLECCIÓN (Mujer/Hombre/Unisex) ── */
+let bannerMujer=null, bannerHombre=null, bannerUnisex=null;
+
+function colBannerHTML(b,g){
+  const posMap={top:'18%',center:'50%',bottom:'82%'};   // legacy por palabra; ahora pos puede ser número (%)
+  const _n=parseFloat(b.pos);
+  const pos=isFinite(_n)?_n+'%':(posMap[b.pos]||'50%');
+  return `<picture>${b.img_desktop?`<source media="(min-width:700px)" srcset="${escHtml(b.img_desktop)}">`:''}<img src="${escHtml(b.img)}" alt="${escHtml(b.titulo||'')}" loading="lazy" style="--pos:${pos}"></picture><div class="hero-ov">${b.titulo?`<div class="hero-tit">${escHtml(b.titulo)}</div>`:''}${b.subtitulo?`<div class="hero-sub">${escHtml(b.subtitulo)}</div>`:''}<button class="hero-cta" onclick="colCTA('${g}')">Comprar ahora</button></div>`;
+}
+
+function renderColBanners(){
+  const set=(el,b,g)=>{if(!el)return; if(b&&b.img){el.innerHTML=colBannerHTML(b,g);el.style.display='';}else{el.style.display='none';el.innerHTML='';}};
+  set($('bannerM'),bannerMujer,'m');
+  set($('bannerH'),bannerHombre,'h');
+  set($('bannerU'),bannerUnisex,'u');
+}
+
+// Los banners abren el catálogo completo (vista aparte) filtrado. Unisex = Todos por ahora.
+function colCTA(g){ openCatalog({gender: g==='m'?'m' : g==='h'?'h' : 'all'}); }
+
+function openCatalog(opts){
+  opts=opts||{};
+  const v=$('catView');if(!v)return;
+  v.classList.add('on');lockScroll();
+  const tabs=document.querySelectorAll('#catView .tabs .tab');
+  if(opts.brand){
+    gSel='all';brandSel=opts.brand;
+    tabs.forEach((t,i)=>t.classList.toggle('on',i===0));
+    renderGrid();
+  }else{
+    const g=opts.gender||'all';
+    const idx=g==='h'?1:g==='m'?2:g==='liq'?3:0;
+    setG(g, tabs[idx]);   // setG hace renderGrid
+  }
+  // Título del catálogo según la sección (las pestañas están ocultas).
+  const tt=v.querySelector('.catview-title');
+  let _ct='Catálogo';
+  if(tt){
+    const map={h:'Hombre',m:'Mujer',liq:'Ofertas',all:'Productos'};
+    tt.textContent = opts.brand ? (typeof BRAND_LABELS!=='undefined' && BRAND_LABELS[opts.brand] ? BRAND_LABELS[opts.brand] : 'Productos') : (map[opts.gender||'all']||'Catálogo');
+    _ct=tt.textContent;
+  }
+  v.scrollTop=0;
+  navPush('cat',navCatUrl(),_ct+' — '+STORE_NAME,closeCatalog);
+}
+
+function closeCatalog(){if(!_navPopping)navRemove('cat');const v=$('catView');if(v)v.classList.remove('on');unlockScroll();}
+
+/* ── MENÚ MÓVIL (panel lateral ☰) ── */
+function openMenu(){const d=$('navDrawer');if(!d)return;d.classList.add('on');lockScroll();navPush('menu',null,null,closeMenu);}
+
+function closeMenu(){if(!_navPopping)navRemove('menu');const d=$('navDrawer');if(!d)return;d.classList.remove('on');unlockScroll();}
+
+function navGo(t){
+  closeMenu();
+  if(t==='h')openCatalog({gender:'h'});
+  else if(t==='m')openCatalog({gender:'m'});
+  else if(t==='liq')openCatalog({gender:'liq'});
+  else if(t==='mayoristas')openInfo('mayoristas');
+  else if(t==='cambios')openInfo('cambios');
+  else openCatalog();   // Productos / Unisex → todos
+}
+
+/* ── VENTANAS INFO (Mayoristas / Cambios y Garantías) ── reusan el modal .guia-modal ── */
+const INFO_MAYORISTAS=`<div class="info-pad">
+  <h2 class="info-h1">Gana hasta un <span class="big">46%</span> de rentabilidad</h2>
+  <p class="info-lead">Vende sneakers importados y genera ingresos extra con nosotros. Te acompañamos en todo el proceso.</p>
+  <div class="info-subt">Beneficios de ser mayorista</div>
+  <div class="info-benes">
+    <div class="info-bene">✅ Precios especiales de mayorista</div>
+    <div class="info-bene">✅ Material listo para publicar (fotos y videos)</div>
+    <div class="info-bene">✅ Catálogo siempre actualizado</div>
+    <div class="info-bene">✅ Asesoría directa por WhatsApp</div>
+    <div class="info-bene">✅ Envíos a toda Colombia</div>
+    <div class="info-bene">✅ Vende sin inventario (te despachamos directo a tu cliente)</div>
+  </div>
+  <button class="info-wa" onclick="waMayoristas()">💬 Más información por WhatsApp</button>
+</div>`;
+
+const INFO_CAMBIOS=`<div class="info-pad">
+  <p class="info-lead" style="margin-top:0">Tu compra está protegida. Estas son nuestras condiciones de cambios y garantía 👇</p>
+  <div class="info-grid">
+  <div class="info-sec"><h3>👟 Solo cambios por talla</h3><p>Si te equivocaste, los costos de envío van por tu cuenta. Si es defecto de fábrica 👉 ¡nosotros lo cubrimos! ✅</p></div>
+  <div class="info-sec"><h3>⏳ Tiempo para solicitar cambio</h3><p>Tienes 2 días hábiles después de recibir tu pedido. Pasado este tiempo no podremos hacer el cambio.</p></div>
+  <div class="info-sec"><h3>📦 Condiciones del producto</h3><p>Devuélvelos en la misma bolsa. Deben estar en perfecto estado (sin manchas, ni uso).</p></div>
+  <div class="info-sec"><h3>💸 Importante</h3><p>No hacemos devoluciones de dinero, ni cancelación de créditos. Si la talla no está disponible, podrás elegir entre otros modelos.</p></div>
+  <div class="info-sec"><h3>🕐 Proceso</h3><p>El cambio puede tardar 15 días hábiles aproximadamente.</p></div>
+  <div class="info-sec"><h3>✅ Garantía</h3><p>Tu compra tiene 1 mes de garantía por defectos de costura o despegue. En este caso, el cambio será sin costo adicional.</p></div>
+  </div>
+</div>`;
+
+function openInfo(which){
+  const b=$('infoBody');if(!b)return;
+  b.innerHTML=which==='mayoristas'?INFO_MAYORISTAS:INFO_CAMBIOS;
+  const t=$('infoTitle');if(t)t.textContent=which==='mayoristas'?'Mayoristas':'Cambios y Garantías';
+  const m=$('infoModal');m.classList.add('on');lockScroll();
+  const sc=m.querySelector('.info-scroll');if(sc)sc.scrollTop=0;
+  navPush('info',which==='mayoristas'?'/mayoristas':'/cambios',(which==='mayoristas'?'Mayoristas':'Cambios y Garantías')+' — '+STORE_NAME,closeInfo);
+}
+
+function closeInfo(){if(!_navPopping)navRemove('info');const m=$('infoModal');if(m)m.classList.remove('on');unlockScroll();}
+
+function waMayoristas(){
+  const msg=`Hola ${STORE_NAME}, quiero ser mayorista. ¿Me puedes enviar precios, condiciones y catálogo disponible?`;
+  try{trackEvent('lead',{});}catch(e){}
+  if(typeof px==='function')px('Lead',{content_name:'mayoristas',...getUTM()});
+  window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,'_blank');
+}
+
+/* ── CABECERA AUTO-OCULTABLE (estilo Adidas) ── se oculta al bajar, reaparece al subir ── */
+(function(){
+  const bar=document.getElementById('topbar');
+  if(!bar)return;
+  let lastY=window.scrollY||0, ticking=false;
+  const TH=6;   // umbral para ignorar micro-scrolls
+  function update(){
+    const y=window.scrollY||document.documentElement.scrollTop||0;
+    if(y<=2){ bar.classList.remove('hide'); }                         // arriba del todo: siempre visible
+    else if(Math.abs(y-lastY)>TH){
+      if(y>lastY && y>bar.offsetHeight) bar.classList.add('hide');    // bajando → ocultar
+      else bar.classList.remove('hide');                              // subiendo → mostrar
+    }
+    lastY=y; ticking=false;
+  }
+  window.addEventListener('scroll',()=>{ if(!ticking){ requestAnimationFrame(update); ticking=true; } },{passive:true});
+})();
+
+// Preview del inicio: 6 modelos disponibles más recientes (prods viene ordenado por id asc).
+function renderPreview(){
+  const sec=$('preview'),grid=$('previewGrid');if(!grid)return;
+  const items=prods.filter(p=>!p.sold).slice(-8).reverse();   // 8 en escritorio; móvil oculta 7º/8º (CSS)
+  if(!items.length){if(sec)sec.style.display='none';grid.innerHTML='';return;}
+  if(sec)sec.style.display='';
+  grid.innerHTML=items.map((p,i)=>cardHTML(p,i,'kp')).join('');
+}
+
+/* ── FOOTER (redes sociales + newsletter) ── */
+let socials={ig:'',tiktok:'',fb:''};
+
+// settings.socials (WhatsApp reusa WA)
+let reviewsCount=0;
+
+// settings.reviews_count (nº de reseñas de marketing)
+const SOC_SVG={
+  ig:'<svg viewBox="0 0 24 24"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23C2.17 15.58 2.16 15.2 2.16 12s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.17 8.8 2.16 12 2.16M12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.31-1.46.72-2.12 1.38C1.36 2.67.95 3.34.63 4.14.33 4.9.13 5.78.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.31.8.72 1.47 1.38 2.13.66.66 1.33 1.07 2.12 1.38.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56a5.86 5.86 0 0 0 2.13-1.38 5.86 5.86 0 0 0 1.38-2.13c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.86 5.86 0 0 0-1.38-2.12A5.86 5.86 0 0 0 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0Zm0 5.84A6.16 6.16 0 1 0 18.16 12 6.16 6.16 0 0 0 12 5.84M12 16a4 4 0 1 1 4-4 4 4 0 0 1-4 4Zm6.41-10.84a1.44 1.44 0 1 0 1.44 1.44 1.44 1.44 0 0 0-1.44-1.44Z"/></svg>',
+  tiktok:'<svg viewBox="0 0 24 24"><path d="M12.53.02C13.84 0 15.14.01 16.44 0c.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>',
+  fb:'<svg viewBox="0 0 24 24"><path d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07c0 6.02 4.39 11.01 10.13 11.93v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.69.24 2.69.24v2.97h-1.52c-1.49 0-1.96.93-1.96 1.89v2.25h3.33l-.53 3.49h-2.8V24C19.61 23.08 24 18.09 24 12.07z"/></svg>',
+  wa:'<svg viewBox="0 0 24 24"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.16-.17.2-.35.22-.64.07-.3-.15-1.26-.46-2.39-1.48-.88-.79-1.48-1.76-1.65-2.06-.17-.3-.02-.46.13-.6.13-.14.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.61-.92-2.21-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.21 3.07.15.2 2.1 3.2 5.08 4.49.71.3 1.26.49 1.69.62.71.23 1.36.2 1.87.12.57-.08 1.76-.72 2-1.41.25-.7.25-1.29.18-1.41-.07-.12-.27-.2-.57-.35M12.05 21.78h-.01a9.87 9.87 0 0 1-5.03-1.38l-.36-.21-3.74.98 1-3.65-.24-.37a9.86 9.86 0 0 1-1.51-5.26c0-5.45 4.44-9.88 9.89-9.88 2.64 0 5.12 1.03 6.99 2.9a9.82 9.82 0 0 1 2.89 6.99c0 5.45-4.44 9.88-9.88 9.88M20.46 3.49A11.81 11.81 0 0 0 12.05 0C5.5 0 .16 5.34.16 11.89c0 2.1.55 4.14 1.59 5.95L.06 24l6.3-1.65a11.88 11.88 0 0 0 5.68 1.45h.01c6.55 0 11.89-5.34 11.89-11.89 0-3.18-1.24-6.16-3.48-8.42z"/></svg>'
+};
+
+function renderFooter(){
+  const box=$('ftrIcons');
+  const icon=(href,svg,label)=>`<a href="${escHtml(href)}" target="_blank" rel="noopener" aria-label="${label}">${svg}</a>`;
+  if(box){
+    let h='';
+    if(socials.ig)h+=icon(socials.ig,SOC_SVG.ig,'Instagram');
+    if(socials.tiktok)h+=icon(socials.tiktok,SOC_SVG.tiktok,'TikTok');
+    if(socials.fb)h+=icon(socials.fb,SOC_SVG.fb,'Facebook');
+    if(WA)h+=icon('https://wa.me/'+WA,SOC_SVG.wa,'WhatsApp');
+    box.innerHTML=h||'<span style="font-size:12px;color:var(--ink3)">Pronto en redes</span>';
+  }
+  const logo=$('ftrLogo');if(logo)logo.textContent=(STORE_NAME||'STRANGE')+'®';
+  const yr=$('ftrYear');if(yr)yr.textContent=new Date().getFullYear();
+  const f=$('siteFooter');if(f)f.style.display='';   // se muestra solo cuando ya cargó todo (evita verlo al inicio)
+}
+
+/* ── PÁGINAS LEGALES — contenido y modal viven en extras.js (carga bajo demanda) ── */
+function openLegal(key){loadExtras().then(()=>openLegal(key)).catch(()=>{});}
+
+function subscribeFooter(){
+  const inp=$('ftrEmail'),msg=$('ftrMsg'),btn=$('ftrBtn');
+  const email=((inp&&inp.value)||'').trim();
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){if(msg){msg.style.color='var(--red)';msg.textContent='Escribe un correo válido 🙏';}return;}
+  if(btn){btn.disabled=true;btn.textContent='…';}
+  fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({kind:'subscriber',source:'footer',email,utm:{...getUTM(),...getFbAttribution(),...getVisitCtx()},session_id:SESSION_ID})})
+    .then(r=>r.ok?r.json():Promise.reject(new Error('http')))
+    .then(()=>{if(msg){msg.style.color='var(--green)';msg.textContent='¡Listo! 🎉 Te avisaremos de novedades.';}if(inp)inp.value='';
+      if(typeof px==='function')px('Lead',{content_name:'newsletter_footer',...getUTM()},SESSION_ID+'_news');})
+    .catch(()=>{if(msg){msg.style.color='var(--red)';msg.textContent='No se pudo, reintenta.';}})
+    .finally(()=>{if(btn){btn.disabled=false;btn.textContent='Suscribirme';}});
+}
+
+/* ── CLIENTES FELICES (testimonios) ── */
+let testimonios=[];
+
+// settings.testimonios [{nombre,fecha,texto,foto,productId}]
+let _tmProdId=null, _testiList=[];
+
+// estado del formulario ADMIN de testimonios
+const _AVCOL=['#E8200A','#0066FF','#1aad49','#FF7A00','#7b3fe4','#0aa6b8','#d6336c','#2b8a3e'];
+
+function _avatar(name,hidden){
+  const parts=String(name||'C').trim().split(/\s+/);
+  const ini=((parts[0]||'')[0]||'')+((parts[1]||'')[0]||'');
+  let h=0;for(let i=0;i<name.length;i++)h=(h*31+name.charCodeAt(i))>>>0;
+  const c=_AVCOL[h%_AVCOL.length];
+  return `<div class="testi-card-foto" style="display:${hidden?'none':'flex'};align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;background:${c}">${escHtml(ini.toUpperCase())}</div>`;
+}
+
+function renderTestimonios(){
+  const sec=$('testimonios'),row=$('testiRow'),cnt=$('testiCount');
+  const ts=Array.isArray(testimonios)?testimonios:[];   // solo reales del admin; si no hay, la sección se oculta
+  _testiList=ts;
+  if(cnt)cnt.textContent=reviewsCount>0?`${reviewsCount.toLocaleString('es-CO')} reseñas`:`${ts.length} reseñas`;
+  if(!row)return;
+  if(!ts.length){if(sec)sec.style.display='none';row.innerHTML='';return;}
+  if(sec)sec.style.display='';
+  row.innerHTML=ts.map((t,i)=>{
+    const p=t.productId?prods.find(x=>x.id===t.productId):null;
+    const foto=t.foto?`<img class="testi-card-foto" src="${escHtml(t.foto)}" alt="${escHtml(t.nombre||'Cliente')}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`+_avatar(t.nombre,true):_avatar(t.nombre,false);
+    const prod=p?`<div class="testi-card-prod"><img src="${escHtml(p.img)}" alt=""><span>${escHtml((BRAND_LABELS[p.brand]||'')+' '+(p.g==='h'?'Hombre':'Mujer'))}</span></div>`:'';
+    const meta=[t.ciudad,t.fecha].filter(Boolean).map(escHtml).join(' · ');
+    const cap=t.captura?`<img class="testi-card-cap" src="${escHtml(t.captura)}" alt="Pedido recibido" loading="lazy" onerror="this.style.display='none'">`:'';
+    return `<div class="testi-card" onclick="openTesti(${i})">
+      ${cap}
+      <div class="testi-card-top">${foto}<div><div class="testi-card-name">${escHtml(t.nombre||'Cliente')} <span class="testi-card-verif">✓</span></div><div class="testi-card-date">${meta}</div></div></div>
+      <div class="testi-card-stars">★★★★★</div>
+      <div class="testi-card-text">${escHtml(t.texto||'')}</div>
+      ${prod}
+    </div>`;
+  }).join('');
+}
+
+function openTesti(i){
+  const t=_testiList[i];if(!t)return;
+  $('tmName').textContent=t.nombre||'Cliente';
+  $('tmDate').textContent=[t.ciudad,t.fecha].filter(Boolean).join(' · ');
+  $('tmText').textContent=t.texto||'';
+  const f=$('tmFoto');if(f){if(t.foto){f.src=t.foto;f.style.display='';}else f.style.display='none';}
+  const cp=$('tmCap');if(cp){if(t.captura){cp.src=t.captura;cp.style.display='';}else cp.style.display='none';}
+  _tmProdId=(t.productId&&prods.find(x=>x.id===t.productId))?t.productId:null;
+  const pb=$('tmProd');if(pb)pb.style.display=_tmProdId?'':'none';
+  $('testiModal').classList.add('on');lockScroll();
+  navPush('testi',null,null,closeTesti);
+}
+
+function closeTesti(){if(!_navPopping)navRemove('testi');$('testiModal').classList.remove('on');unlockScroll();}
+
+function testiVerProducto(){const id=_tmProdId;closeTesti();if(id)openPhoto(id,'cat');}
+
+/* ── NEUROMARKETING ── */
+// Prueba social real: vistas por producto (de la tabla events, vía /api/product-views)
+let _views={};
+
+function loadViews(){
+  fetch('/api/product-views').then(r=>r.json()).then(j=>{_views=j.views||{};}).catch(()=>{});
+}
+
+// Contador de reserva persistente: nunca borra el carrito, al expirar reinicia (urgencia sin castigo)
+const RESERVE_MS=15*60*1000;
+
+let _reserveTimer=null;
+
+function startReserva(){
+  if(!localStorage.getItem('ss_reserve_until')){
+    localStorage.setItem('ss_reserve_until',String(Date.now()+RESERVE_MS));
+  }
+  if(!_reserveTimer)_reserveTimer=setInterval(tickReserva,1000);
+  tickReserva();
+}
+
+function reserveRemaining(){
+  let until=parseInt(localStorage.getItem('ss_reserve_until')||'0');
+  let rem=until-Date.now();
+  if(rem<=0){ until=Date.now()+RESERVE_MS; localStorage.setItem('ss_reserve_until',String(until)); rem=RESERVE_MS; }
+  return rem;
+}
+
+function tickReserva(){
+  const rem=reserveRemaining();
+  const mm=String(Math.floor(rem/60000)).padStart(2,'0');
+  const ss=String(Math.floor((rem%60000)/1000)).padStart(2,'0');
+  const txt=mm+':'+ss;
+  const t1=$('pmReserveT');if(t1)t1.textContent=txt;
+  const pr=$('pmReserve');if(pr&&Object.keys(cart).length)pr.style.display='flex';
+  const t2=$('cartReserveT');if(t2)t2.textContent=txt;
+}
+
+/* ── WHATSAPP FLOTANTE ── */
+function openWA(){
+  const msg=`¡Hola ${STORE_NAME}! 👟 Vengo del catálogo y quiero más información.`;
+  // Contacto directo = lead. Se registra para que el agente lo cuente en el embudo.
+  trackEvent('lead',{});
+  if(typeof px==='function')px('Lead',{content_name:'whatsapp_directo',...getUTM()});
+  window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,'_blank');
+}
+
+/* Mini-anuncio del FAB: chat que llega preguntando por un combo = lead caliente precalificado.
+   content_name distinto (whatsapp_combos) para medir cuántos leads trae la burbuja. */
+function openWACombos(){
+  const msg=`¡Hola ${STORE_NAME}! 👟 Vengo del catálogo, estoy interesado en los combos mundialistas 🏆⚽ Dame más información...`;
+  trackEvent('lead',{});
+  if(typeof px==='function')px('Lead',{content_name:'whatsapp_combos',...getUTM()});
+  hideWaBubble(true);
+  window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,'_blank');
+}
+
+function hideWaBubble(dismiss){
+  const b=$('waBubble');if(b)b.classList.remove('show');
+  if(dismiss){try{sessionStorage.setItem('ss_wabub','1');}catch(e){}}
+}
+
+// Aparece a los 12s (el popup de bienvenida sale a los 7s — no competir). Si hay un modal
+// abierto reintenta. Solo con combos activos. Cerrada = no vuelve en esta sesión.
+function maybeWaBubble(){
+  try{if(sessionStorage.getItem('ss_wabub'))return;}catch(e){}
+  setTimeout(function intentar(){
+    try{if(sessionStorage.getItem('ss_wabub'))return;}catch(e){}
+    if(!(combos||[]).some(c=>c&&c.activo!==false))return;
+    const open=document.querySelector('.wm.on,.photo-modal.on,.guia-modal.on,.csheet.on,.apanel.on,.viewer360.on');
+    if(open){setTimeout(intentar,8000);return;}
+    const b=$('waBubble');if(b)b.classList.add('show');
+  },12000);
+}
+
+/* ── GRID ── */
+// Markup de una tarjeta de producto (reusado por el grid y por "Últimos lanzamientos").
+// prefix: 'k' en el grid, 'kl' en lanzamientos (evita IDs duplicados).
+// toFicha: en lanzamientos TODO clic (tarjeta y botón +) lleva directo a la ficha del zapato.
+function cardHTML(p,i,prefix,toFicha){
+  prefix=prefix||'k';
+  const on=!!cart[p.id]&&!p.sold;
+  const sp=p.promo||promoG;
+  const pct=sp?dsc(p):0;
+  const m=p.img?`<img src="${p.img}" alt="${altProd(p)}" loading="lazy">`:`<div class="noimg">👟</div>`;
+  const goCard=toFicha?`openPhoto(${p.id},'cat')`:`cardClick(event,${p.id},'cat')`;
+  const goAdd=toFicha?`event.stopPropagation();openPhoto(${p.id},'cat')`:`event.stopPropagation();togCard(${p.id},'cat')`;
+  return `<div class="card ${on?'picked':''} ${p.sold?'sold':''}" id="${prefix}${p.id}" style="animation-delay:${Math.min(i*.02,.4)}s" onclick="${goCard}">
+      <div class="cphoto">
+        ${m}
+        ${p.imgs360?.length>=2?`<div class="b360">360°</div>`:''}
+        ${pct?`<div class="bdsc"${p.imgs360?.length>=2?' style="top:30px"':''}>-${pct}%</div>`:''}
+        ${p.sold?`<div class="bsold">Agotado</div>`:''}
+        <div class="bchk">✓</div>
+        <button class="add-circle" onclick="${goAdd}">${on?'✓':'+'}</button>
+      </div>
+      <div class="cfoot-card">${p.modelo?`<div class="cbrand">${escHtml(p.modelo)}</div>`:p.brand?`<div class="cbrand">${brandLabel(p.brand)}</div>`:''}<div class="cprice ${sp?'sale':''}">${fmt(p.price)}</div>${sp&&p.was?`<div class="cwas">${fmt(p.was)}</div>`:''}</div>
+    </div>`;
+}
+
+function renderGrid(){
+  const liqEl=$('liqSec');
+  if(gSel==='liq'){
+    $('grid').innerHTML='';
+    $('grid').style.display='none';
+    const bb=$('brandbar');if(bb)bb.innerHTML='';   // liquidación no tiene filtro de marca
+    $('statN').textContent=prods.length;
+    $('secName').textContent='🔥 Ofertas';
+    $('secCt').textContent=liqs.length+' modelos';
+    liqEl.style.display='block';
+    const lhdr=liqEl.querySelector('.liq-hdr');
+    if(lhdr)lhdr.style.display='none';
+    renderLiqGrid();
+    return;
+  }
+  $('grid').style.display='';
+  renderBrandBar();
+  let items=gSel==='all'?prods:prods.filter(p=>p.g===gSel);
+  if(brandSel!=='all')items=items.filter(p=>p.brand===brandSel);
+  $('statN').textContent=prods.length;
+  $('secName').textContent=(gSel==='all'?'Todos':gSel==='h'?'Hombre':'Mujer')+(brandSel!=='all'?' · '+brandLabel(brandSel):'');
+  $('secCt').textContent=items.length+' modelos';
+  $('grid').innerHTML=items.map((p,i)=>cardHTML(p,i,'k')).join('');
+  if(liqs.length&&gSel==='all'){
+    liqEl.style.display='block';
+    const lhdr=liqEl.querySelector('.liq-hdr');
+    if(lhdr)lhdr.style.display='';
+    renderLiqGrid();
+  }else liqEl.style.display='none';
+  $('liqN').textContent=liqs.length;
+}
+
+function renderLiqGrid(){
+  $('liqN').textContent=liqs.length;
+  if(!liqs.length){$('liqGrid').innerHTML=`<div class="liq-empty">Sin productos en liquidación.<br>Agrégalos desde Admin 🔥</div>`;return;}
+  $('liqGrid').innerHTML=liqs.map((p,i)=>{
+    const on=!!cart['L'+p.id]&&!p.sold;
+    const pct=dsc(p);
+    const m=p.img?`<img src="${p.img}" alt="${altProd(p)}" loading="lazy">`:`<div class="noimg">🔥</div>`;
+    return `<div class="liq-card ${on?'picked':''} ${p.sold?'sold':''}" id="lk${p.id}" style="animation-delay:${Math.min(i*.02,.4)}s" onclick="cardClick(event,${p.id},'liq')">
+      <div class="lphoto">
+        ${m}
+        ${p.imgs360?.length>=2?`<div class="b360">360°</div>`:''}
+        ${pct?`<div class="lbdsc"${p.imgs360?.length>=2?' style="top:30px"':''}>-${pct}%</div>`:''}
+        ${p.sold?`<div class="lbsold">Agotado</div>`:''}
+        <div class="lbchk">✓</div>
+        <button class="add-circle" onclick="event.stopPropagation();togCard(${p.id},'liq')">${on?'✓':'+'}</button>
+      </div>
+      <div class="lfoot"><div class="lpnow">${fmt(p.price)}</div>${p.was?`<div class="lpwas">${fmt(p.was)}</div>`:''}${pct?`<div class="lsave">Ahorras $${(p.was-p.price).toLocaleString('es-CO')}</div>`:''}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ── CARD CLICK ── */
+function cardClick(e,id,type){
+  const list=type==='liq'?liqs:prods;
+  const p=list.find(x=>x.id===id);
+  if(!p||p.sold)return;
+  const inPhoto=e.target.closest('.cphoto')||e.target.closest('.lphoto');
+  if(inPhoto&&p.img){openPhoto(id,type);return;}
+  togCard(id,type);
+}
+
+function setG(v,btn){
+  gSel=v;
+  brandSel='all';   // al cambiar de sección, resetear el filtro de marca
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  btn.classList.add('on');
+  renderGrid();
+  navUpdateCat();
+}
+
+/* ── FILTRO POR MARCA ── */
+const BRAND_LABELS={adidas:'Adidas',nike:'Nike',reebok:'Reebok',new_balance:'New Balance',on_cloud:'On Cloud',puma:'Puma',lecoq_sportif:'Le Coq Sportif',jordan:'Jordan',lacoste:'Lacoste',asics:'Asics',onitsuka_tiger:'Onitsuka Tiger',luxury:'Luxury'};
+
+let brandSel='all';
+
+function brandLabel(b){return BRAND_LABELS[b]||b;}
+
+function altProd(p){return escHtml(p.modelo||((BRAND_LABELS[p.brand]||'Sneakers')+(p.g==='h'?' hombre':p.g==='m'?' mujer':'')));}
+
+function renderBrandBar(){
+  const bar=$('brandbar');if(!bar)return;
+  // Marcas presentes en el inventario disponible (no agotado)
+  const set=new Set();
+  prods.forEach(p=>{if(p.brand&&!p.sold)set.add(p.brand);});
+  // Mantener el orden de BRAND_LABELS y solo mostrar las que existen
+  const marcas=Object.keys(BRAND_LABELS).filter(b=>set.has(b));
+  if(!marcas.length){bar.innerHTML='';return;}  // sin marcas → barra oculta (CSS :empty)
+  const chip=(v,txt)=>`<button class="bchip ${brandSel===v?'on':''}" onclick="setBrand('${v}',this)">${txt}</button>`;
+  bar.innerHTML=chip('all','Todas las marcas')+marcas.map(b=>chip(b,brandLabel(b))).join('');
+}
+
+function setBrand(v,btn){
+  brandSel=v;
+  document.querySelectorAll('.bchip').forEach(c=>c.classList.remove('on'));
+  if(btn)btn.classList.add('on');
+  renderGrid();
+  navUpdateCat();
+}
+
+/* ── MODAL FOTO ── */
+function openPhoto(id,type){
+  const list=type==='liq'?liqs:prods;
+  const p=list.find(x=>x.id===id);
+  if(!p)return;
+  // La ficha SIEMPRE abre; el giro 360 (si existe) es un botón dentro de la galería.
+  if(!p.img)return;
+  pmId=id;pmType=type;
+  renderPmGal([p.img,...(p.imgs||[])],p.imgs360?.length>=2,altProd(p));
+  const _mk=BRAND_LABELS[p.brand]||'';
+  // Si el producto tiene MODELO (ej. "Nike Air Max 90"), ese es el título; si no, Marca · Género.
+  $('pmTitle').textContent=p.modelo||((_mk?_mk+' · ':'')+(type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer')));
+  pmReviewN=reviewsCount;   // nº de reseñas = el de marketing del admin (settings.reviews_count)
+  {const rv=$('pmReviews');if(rv)rv.textContent=pmReviewN>0?`(${pmReviewN.toLocaleString('es-CO')} reseñas)`:'';}
+  {const dd=$('pmDesc');if(dd)dd.textContent=genDescripcion(p,type);}
+  {const wa=$('pmWas');if(wa){if(p.was&&p.was>p.price){wa.textContent=fmt(p.was);wa.style.display='';}else wa.style.display='none';}}
+  $('pmPrice').textContent=fmt(p.price);
+  // Anclaje de ahorro: "Ahorras $X (Y%)" si tiene precio antes
+  const sv=$('pmSave');
+  if(sv){
+    const pct=dsc(p);
+    if(p.was&&p.was>p.price){sv.textContent=`Ahorras ${fmt(p.was-p.price)} (${pct}%)`;sv.style.display='block';}
+    else sv.style.display='none';
+  }
+  // Prueba social real: vistas de este producto (oculto si 0)
+  const so=$('pmSocial');
+  if(so){
+    const n=_views[String(id)]||0;
+    if(n>=3){so.innerHTML=`<span class="pm-chip-ic">👀<span class="pm-live"></span></span><span><b>${n} personas</b> vieron este modelo esta semana</span>`;so.style.display='flex';}
+    else so.style.display='none';
+  }
+  // Reserva: solo mostrar si ya hay algo en el carrito
+  const pr=$('pmReserve');
+  if(pr)pr.style.display=Object.keys(cart).length?'flex':'none';
+  if(Object.keys(cart).length)tickReserva();
+  renderFichaReviews();
+  syncPmBtn();
+  const _vcat=type==='liq'?'liquidacion':p.g;
+  const _vnm=type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer');
+  px('ViewContent',{content_ids:[pxId(type,id)],content_type:'product',content_category:_vcat,content_name:_vnm,value:p.price,currency:'COP',...getUTM()});
+  trackEvent('view_product',{product_id:(type==='liq'?'L':'')+id,price:p.price,gender:type==='liq'?null:p.g||null});
+  $('photoModal').classList.add('on');
+  lockScroll();
+  navPush('ficha',navProdUrl(id,type,p),$('pmTitle').textContent+' — '+STORE_NAME,closePhotoBtn);
+  // Resetear el scroll de la ficha al ABRIR (si no, reabre donde quedó el anterior → en iOS el
+  // header sticky no se ancla y toca subir para ver "CATALOGO SNEAKERS").
+  const _ps=document.querySelector('.pm-scroll'), _pb=document.querySelector('.pm-body');
+  if(_ps)_ps.scrollTop=0; if(_pb)_pb.scrollTop=0;
+  requestAnimationFrame(()=>{if(_ps)_ps.scrollTop=0; if(_pb)_pb.scrollTop=0;});
+}
+
+function syncPmBtn(){
+  const key=pmType==='liq'?'L'+pmId:pmId;
+  const ic=!!cart[key];
+  $('pmAdd').textContent=ic?'✓ Agregado al carrito':'+ Agregar al carrito';
+  $('pmAdd').className='pm-add'+(ic?' in':'');
+}
+
+// Descripción genérica (no hay nombres de producto): plantilla por género/marca.
+function genDescripcion(p,type){
+  const mk=BRAND_LABELS[p.brand]||'';
+  if(type==='liq')return `Edición de liquidación a precio especial — ${mk?mk+', ':''}calidad original y comodidad para uso diario. Pocas unidades. Envío gratis a todo el país, pago contra entrega, cambios por talla y 100% garantía.`;
+  const g=p.g==='h'?'hombre':'mujer';
+  return `Sneakers ${mk?mk+' ':''}para ${g}: diseño original, materiales de calidad y comodidad todo el día — perfectos para combinar con todo. Envío gratis a todo el país, pago contra entrega, cambios por talla y 100% garantía.`;
+}
+
+let pmReviewN=0;
+
+function renderFichaReviews(){
+  const c=$('pmRevList');if(!c)return;
+  // Reseñas REALES (las que el admin sube en settings.testimonios). Si no hay, se oculta el bloque
+  // (nunca mostramos reseñas inventadas → coherente con políticas de Meta y con la confianza real).
+  const revs=(Array.isArray(testimonios)?testimonios:[]).filter(r=>r&&r.texto).slice(0,6);
+  if(!revs.length){c.innerHTML='';c.style.display='none';return;}
+  c.style.display='';
+  const cnt=pmReviewN>0?`${pmReviewN.toLocaleString('es-CO')} reseñas`:'';
+  c.innerHTML=`<div class="pm-rev-head"><h4>Dejamos que nuestros clientes hablen</h4><div class="pm-rev-bigstars">★★★★★</div>${cnt?`<div class="pm-rev-count">${cnt}</div>`:''}</div>`+revs.map(r=>{
+    const quien=[r.nombre||'Cliente',r.ciudad].filter(Boolean).map(escHtml).join(' · ');
+    return `<div class="pm-rev"><div class="pm-rev-h"><b>${quien}</b><span class="pm-rev-v">✓ Compra verificada</span></div><div class="pm-rev-s">★★★★★</div><div class="pm-rev-x">${escHtml(r.texto)}</div></div>`;
+  }).join('');
+}
+
+function addFromModal(){if(pmId===null)return;const id=pmId,t=pmType;closePhotoBtn();togCard(id,t);}
+
+function closePhotoBtn(){
+  if(!_navPopping)navRemove('ficha');
+  $('photoModal').classList.remove('on');
+  unlockScroll();
+  setTimeout(()=>{const tr=$('pmGalTrack');if(tr)tr.innerHTML='';pmId=null;pmType=null;},300);
+}
+
+/* ── GALERÍA de la ficha ── */
+let _galIdx=0,_galN=1;
+
+function renderPmGal(urls,has360,altTxt){
+  _galIdx=0;_galN=urls.length;
+  const tr=$('pmGalTrack');if(!tr)return;
+  tr.style.transform='translateX(0)';
+  tr.innerHTML=urls.map(u=>`<img src="${escHtml(u)}" alt="${altTxt||'Foto del producto'}" loading="lazy">`).join('');
+  const dots=$('pmGalDots');
+  if(dots)dots.innerHTML=_galN>1?urls.map((_,i)=>`<span class="pm-gal-dot${i===0?' on':''}"></span>`).join(''):'';
+  const showArr=_galN>1?'':'none';
+  const pv=$('pmGalPrev'),nx=$('pmGalNext');
+  // En móvil las flechas no se muestran (swipe); en escritorio aparecen al hover si hay >1 foto
+  if(pv)pv.dataset.multi=showArr===''?'1':'0';
+  if(nx)nx.dataset.multi=showArr===''?'1':'0';
+  const b3=$('pm360Btn');if(b3)b3.style.display=has360?'':'none';
+}
+
+function pmGalGo(dir){
+  if(_galN<2)return;
+  _galIdx=Math.min(Math.max(_galIdx+dir,0),_galN-1);
+  const tr=$('pmGalTrack');if(tr)tr.style.transform=`translateX(-${_galIdx*100}%)`;
+  document.querySelectorAll('#pmGalDots .pm-gal-dot').forEach((d,i)=>d.classList.toggle('on',i===_galIdx));
+}
+
+// Swipe táctil de la galería (mismo patrón que el hero)
+(function(){
+  const gal=document.getElementById('pmGal');if(!gal)return;
+  let x0=null;
+  gal.addEventListener('touchstart',e=>{x0=e.touches[0].clientX;},{passive:true});
+  gal.addEventListener('touchend',e=>{
+    if(x0===null)return;
+    const dx=e.changedTouches[0].clientX-x0;x0=null;
+    if(Math.abs(dx)>40)pmGalGo(dx<0?1:-1);
+  },{passive:true});
+})();
+
+/* ── GUÍA DE CUIDADO — vive en extras.js (carga bajo demanda) ── */
+function openGuia(){loadExtras().then(()=>openGuia()).catch(()=>{});}
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closePhotoBtn();close360();if(typeof closeGuia==='function')closeGuia();closeInfo();closeMenu();}});
+
+function _preload360(srcs,cb){
+  _v360Images=[];
+  let done=0;
+  srcs.forEach((src,i)=>{
+    const img=new Image();
+    img.onload=()=>{done++;if(done===srcs.length&&cb)cb();};
+    img.onerror=()=>{done++;if(done===srcs.length&&cb)cb();};
+    img.src=src;
+    _v360Images[i]=img;
+  });
+}
+
+function drawFrame360(pos){
+  const imgs=_v360Images;
+  const n=imgs.length;
+  if(!n)return;
+  const canvas=$('v360Canvas');
+  if(!canvas)return;
+  const INTERP=3; // pasos virtuales entre frames reales
+  pos=((pos%n)+n)%n;
+  const scaled=pos*INTERP;
+  const a=Math.floor(scaled/INTERP)%n;
+  const b=(a+1)%n;
+  const ratio=(scaled%INTERP)/INTERP;
+  const imgA=imgs[a];
+  if(!imgA||!imgA.complete||!imgA.naturalWidth)return;
+  if(canvas.width!==imgA.naturalWidth){
+    canvas.width=imgA.naturalWidth;
+    canvas.height=imgA.naturalHeight;
+    const aspect=imgA.naturalHeight/imgA.naturalWidth;
+    const maxH=window.innerHeight*0.68;
+    const cssW=canvas.parentElement?canvas.parentElement.offsetWidth:300;
+    canvas.style.height=Math.min(cssW*aspect,maxH)+'px';
+  }
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.globalAlpha=1;
+  ctx.drawImage(imgA,0,0,canvas.width,canvas.height);
+  if(ratio>0.01&&b!==a){
+    const imgB=imgs[b];
+    if(imgB&&imgB.complete&&imgB.naturalWidth){
+      ctx.globalAlpha=ratio;
+      ctx.drawImage(imgB,0,0,canvas.width,canvas.height);
+      ctx.globalAlpha=1;
+    }
+  }
+  $('v360Counter').textContent=`${a+1}/${n}`;
+}
+
+function open360(id,type){
+  v360Id=id;v360Type=type;v360Pos=0;
+  const list=type==='liq'?liqs:prods;
+  const p=list.find(x=>x.id===id);
+  if(!p)return;
+  $('v360Label').textContent=type==='liq'?'🔥 Liquidación':(p.g==='h'?'Hombre':'Mujer');
+  $('v360Price').textContent=fmt(p.price);
+  sync360Btn();
+  $('v360Hint').style.opacity='1';
+  $('viewer360').classList.add('on');
+  lockScroll();
+  navPush('v360',null,null,close360);
+  _preload360(p.imgs360,()=>drawFrame360(0));
+}
+
+function close360(){
+  if(!_navPopping)navRemove('v360');
+  $('viewer360').classList.remove('on');
+  unlockScroll();
+  $('v360Add').style.display='';
+  _preview360Frames=null;
+  _v360Images=[];
+  setTimeout(()=>{const c=$('v360Canvas');if(c){const ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);}v360Id=null;},300);
+}
+
+function addFrom360(){if(v360Id!==null){togCard(v360Id,v360Type);sync360Btn();}}
+
+function sync360Btn(){
+  const key=v360Type==='liq'?'L'+v360Id:v360Id;
+  const ic=!!cart[key];
+  $('v360Add').textContent=ic?'✓ Agregado':'+ Agregar';
+  $('v360Add').className='pm-add'+(ic?' in':'');
+}
+
+/* openAdmin = STUB público: carga /admin.js (todo el JS del panel) UNA vez y delega.
+   La tienda del cliente nunca descarga el código del admin. */
+/* Cargador de extras.js (guía, legales, vista de pedido) — bajo demanda, una sola vez */
+let _extrasJs=null;
+
+function loadExtras(){
+  return new Promise((res,rej)=>{
+    if(window._extrasReady)return res();
+    if(_extrasJs){_extrasJs.addEventListener('load',()=>res());_extrasJs.addEventListener('error',()=>rej());return;}
+    _extrasJs=document.createElement('script');
+    _extrasJs.src='/extras.js';
+    _extrasJs.onload=()=>res();
+    _extrasJs.onerror=()=>{_extrasJs=null;alert('No se pudo cargar este contenido. Revisa tu conexión e intenta de nuevo.');rej();};
+    document.head.appendChild(_extrasJs);
+  });
+}
+
+let _adminScriptEl=null;
+
+function openAdmin(){
+  if(window._adminReady){_openAdminReal();return;}
+  if(_adminScriptEl)return; // ya está cargando
+  _adminScriptEl=document.createElement('script');
+  _adminScriptEl.src='/admin.js';
+  _adminScriptEl.onload=async()=>{try{await window._adminInit;_openAdminReal();}catch(e){_adminScriptEl=null;alert('No se pudo cargar el panel. Revisa tu conexión e intenta de nuevo.');}};
+  _adminScriptEl.onerror=()=>{_adminScriptEl=null;alert('No se pudo cargar el panel. Revisa tu conexión e intenta de nuevo.');};
+  document.head.appendChild(_adminScriptEl);
+}
+
+/* (AV_TITLES, avGo y el listener del buscador admin viven en admin.js) */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const _isClasificado=o=>o.status==='venta'||o.status==='no_venta';
+
+/* (drag & drop de las zonas de subida: vive en admin.js) */
+
+/* ═══════════════════════════════════════════════════════════════
+   GOOGLE APPS SCRIPT — Pegar en https://script.google.com
+   1. Ir a script.google.com → Nuevo proyecto
+   2. Borrar el código existente y pegar:
+
+   function doPost(e){
+     const data=JSON.parse(e.postData.contents);
+     const sheet=SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+     sheet.appendRow([data.fecha,data.nombre,data.tel,data.ciudad,
+       data.barrio,data.pago,data.total,data.pares,JSON.stringify(data.items)]);
+     return ContentService.createTextOutput('ok');
+   }
+
+   3. Guardar (Ctrl+S) → Implementar → Nueva implementación
+   4. Tipo: Aplicación web | Ejecutar como: Yo | Acceso: Cualquier persona
+   5. Implementar → Copiar la URL → pegarla en Admin → Google Sheets URL
+   Columnas: A=Fecha B=Nombre C=Tel D=Ciudad E=Barrio F=Pago G=Total H=Pares I=Items
+   ═══════════════════════════════════════════════════════════════
+
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── DRAG/TOUCH VISOR 360° ── */
+(function(){
+  const stage=$('v360Stage');
+  const DRAG_SCALE=16;
+  function drag360(dx){
+    if(!v360Id||!_v360Images.length)return;
+    const n=_v360Images.length;
+    v360Pos=((v360Pos-dx/DRAG_SCALE)%n+n)%n;
+    drawFrame360(v360Pos);
+    $('v360Hint').style.opacity='0';
+  }
+  stage.addEventListener('mousedown',e=>{v360Dragging=true;v360LastX=e.clientX;e.preventDefault();});
+  document.addEventListener('mousemove',e=>{
+    if(!v360Dragging)return;
+    drag360(e.clientX-v360LastX);
+    v360LastX=e.clientX;
+  });
+  document.addEventListener('mouseup',()=>{v360Dragging=false;});
+  stage.addEventListener('touchstart',e=>{v360Dragging=true;v360LastX=e.touches[0].clientX;},{passive:true});
+  stage.addEventListener('touchmove',e=>{
+    if(!v360Dragging)return;
+    drag360(e.touches[0].clientX-v360LastX);
+    v360LastX=e.touches[0].clientX;
+  },{passive:true});
+  stage.addEventListener('touchend',()=>{v360Dragging=false;});
+})();
