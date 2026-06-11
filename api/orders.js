@@ -176,6 +176,10 @@ async function handleBoldStatus(req, res) {
   } catch {}
   let confirmed = false;
   if (status === 'PAID' && d.reference) {
+    if (amount == null) { // el GET del link no siempre trae monto; el link CLOSE lo creamos con el monto de BD
+      const ord = await getOrderByReference(d.reference);
+      if (ord) amount = Number(ord.subtotal != null ? ord.subtotal : ord.total);
+    }
     const out = await confirmPaidOrder({ reference: d.reference, amount, currency: 'COP', req }).catch(() => null);
     confirmed = !!(out && out.ok);
   }
@@ -213,6 +217,10 @@ async function handleBoldWebhook(req, res) {
     }
   }
   if (!/^STR-/.test(reference)) return res.json({ ok: true, ignored: true, no_ref: true });
+  if (amount == null) { // mismo fallback: el link CLOSE se creó server-side con el monto del pedido
+    const ord = await getOrderByReference(reference);
+    if (ord) amount = Number(ord.subtotal != null ? ord.subtotal : ord.total);
+  }
   const out = await confirmPaidOrder({ reference, amount, currency: 'COP', req });
   return res.json(out);
 }
@@ -246,7 +254,11 @@ async function reconciliarPendientes(req, res) {
         const j = await r.json().catch(() => ({}));
         const p = j.payload || j;
         if (String(p.status || '') === 'PAID') {
-          const c = await confirmPaidOrder({ reference: o.reference, amount: boldAmount(p), currency: 'COP', req });
+          // El GET del link no siempre expone el monto. Es seguro usar el del pedido: el link
+          // es CLOSE (monto fijo) y lo creamos NOSOTROS server-side leyendo ese mismo monto de BD.
+          let amt = boldAmount(p);
+          if (amt == null) amt = Number(o.subtotal != null ? o.subtotal : o.total);
+          const c = await confirmPaidOrder({ reference: o.reference, amount: amt, currency: 'COP', req });
           out.push(o.reference + ':' + (c.ok ? 'VENTA' : c.error + (c.paid != null ? '(paid=' + c.paid + ',exp=' + c.expected + ')' : '')));
         } else out.push(o.reference + ':' + (p.status || 'sin_estado'));
       } else {
