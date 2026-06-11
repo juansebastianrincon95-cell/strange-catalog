@@ -2562,14 +2562,37 @@ function captureUTM(){
   // Landing inicial: primera URL con la que llegó el visitante (una sola vez por visitante).
   if(!localStorage.getItem('ss_landing'))localStorage.setItem('ss_landing',(location.pathname+location.search).slice(0,300));
 }
-// Contexto de visita para el admin: landing inicial + tipo de dispositivo. Viaja dentro de
-// order.utm (jsonb) — sin migración.
+// Contexto de visita para el admin: landing inicial + tipo de dispositivo + app de origen.
+// Viaja dentro de order.utm (jsonb) — sin migración.
 function getVisitCtx(){
   return {
     landing: localStorage.getItem('ss_landing')||null,
-    device: (navigator.maxTouchPoints>0&&matchMedia('(max-width:820px)').matches)?'movil':'escritorio'
+    device: (navigator.maxTouchPoints>0&&matchMedia('(max-width:820px)').matches)?'movil':'escritorio',
+    src_app: detectSrcApp()
   };
 }
+/* App de origen del visitante. Señal 1 (la más confiable): el navegador interno de cada app se
+   identifica en el User-Agent — los clics en IG/FB/Messenger/WhatsApp-iOS/TikTok abren ahí.
+   Señal 2: referrer (en vivo, o el primero guardado en ss_ref). Messenger va ANTES que el check
+   genérico de Facebook porque su UA también contiene FBAN. Limitación: WhatsApp en Android abre
+   el navegador externo sin referrer → sale 'directo'. */
+function detectSrcApp(){
+  const ua=navigator.userAgent||'';
+  if(/Instagram/i.test(ua))return 'instagram';
+  if(/FBAN\/Messenger|MessengerLite|Orca-/i.test(ua))return 'messenger';
+  if(/FBAN|FBAV|FB_IAB|FB4A|FBIOS/i.test(ua))return 'facebook';
+  if(/WhatsApp/i.test(ua))return 'whatsapp';
+  if(/TikTok|musical_ly|Bytedance/i.test(ua))return 'tiktok';
+  const ref=document.referrer||getReferrer()||'';
+  if(/instagram\.com/i.test(ref))return 'instagram';
+  if(/facebook\.com|fb\.me|fb\.com/i.test(ref))return 'facebook';
+  if(/whatsapp\.com|wa\.me/i.test(ref))return 'whatsapp';
+  if(/tiktok\.com/i.test(ref))return 'tiktok';
+  if(/google\./i.test(ref))return 'google';
+  return ref?'web':'directo';
+}
+const SRC_APP_LABELS={instagram:'📸 Instagram',facebook:'📘 Facebook',messenger:'💬 Messenger',whatsapp:'💬 WhatsApp',tiktok:'🎵 TikTok',google:'🔎 Google',web:'🌐 Otro sitio',directo:'🌐 Directo / navegador'};
+function srcAppLabel(v){return v?(SRC_APP_LABELS[v]||v):'';}
 function getUTM(){
   try{return JSON.parse(localStorage.getItem('ss_utm')||'{}');}catch(e){return {};}
 }
@@ -3262,6 +3285,7 @@ function renderPedidosList(){
   if(!orders.length){box.innerHTML=`<div style="padding:32px 8px;text-align:center;color:var(--ink3);font-size:13px;line-height:1.7">🧾 Aún no hay pedidos.</div>`;return;}
   const cardPed=o=>{
     const camp=o.utm&&o.utm.utm_campaign?escHtml(String(o.utm.utm_campaign).slice(0,28)):'';
+    const srcA=!camp&&o.utm&&o.utm.src_app?escHtml(srcAppLabel(o.utm.src_app)):'';
     return `
     <div style="background:var(--white);border:1px solid var(--line);border-radius:12px;margin-bottom:8px;overflow:hidden">
       <div class="ped-main" onclick="togPedDetail(${o.id})" style="padding:12px 14px;cursor:pointer">
@@ -3269,7 +3293,7 @@ function renderPedidosList(){
           <span style="font-size:13.5px;font-weight:700">${escHtml(o.nombre||'Sin nombre')}</span>${badge(o)}
         </div>
         <div style="font-size:12px;color:var(--ink2);line-height:1.6">
-          ${o.tel?`📱 <a href="https://wa.me/57${String(o.tel).replace(/\D/g,'').slice(-10)}" target="_blank" onclick="event.stopPropagation()" style="color:var(--blue);text-decoration:none">${escHtml(o.tel)}</a> · `:''}${o.ciudad?`📍 ${escHtml(o.ciudad)}`:''}${camp?` · 📣 ${camp}`:''}${o.combo?` · <b style="color:#b3541e">🏆 ${escHtml(o.combo)}</b>`:''}<br>
+          ${o.tel?`📱 <a href="https://wa.me/57${String(o.tel).replace(/\D/g,'').slice(-10)}" target="_blank" onclick="event.stopPropagation()" style="color:var(--blue);text-decoration:none">${escHtml(o.tel)}</a> · `:''}${o.ciudad?`📍 ${escHtml(o.ciudad)}`:''}${camp?` · 📣 ${camp}`:srcA?` · ${srcA}`:''}${o.combo?` · <b style="color:#b3541e">🏆 ${escHtml(o.combo)}</b>`:''}<br>
           ${itemsTxt(o)?`👟 ${itemsTxt(o)}<br>`:''}
           💰 <b>${fmt(o.total||0)}</b>${o.pago?` · ${escHtml(pagoLabels[o.pago]||o.pago)}`:''}
           ${o.fecha?` · <span style="color:var(--ink3);font-size:10px">${new Date(o.fecha).toLocaleString('es-CO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</span>`:''}
@@ -3398,10 +3422,10 @@ function togPedDetail(id){
     +fila('Cédula',o.cedula?escHtml(o.cedula):'')
     +fila('Montos',`Subtotal <b>${fmt(o.subtotal!=null?o.subtotal:o.total)}</b>${o.envio?` · Envío <b>${fmt(o.envio)}</b>`:''} · Total <b>${fmt(o.total||0)}</b>`)
     +fila('Referencia',o.reference?escHtml(o.reference):'')
-    +fila('Campaña',utmLinea||'<span style="color:var(--ink3)">sin UTMs (directo / orgánico)</span>')
+    +fila('Campaña',utmLinea||`<span style="color:var(--ink3)">sin UTMs${u.src_app?' · abierto desde <b>'+escHtml(srcAppLabel(u.src_app))+'</b>':' (directo / orgánico)'}</span>`)
     +fila('Anuncio',[u.campaign_id?'campaña: '+escHtml(u.campaign_id):'',u.adset_id?'conjunto: '+escHtml(u.adset_id):'',u.ad_id?'anuncio: '+escHtml(u.ad_id):''].filter(Boolean).join(' · '))
     +fila('Meta',[u.fbclid?'fbclid: '+corto(u.fbclid):'',u.fbp?'fbp: '+corto(u.fbp):'',u.fbc?'fbc: '+corto(u.fbc):''].filter(Boolean).join(' · '))
-    +fila('Contexto',[u.landing?'Landing: '+escHtml(u.landing):'',u.device?'Dispositivo: '+escHtml(u.device):''].filter(Boolean).join(' · '))
+    +fila('Contexto',[u.src_app?'Origen: '+escHtml(srcAppLabel(u.src_app)):'',u.landing?'Landing: '+escHtml(u.landing):'',u.device?'Dispositivo: '+escHtml(u.device):''].filter(Boolean).join(' · '))
     +fila('Fecha',o.fecha?new Date(o.fecha).toLocaleString('es-CO',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}):'');
   det.style.display='block';
   if(chev)chev.textContent='Ocultar ▴';
@@ -3879,7 +3903,7 @@ function renderSubsTab(){
         <div style="min-width:0">
           <div style="font-size:12.5px;font-weight:700">${escHtml(s.nombre||'(sin nombre)')}</div>
           <div style="font-size:11px;color:var(--ink2);margin-top:2px" onclick="event.stopPropagation()">${contacto}</div>
-          <div style="font-size:10px;color:var(--ink3);margin-top:2px">📣 ${escHtml(camp)} · ${escHtml(s.source||'')}</div>
+          <div style="font-size:10px;color:var(--ink3);margin-top:2px">📣 ${escHtml(camp)}${u.src_app?' · '+escHtml(srcAppLabel(u.src_app)):''} · ${escHtml(s.source||'')}</div>
           ${interesadoEnLinea(s.session_id)}
         </div>
         <div style="text-align:right;flex:0 0 auto">
@@ -3949,7 +3973,7 @@ function renderLeadsTab(){
           ${o.ciudad?`📍 ${escHtml(o.ciudad)}${o.barrio?', '+escHtml(o.barrio):''}<br>`:''}
           ${itemsTxt(o)?`👟 ${itemsTxt(o)}<br>`:''}
           💰 <b>${fmt(o.total||0)}</b>${o.pago?` · ${escHtml(pagoLabels[o.pago]||o.pago)}`:''}${o.combo?` · <b style="color:#b3541e">🏆 ${escHtml(o.combo)}</b>`:''}
-          ${o.utm&&o.utm.utm_campaign?`<br>📣 <span style="color:#5D2D91;font-weight:600">${escHtml(o.utm.utm_campaign)}</span>${o.utm.utm_content?` · ad: ${escHtml(o.utm.utm_content)}`:''}`:''}
+          ${o.utm&&o.utm.utm_campaign?`<br>📣 <span style="color:#5D2D91;font-weight:600">${escHtml(o.utm.utm_campaign)}</span>${o.utm.utm_content?` · ad: ${escHtml(o.utm.utm_content)}`:''}${o.utm.src_app?` · ${escHtml(srcAppLabel(o.utm.src_app))}`:''}`:(o.utm&&o.utm.src_app?`<br>${escHtml(srcAppLabel(o.utm.src_app))}`:'')}
           ${o.fecha?`<br><span style="color:var(--ink3);font-size:10px">${new Date(o.fecha).toLocaleString('es-CO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</span>`:''}
         </div>
         ${interesadoEnLinea(o.session_id)}
