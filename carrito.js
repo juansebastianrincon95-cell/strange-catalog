@@ -309,10 +309,10 @@ function rCart(){
 
 function rForm(){
   $('cbody').innerHTML=`<div class="formsec"><div class="formtit">¿A dónde enviamos tu pedido?</div>
-    <div class="fld"><label>Nombre completo</label><input id="fn" type="text" placeholder="Juan García" value="${escHtml(cData.nombre||'')}"></div>
-    <div class="frow"><div class="fld"><label>Cédula</label><input id="fc" type="number" placeholder="1000000000" value="${escHtml(cData.cedula||'')}"></div><div class="fld"><label>Celular</label><input id="ft" type="tel" placeholder="300 000 0000" value="${escHtml(cData.celular||'')}"></div></div>
-    <div class="fld"><label>Dirección</label><input id="fd" type="text" placeholder="Calle 10 # 25-30" value="${escHtml(cData.direccion||'')}"></div>
-    <div class="frow"><div class="fld"><label>Barrio</label><input id="fb" type="text" placeholder="El Poblado" value="${escHtml(cData.barrio||'')}"></div><div class="fld"><label>Ciudad</label><input id="fci" type="text" placeholder="Medellín" value="${escHtml(cData.ciudad||'')}"></div></div>
+    <div class="fld"><label>Nombre completo</label><input id="fn" type="text" autocomplete="name" autocapitalize="words" placeholder="Juan García" value="${escHtml(cData.nombre||'')}"></div>
+    <div class="frow"><div class="fld"><label>Cédula</label><input id="fc" type="text" inputmode="numeric" autocomplete="off" placeholder="1000000000" value="${escHtml(cData.cedula||'')}"></div><div class="fld"><label>Celular</label><input id="ft" type="tel" inputmode="tel" autocomplete="tel" placeholder="300 000 0000" value="${escHtml(cData.celular||'')}"></div></div>
+    <div class="fld"><label>Dirección</label><input id="fd" type="text" autocomplete="street-address" placeholder="Calle 10 # 25-30" value="${escHtml(cData.direccion||'')}"></div>
+    <div class="frow"><div class="fld"><label>Barrio</label><input id="fb" type="text" autocomplete="address-level3" placeholder="El Poblado" value="${escHtml(cData.barrio||'')}"></div><div class="fld"><label>Ciudad</label><input id="fci" type="text" autocomplete="address-level2" autocapitalize="words" placeholder="Medellín" value="${escHtml(cData.ciudad||'')}"></div></div>
     <label for="fconsent" style="display:flex;gap:9px;align-items:flex-start;margin-top:6px;font-size:12px;line-height:1.45;color:var(--ink2);cursor:pointer">
       <input id="fconsent" type="checkbox" ${cData.consent?'checked':''} style="margin-top:2px;width:16px;height:16px;flex:0 0 auto;accent-color:var(--ink)">
       <span>Autorizo el tratamiento de mis datos personales según la <a href="#" onclick="openLegal('privacidad');return false" style="color:var(--ink);font-weight:700">Política de Privacidad</a> (Ley 1581 de 2012).</span>
@@ -375,6 +375,11 @@ function rPayChoice(){
     +card(`pagarWompi()`,'#5D2D91','#fff',icLogo('logos/wompi.png','Wompi',icCard),'Pagar en línea — Wompi','Tarjeta · PSE · Nequi · Bancolombia · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
     +card(`pagarBold()`,'#2541B2','#fff',icLogo('logos/bold.png','Bold',icCard),'Pagar en línea — Bold','Tarjeta · PSE · Botón Bancolombia · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
     +card(`enviarWA('credito')`,'#0a7d4b','#fff',`<span class="pc-logos2">${icLogo('logos/addi.png','Addi',icCuotas)}${icLogo('logos/sistecredito.png','Sistecrédito','')}</span>`,'Pagar a crédito — Addi / Sistecrédito','En cuotas · Te asesoramos por WhatsApp · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
+    +`</div>`
+    +`<div class="pay-trust">`
+      +`<button type="button" class="pay-trust-i" onclick="openInfo('cambios')"><span>🔄</span><span>Cambios por talla fáciles</span></button>`
+      +`<button type="button" class="pay-trust-i" onclick="openInfo('cambios')"><span>🛡️</span><span>Garantía de 1 mes</span></button>`
+      +`<div class="pay-trust-i"><span>📦</span><span>Pago contra entrega disponible</span></div>`
     +`</div></div>`;
   $('cfoot').innerHTML=`<button class="btnback" onclick="goStep(1)">← Volver</button>`;
 }
