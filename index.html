@@ -331,6 +331,13 @@
       <div class="pm-sizes" id="pmSizes" style="display:none">
         <div class="pm-sizes-top"><span class="pm-sizes-lbl">Elige tu talla <span class="pm-sizes-unit">(EUR)</span></span><span class="pm-sizes-err" id="pmSizesErr">Selecciona una talla 👆</span></div>
         <div class="pm-sizes-row" id="pmSizesRow"></div>
+        <div class="pm-guia" id="pmGuia" style="display:none">
+          <button type="button" class="pm-guia-toggle" onclick="toggleGuiaTallas()">📏 ¿Cómo sé mi talla?</button>
+          <div class="pm-guia-box" id="pmGuiaBox" style="display:none">
+            <div class="pm-guia-tx">Busca el número <b>EUR</b> en la etiqueta dentro de un zapato que te quede bien y compáralo 👇 Toca para ampliar.</div>
+            <div class="pm-guia-imgs" id="pmGuiaImgs"></div>
+          </div>
+        </div>
       </div>
       <button class="pm-add" id="pmAdd" onclick="addFromModal()">+ Agregar al carrito</button>
       <div class="pm-pay">
@@ -389,6 +396,9 @@
     </div>
   </div>
 </div>
+
+<!-- ZOOM de imagen (guía de tallas) -->
+<div id="imgZoom" onclick="closeZoom()"><img id="imgZoomImg" alt="Ampliada"></div>
 
 <script src="/base.js"></script>
 <script src="/tracking.js"></script>

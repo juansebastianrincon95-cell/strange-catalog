@@ -268,6 +268,36 @@ function renderColAdmin(){
   });
 }
 
+/* ── GUÍA DE TALLAS (2 fotos de marquilla, una sola para todos los productos) ── */
+let _guiaDraft={img1:null,img2:null};
+function guiaDraftImg(which,file){
+  if(!file)return;
+  const n=which==='img1'?'1':'2',lbl=$('guia'+n+'Lbl');
+  if(lbl)lbl.textContent='Subiendo…';
+  compressImg(file,async dataUrl=>{
+    try{
+      const url=await uploadToStorage(dataUrl,0,false);
+      _guiaDraft[which]=url;
+      const t=$('guia'+n+'Thumb');if(t){t.src=url;t.style.display='block';}
+      if(lbl)lbl.textContent='Lista ✓ (cambiar)';
+    }catch(e){if(lbl)lbl.textContent='📷 Foto '+n;alert('❌ No se pudo subir:\n'+(e.message||e));}
+  },false,IMG_MAX);
+}
+async function saveSizeGuide(){
+  const img1=_guiaDraft.img1||(sizeGuide&&sizeGuide.img1)||null;
+  const img2=_guiaDraft.img2||(sizeGuide&&sizeGuide.img2)||null;
+  if(!img1&&!img2){alert('Sube al menos una foto de la marquilla.');return;}
+  sizeGuide={img1,img2};
+  await adminWrite('upsert_settings',{data:{key:'size_guide',value:JSON.stringify(sizeGuide)}});
+  _guiaDraft={img1:null,img2:null};
+  alert('✓ Guía de tallas guardada');
+}
+function renderSizeGuideAdmin(){
+  [['1','img1'],['2','img2']].forEach(([n,k])=>{
+    const u=sizeGuide&&sizeGuide[k];const t=$('guia'+n+'Thumb');
+    if(t&&u){t.src=u;t.style.display='block';const l=$('guia'+n+'Lbl');if(l)l.textContent='Actual ✓ (cambiar)';}
+  });
+}
 async function saveSocials(){
   socials={ig:(($('cfgIg')||{}).value||'').trim(), tiktok:(($('cfgTiktok')||{}).value||'').trim(), fb:(($('cfgFb')||{}).value||'').trim()};
   await adminWrite('upsert_settings',{data:{key:'socials',value:JSON.stringify(socials)}});
@@ -1914,7 +1944,7 @@ window._adminInit=(async()=>{
   const r=await fetch('/admin.html');
   if(!r.ok)throw new Error('admin.html '+r.status);
   document.body.insertAdjacentHTML('beforeend',await r.text());
-  renderHeroAdmin();renderCombosAdmin();renderFeaturedAdmin();renderColAdmin();renderTestiAdmin();
+  renderHeroAdmin();renderCombosAdmin();renderFeaturedAdmin();renderColAdmin();renderTestiAdmin();renderSizeGuideAdmin();
 (function(){ /* drag & drop de las zonas de subida */
   const uzEl=$('uzCat');
   if(uzEl){

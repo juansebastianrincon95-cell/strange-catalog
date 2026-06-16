@@ -124,6 +124,15 @@
       <input id="cfgFb" type="url" placeholder="Facebook (https://facebook.com/...)" onchange="saveSocials()" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:500;color:var(--ink);outline:none">
       <div style="font-size:10px;color:var(--ink3);margin-top:6px;text-align:center">WhatsApp usa el número que ya configuraste. Solo se muestran las redes con enlace.</div>
     </div>
+    <div style="border-bottom:1px solid var(--line);padding:12px 14px">
+      <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:4px">📏 Guía de tallas (ficha)</div>
+      <div style="font-size:10.5px;color:var(--ink3);margin-bottom:8px">2 fotos de la marquilla (etiqueta interna). El cliente las verá en la ficha para comparar su talla. Una sola guía para todos los productos.</div>
+      <div style="display:flex;gap:8px">
+        <label style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px;background:var(--white);border:1.5px dashed var(--ink3);border-radius:8px;font-family:var(--font);font-size:11px;font-weight:700;color:var(--ink2);cursor:pointer;text-align:center"><img id="guia1Thumb" alt="" style="display:none;width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:6px"><span id="guia1Lbl">📷 Foto 1</span><input type="file" accept="image/*" id="guia1File" style="display:none" onchange="guiaDraftImg('img1',this.files[0]);this.value=''"></label>
+        <label style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px;background:var(--white);border:1.5px dashed var(--ink3);border-radius:8px;font-family:var(--font);font-size:11px;font-weight:700;color:var(--ink2);cursor:pointer;text-align:center"><img id="guia2Thumb" alt="" style="display:none;width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:6px"><span id="guia2Lbl">📷 Foto 2</span><input type="file" accept="image/*" id="guia2File" style="display:none" onchange="guiaDraftImg('img2',this.files[0]);this.value=''"></label>
+      </div>
+      <button onclick="saveSizeGuide()" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">Guardar guía de tallas</button>
+    </div>
   </div>
   <div data-sec="testimonios">
     <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#fffbeb">

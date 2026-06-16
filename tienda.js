@@ -364,6 +364,7 @@ function renderPreview(){
 
 /* ── FOOTER (redes sociales + newsletter) ── */
 let socials={ig:'',tiktok:'',fb:''};
+let sizeGuide=null;   // {img1,img2} de marquillas para la guía de tallas (lo sube el admin)
 
 // settings.socials (WhatsApp reusa WA)
 let reviewsCount=0;
@@ -707,6 +708,7 @@ function openPhoto(id,type){
   if(pr)pr.style.display=Object.keys(cart).length?'flex':'none';
   if(Object.keys(cart).length)tickReserva();
   renderPmSizes(p);
+  renderPmGuia();
   renderFichaReviews();
   syncPmBtn();
   const _vcat=type==='liq'?'liquidacion':p.g;
@@ -743,6 +745,18 @@ function renderPmSizes(p){
   box.style.display='';
   row.innerHTML=tallas.map(t=>`<button type="button" class="pm-size" onclick="pmPickSize('${escHtml(String(t))}',this)">${escHtml(String(t))}</button>`).join('');
 }
+// Guía de tallas: link colapsable con las 2 fotos de marquilla (oculto si el admin no las subió).
+function renderPmGuia(){
+  const box=$('pmGuia'),imgs=$('pmGuiaImgs'),panel=$('pmGuiaBox');if(!box||!imgs)return;
+  const fotos=[sizeGuide&&sizeGuide.img1,sizeGuide&&sizeGuide.img2].filter(Boolean);
+  if(!fotos.length){box.style.display='none';imgs.innerHTML='';return;}
+  box.style.display='';
+  if(panel)panel.style.display='none';   // siempre arranca colapsado
+  imgs.innerHTML=fotos.map(u=>`<img class="pm-guia-img" src="${escHtml(u)}" alt="Etiqueta de talla" loading="lazy" onclick="zoomImg('${escHtml(u)}')">`).join('');
+}
+function toggleGuiaTallas(){const b=$('pmGuiaBox');if(b)b.style.display=b.style.display==='none'?'block':'none';}
+function zoomImg(src){const z=$('imgZoom'),im=$('imgZoomImg');if(!z||!im)return;im.src=src;z.classList.add('on');}
+function closeZoom(){const z=$('imgZoom');if(z)z.classList.remove('on');}
 function pmPickSize(t,btn){
   pmTalla=t;
   document.querySelectorAll('#pmSizesRow .pm-size').forEach(b=>b.classList.remove('on'));
@@ -848,7 +862,7 @@ function pmGalGo(dir){
 /* ── GUÍA DE CUIDADO — vive en extras.js (carga bajo demanda) ── */
 function openGuia(){loadExtras().then(()=>openGuia()).catch(()=>{});}
 
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closePhotoBtn();close360();if(typeof closeGuia==='function')closeGuia();closeInfo();closeMenu();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){const z=$('imgZoom');if(z&&z.classList.contains('on')){closeZoom();return;}closePhotoBtn();close360();if(typeof closeGuia==='function')closeGuia();closeInfo();closeMenu();}});
 
 function _preload360(srcs,cb){
   _v360Images=[];
