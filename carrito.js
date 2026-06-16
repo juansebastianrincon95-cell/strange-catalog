@@ -256,7 +256,7 @@ function rCart(){
   const totalFinal=pricing.sub;
   // 2 mensajes (estilo Adidas): no reservado + financiación
   const msgs=`<div class="cart-msg"><span class="cm-ic">🔒</span><span>Los artículos en tu carrito <b>no están reservados</b>. Termina tu compra ahora.</span></div>`
-    +`<div class="cart-fin"><div class="cart-fin-tx">Llévalos hoy y <b>págalos después</b> con Addi y Sistecrédito</div><div class="cart-fin-logos"><img src="logos/addi.png" alt="Addi" onerror="this.remove()"><img src="logos/sistecredito.png" alt="Sistecrédito" onerror="this.remove()"></div></div>`;
+    +`<div class="cart-fin"><div class="cart-fin-tx">Llévalos hoy y <b>págalos después</b> con Addi y Sistecrédito</div><div class="cart-fin-logos"><img src="/logos/addi.png" alt="Addi" onerror="this.remove()"><img src="/logos/sistecredito.png" alt="Sistecrédito" onerror="this.remove()"></div></div>`;
   // Sugerencia de combo: 2+ pares SIN combo elegido y existe un combo con esos pares exactos
   // que sale más barato que lo que va a pagar → ofrecerlo con 1 toque (el cliente que agrega
   // varios pares es el cliente ideal del combo, pero no suele venir de la sección Ofertas).
@@ -372,9 +372,9 @@ function rPayChoice(){
   $('cbody').innerHTML=`<div class="paysec"><div class="paytit">¿Cómo quieres pagar?</div><div class="paychoice-list">`
     +card(`enviarWA('contra_entrega')`,'#1E1E1C','#f1f1ef',icTruck,'Contra entrega',`Pagas el envío ahora y los zapatos al recibir en casa`,`Hoy: envío ${fmt(flete)} · Al recibir: ${fmt(sub)}`)
     +card(`enviarWA('pago_anticipado')`,'#FF7A00','#fff3e6',icBank,'Pago anticipado','Transfieres antes · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
-    +card(`pagarWompi()`,'#5D2D91','#fff',icLogo('logos/wompi.png','Wompi',icCard),'Pagar en línea — Wompi','Tarjeta · PSE · Nequi · Bancolombia · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
-    +card(`pagarBold()`,'#2541B2','#fff',icLogo('logos/bold.png','Bold',icCard),'Pagar en línea — Bold','Tarjeta · PSE · Botón Bancolombia · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
-    +card(`enviarWA('credito')`,'#0a7d4b','#fff',`<span class="pc-logos2">${icLogo('logos/addi.png','Addi',icCuotas)}${icLogo('logos/sistecredito.png','Sistecrédito','')}</span>`,'Pagar a crédito — Addi / Sistecrédito','En cuotas · Te asesoramos por WhatsApp · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
+    +card(`pagarWompi()`,'#5D2D91','#fff',icLogo('/logos/wompi.png','Wompi',icCard),'Pagar en línea — Wompi','Tarjeta · PSE · Nequi · Bancolombia · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
+    +card(`pagarBold()`,'#2541B2','#fff',icLogo('/logos/bold.png','Bold',icCard),'Pagar en línea — Bold','Tarjeta · PSE · Botón Bancolombia · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
+    +card(`enviarWA('credito')`,'#0a7d4b','#fff',`<span class="pc-logos2">${icLogo('/logos/addi.png','Addi',icCuotas)}${icLogo('/logos/sistecredito.png','Sistecrédito','')}</span>`,'Pagar a crédito — Addi / Sistecrédito','En cuotas · Te asesoramos por WhatsApp · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
     +`</div>`
     +`<div class="pay-trust">`
       +`<button type="button" class="pay-trust-i" onclick="openInfo('cambios')"><span>🔄</span><span>Cambios por talla fáciles</span></button>`

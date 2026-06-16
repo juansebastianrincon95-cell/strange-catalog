@@ -322,8 +322,8 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .pm-guia-toggle{background:none;border:none;font-family:var(--font);font-size:12.5px;font-weight:700;color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:6px 0;text-decoration:underline;text-underline-offset:3px}
 .pm-guia-box{margin-top:8px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px}
 .pm-guia-tx{font-size:12px;line-height:1.5;color:var(--ink2);margin-bottom:10px}
-.pm-guia-imgs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.pm-guia-img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;border:1px solid var(--line);cursor:zoom-in;background:var(--white)}
+.pm-guia-imgs{display:flex;justify-content:center}
+.pm-guia-img{width:100%;max-width:280px;max-height:320px;object-fit:contain;border-radius:10px;border:1px solid var(--line);cursor:zoom-in;background:var(--white)}
 #imgZoom{display:none;position:fixed;inset:0;z-index:700;background:rgba(0,0,0,.92);align-items:center;justify-content:center;padding:16px;cursor:zoom-out}
 #imgZoom.on{display:flex}
 #imgZoom img{max-width:100%;max-height:100%;object-fit:contain;border-radius:8px}

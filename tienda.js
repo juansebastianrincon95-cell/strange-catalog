@@ -748,7 +748,7 @@ function renderPmSizes(p){
 // Guía de tallas: link colapsable con las 2 fotos de marquilla (oculto si el admin no las subió).
 function renderPmGuia(){
   const box=$('pmGuia'),imgs=$('pmGuiaImgs'),panel=$('pmGuiaBox');if(!box||!imgs)return;
-  const fotos=[sizeGuide&&sizeGuide.img1,sizeGuide&&sizeGuide.img2].filter(Boolean);
+  const fotos=[sizeGuide&&sizeGuide.img1].filter(Boolean);
   if(!fotos.length){box.style.display='none';imgs.innerHTML='';return;}
   box.style.display='';
   if(panel)panel.style.display='none';   // siempre arranca colapsado

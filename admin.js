@@ -269,10 +269,10 @@ function renderColAdmin(){
 }
 
 /* ── GUÍA DE TALLAS (2 fotos de marquilla, una sola para todos los productos) ── */
-let _guiaDraft={img1:null,img2:null};
+let _guiaDraft={img1:null};
 function guiaDraftImg(which,file){
   if(!file)return;
-  const n=which==='img1'?'1':'2',lbl=$('guia'+n+'Lbl');
+  const n='1',lbl=$('guia1Lbl');
   if(lbl)lbl.textContent='Subiendo…';
   compressImg(file,async dataUrl=>{
     try{
@@ -285,18 +285,15 @@ function guiaDraftImg(which,file){
 }
 async function saveSizeGuide(){
   const img1=_guiaDraft.img1||(sizeGuide&&sizeGuide.img1)||null;
-  const img2=_guiaDraft.img2||(sizeGuide&&sizeGuide.img2)||null;
-  if(!img1&&!img2){alert('Sube al menos una foto de la marquilla.');return;}
-  sizeGuide={img1,img2};
+  if(!img1){alert('Sube la foto de la marquilla.');return;}
+  sizeGuide={img1};
   await adminWrite('upsert_settings',{data:{key:'size_guide',value:JSON.stringify(sizeGuide)}});
-  _guiaDraft={img1:null,img2:null};
+  _guiaDraft={img1:null};
   alert('✓ Guía de tallas guardada');
 }
 function renderSizeGuideAdmin(){
-  [['1','img1'],['2','img2']].forEach(([n,k])=>{
-    const u=sizeGuide&&sizeGuide[k];const t=$('guia'+n+'Thumb');
-    if(t&&u){t.src=u;t.style.display='block';const l=$('guia'+n+'Lbl');if(l)l.textContent='Actual ✓ (cambiar)';}
-  });
+  const u=sizeGuide&&sizeGuide.img1;const t=$('guia1Thumb');
+  if(t&&u){t.src=u;t.style.display='block';const l=$('guia1Lbl');if(l)l.textContent='Actual ✓ (toca para cambiar)';}
 }
 async function saveSocials(){
   socials={ig:(($('cfgIg')||{}).value||'').trim(), tiktok:(($('cfgTiktok')||{}).value||'').trim(), fb:(($('cfgFb')||{}).value||'').trim()};
