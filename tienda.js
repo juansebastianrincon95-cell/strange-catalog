@@ -548,12 +548,14 @@ function maybeWaBubble(){
 // toFicha: en lanzamientos TODO clic (tarjeta y botón +) lleva directo a la ficha del zapato.
 function cardHTML(p,i,prefix,toFicha){
   prefix=prefix||'k';
-  const on=!!cart[p.id]&&!p.sold;
+  const on=enCarrito(p.id,'cat')&&!p.sold;
   const sp=p.promo||promoG;
   const pct=sp?dsc(p):0;
   const m=p.img?`<img src="${p.img}" alt="${altProd(p)}" loading="lazy">`:`<div class="noimg">👟</div>`;
-  const goCard=toFicha?`openPhoto(${p.id},'cat')`:`cardClick(event,${p.id},'cat')`;
-  const goAdd=toFicha?`event.stopPropagation();openPhoto(${p.id},'cat')`:`event.stopPropagation();togCard(${p.id},'cat')`;
+  // Productos CON tallas: tanto la tarjeta como el + abren la ficha (la talla se elige ahí).
+  const conTalla=tallasDe(p).length>0;
+  const goCard=(toFicha||conTalla)?`openPhoto(${p.id},'cat')`:`cardClick(event,${p.id},'cat')`;
+  const goAdd=(toFicha||conTalla)?`event.stopPropagation();openPhoto(${p.id},'cat')`:`event.stopPropagation();togCard(${p.id},'cat')`;
   return `<div class="card ${on?'picked':''} ${p.sold?'sold':''}" id="${prefix}${p.id}" style="animation-delay:${Math.min(i*.02,.4)}s" onclick="${goCard}">
       <div class="cphoto">
         ${m}
@@ -603,7 +605,7 @@ function renderLiqGrid(){
   $('liqN').textContent=liqs.length;
   if(!liqs.length){$('liqGrid').innerHTML=`<div class="liq-empty">Sin productos en liquidación.<br>Agrégalos desde Admin 🔥</div>`;return;}
   $('liqGrid').innerHTML=liqs.map((p,i)=>{
-    const on=!!cart['L'+p.id]&&!p.sold;
+    const on=enCarrito(p.id,'liq')&&!p.sold;
     const pct=dsc(p);
     const m=p.img?`<img src="${p.img}" alt="${altProd(p)}" loading="lazy">`:`<div class="noimg">🔥</div>`;
     return `<div class="liq-card ${on?'picked':''} ${p.sold?'sold':''}" id="lk${p.id}" style="animation-delay:${Math.min(i*.02,.4)}s" onclick="cardClick(event,${p.id},'liq')">
@@ -627,6 +629,7 @@ function cardClick(e,id,type){
   if(!p||p.sold)return;
   const inPhoto=e.target.closest('.cphoto')||e.target.closest('.lphoto');
   if(inPhoto&&p.img){openPhoto(id,type);return;}
+  if(tallasDe(p).length){openPhoto(id,type);return;}   // con tallas: la elección es en la ficha
   togCard(id,type);
 }
 
@@ -703,6 +706,7 @@ function openPhoto(id,type){
   const pr=$('pmReserve');
   if(pr)pr.style.display=Object.keys(cart).length?'flex':'none';
   if(Object.keys(cart).length)tickReserva();
+  renderPmSizes(p);
   renderFichaReviews();
   syncPmBtn();
   const _vcat=type==='liq'?'liquidacion':p.g;
@@ -719,9 +723,36 @@ function openPhoto(id,type){
   requestAnimationFrame(()=>{if(_ps)_ps.scrollTop=0; if(_pb)_pb.scrollTop=0;});
 }
 
+// Tallas de la ficha. Por defecto se DERIVAN del género (sin trabajo de admin): mujer 36-39,
+// hombre 40-44 (tallas EUR reales del negocio). Liquidación no tiene género → sin tallas.
+// Override por producto (futuro: gestionar agotadas desde el admin): p.tallas array, o 'none'.
+const TALLAS_MUJER=['36','37','38','39'], TALLAS_HOMBRE=['40','41','42','43','44'];
+function tallasDe(p){
+  if(!p)return [];
+  if(Array.isArray(p.tallas))return p.tallas.filter(t=>t!=null&&String(t).trim()!=='');
+  if(p.tallas==='none')return [];
+  if(p.g==='m')return TALLAS_MUJER.slice();
+  if(p.g==='h')return TALLAS_HOMBRE.slice();
+  return [];
+}
+function renderPmSizes(p){
+  const box=$('pmSizes'),row=$('pmSizesRow');if(!box||!row)return;
+  pmTalla=null;box.classList.remove('err');
+  const tallas=tallasDe(p);
+  if(!tallas.length){box.style.display='none';row.innerHTML='';return;}
+  box.style.display='';
+  row.innerHTML=tallas.map(t=>`<button type="button" class="pm-size" onclick="pmPickSize('${escHtml(String(t))}',this)">${escHtml(String(t))}</button>`).join('');
+}
+function pmPickSize(t,btn){
+  pmTalla=t;
+  document.querySelectorAll('#pmSizesRow .pm-size').forEach(b=>b.classList.remove('on'));
+  if(btn)btn.classList.add('on');
+  const box=$('pmSizes');if(box)box.classList.remove('err');
+  syncPmBtn();   // si esa talla ya está en el carrito, el botón muestra "✓ Agregado"
+}
 function syncPmBtn(){
-  const key=pmType==='liq'?'L'+pmId:pmId;
-  const ic=!!cart[key];
+  // Con talla elegida, el botón refleja si ESA talla está en el carrito; sin talla, el estado base.
+  const ic=!!cart[cartKey(pmId,pmType,pmTalla)];
   $('pmAdd').textContent=ic?'✓ Agregado al carrito':'+ Agregar al carrito';
   $('pmAdd').className='pm-add'+(ic?' in':'');
 }
@@ -750,13 +781,31 @@ function renderFichaReviews(){
   }).join('');
 }
 
-function addFromModal(){if(pmId===null)return;const id=pmId,t=pmType;closePhotoBtn();togCard(id,t);}
+function addFromModal(){
+  if(pmId===null)return;
+  const list=pmType==='liq'?liqs:prods;
+  const p=list.find(x=>x.id===pmId);
+  // Si el producto tiene tallas, es OBLIGATORIO elegir una antes de agregar (shake + aviso).
+  if(tallasDe(p).length&&!pmTalla){
+    const box=$('pmSizes');
+    if(box){
+      box.classList.remove('err');void box.offsetWidth;box.classList.add('err');
+      const sc=document.querySelector('.pm-scroll');
+      if(sc){const y=box.offsetTop-130;if(y<sc.scrollTop||box.offsetTop>sc.scrollTop+sc.clientHeight-120)sc.scrollTo({top:y,behavior:'smooth'});}
+    }
+    return;
+  }
+  const id=pmId,t=pmType,talla=pmTalla;
+  const ya=!!cart[cartKey(id,t,talla)];   // ya estaba en esa talla → no alternar, solo abrir carrito
+  closePhotoBtn();
+  if(ya)openCart(); else togCard(id,t,talla);
+}
 
 function closePhotoBtn(){
   if(!_navPopping)navRemove('ficha');
   $('photoModal').classList.remove('on');
   unlockScroll();
-  setTimeout(()=>{const tr=$('pmGalTrack');if(tr)tr.innerHTML='';pmId=null;pmType=null;},300);
+  setTimeout(()=>{const tr=$('pmGalTrack');if(tr)tr.innerHTML='';pmId=null;pmType=null;pmTalla=null;},300);
 }
 
 /* ── GALERÍA de la ficha ── */
@@ -875,7 +924,15 @@ function close360(){
   setTimeout(()=>{const c=$('v360Canvas');if(c){const ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);}v360Id=null;},300);
 }
 
-function addFrom360(){if(v360Id!==null){togCard(v360Id,v360Type);sync360Btn();}}
+function addFrom360(){
+  if(v360Id===null)return;
+  const list=v360Type==='liq'?liqs:prods;
+  const p=list.find(x=>x.id===v360Id);
+  // Si el producto requiere talla y no hay una elegida en la ficha, volver a la ficha a elegirla
+  // (el visor 360 no tiene chips). Si ya hay talla seleccionada (pmTalla), se respeta.
+  if(tallasDe(p).length&&!pmTalla){close360();const sc=document.querySelector('.pm-scroll');const box=$('pmSizes');if(box){box.classList.remove('err');void box.offsetWidth;box.classList.add('err');if(sc)sc.scrollTo({top:Math.max(0,box.offsetTop-130),behavior:'smooth'});}return;}
+  togCard(v360Id,v360Type,pmTalla);sync360Btn();
+}
 
 function sync360Btn(){
   const key=v360Type==='liq'?'L'+v360Id:v360Id;

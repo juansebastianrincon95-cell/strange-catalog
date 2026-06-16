@@ -37,7 +37,8 @@ function normalizeItems(items) {
     const id = parseInt(String(it.id || '').replace(/^L/i, ''), 10);
     const qty = Math.min(Math.max(parseInt(it.qty, 10) || 1, 1), 50);
     if (!Number.isFinite(id) || id <= 0) throw new Error('item inválido');
-    return { type, id, qty };
+    const talla = it.talla != null && String(it.talla).trim() !== '' ? cleanText(String(it.talla), 16) : null;
+    return { type, id, qty, talla };
   });
 }
 
@@ -59,7 +60,7 @@ async function priceItems(sb, inputItems) {
     const label = it.type === 'liq' ? 'Liq' : (p.gender === 'h' ? 'Hombre' : 'Mujer');
     return {
       label, id: it.id, type: it.type, brand: p.brand || null, qty: it.qty,
-      precio: Number(p.price) * it.qty, unit_price: Number(p.price)
+      precio: Number(p.price) * it.qty, unit_price: Number(p.price), talla: it.talla || null
     };
   });
 }

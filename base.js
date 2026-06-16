@@ -22,7 +22,7 @@ let gSel='all',promoG=false,bannerOn=false;
 
 let step=0,cData={};
 
-let pmId=null,pmType=null;
+let pmId=null,pmType=null,pmTalla=null;
 
 // modo 360 del ADMIN al subir fotos
 let v360Id=null,v360Type=null,v360Pos=0,v360Dragging=false,v360LastX=0,_preview360Frames=null,_v360Images=[];
