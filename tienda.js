@@ -155,6 +155,7 @@ function prodLabel(p){return (p.g==='h'?'Hombre':'Mujer')+' · '+(BRAND_LABELS[p
 
 function renderFeatured(){
   const sec=$('lanz'),row=$('lanzRow');if(!row)return;
+  computeBadges();
   const items=featuredIds.map(id=>prods.find(p=>p.id===id)).filter(p=>p&&!p.sold);
   if(!items.length){if(sec)sec.style.display='none';row.innerHTML='';lanzAutoStop();return;}
   if(sec)sec.style.display='';
@@ -356,6 +357,7 @@ function waMayoristas(){
 // Preview del inicio: 6 modelos disponibles más recientes (prods viene ordenado por id asc).
 function renderPreview(){
   const sec=$('preview'),grid=$('previewGrid');if(!grid)return;
+  computeBadges();
   const items=prods.filter(p=>!p.sold).slice(-8).reverse();   // 8 en escritorio; móvil oculta 7º/8º (CSS)
   if(!items.length){if(sec)sec.style.display='none';grid.innerHTML='';return;}
   if(sec)sec.style.display='';
@@ -473,7 +475,13 @@ function testiVerProducto(){const id=_tmProdId;closeTesti();if(id)openPhoto(id,'
 let _views={};
 
 function loadViews(){
-  fetch('/api/product-views').then(r=>r.json()).then(j=>{_views=j.views||{};}).catch(()=>{});
+  fetch('/api/product-views').then(r=>r.json()).then(j=>{
+    _views=j.views||{};
+    computeBadges();
+    // re-render para que el badge "Más visto" (datos reales) aparezca al llegar las vistas
+    if(typeof renderPreview==='function')renderPreview();
+    if($('catView')&&$('catView').classList.contains('on')&&typeof renderGrid==='function')renderGrid();
+  }).catch(()=>{});
 }
 
 // Contador de reserva persistente: nunca borra el carrito, al expirar reinicia (urgencia sin castigo)
@@ -545,6 +553,21 @@ function maybeWaBubble(){
 
 /* ── GRID ── */
 // Markup de una tarjeta de producto (reusado por el grid y por "Últimos lanzamientos").
+// ── BADGES HONESTOS (datos REALES) ── "Nuevo" = de los más recientes (id más alto);
+// "👀 Más visto" = top por vistas reales (_views, mín. 5). Se recalculan en cada render.
+let _badgeNew=new Set(),_badgeTop=new Set();
+function computeBadges(){
+  const ps=(prods||[]).filter(p=>!p.sold);
+  _badgeNew=new Set(ps.map(p=>p.id).sort((a,b)=>b-a).slice(0,10));
+  _badgeTop=new Set(ps.filter(p=>(_views[String(p.id)]||0)>=5)
+    .sort((a,b)=>(_views[String(b.id)]||0)-(_views[String(a.id)]||0)).slice(0,6).map(p=>p.id));
+}
+function cardBadge(p){
+  if(_badgeTop.has(p.id))return '<div class="bviews">👀 Más visto</div>';
+  if(_badgeNew.has(p.id))return '<div class="bnew">Nuevo</div>';
+  return '';
+}
+
 // prefix: 'k' en el grid, 'kl' en lanzamientos (evita IDs duplicados).
 // toFicha: en lanzamientos TODO clic (tarjeta y botón +) lleva directo a la ficha del zapato.
 function cardHTML(p,i,prefix,toFicha){
@@ -557,20 +580,25 @@ function cardHTML(p,i,prefix,toFicha){
   const conTalla=tallasDe(p).length>0;
   const goCard=(toFicha||conTalla)?`openPhoto(${p.id},'cat')`:`cardClick(event,${p.id},'cat')`;
   const goAdd=(toFicha||conTalla)?`event.stopPropagation();openPhoto(${p.id},'cat')`:`event.stopPropagation();togCard(${p.id},'cat')`;
+  // Nombre: marca (línea fina) + modelo (destacado). Sin modelo, el modelo cae a marca/género.
+  const _bl=p.brand?brandLabel(p.brand):'';
+  const _modelTxt=p.modelo||_bl||(p.g==='h'?'Hombre':'Mujer');
+  const _showBrand=!!(p.modelo&&_bl);
   return `<div class="card ${on?'picked':''} ${p.sold?'sold':''}" id="${prefix}${p.id}" style="animation-delay:${Math.min(i*.02,.4)}s" onclick="${goCard}">
       <div class="cphoto">
         ${m}
         ${p.imgs360?.length>=2?`<div class="b360">360°</div>`:''}
         ${pct?`<div class="bdsc"${p.imgs360?.length>=2?' style="top:30px"':''}>-${pct}%</div>`:''}
-        ${p.sold?`<div class="bsold">Agotado</div>`:''}
+        ${p.sold?`<div class="bsold">Agotado</div>`:cardBadge(p)}
         <div class="bchk">✓</div>
         <button class="add-circle" onclick="${goAdd}">${on?'✓':'+'}</button>
       </div>
-      <div class="cfoot-card">${p.modelo?`<div class="cbrand">${escHtml(p.modelo)}</div>`:p.brand?`<div class="cbrand">${brandLabel(p.brand)}</div>`:''}<div class="cprice ${sp?'sale':''}">${fmt(p.price)}</div>${sp&&p.was?`<div class="cwas">${fmt(p.was)}</div>`:''}</div>
+      <div class="cfoot-card">${_showBrand?`<div class="cbrand">${escHtml(_bl)}</div>`:''}<div class="cmodel">${escHtml(_modelTxt)}</div><div class="cprice ${sp?'sale':''}">${fmt(p.price)}</div>${sp&&p.was?`<div class="cwas">${fmt(p.was)}</div>`:''}</div>
     </div>`;
 }
 
 function renderGrid(){
+  computeBadges();
   const liqEl=$('liqSec');
   if(gSel==='liq'){
     $('grid').innerHTML='';
