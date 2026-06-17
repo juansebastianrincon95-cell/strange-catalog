@@ -602,7 +602,7 @@ function computeBadges(){
     .sort((a,b)=>(_views[String(b.id)]||0)-(_views[String(a.id)]||0)).slice(0,6).map(p=>p.id));
 }
 function cardBadge(p){
-  if(_badgeTop.has(p.id))return '<div class="bviews">👀 Más visto</div>';
+  if(_badgeTop.has(p.id))return '<div class="bviews">🔥 Top</div>';
   if(_badgeNew.has(p.id))return '<div class="bnew">Nuevo</div>';
   return '';
 }
