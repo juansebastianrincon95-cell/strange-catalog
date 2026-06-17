@@ -76,6 +76,7 @@
     <button onclick="openCatalog({gender:'liq'})">Ofertas</button>
     <button onclick="openInfo('mayoristas')">Mayoristas</button>
     <button onclick="openInfo('cambios')">Cambios y Garantías</button>
+    <button onclick="openInfo('quienes')">Quiénes somos</button>
   </div>
   <div class="nav-right">
     <button class="bag-btn nav-bag" onclick="openCart()">
@@ -99,6 +100,7 @@
       <button onclick="navGo('liq')">Ofertas</button>
       <button onclick="navGo('mayoristas')">Mayoristas</button>
       <button onclick="navGo('cambios')">Cambios y Garantías</button>
+      <button onclick="navGo('quienes')">Quiénes somos</button>
     </div>
   </aside>
 </div>
@@ -209,6 +211,11 @@
 <!-- CATÁLOGO COMPLETO (vista a pantalla completa; se abre con "Ver todo") -->
 <div class="catview" id="catView">
   <div class="catview-bar"><button class="catview-back" onclick="closeCatalog()" aria-label="Volver">←</button><span class="catview-title">Catálogo</span><button class="bag-btn" style="margin-left:auto" onclick="openCart()" aria-label="Ver carrito"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span class="bdot" id="bdot2">0</span></button></div>
+  <div class="catsearch">
+    <span class="catsearch-ic">🔍</span>
+    <input id="catSearchInput" type="search" inputmode="search" autocomplete="off" placeholder="Buscar marca o modelo…" oninput="buscarProductos(this.value)">
+    <button class="catsearch-x" id="catSearchX" style="display:none" onclick="limpiarBusqueda()" aria-label="Limpiar">✕</button>
+  </div>
   <!-- Barra sticky de progreso del combo activo -->
   <div id="comboBar" style="display:none"></div>
 

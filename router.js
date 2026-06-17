@@ -119,6 +119,7 @@ function checkDeepLink(){
     }
     if(seg[0]==='mayoristas'){enter(()=>openInfo('mayoristas'));return;}
     if(seg[0]==='cambios'){enter(()=>openInfo('cambios'));return;}
+    if(seg[0]==='quienes'){enter(()=>openInfo('quienes'));return;}
     if(seg[0]==='legal'&&['privacidad','terminos','cookies','garantias'].includes(seg[1])){const k=seg[1];enter(()=>openLegal(k));return;} // claves fijas (legalContent vive en extras.js)
     home(); // ruta desconocida → home
     return;

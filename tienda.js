@@ -249,6 +249,7 @@ function colCTA(g){ openCatalog({gender: g==='m'?'m' : g==='h'?'h' : 'all'}); }
 
 function openCatalog(opts){
   opts=opts||{};
+  _searchQ='';{const _si=$('catSearchInput');if(_si)_si.value='';const _sx=$('catSearchX');if(_sx)_sx.style.display='none';}
   const v=$('catView');if(!v)return;
   v.classList.add('on');lockScroll();
   const tabs=document.querySelectorAll('#catView .tabs .tab');
@@ -275,6 +276,19 @@ function openCatalog(opts){
 
 function closeCatalog(){if(!_navPopping)navRemove('cat');const v=$('catView');if(v)v.classList.remove('on');unlockScroll();}
 
+/* ── BUSCADOR de productos (filtra por modelo/marca dentro del catálogo) ── */
+let _searchQ='';
+function buscarProductos(q){
+  _searchQ=(q||'').trim().toLowerCase();
+  const x=$('catSearchX');if(x)x.style.display=_searchQ?'flex':'none';
+  if(typeof renderGrid==='function')renderGrid();
+}
+function limpiarBusqueda(){
+  const i=$('catSearchInput');if(i)i.value='';
+  _searchQ='';const x=$('catSearchX');if(x)x.style.display='none';
+  if(typeof renderGrid==='function')renderGrid();
+}
+
 /* ── MENÚ MÓVIL (panel lateral ☰) ── */
 function openMenu(){const d=$('navDrawer');if(!d)return;d.classList.add('on');lockScroll();navPush('menu',null,null,closeMenu);}
 
@@ -287,6 +301,7 @@ function navGo(t){
   else if(t==='liq')openCatalog({gender:'liq'});
   else if(t==='mayoristas')openInfo('mayoristas');
   else if(t==='cambios')openInfo('cambios');
+  else if(t==='quienes')openInfo('quienes');
   else openCatalog();   // Productos / Unisex → todos
 }
 
@@ -318,13 +333,37 @@ const INFO_CAMBIOS=`<div class="info-pad">
   </div>
 </div>`;
 
+const INFO_QUIENES=`<div class="info-pad">
+  <h2 class="info-h1">Somos <span class="big">Strange Sneakers</span></h2>
+  <p class="info-lead">Una tienda colombiana hecha por amantes de los sneakers. Traemos los modelos que quieres a un precio justo y, sobre todo, con la confianza de comprar sin riesgo.</p>
+  <div class="info-subt">Por qué comprarnos</div>
+  <div class="info-benes">
+    <div class="info-bene">🚚 Envío GRATIS a toda Colombia</div>
+    <div class="info-bene">📦 Pago contra entrega — pagas al recibir</div>
+    <div class="info-bene">🔄 Cambios por talla fáciles</div>
+    <div class="info-bene">🛡️ 1 mes de garantía</div>
+    <div class="info-bene">💳 Paga a cuotas con Addi y Sistecrédito</div>
+    <div class="info-bene">💬 Atención real por WhatsApp</div>
+  </div>
+  <div class="info-subt">Nuestro compromiso</div>
+  <p class="info-lead">Revisamos cada par antes de enviarlo. Queremos que estrenes tranquilo: si algo no está bien, lo resolvemos. <b>Tu estilo. Tu par.</b> 👟</p>
+  <button class="info-wa" onclick="waHola()">💬 Escríbenos por WhatsApp</button>
+</div>`;
+function waHola(){
+  try{trackEvent('lead',{});}catch(e){}
+  if(typeof px==='function')px('Lead',{content_name:'quienes_somos',...getUTM()});
+  window.open(`https://wa.me/${WA}?text=${encodeURIComponent('Hola '+STORE_NAME+' 👋, quiero más información sobre sus sneakers')}`,'_blank');
+}
+
 function openInfo(which){
   const b=$('infoBody');if(!b)return;
-  b.innerHTML=which==='mayoristas'?INFO_MAYORISTAS:INFO_CAMBIOS;
-  const t=$('infoTitle');if(t)t.textContent=which==='mayoristas'?'Mayoristas':'Cambios y Garantías';
+  const INFO={mayoristas:[INFO_MAYORISTAS,'Mayoristas','/mayoristas'],cambios:[INFO_CAMBIOS,'Cambios y Garantías','/cambios'],quienes:[INFO_QUIENES,'Quiénes somos','/quienes']};
+  const cfg=INFO[which]||INFO.cambios;
+  b.innerHTML=cfg[0];
+  const t=$('infoTitle');if(t)t.textContent=cfg[1];
   const m=$('infoModal');m.classList.add('on');lockScroll();
   const sc=m.querySelector('.info-scroll');if(sc)sc.scrollTop=0;
-  navPush('info',which==='mayoristas'?'/mayoristas':'/cambios',(which==='mayoristas'?'Mayoristas':'Cambios y Garantías')+' — '+STORE_NAME,closeInfo);
+  navPush('info',cfg[2],cfg[1]+' — '+STORE_NAME,closeInfo);
 }
 
 function closeInfo(){if(!_navPopping)navRemove('info');const m=$('infoModal');if(m)m.classList.remove('on');unlockScroll();}
@@ -617,10 +656,11 @@ function renderGrid(){
   renderBrandBar();
   let items=gSel==='all'?prods:prods.filter(p=>p.g===gSel);
   if(brandSel!=='all')items=items.filter(p=>p.brand===brandSel);
+  if(_searchQ)items=items.filter(p=>((p.modelo||'')+' '+brandLabel(p.brand)).toLowerCase().includes(_searchQ));
   $('statN').textContent=prods.length;
   $('secName').textContent=(gSel==='all'?'Todos':gSel==='h'?'Hombre':'Mujer')+(brandSel!=='all'?' · '+brandLabel(brandSel):'');
   $('secCt').textContent=items.length+' modelos';
-  $('grid').innerHTML=items.map((p,i)=>cardHTML(p,i,'k')).join('');
+  $('grid').innerHTML=items.length?items.map((p,i)=>cardHTML(p,i,'k')).join(''):`<div class="grid-empty">No encontramos "<b>${escHtml(_searchQ)}</b>" 😕<br>Prueba con otra marca o modelo.</div>`;
   if(liqs.length&&gSel==='all'){
     liqEl.style.display='block';
     const lhdr=liqEl.querySelector('.liq-hdr');
