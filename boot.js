@@ -17,6 +17,7 @@ if(localStorage.getItem('ss_reserve_until')&&!_reserveTimer){_reserveTimer=setIn
 
 (async()=>{
   await loadState();
+  if(typeof restoreCart==='function')restoreCart();   // recuperar carrito guardado (sobrevive refresh/cierre/regreso)
   if(bannerOn)$('banner').classList.remove('off');
   renderHero();   // carrusel del inicio (reemplaza el encabezado si hay banners)
   renderFeatured();    // sección "Últimos lanzamientos"

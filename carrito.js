@@ -246,6 +246,30 @@ function syncDot(){
   const n=Object.values(cart).reduce((s,i)=>s+i.qty,0);
   [$('bdot'),$('bdot2')].forEach(d=>{if(d){d.textContent=n;d.classList.toggle('show',n>0);}});
   renderComboBar();   // el progreso del combo sigue cada cambio del carrito
+  saveCart();         // persistir el carrito en cada cambio
+}
+
+// ── CARRITO PERSISTENTE ── sobrevive refresh / cierre / regreso (localStorage).
+// Guarda SOLO identificadores (id/type/talla/qty); al restaurar re-hidrata el producto desde
+// prods/liqs (precio/stock FRESCOS) y descarta los que ya no existen o están agotados.
+// El combo NO se persiste a propósito (evita el "combo fantasma" — ver restaurarCombo).
+function saveCart(){
+  try{
+    const items=Object.values(cart).map(({p,qty,type,talla})=>({id:p.id,type,talla:talla||null,qty}));
+    if(items.length)localStorage.setItem('ss_cart',JSON.stringify(items));
+    else localStorage.removeItem('ss_cart');
+  }catch(e){}
+}
+function restoreCart(){
+  let saved;try{saved=JSON.parse(localStorage.getItem('ss_cart')||'[]');}catch(e){saved=[];}
+  if(!Array.isArray(saved)||!saved.length)return;
+  saved.forEach(it=>{
+    const list=it.type==='liq'?liqs:prods;
+    const p=(list||[]).find(x=>x.id===it.id);
+    if(!p||p.sold)return;   // ya no existe o agotado → se descarta
+    cart[cartKey(it.id,it.type,it.talla)]={p,qty:Math.max(1,parseInt(it.qty)||1),type:it.type,talla:it.talla||null};
+  });
+  syncDot();   // actualiza el contador; las tarjetas marcan ✓ al renderizar (via enCarrito)
 }
 
 /* ── CART SHEET ── */
@@ -565,6 +589,7 @@ async function checkWompiReturn(){
   }
   if(verified){
     comboActivo=null;   // ciclo del combo cerrado
+    for(const k in cart)delete cart[k];syncDot();   // compra pagada → vaciar el carrito (y ss_cart)
     const order=orders.find(o=>o.reference===reference)||
                 orders.filter(o=>o.pago==='wompi'&&o.status==='pending').pop();
     if(order){
@@ -658,6 +683,7 @@ async function checkBoldReturn(){
   }
   if(verified){
     comboActivo=null;   // ciclo del combo cerrado
+    for(const k in cart)delete cart[k];syncDot();   // compra pagada → vaciar el carrito (y ss_cart)
     const order=orders.find(o=>o.reference===reference)||orders.filter(o=>o.pago==='bold'&&o.status==='pending').pop();
     if(order){
       order.status='venta';saveState();
