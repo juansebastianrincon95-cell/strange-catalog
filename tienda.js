@@ -627,7 +627,7 @@ function cardHTML(p,i,prefix,toFicha){
       <div class="cphoto">
         ${m}
         ${p.imgs360?.length>=2?`<div class="b360">360°</div>`:''}
-        ${pct?`<div class="bdsc"${p.imgs360?.length>=2?' style="top:30px"':''}>-${pct}%</div>`:''}
+        ${pct?`<div class="bdsc"${p.imgs360?.length>=2?' style="top:42px"':''}>-${pct}%</div>`:''}
         ${p.sold?`<div class="bsold">Agotado</div>`:cardBadge(p)}
         <div class="bchk">✓</div>
         <button class="add-circle" onclick="${goAdd}">${on?'✓':'+'}</button>
