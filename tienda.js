@@ -717,6 +717,7 @@ function openPhoto(id,type){
   {const dd=$('pmDesc');if(dd)dd.textContent=genDescripcion(p,type);}
   {const wa=$('pmWas');if(wa){if(p.was&&p.was>p.price){wa.textContent=fmt(p.was);wa.style.display='';}else wa.style.display='none';}}
   $('pmPrice').textContent=fmt(p.price);
+  {const ff=$('pmFootPrice');if(ff)ff.textContent=fmt(p.price);}
   // Anclaje de ahorro: "Ahorras $X (Y%)" si tiene precio antes
   const sv=$('pmSave');
   if(sv){
@@ -795,8 +796,10 @@ function pmPickSize(t,btn){
 function syncPmBtn(){
   // Con talla elegida, el botón refleja si ESA talla está en el carrito; sin talla, el estado base.
   const ic=!!cart[cartKey(pmId,pmType,pmTalla)];
-  $('pmAdd').textContent=ic?'✓ Agregado al carrito':'+ Agregar al carrito';
+  const txt=ic?'✓ Agregado al carrito':'+ Agregar al carrito';
+  $('pmAdd').textContent=txt;
   $('pmAdd').className='pm-add'+(ic?' in':'');
+  const ff=$('pmFootAdd');if(ff){ff.textContent=txt;ff.className='pm-foot-add'+(ic?' in':'');}
 }
 
 // Descripción genérica (no hay nombres de producto): plantilla por género/marca.
