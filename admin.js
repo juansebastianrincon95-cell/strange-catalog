@@ -1291,6 +1291,34 @@ function interesadoEnLinea(sid){
   return names.length?`<div style="font-size:10.5px;color:#5D2D91;font-weight:700;margin-top:3px">👁 Interesado en: ${escHtml(names.join(', '))}</div>`:'';
 }
 
+// ── RECUPERACIÓN POR WHATSAPP: mensajes pre-escritos (1 toque → mensaje listo) ──
+// Carrito abandonado / lead sin cerrar: saludo + lo que dejó + contra entrega + "¿te lo aparto?".
+function waRescate(o){
+  const tel=String(o.tel||'').replace(/\D/g,'').slice(-10);
+  if(tel.length<10)return null;
+  const nombre=(o.nombre||'').trim().split(/\s+/)[0]||'';
+  const items=(Array.isArray(o.items)?o.items:[]).map(it=>{
+    const mk=it.brand?(BRAND_LABELS[it.brand]||it.brand)+' ':'';
+    return mk+(it.label||'')+(it.talla?` talla ${it.talla}`:'');
+  }).filter(Boolean);
+  const lista=items.length?items.join(', '):interesadoEn(o.session_id).join(', ');
+  const saludo=nombre?`¡Hola ${nombre}! 👋`:'¡Hola! 👋';
+  const vio=lista?` Vi que te interesó: ${lista} 👟`:' Vi que estuviste mirando nuestros sneakers 👟';
+  const msg=`${saludo} Te escribo de ${STORE_NAME}.${vio}\n\n¿Te ayudo a completar tu pedido? 🙌 Tenemos *pago contra entrega* (pagas al recibir en tu casa) y *envío GRATIS* a todo el país. ¿Te lo aparto?`;
+  return `https://wa.me/57${tel}?text=${encodeURIComponent(msg)}`;
+}
+// Suscriptor con cupón de bienvenida vigente: recordatorio con su vencimiento.
+function waCuponSub(s){
+  const wa=String(s.whatsapp||'').replace(/\D/g,'');const tel=wa.length===10?wa:wa.slice(-10);
+  if(tel.length<10)return null;
+  const nombre=(s.nombre||'').trim().split(/\s+/)[0]||'';
+  const v=cuponVigencia(s.welcome_issued_at||s.created_at);
+  const vig=v&&!v.vencido?(v.dias<=1?'vence HOY':`vence en ${v.dias} días`):'está por vencer';
+  const mira=interesadoEn(s.session_id);
+  const vio=mira.length?` Vi que te gustó: ${mira.join(', ')} 👟.`:'';
+  const msg=`¡Hola ${nombre}! 👋 Soy de ${STORE_NAME}.${vio}\n\nTu cupón *BIENVENIDO20* de $20.000 OFF ${vig} ⏰ ¿Aprovechas y escoges tu par? Envío GRATIS y pago contra entrega 🙌`;
+  return `https://wa.me/57${tel}?text=${encodeURIComponent(msg)}`;
+}
 function timelineHTML(sid){
   const evs=(activityBySession[sid]||[]).slice().reverse();   // cronológico
   if(!evs.length)return `<div style="font-size:11px;color:var(--ink3);padding:8px 0">Sin actividad registrada en esa visita.</div>`;
@@ -1350,6 +1378,7 @@ function renderSubsTab(){
           ${tieneAct?`<div style="font-size:9.5px;color:var(--blue);font-weight:700;margin-top:3px">👁 ver recorrido</div>`:''}
         </div>
       </div>
+      ${(()=>{const v=s.source==='popup_bienvenida'&&cuponVigencia(s.welcome_issued_at||s.created_at);const u=v&&!v.vencido&&waCuponSub(s);return u?`<a href="${u}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;background:var(--wa);color:#fff;text-decoration:none;padding:8px;border-radius:9px;font-size:11.5px;font-weight:700">💬 Recordar cupón por WhatsApp</a>`:'';})()}
       ${tieneAct?`<div id="act_s_${s.id}" style="display:none;margin-top:8px;padding:8px 10px;background:var(--bg);border-radius:9px">${timelineHTML(s.session_id)}</div>`:''}
     </div>`;
   }).join('');
@@ -1425,6 +1454,7 @@ function renderLeadsTab(){
           ${chipWa(o)}${chipTemp(o)}${chipSeg(o)}
           <button onclick="leadNota(${o.id})" style="padding:6px 10px;border:1px solid var(--line);border-radius:14px;background:var(--white);font-family:var(--font);font-size:10.5px;font-weight:700;color:var(--ink2);cursor:pointer">📝 Nota</button>
         </div>
+        ${(o.status!=='venta'&&o.status!=='no_venta'&&waRescate(o))?`<a href="${waRescate(o)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:flex;align-items:center;justify-content:center;gap:7px;margin-top:9px;background:var(--wa);color:#fff;text-decoration:none;padding:10px;border-radius:10px;font-size:12.5px;font-weight:700">💬 Recuperar por WhatsApp</a>`:''}
         <div style="display:flex;gap:6px;margin-top:9px">
           <button onclick="updateOrderStatus(${o.id},'venta')" style="flex:1;padding:9px;border:none;border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;background:${o.status==='venta'?'#1BA94C':'#E7F6EC'};color:${o.status==='venta'?'#fff':'#1BA94C'}">✓ Venta</button>
           <button onclick="updateOrderStatus(${o.id},'no_venta')" style="flex:1;padding:9px;border:none;border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;background:${o.status==='no_venta'?'#E8200A':'#FDEAE8'};color:${o.status==='no_venta'?'#fff':'#E8200A'}">✕ No venta</button>
