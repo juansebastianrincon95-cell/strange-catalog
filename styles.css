@@ -557,6 +557,35 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .cart-fin-tx b{color:var(--ink);font-weight:700}
 .cart-fin-logos{display:flex;align-items:center;gap:9px;flex-shrink:0}
 .cart-fin-logos img{height:17px;width:auto;max-width:62px;object-fit:contain}
+/* ── Escalera de ahorro + cross-sell ("compra más, ahorra más") ── */
+.esc-wrap{margin-top:14px;border:1px solid #bfe9cd;background:#f3fbf6;border-radius:14px;padding:13px 13px 6px}
+.esc-head{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:800;letter-spacing:.04em;color:#137a3a;text-transform:uppercase}
+.esc-sub{font-size:13px;color:var(--ink);margin-top:6px;line-height:1.45}
+.esc-sub b{color:#137a3a;font-weight:800}
+.esc-ladder{margin-top:10px;display:flex;flex-direction:column;gap:2px}
+.esc-row{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink2);padding:6px 8px;border-radius:9px;font-variant-numeric:tabular-nums}
+.esc-row .esc-dot{color:#bcd9c6;font-size:13px;width:12px;flex-shrink:0}
+.esc-row .esc-pares{font-weight:700;color:var(--ink);min-width:58px}
+.esc-row .esc-precio{font-weight:700;color:var(--ink);min-width:74px}
+.esc-row .esc-ahorro{color:#137a3a;font-weight:600;font-size:11.5px;margin-left:auto;text-align:right}
+.esc-row.done{opacity:.62}
+.esc-row.done .esc-dot{color:#1ba94c}
+.esc-row.next{background:#e3f7ea;border:1px solid #bfe9cd}
+.esc-row.next .esc-dot{color:#137a3a}
+.esc-apply{margin-top:10px;width:100%;padding:11px;background:#137a3a;color:#fff;border:none;border-radius:10px;font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer}
+.esc-apply:active{transform:scale(.99)}
+.xs-wrap{margin-top:13px;border-top:1px dashed #cfe9d8;padding-top:11px}
+.xs-title{font-size:12.5px;font-weight:800;color:var(--ink);margin-bottom:9px}
+.xs-row{display:flex;gap:9px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px;scroll-snap-type:x proximity}
+.xs-row::-webkit-scrollbar{height:4px}
+.xs-row::-webkit-scrollbar-thumb{background:#cfe9d8;border-radius:4px}
+.xs-card{flex:0 0 108px;scroll-snap-align:start;background:#fff;border:1px solid var(--line);border-radius:12px;padding:7px;font-family:var(--font);text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:3px}
+.xs-card:active{transform:scale(.98)}
+.xs-img{width:100%;aspect-ratio:1/1;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.xs-img img{width:100%;height:100%;object-fit:cover}
+.xs-nom{font-size:11px;font-weight:700;color:var(--ink);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.xs-precio{font-size:11.5px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+.xs-add{font-size:10px;font-weight:800;color:#137a3a;margin-top:1px}
 .csum{margin-top:18px}
 .csum-t{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);margin-bottom:8px}
 .csum-row{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:var(--ink2);padding:6px 0}

@@ -92,6 +92,71 @@ let _comboSugDismiss=false;
 // el cliente cerró la sugerencia (por ciclo de carrito)
 function cerrarComboSug(){_comboSugDismiss=true;rCart();}
 
+// ── ESCALERA DE AHORRO + CROSS-SELL ── "compra más, ahorra más" dentro del carrito.
+// Muestra la escalera de niveles (combos) con su ahorro y, debajo, modelos del mismo género
+// para subir de nivel. El ahorro de cada nivel se calcula con el precio promedio del carrito
+// (refUnit) — honesto: lo que pagaría a precio normal vs el precio fijo del combo.
+function escaleraAhorro(rows,pricing){
+  if(comboActivo)return '';                                  // con combo activo manda comboAviso
+  const tiers=(combos||[]).filter(c=>c&&c.activo!==false&&parseInt(c.pares)>=2)
+    .sort((a,b)=>parseInt(a.pares)-parseInt(b.pares));
+  if(!tiers.length)return '';
+  const tot=pricing.pares;
+  const refUnit=tot>0?Math.round(pricing.subBruto/tot):199000; // precio promedio de referencia
+  const maxPares=parseInt(tiers[tiers.length-1].pares);
+  const next=tiers.find(t=>parseInt(t.pares)>tot);            // próximo nivel a alcanzar
+  const filas=tiers.map(t=>{
+    const np=parseInt(t.pares), ahorro=(np*refUnit)-parseInt(t.precio);
+    const reached=tot>=np, isNext=next&&np===parseInt(next.pares);
+    const ahorroTxt=ahorro>0?`ahorras ${fmt(ahorro)}`:'';
+    return `<div class="esc-row${reached?' done':''}${isNext?' next':''}">
+      <span class="esc-dot">${reached?'●':'○'}</span>
+      <span class="esc-pares">${np} pares</span>
+      <span class="esc-precio">${fmt(parseInt(t.precio))}</span>
+      <span class="esc-ahorro">${ahorroTxt}${t.camiseta?' + 🎁':''}</span></div>`;
+  }).join('');
+  let head;
+  if(next){
+    const faltan=parseInt(next.pares)-tot, ahorroNext=(parseInt(next.pares)*refUnit)-parseInt(next.precio);
+    head=`Agrega <b>${faltan} modelo${faltan===1?'':'s'} más</b> → ahorras <b>${fmt(ahorroNext)}</b>`;
+  }else head=`🎉 ¡Llevas el máximo ahorro (${maxPares} pares)!`;
+  // Botón aplicar si el nivel EXACTO está disponible y sale más barato que lo que va a pagar.
+  const cand=tiers.find(t=>parseInt(t.pares)===tot);
+  let applyBtn='';
+  if(cand&&parseInt(cand.precio)<pricing.sub){
+    applyBtn=`<button class="esc-apply" onclick="aplicarComboSug('${escHtml(cand.id)}')">Aplicar ${escHtml(cand.nombre)} ${cand.bandera||''} y ahorrar ${fmt(pricing.sub-parseInt(cand.precio))}</button>`;
+  }
+  return `<div class="esc-wrap">
+    <div class="esc-head"><span>🔥</span><span>COMPRA MÁS, AHORRA MÁS</span></div>
+    <div class="esc-sub">${head}</div>
+    <div class="esc-ladder">${filas}</div>
+    ${applyBtn}
+    ${crossSellHTML(rows)}
+  </div>`;
+}
+
+// Tira de modelos sugeridos (mismo género que el carrito) para completar el combo.
+// ABREN la ficha (escoger talla es obligatorio) → no se suman a ciegas.
+function crossSellHTML(rows){
+  const gs=rows.map(r=>r.p&&r.p.g).filter(Boolean);
+  const gen=gs.length?gs.slice().sort((a,b)=>gs.filter(x=>x===b).length-gs.filter(x=>x===a).length)[0]:null;
+  const enCart=new Set(rows.map(r=>r.type+'-'+r.p.id));
+  let pool=(prods||[]).filter(p=>p&&!p.sold&&!enCart.has('cat-'+p.id));
+  if(gen){const same=pool.filter(p=>p.g===gen); if(same.length>=4)pool=same;}
+  pool=pool.slice(0,8);
+  if(!pool.length)return '';
+  const cards=pool.map(p=>{
+    const m=p.img?`<img src="${p.img}" alt="${altProd(p)}" loading="lazy">`:`<span style="font-size:20px">👟</span>`;
+    const nom=p.modelo||(BRAND_LABELS[p.brand]||'')||(p.g==='h'?'Hombre':'Mujer');
+    return `<button class="xs-card" onclick="openPhoto(${p.id},'cat')">
+      <div class="xs-img">${m}</div>
+      <div class="xs-nom">${escHtml(nom)}</div>
+      <div class="xs-precio">${fmt(p.price)}</div>
+      <div class="xs-add">+ Escoger talla</div></button>`;
+  }).join('');
+  return `<div class="xs-wrap"><div class="xs-title">Completa tu combo 👇</div><div class="xs-row">${cards}</div></div>`;
+}
+
 function salirCombo(){
   comboActivo=null;_comboCamisetaCelebrada=false;
   renderComboBar();
@@ -257,21 +322,9 @@ function rCart(){
   // 2 mensajes (estilo Adidas): no reservado + financiación
   const msgs=`<div class="cart-msg"><span class="cm-ic">🔒</span><span>Los artículos en tu carrito <b>no están reservados</b>. Termina tu compra ahora.</span></div>`
     +`<div class="cart-fin"><div class="cart-fin-tx">Llévalos hoy y <b>págalos después</b> con Addi y Sistecrédito</div><div class="cart-fin-logos"><img src="/logos/addi.png" alt="Addi" onerror="this.remove()"><img src="/logos/sistecredito.png" alt="Sistecrédito" onerror="this.remove()"></div></div>`;
-  // Sugerencia de combo: 2+ pares SIN combo elegido y existe un combo con esos pares exactos
-  // que sale más barato que lo que va a pagar → ofrecerlo con 1 toque (el cliente que agrega
-  // varios pares es el cliente ideal del combo, pero no suele venir de la sección Ofertas).
-  let comboSug='';
-  if(!comboActivo&&!_comboSugDismiss&&tot>=2){
-    const cand=(combos||[]).find(c=>c&&c.activo!==false&&c.pares===tot);
-    if(cand&&parseInt(cand.precio)<totalFinal){
-      const ahorraCombo=totalFinal-parseInt(cand.precio);
-      comboSug=`<div class="cart-line" style="display:block;background:#eafaf0;border-color:#bfe9cd;margin-top:12px;position:relative">
-        <button onclick="cerrarComboSug()" style="position:absolute;top:6px;right:8px;border:none;background:none;color:#137a3a;font-size:14px;cursor:pointer;padding:2px 6px">✕</button>
-        <div style="color:#137a3a;font-size:12.5px;line-height:1.5;padding-right:22px"><b>🏆 Tus ${tot} pares por ${fmt(parseInt(cand.precio))}</b> con el ${escHtml(cand.nombre)} ${cand.bandera||''} — ahorras <b>${fmt(ahorraCombo)}</b>${cand.camiseta?' + 🎁 camiseta GRATIS':''}</div>
-        <button onclick="aplicarComboSug('${cand.id}')" style="margin-top:8px;width:100%;padding:9px;background:#137a3a;color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:12.5px;font-weight:700;cursor:pointer">Aplicar combo y ahorrar ${fmt(ahorraCombo)}</button>
-      </div>`;
-    }
-  }
+  // Escalera de ahorro + cross-sell ("compra más, ahorra más"): escalera de niveles con su
+  // ahorro + modelos del mismo género para subir de nivel. Reemplaza la sugerencia simple.
+  const escalera=escaleraAhorro(rows,pricing);
   // Aviso de combo en progreso (activo pero sin los pares exactos)
   const comboAviso=(comboActivo&&!pricing.combo)
     ? `<div class="cart-line" style="background:#fff8e6;color:#8a6d00;border-color:#f0dfa8;margin-top:12px"><span class="cl-ic">🏆</span><span><b>${escHtml(comboActivo.nombre)}</b>: ${pricing.pares<comboActivo.pares?`te falta${comboActivo.pares-pricing.pares===1?'':'n'} <b>${comboActivo.pares-pricing.pares} par${comboActivo.pares-pricing.pares===1?'':'es'}</b> para el precio de ${fmt(comboActivo.precio)}`:`tienes <b>${pricing.pares-comboActivo.pares} par${pricing.pares-comboActivo.pares===1?'':'es'} de más</b> — el combo es de ${comboActivo.pares}`}</span></div>`
@@ -302,8 +355,8 @@ function rCart(){
     ? `<div class="cart-line" style="background:#eafaf0;color:#137a3a;border-color:#bfe9cd;margin-top:12px;font-weight:700"><span class="cl-ic">🎉</span><span>¡Gracias por escoger tu selección ganadora! Liberaste una <b>CAMISETA GRATIS</b> de tu selección 🎁 (confírmanos la talla por WhatsApp)</span></div>`
     :'';
   const gift=`<div class="cart-line cart-regalo" style="margin-top:12px"><span class="cl-ic">🎁</span><span>Incluye <b>guía de cuidado</b> + <b>5%</b> en tu próximo par</span></div>`;
-  // Orden: mensajes → productos → sugerencia combo → aviso combo → resumen → camiseta → código → regalo
-  body.innerHTML=msgs+body.innerHTML+comboSug+comboAviso+summary+camisetaHtml+cupHtml+gift;
+  // Orden: mensajes → productos → escalera de ahorro → aviso combo → resumen → camiseta → código → regalo
+  body.innerHTML=msgs+body.innerHTML+escalera+comboAviso+summary+camisetaHtml+cupHtml+gift;
   foot.innerHTML=`<button class="btnmain" onclick="goStep(1)">Ir a pagar &nbsp;→</button>`;
 }
 
