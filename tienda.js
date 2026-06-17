@@ -779,6 +779,7 @@ function openPhoto(id,type){
   renderPmSizes(p);
   renderPmGuia();
   renderFichaReviews();
+  renderPmCross(p,type);
   syncPmBtn();
   const _vcat=type==='liq'?'liquidacion':p.g;
   const _vnm=type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer');
@@ -852,6 +853,33 @@ function genDescripcion(p,type){
 
 let pmReviewN=0;
 
+// ── "También te puede gustar" — cross-sell en la ficha (mezcla: marca+género, rellena con más vistos) ──
+function fichaSugeridos(p,type){
+  const pool=(prods||[]).filter(x=>x&&!x.sold&&!(type==='cat'&&x.id===p.id));
+  if(!pool.length)return [];
+  const score=x=>{
+    let s=0;
+    if(type==='cat'){
+      if(x.brand&&x.brand===p.brand)s+=3;          // misma marca
+      if(x.g===p.g)s+=2;                            // mismo género
+    }
+    s+=Math.min((_views[String(x.id)]||0)/20,1.5); // popularidad (vistas reales)
+    return s;
+  };
+  return pool.slice().sort((a,b)=>score(b)-score(a)).slice(0,4);
+}
+function renderPmCross(p,type){
+  const box=$('pmCross');if(!box)return;
+  const sug=fichaSugeridos(p,type);
+  if(!sug.length){box.style.display='none';box.innerHTML='';return;}
+  box.style.display='';
+  box.innerHTML=`<div class="pmx-t">También te puede gustar</div><div class="pmx-row">`+
+    sug.map(s=>{
+      const m=s.img?`<img src="${s.img}" alt="${altProd(s)}" loading="lazy">`:`<span style="font-size:20px">👟</span>`;
+      const nom=s.modelo||(BRAND_LABELS[s.brand]||'')||(s.g==='h'?'Hombre':'Mujer');
+      return `<button class="xs-card" onclick="openPhoto(${s.id},'cat')"><div class="xs-img">${m}</div><div class="xs-nom">${escHtml(nom)}</div><div class="xs-precio">${fmt(s.price)}</div></button>`;
+    }).join('')+`</div>`;
+}
 function renderFichaReviews(){
   const c=$('pmRevList');if(!c)return;
   // Reseñas REALES (las que el admin sube en settings.testimonios). Si no hay, se oculta el bloque

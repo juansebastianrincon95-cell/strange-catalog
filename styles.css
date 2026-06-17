@@ -592,6 +592,12 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .esc-row.next .esc-dot{color:#137a3a}
 .esc-apply{margin-top:10px;width:100%;padding:11px;background:#137a3a;color:#fff;border:none;border-radius:10px;font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer}
 .esc-apply:active{transform:scale(.99)}
+/* "También te puede gustar" — cross-sell en la ficha (reusa las tarjetas .xs-card) */
+.pmx{margin-top:18px;border-top:1px solid var(--line);padding-top:16px}
+.pmx-t{font-size:14px;font-weight:800;color:var(--ink);margin-bottom:10px}
+.pmx-row{display:flex;gap:9px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px}
+.pmx-row::-webkit-scrollbar{height:4px}
+.pmx-row::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
 .xs-wrap{margin-top:13px;border-top:1px dashed #cfe9d8;padding-top:11px}
 .xs-title{font-size:12.5px;font-weight:800;color:var(--ink);margin-bottom:9px}
 .xs-row{display:flex;gap:9px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px;scroll-snap-type:x proximity}
