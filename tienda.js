@@ -198,7 +198,7 @@ function carSetup(row){
   if(!row._carPause){   // listeners una sola vez por elemento
     row._carPause=true;
     row.addEventListener('pointerdown',()=>{carAutoStop(row);clearTimeout(row._carRe);row._carRe=setTimeout(()=>{if(carOverflow(row))carAutoStart(row);},6000);},{passive:true});
-    row.addEventListener('scroll',()=>{clearTimeout(row._carFix);row._carFix=setTimeout(()=>carLoopFix(row),250);},{passive:true});
+    row.addEventListener('scroll',()=>{if(typeof closeQuickSize==='function')closeQuickSize();clearTimeout(row._carFix);row._carFix=setTimeout(()=>carLoopFix(row),250);},{passive:true});
   }
   carAutoStart(row);
 }
@@ -211,6 +211,7 @@ function carLoopFix(row){   // si el reposo cayó en zona clonada, saltar a la t
 
 function carNav(row,dir){
   if(!row)return;
+  if(typeof closeQuickSize==='function')closeQuickSize();   // no dejar un selector de talla colgando al mover el carrusel
   carLoopFix(row);   // si está en zona clonada, reubicar antes de avanzar
   row.scrollBy({left:dir*carStep(row),behavior:'smooth'});
   const st=row._car;if(st&&st.timer){carAutoStop(row);carAutoStart(row);}   // interactuar reinicia el ritmo
@@ -685,18 +686,47 @@ function cardBadge(p){
   return '';
 }
 
+/* ── SELECTOR RÁPIDO DE TALLA ── el botón "+" de la tarjeta agrega al carrito de una:
+   si el producto tiene tallas, muestra un mini selector sobre la tarjeta; el cliente toca su
+   talla y se agrega (el carrito se abre como confirmación). Reusa togCard (agrega + AddToCart +
+   reserva + abre carrito + sincroniza el ✓). */
+function quickAdd(e,id){
+  const p=(prods||[]).find(x=>x.id===id); if(!p||p.sold)return;
+  const tallas=tallasDe(p);
+  if(!tallas.length){togCard(id,'cat');return;}        // sin tallas: agregar directo
+  const card=e.target.closest('.card'); if(!card)return;
+  openQuickSize(card,id,tallas);
+}
+function openQuickSize(card,id,tallas){
+  closeQuickSize();
+  const photo=card.querySelector('.cphoto'); if(!photo)return;
+  const ov=document.createElement('div'); ov.className='qsize'; ov.onclick=e=>e.stopPropagation();
+  ov.innerHTML=`<button class="qsize-x" onclick="event.stopPropagation();closeQuickSize()" aria-label="Cerrar">✕</button>
+    <div class="qsize-t">Elige tu talla</div>
+    <div class="qsize-row">${tallas.map(t=>`<button class="qsize-chip" onclick="event.stopPropagation();quickPick(${id},'${escHtml(String(t))}')">${escHtml(String(t))}</button>`).join('')}</div>`;
+  photo.appendChild(ov);
+}
+function closeQuickSize(){document.querySelectorAll('.qsize').forEach(o=>o.remove());}
+function quickPick(id,talla){
+  const key=cartKey(id,'cat',talla);
+  closeQuickSize();
+  if(!cart[key])togCard(id,'cat',talla);   // agrega esa talla + abre el carrito
+  else openCart();                          // ya estaba: solo abre el carrito
+}
+
 // prefix: 'k' en el grid, 'kl' en lanzamientos (evita IDs duplicados).
-// toFicha: en lanzamientos TODO clic (tarjeta y botón +) lleva directo a la ficha del zapato.
+// toFicha: en lanzamientos el clic en el CUERPO de la tarjeta lleva a la ficha del zapato.
 function cardHTML(p,i,prefix,toFicha){
   prefix=prefix||'k';
   const on=enCarrito(p.id,'cat')&&!p.sold;
   const sp=p.promo||promoG;
   const pct=sp?dsc(p):0;
   const m=p.img?`<img src="${p.img}" alt="${altProd(p)}" loading="lazy">`:`<div class="noimg">👟</div>`;
-  // Productos CON tallas: tanto la tarjeta como el + abren la ficha (la talla se elige ahí).
+  // CUERPO de la tarjeta: con tallas abre la ficha (para ver el producto). El botón "+" agrega
+  // al carrito de una: si hay tallas muestra un mini selector sobre la tarjeta; si no, agrega directo.
   const conTalla=tallasDe(p).length>0;
   const goCard=(toFicha||conTalla)?`openPhoto(${p.id},'cat')`:`cardClick(event,${p.id},'cat')`;
-  const goAdd=(toFicha||conTalla)?`event.stopPropagation();openPhoto(${p.id},'cat')`:`event.stopPropagation();togCard(${p.id},'cat')`;
+  const goAdd=conTalla?`event.stopPropagation();quickAdd(event,${p.id})`:`event.stopPropagation();togCard(${p.id},'cat')`;
   // Nombre: marca (línea fina) + modelo (destacado). Sin modelo, el modelo cae a marca/género.
   const _bl=p.brand?brandLabel(p.brand):'';
   const _modelTxt=p.modelo||_bl||(p.g==='h'?'Hombre':'Mujer');

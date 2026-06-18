@@ -274,6 +274,15 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .card.sold .add-circle,
 .liq-card.sold .add-circle{display:none}
 
+/* ── SELECTOR RÁPIDO DE TALLA ── overlay sobre la foto al tocar "+" (agrega de una) */
+.qsize{position:absolute;inset:0;z-index:6;background:rgba(255,255,255,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:8px;animation:fadeIn .12s}
+.qsize-t{font-size:12px;font-weight:700;color:var(--ink)}
+.qsize-row{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.qsize-chip{min-width:34px;padding:7px 9px;border:1.5px solid var(--line);background:var(--white);border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;color:var(--ink);cursor:pointer;transition:transform .1s}
+.qsize-chip:active{transform:scale(.94)}
+.qsize-chip:hover{border-color:var(--ink)}
+.qsize-x{position:absolute;top:6px;right:6px;width:24px;height:24px;border:none;background:none;font-size:15px;color:var(--ink2);cursor:pointer;line-height:1}
+
 /* ── FAVORITOS ❤️ ── corazón en la esquina LIBRE (abajo-izquierda) de cada tarjeta */
 .fav-btn{
   position:absolute;
