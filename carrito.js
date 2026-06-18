@@ -227,9 +227,9 @@ function togCard(id,type,talla){
   }else if(wasInCart&&!inCart){
     toast('Quitado del carrito');
   }
-  // sincroniza la tarjeta (grid + lanzamientos + preview): ✓ si está en el carrito en ALGUNA talla
+  // sincroniza la tarjeta (grid + lanzamientos + preview + recientes): ✓ si está en el carrito en ALGUNA talla
   const anyIn=enCarrito(id,type);
-  const els=type==='liq'?[$('lk'+id)]:[$('k'+id),$('kl'+id),$('kp'+id)];
+  const els=type==='liq'?[$('lk'+id)]:[$('k'+id),$('kl'+id),$('kp'+id),$('kr'+id)];
   els.forEach(el=>{
     if(!el)return;
     el.classList.toggle('picked',anyIn);

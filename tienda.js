@@ -408,6 +408,26 @@ function renderPreview(){
   grid.innerHTML=items.map((p,i)=>cardHTML(p,i,'kp')).join('');
 }
 
+/* ── VISTOS RECIENTEMENTE (inicio): re-hidrata los ids guardados en ss_recent desde `prods`,
+   descarta agotados/inexistentes. Si quedan 0, oculta la sección (no deja hueco). */
+function renderRecientes(){
+  const sec=$('recientes'),grid=$('recientesGrid');if(!grid)return;
+  computeBadges();
+  let recent=[];
+  try{recent=JSON.parse(localStorage.getItem('ss_recent')||'[]');if(!Array.isArray(recent))recent=[];}catch(e){recent=[];}
+  const seen=new Set();
+  const items=recent.map(r=>{
+    if(!r||r.type==='liq')return null;   // solo productos del catálogo
+    const p=prods.find(x=>x.id===r.id);
+    if(!p||p.sold||seen.has(p.id))return null;
+    seen.add(p.id);
+    return p;
+  }).filter(Boolean);
+  if(!items.length){if(sec)sec.style.display='none';grid.innerHTML='';return;}
+  if(sec)sec.style.display='';
+  grid.innerHTML=items.map((p,i)=>cardHTML(p,i,'kr',true)).join('');
+}
+
 /* ── FOOTER (redes sociales + newsletter) ── */
 let socials={ig:'',tiktok:'',fb:''};
 let sizeGuide=null;   // {img1,img2} de marquillas para la guía de tallas (lo sube el admin)
@@ -753,6 +773,19 @@ function setBrand(v,btn){
   navUpdateCat();
 }
 
+/* ── VISTOS RECIENTEMENTE ── últimos productos cuya ficha abrió el cliente (localStorage).
+   Se registra al abrir la ficha; se re-hidrata desde `prods` al renderizar (descarta agotados). */
+function pushReciente(id,type){
+  try{
+    let arr=JSON.parse(localStorage.getItem('ss_recent')||'[]');
+    if(!Array.isArray(arr))arr=[];
+    arr=arr.filter(x=>x&&!(x.id===id&&x.type===type));   // quitar duplicado del mismo id+type
+    arr.unshift({id,type});                               // el recién visto va al inicio
+    arr=arr.slice(0,12);                                  // máximo 12
+    localStorage.setItem('ss_recent',JSON.stringify(arr));
+  }catch(e){}
+}
+
 /* ── MODAL FOTO ── */
 function openPhoto(id,type){
   const list=type==='liq'?liqs:prods;
@@ -760,6 +793,7 @@ function openPhoto(id,type){
   if(!p)return;
   // La ficha SIEMPRE abre; el giro 360 (si existe) es un botón dentro de la galería.
   if(!p.img)return;
+  pushReciente(id,type);   // registrar como "visto recientemente"
   pmId=id;pmType=type;
   renderPmGal([p.img,...(p.imgs||[])],p.imgs360?.length>=2,altProd(p));
   const _mk=BRAND_LABELS[p.brand]||'';
@@ -948,6 +982,7 @@ function closePhotoBtn(){
   if(!_navPopping)navRemove('ficha');
   $('photoModal').classList.remove('on');
   unlockScroll();
+  if(typeof renderRecientes==='function')renderRecientes();   // que el recién visto aparezca al volver al home
   setTimeout(()=>{const tr=$('pmGalTrack');if(tr)tr.innerHTML='';pmId=null;pmType=null;pmTalla=null;},300);
 }
 

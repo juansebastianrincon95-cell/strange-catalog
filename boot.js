@@ -22,6 +22,7 @@ if(localStorage.getItem('ss_reserve_until')&&!_reserveTimer){_reserveTimer=setIn
   renderHero();   // carrusel del inicio (reemplaza el encabezado si hay banners)
   renderFeatured();    // sección "Últimos lanzamientos"
   renderColBanners();  // banners de colección Mujer/Hombre/Unisex
+  renderRecientes();   // sección "Vistos recientemente" (localStorage)
   renderPreview();     // preview de 2 columnas del inicio
   renderFooter();      // footer: redes + newsletter
   renderTestimonios(); // sección clientes felices
