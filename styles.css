@@ -321,6 +321,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
   transition:opacity .2s,transform .35s cubic-bezier(.34,1.56,.64,1);
 }
 .fav-dot.show{opacity:1; transform:scale(1)}
+@media(max-width:699px){.fav-nav{font-size:16px}}   /* móvil: corazón más pequeño para no encimarse al título */
 
 /* MODAL FOTO — display:none por defecto (fix del bug principal) */
 .photo-modal{position:fixed;inset:0;z-index:620;display:none;background:rgba(0,0,0,.55)}
@@ -945,6 +946,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .lanz-nav.prev{left:6px}
 .lanz-nav.next{right:6px}
 .lanz-nav.show{display:flex}
+@media(max-width:699px){.lanz-nav,.lanz-nav.show{display:none}}   /* móvil: sin flechas, se desliza con el dedo */
 
 /* BANNERS DE COLECCIÓN (Mujer/Hombre) — reusan .hero-ov/.hero-tit/.hero-sub/.hero-cta */
 .cbanner{position:relative;width:100%;aspect-ratio:4/5;max-height:70vh;overflow:hidden;background:var(--ink)}
