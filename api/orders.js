@@ -2,6 +2,7 @@ const { createClient } = require('@supabase/supabase-js');
 const { rateLimit } = require('./_rate_limit');
 const { anonClient, serviceClient, cleanText, createOrder, getOrderByReference, confirmPaidOrder, contentIdsDe } = require('./_orders');
 const { sendEvent } = require('./_capi');
+const { createAddiApplication } = require('./_addi');
 
 /* Lead por CAPI (FASE N8, plan Codex): misma señal que el px('Lead') del navegador pero
    server-side con teléfono/ciudad/nombre hasheados + fbp/fbc — Meta dedup por el MISMO
@@ -225,6 +226,62 @@ async function handleBoldWebhook(req, res) {
   return res.json(out);
 }
 
+/* ── ADDI (crédito BNPL) ── espejo del flujo de Bold. createAddiApplication vive en _addi.js. ── */
+async function handleAddiLink(req, res) {
+  if (!process.env.ADDI_CLIENT_ID || !process.env.ADDI_CLIENT_SECRET) return res.status(200).json({ error: 'addi_unavailable' });
+  const reference = cleanText(req.body && req.body.reference, 100);
+  if (!reference) return res.status(400).json({ error: 'reference requerida' });
+  const order = await getOrderByReference(reference);
+  if (!order) return res.status(404).json({ error: 'order_not_found' });
+  const amount = Number(order.subtotal != null ? order.subtotal : order.total);
+  if (!Number.isFinite(amount) || amount < 1000) return res.status(400).json({ error: 'amount fuera de rango' });
+  const email = cleanText(req.body && req.body.email, 120);
+  try {
+    const { redirectUrl, applicationId } = await createAddiApplication(order, email);
+    // Trazas en utm (jsonb, sin migración): applicationId si Addi lo dio + email para registro.
+    try {
+      const sb = serviceClient();
+      const utm = Object.assign({}, order.utm || {}, { addi_app: applicationId || (order.utm && order.utm.addi_app) || null, email: email || (order.utm && order.utm.email) || null });
+      await sb.from('orders').update({ utm }).eq('id', order.id);
+    } catch {}
+    return res.status(200).json({ url: redirectUrl, reference });
+  } catch (e) {
+    return res.status(502).json({ error: 'addi_error' });
+  }
+}
+
+// Retorno del cliente (?addi=1): NO consultamos a Addi (su confirmación llega por webhook
+// server-to-server). Solo reportamos si el pedido YA quedó marcado venta en BD.
+async function handleAddiStatus(req, res) {
+  const reference = cleanText(req.body && req.body.reference, 100);
+  if (!reference) return res.status(400).json({ error: 'missing reference' });
+  const order = await getOrderByReference(reference);
+  return res.status(200).json({ confirmed: !!(order && order.status === 'venta'), status: order ? order.status : 'unknown' });
+}
+
+async function handleAddiWebhook(req, res) {
+  // Auth opcional: si ADDI_WEBHOOK_USER/PASS están configuradas, exigir Basic auth de Addi.
+  const u = (process.env.ADDI_WEBHOOK_USER || '').trim();
+  const p = (process.env.ADDI_WEBHOOK_PASS || '').trim();
+  if (u && p) {
+    const expected = 'Basic ' + Buffer.from(u + ':' + p).toString('base64');
+    if (String(req.headers.authorization || '') !== expected) return res.status(401).json({ ok: false, error: 'unauthorized' });
+  }
+  const d = req.body || {};
+  const data = d.data || d.payload || d;
+  const reference = String(data.orderId || data.order_id || d.orderId || '');
+  const status = String(data.status || d.status || '').toUpperCase();
+  if (!reference) return res.json({ ok: true, ignored: true, no_ref: true });
+  if (status !== 'APPROVED') return res.json({ ok: true, ignored: true, status });
+  const order = await getOrderByReference(reference);
+  if (!order) return res.json({ ok: true, ignored: true, order_not_found: true });
+  const amount = Number(order.subtotal != null ? order.subtotal : order.total);
+  const appId = data.applicationId || d.applicationId;
+  if (appId) { try { const sb = serviceClient(); const utm = Object.assign({}, order.utm || {}, { addi_app: appId }); await sb.from('orders').update({ utm }).eq('id', order.id); } catch {} }
+  const out = await confirmPaidOrder({ reference, amount, currency: 'COP', req });
+  return res.json(out);
+}
+
 /* ── RECONCILIACIÓN (cron cada 10 min) ── malla de seguridad bajo los webhooks: toma los
    pedidos Wompi/Bold pendientes con 5+ min de vida y les pregunta DIRECTO a las pasarelas;
    si el pago está aprobado, confirma la venta (idempotente: confirmPaidOrder valida monto y
@@ -287,6 +344,7 @@ module.exports = async (req, res) => {
   }
   if (req.method !== 'POST') return res.status(405).end();
   if (req.query && req.query.webhook === 'bold') return handleBoldWebhook(req, res);
+  if (req.query && req.query.webhook === 'addi') return handleAddiWebhook(req, res);
   if (!okOrigin) return res.status(403).json({ error: 'Forbidden' });
   if (!(await rateLimit(req, res, { scope: 'orders', max: 40, windowMs: 60_000 }))) return;
 
@@ -295,6 +353,8 @@ module.exports = async (req, res) => {
     if (kind === 'subscriber') return handleSubscribe(req, res);
     if (kind === 'bold_link') return handleBoldLink(req, res);
     if (kind === 'bold_status') return handleBoldStatus(req, res);
+    if (kind === 'addi_link') return handleAddiLink(req, res);
+    if (kind === 'addi_status') return handleAddiStatus(req, res);
     if (kind === 'create_order') {
       const order = await createOrder(req.body, req.body.status || 'pending');
       await capiLead(order, req);

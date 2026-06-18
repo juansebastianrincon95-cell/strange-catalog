@@ -35,6 +35,7 @@ if(localStorage.getItem('ss_reserve_until')&&!_reserveTimer){_reserveTimer=setIn
   checkDeepLink();
   checkWompiReturn();
   checkBoldReturn();
+  checkAddiReturn();   // retorno del checkout de Addi (crédito BNPL)
   maybeWelcome();   // popup de bienvenida ($20.000 OFF), una vez por visitante
   maybeWaBubble();  // mini-anuncio "pregunta por los combos" sobre el FAB de WhatsApp
 })();

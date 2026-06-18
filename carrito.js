@@ -389,6 +389,7 @@ function rForm(){
   $('cbody').innerHTML=`<div class="formsec"><div class="formtit">¿A dónde enviamos tu pedido?</div>
     <div class="fld"><label>Nombre completo</label><input id="fn" type="text" autocomplete="name" autocapitalize="words" placeholder="Juan García" value="${escHtml(cData.nombre||'')}"></div>
     <div class="frow"><div class="fld"><label>Cédula</label><input id="fc" type="text" inputmode="numeric" autocomplete="off" placeholder="1000000000" value="${escHtml(cData.cedula||'')}"></div><div class="fld"><label>Celular</label><input id="ft" type="tel" inputmode="tel" autocomplete="tel" placeholder="300 000 0000" value="${escHtml(cData.celular||'')}"></div></div>
+    <div class="fld"><label>Correo electrónico <span style="font-weight:400;color:var(--ink2)">(para pagar a crédito con Addi)</span></label><input id="fem" type="email" inputmode="email" autocomplete="email" placeholder="tucorreo@email.com" value="${escHtml(cData.email||'')}"></div>
     <div class="fld"><label>Dirección</label><input id="fd" type="text" autocomplete="street-address" placeholder="Calle 10 # 25-30" value="${escHtml(cData.direccion||'')}"></div>
     <div class="frow"><div class="fld"><label>Barrio</label><input id="fb" type="text" autocomplete="address-level3" placeholder="El Poblado" value="${escHtml(cData.barrio||'')}"></div><div class="fld"><label>Ciudad</label><input id="fci" type="text" autocomplete="address-level2" autocapitalize="words" placeholder="Medellín" value="${escHtml(cData.ciudad||'')}"></div></div>
     <label for="fconsent" style="display:flex;gap:9px;align-items:flex-start;margin-top:6px;font-size:12px;line-height:1.45;color:var(--ink2);cursor:pointer">
@@ -403,6 +404,7 @@ function saveFormAndNext(){
   const m={nombre:'fn',cedula:'fc',celular:'ft',direccion:'fd',barrio:'fb',ciudad:'fci'};
   let ok=true;const d={};
   Object.entries(m).forEach(([k,id])=>{const v=($( id)||{}).value||'';d[k]=v.trim();if(!v.trim())ok=false;});
+  d.email=(($('fem')||{}).value||'').trim();   // opcional para avanzar; obligatorio solo en el flujo Addi
   const consent=!!($('fconsent')||{}).checked;
   if(!ok||!consent){const e=$('ferr');if(e)e.classList.add('show');return;}
   d.consent=true;
@@ -452,7 +454,7 @@ function rPayChoice(){
     +card(`enviarWA('pago_anticipado')`,'#FF7A00','#fff3e6',icBank,'Pago anticipado','Transfieres antes · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
     +card(`pagarWompi()`,'#5D2D91','#fff',icLogo('/logos/wompi.png','Wompi',icCard),'Pagar en línea — Wompi','Tarjeta · PSE · Nequi · Bancolombia · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
     +card(`pagarBold()`,'#2541B2','#fff',icLogo('/logos/bold.png','Bold',icCard),'Pagar en línea — Bold','Tarjeta · PSE · Botón Bancolombia · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
-    +card(`enviarWA('credito')`,'#0a7d4b','#fff',`<span class="pc-logos2">${icLogo('/logos/addi.png','Addi',icCuotas)}${icLogo('/logos/sistecredito.png','Sistecrédito','')}</span>`,'Pagar a crédito — Addi / Sistecrédito','En cuotas · Te asesoramos por WhatsApp · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
+    +card(`pagarAddi()`,'#0a7d4b','#fff',icLogo('/logos/addi.png','Addi',icCuotas),'Pagar con Addi — a cuotas','Crédito 100% online · Solo cédula y celular · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
     +`</div>`
     +`<div class="pay-trust">`
       +`<button type="button" class="pay-trust-i" onclick="openInfo('cambios')"><span>🔄</span><span>Cambios por talla fáciles</span></button>`
@@ -698,6 +700,92 @@ async function checkBoldReturn(){
     }else{setTimeout(()=>alert('✅ ¡Pago confirmado con Bold!\nTu pedido está en camino. Pronto te contactamos.'),300);}
   }else{
     setTimeout(()=>alert('⏳ Estamos confirmando tu pago con Bold.\nApenas se confirme te contactamos por WhatsApp.'),300);
+  }
+}
+
+/* ── ADDI (pago a crédito BNPL) — espejo de pagarBold/checkBoldReturn ── */
+async function pagarAddi(){
+  if(window._payBusy)return;                 // mismo guard anti doble-toque que Bold
+  window._payBusy=true;
+  setTimeout(()=>{window._payBusy=false;},15000);
+  trackEvent('select_payment',{product_id:'addi'});
+  const m={nombre:'fn',cedula:'fc',celular:'ft',email:'fem',direccion:'fd',barrio:'fb',ciudad:'fci'};
+  let ok=true;const d={};
+  Object.entries(m).forEach(([k,id])=>{const el=$(id);const v=el?el.value:(cData[k]||'');d[k]=v.trim();if(!v.trim())ok=false;});
+  const emailOk=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email||'');   // Addi exige email para su motor de riesgo
+  if(!ok||!emailOk){
+    window._payBusy=false;
+    cData=Object.assign({},cData,d);   // conservar lo escrito al re-renderizar el formulario
+    goStep(1);                          // volver a "Tus datos" (el #ferr y el campo email viven ahí)
+    setTimeout(()=>{const e=$('ferr');if(e){e.textContent=(ok&&!emailOk)?'Para pagar con Addi necesitamos un correo electrónico válido':'Completa todos los campos (incluido el correo)';e.classList.add('show');}const em=$('fem');if(em)em.focus();},60);
+    return;
+  }
+  cData=d;
+  const rows=Object.values(cart);
+  const pricing=cartPricing(rows);
+  const tot=pricing.sub;                     // Addi cobra el subtotal (crédito = envío gratis)
+  const reference='STR-'+Date.now();
+  const totalPares=pricing.pares;
+  const aOrder={
+    id:Date.now(),fecha:new Date().toISOString(),
+    items:cartItems(rows),
+    subtotal:tot,envio:0,total:tot,pares:totalPares,pago:'addi',status:'pending',session_id:SESSION_ID,cupon:cuponAplicado||null,
+    combo:pricing.combo?pricing.combo.id:null,
+    nombre:d.nombre,cedula:d.cedula,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,direccion:d.direccion,
+    reference,utm:{...getUTM(),...getFbAttribution(),...getVisitCtx(),email:d.email},referrer:getReferrer(),seccion:gSel
+  };
+  orders.push(aOrder);saveState();
+  try{
+    const saved=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'create_order',...aOrder})}).then(r=>r.ok?r.json():Promise.reject(new Error('order error')));
+    if(saved&&saved.order){
+      aOrder.reference=saved.order.reference;
+      aOrder.subtotal=saved.order.subtotal;aOrder.total=saved.order.total;aOrder.items=saved.order.items;
+    }
+    const res=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'addi_link',reference:aOrder.reference,email:d.email})});
+    const j=await res.json().catch(()=>({}));
+    if(!res.ok||!j.url){
+      window._payBusy=false;
+      if(j&&j.error==='addi_unavailable'){if(confirm('El pago a crédito con Addi se activará muy pronto 🙏\n¿Quieres coordinarlo por WhatsApp?'))enviarWA('credito');return;}
+      throw new Error('addi link');
+    }
+    localStorage.setItem('addi_ref',aOrder.reference);
+    location.href=j.url;
+  }catch(e){window._payBusy=false;if(confirm('No pudimos conectar con Addi en este momento.\n¿Quieres coordinar tu crédito por WhatsApp?'))enviarWA('credito');}
+}
+
+async function checkAddiReturn(){
+  const params=new URLSearchParams(location.search);
+  if(!params.get('addi'))return;
+  const cancel=params.get('addi')==='cancel';
+  const reference=localStorage.getItem('addi_ref')||'';
+  localStorage.removeItem('addi_ref');
+  history.replaceState({},'',location.pathname);
+  if(cancel){setTimeout(()=>alert('Cancelaste el pago con Addi. Tu carrito sigue disponible 🛒'),300);return;}
+  let verified=false;
+  if(reference){
+    try{
+      // El server NO llama a Addi: la aprobación llega por webhook. Solo reporta si el pedido
+      // ya quedó marcado 'venta' en BD (por si el webhook llegó antes que el redirect del cliente).
+      const vr=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'addi_status',reference})});
+      if(vr.ok){const t=await vr.json();verified=!!t.confirmed;}
+    }catch(e){}
+  }
+  if(verified){
+    comboActivo=null;
+    for(const k in cart)delete cart[k];syncDot();
+    const order=orders.find(o=>o.reference===reference)||orders.filter(o=>o.pago==='addi'&&o.status==='pending').pop();
+    if(order){
+      order.status='venta';saveState();
+      if(PIXEL_ID&&typeof fbq==='function'){const np=String(order.nombre||'').trim().toLowerCase().split(' ');fbq('init',PIXEL_ID,{ph:String(order.tel||'').replace(/\D/g,''),fn:np[0]||'',ln:np.slice(1).join(' ')||'',ct:String(order.ciudad||'').trim().toLowerCase(),country:'co'});}
+      const _aIds=Array.isArray(order.items)?order.items.map(it=>pxId(it.type,it.id)):[];
+      px('Purchase',{content_ids:_aIds,content_type:'product',value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',num_items:order.pares||1,...getUTM()},(order.reference||order.id)+'_purchase');
+      trackEvent('purchase',{price:order.subtotal!=null?order.subtotal:order.total});
+      let items='';order.items.forEach(it=>{const mk=it.brand?(BRAND_LABELS[it.brand]||it.brand)+' · ':'';const ref=it.id?` · #${it.id}`:'';const ln=it.id?`\n     👉 https://strangesneakers.com/p/${it.type==='liq'?'L':''}${it.id}`:'';items+=`  • ${mk}${it.label}${ref}${it.talla?` · Talla ${it.talla}`:''} x${it.qty} — ${fmt(it.precio)}${ln}\n`;});
+      const msg=`✅ *CRÉDITO APROBADO (Addi) — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n📦 *Envío: GRATIS ✓*\n💰 *TOTAL: ${fmt(order.total)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${order.nombre}\n• Celular: ${order.tel}\n• Dirección: ${order.direccion||'-'}\n• Ciudad: ${order.ciudad}\n• Ref: ${reference}\n━━━━━━━━━━━━━━━━━━━━\n💳 *Pago Addi:* Aprobado ✓\n━━━━━━━━━━━━━━━━━━━━\n¡Gracias por tu compra! 🙏\n\n🎁 *Tu regalo — Guía de cuidado:*\nhttps://strangesneakers.com/?regalo=cuidado`;
+      setTimeout(()=>{alert('✅ ¡Crédito aprobado con Addi!\nEn un momento recibirás confirmación por WhatsApp.');window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,'_blank');},300);
+    }else{setTimeout(()=>alert('✅ ¡Crédito aprobado con Addi!\nTu pedido está en camino. Pronto te contactamos.'),300);}
+  }else{
+    setTimeout(()=>alert('⏳ Estamos confirmando tu crédito con Addi.\nApenas Addi lo apruebe te contactamos por WhatsApp.'),300);
   }
 }
 
