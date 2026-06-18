@@ -233,7 +233,7 @@ async function handleBoldWebhook(req, res) {
 async function reconciliarPendientes(req, res) {
   // Vercel Cron manda "Authorization: Bearer CRON_SECRET" automáticamente si la env existe.
   const cs = (process.env.CRON_SECRET || '').trim();
-  if (cs && String(req.headers.authorization || '') !== 'Bearer ' + cs) return res.status(401).json({ ok: false });
+  if (!cs || String(req.headers.authorization || '') !== 'Bearer ' + cs) return res.status(401).json({ ok: false });   // fail-closed: sin CRON_SECRET, rechazar
   const sb = serviceClient();
   const desde = new Date(Date.now() - 7 * 864e5).toISOString();   // no mirar más de 7 días atrás
   const hasta = new Date(Date.now() - 5 * 60e3).toISOString();    // dejar 5 min al flujo normal

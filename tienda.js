@@ -760,7 +760,7 @@ function renderGrid(){
 
 function renderLiqGrid(){
   $('liqN').textContent=liqs.length;
-  if(!liqs.length){$('liqGrid').innerHTML=`<div class="liq-empty">Sin productos en liquidación.<br>Agrégalos desde Admin 🔥</div>`;return;}
+  if(!liqs.length){$('liqGrid').innerHTML='';return;}   // sin liq: la sección Ofertas la cargan los combos (#combosRow); NO mostrar mensaje de admin al cliente
   $('liqGrid').innerHTML=liqs.map((p,i)=>{
     const on=enCarrito(p.id,'liq')&&!p.sold;
     const pct=dsc(p);
@@ -1009,7 +1009,7 @@ function renderFichaReviews(){
   const cnt=pmReviewN>0?`${pmReviewN.toLocaleString('es-CO')} reseñas`:'';
   c.innerHTML=`<div class="pm-rev-head"><h4>Dejamos que nuestros clientes hablen</h4><div class="pm-rev-bigstars">★★★★★</div>${cnt?`<div class="pm-rev-count">${cnt}</div>`:''}</div>`+revs.map(r=>{
     const quien=[r.nombre||'Cliente',r.ciudad].filter(Boolean).map(escHtml).join(' · ');
-    return `<div class="pm-rev"><div class="pm-rev-h"><b>${quien}</b><span class="pm-rev-v">✓ Compra verificada</span></div><div class="pm-rev-s">★★★★★</div><div class="pm-rev-x">${escHtml(r.texto)}</div></div>`;
+    return `<div class="pm-rev"><div class="pm-rev-h"><b>${quien}</b><span class="pm-rev-v">Cliente Strange</span></div><div class="pm-rev-s">★★★★★</div><div class="pm-rev-x">${escHtml(r.texto)}</div></div>`;
   }).join('');
 }
 
