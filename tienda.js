@@ -615,6 +615,60 @@ function maybeWaBubble(){
   },12000);
 }
 
+/* ── FAVORITOS ❤️ ── estado en localStorage (ss_favs = array de ids). El cliente marca
+   productos con el corazón de cada tarjeta y los ve luego en la sección #favoritos del inicio. */
+function favIds(){
+  try{const a=JSON.parse(localStorage.getItem('ss_favs')||'[]');return Array.isArray(a)?a.filter(x=>typeof x==='number'):[];}catch(e){return [];}
+}
+function esFav(id){return favIds().includes(id);}
+function togFav(id,btn){
+  let favs=favIds();
+  const i=favs.indexOf(id);
+  const ahora=i<0;
+  if(ahora)favs.unshift(id); else favs.splice(i,1);
+  try{localStorage.setItem('ss_favs',JSON.stringify(favs));}catch(e){}
+  // refleja el estado en TODAS las tarjetas de ese producto (grid, lanzamientos, preview, recientes, favoritos)
+  document.querySelectorAll('.fav-btn[data-id="'+id+'"]').forEach(b=>b.classList.toggle('on',ahora));
+  updFavDot();
+  renderFavoritos();
+  toast(ahora?'❤️ Guardado en favoritos':'Quitado de favoritos');
+}
+
+/* Contador del corazón en el nav: número de favoritos; oculto si 0. */
+function updFavDot(){
+  const d=$('favDot');if(!d)return;
+  const n=favIds().length;
+  d.textContent=n;
+  d.classList.toggle('show',n>0);
+}
+
+/* Sección "Tus favoritos" en el inicio: re-hidrata los ids desde `prods`, descarta agotados/inexistentes.
+   Si quedan 0, oculta la sección (no deja hueco). */
+function renderFavoritos(){
+  const sec=$('favoritos'),grid=$('favoritosGrid');if(!grid)return;
+  computeBadges();
+  const seen=new Set();
+  const items=favIds().map(id=>{
+    const p=prods.find(x=>x.id===id);
+    if(!p||p.sold||seen.has(p.id))return null;
+    seen.add(p.id);
+    return p;
+  }).filter(Boolean);
+  if(!items.length){if(sec)sec.style.display='none';grid.innerHTML='';return;}
+  if(sec)sec.style.display='';
+  grid.innerHTML=items.map((p,i)=>cardHTML(p,i,'kf')).join('');
+}
+
+/* Botón corazón del nav: lleva a la sección de favoritos del inicio (scroll suave).
+   Si está vacía, avisa con un toast en vez de mover la página a un sitio vacío. */
+function abrirFavoritos(){
+  if(typeof closeCatalog==='function')closeCatalog();
+  if(typeof closeMenu==='function')closeMenu();
+  const sec=$('favoritos');
+  if(!sec||sec.style.display==='none'||!favIds().length){toast('Aún no tienes favoritos ❤️');return;}
+  sec.scrollIntoView({behavior:'smooth'});
+}
+
 /* ── GRID ── */
 // Markup de una tarjeta de producto (reusado por el grid y por "Últimos lanzamientos").
 // ── BADGES HONESTOS (datos REALES) ── "Nuevo" = de los más recientes (id más alto);
@@ -655,6 +709,7 @@ function cardHTML(p,i,prefix,toFicha){
         ${pct?`<div class="bdsc"${p.imgs360?.length>=2?' style="top:42px"':''}>-${pct}%</div>`:''}
         ${p.sold?`<div class="bsold">Agotado</div>`:cardBadge(p)}
         <div class="bchk">✓</div>
+        <button class="fav-btn ${esFav(p.id)?'on':''}" data-id="${p.id}" onclick="event.stopPropagation();togFav(${p.id},this)" aria-label="Favorito">♥</button>
         <button class="add-circle" onclick="${goAdd}">${on?'✓':'+'}</button>
       </div>
       <div class="cfoot-card">${_showBrand?`<div class="cbrand">${escHtml(_bl)}</div>`:''}<div class="cmodel">${escHtml(_modelTxt)}</div><div class="cprice ${sp?'sale':''}">${fmt(p.price)}</div>${sp&&p.was?`<div class="cwas">${fmt(p.was)}</div>`:''}</div>

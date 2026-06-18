@@ -274,6 +274,54 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .card.sold .add-circle,
 .liq-card.sold .add-circle{display:none}
 
+/* ── FAVORITOS ❤️ ── corazón en la esquina LIBRE (abajo-izquierda) de cada tarjeta */
+.fav-btn{
+  position:absolute;
+  left:7px; bottom:7px;
+  width:30px; height:30px;
+  background:rgba(255,255,255,.92);
+  border:none;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:16px; line-height:1;
+  color:#9aa0a6;
+  cursor:pointer;
+  box-shadow:0 2px 8px rgba(0,0,0,.18);
+  transition:transform .2s cubic-bezier(.34,1.56,.64,1),color .18s;
+  z-index:3;
+  -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px);
+}
+.fav-btn:active{transform:scale(.85)}
+.fav-btn.on{color:var(--red)}
+.card.sold .fav-btn{display:none}
+
+/* corazón del nav con contador (imita .nav-bag / .bdot) */
+.fav-nav{
+  position:relative;
+  width:40px; height:40px;
+  background:none;
+  border:none;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:20px; line-height:1;
+  color:var(--ink);
+  cursor:pointer;
+  transition:transform .14s;
+}
+.fav-nav:active{transform:scale(.91)}
+.fav-dot{
+  position:absolute; top:-1px; right:-1px;
+  min-width:16px; height:16px;
+  background:var(--red); color:#fff;
+  font-size:9px; font-weight:700;
+  border-radius:8px; padding:0 4px;
+  display:flex; align-items:center; justify-content:center;
+  border:2px solid var(--bg);
+  opacity:0; transform:scale(.5);
+  transition:opacity .2s,transform .35s cubic-bezier(.34,1.56,.64,1);
+}
+.fav-dot.show{opacity:1; transform:scale(1)}
+
 /* MODAL FOTO — display:none por defecto (fix del bug principal) */
 .photo-modal{position:fixed;inset:0;z-index:620;display:none;background:rgba(0,0,0,.55)}
 .photo-modal.on{display:block}

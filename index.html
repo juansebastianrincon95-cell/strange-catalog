@@ -79,6 +79,7 @@
     <button onclick="openInfo('quienes')">Quiénes somos</button>
   </div>
   <div class="nav-right">
+    <button class="fav-nav" onclick="abrirFavoritos()" aria-label="Favoritos">♥<span class="fav-dot" id="favDot">0</span></button>
     <button class="bag-btn nav-bag" onclick="openCart()">
       <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
       <span class="bdot" id="bdot">0</span>
@@ -151,6 +152,12 @@
     <div class="sl">modelos</div>
   </div>
 </div>
+
+<!-- TUS FAVORITOS (inicio): productos que el cliente marcó con el corazón (localStorage ss_favs) -->
+<section class="preview" id="favoritos" style="display:none">
+  <div class="preview-hdr"><span class="preview-t">Tus favoritos ❤️</span></div>
+  <div class="preview-grid" id="favoritosGrid"></div>
+</section>
 
 <!-- VISTOS RECIENTEMENTE (inicio): productos cuya ficha abrió el cliente (localStorage) -->
 <section class="preview" id="recientes" style="display:none">

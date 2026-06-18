@@ -229,7 +229,7 @@ function togCard(id,type,talla){
   }
   // sincroniza la tarjeta (grid + lanzamientos + preview + recientes): ✓ si está en el carrito en ALGUNA talla
   const anyIn=enCarrito(id,type);
-  const els=type==='liq'?[$('lk'+id)]:[$('k'+id),$('kl'+id),$('kp'+id),$('kr'+id)];
+  const els=type==='liq'?[$('lk'+id)]:[$('k'+id),$('kl'+id),$('kp'+id),$('kr'+id),$('kf'+id)];
   els.forEach(el=>{
     if(!el)return;
     el.classList.toggle('picked',anyIn);
