@@ -216,7 +216,7 @@ function carNav(row,dir){
   const st=row._car;if(st&&st.timer){carAutoStop(row);carAutoStart(row);}   // interactuar reinicia el ritmo
 }
 
-function carAutoStart(row){const st=row&&row._car;if(!st||st.timer)return;st.timer=setInterval(()=>{if(document.hidden)return;carNav(row,1);},4000);}
+function carAutoStart(row){const st=row&&row._car;if(!st||st.timer)return;st.timer=setInterval(()=>{if(document.hidden)return;carNav(row,1);},3500);}
 function carAutoStop(row){const st=row&&row._car;if(st&&st.timer){clearInterval(st.timer);st.timer=null;}}
 
 // Compat: las flechas de "Últimos lanzamientos" en index.html llaman lanzNav().
