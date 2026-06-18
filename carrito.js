@@ -455,6 +455,7 @@ function rPayChoice(){
     +card(`pagarWompi()`,'#5D2D91','#fff',icLogo('/logos/wompi.png','Wompi',icCard),'Pagar en línea — Wompi','Tarjeta · PSE · Nequi · Bancolombia · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
     +card(`pagarBold()`,'#2541B2','#fff',icLogo('/logos/bold.png','Bold',icCard),'Pagar en línea — Bold','Tarjeta · PSE · Botón Bancolombia · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
     +card(`pagarAddi()`,'#0a7d4b','#fff',icLogo('/logos/addi.png','Addi',icCuotas),'Pagar con Addi — a cuotas','Crédito 100% online · Solo cédula y celular · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
+    +card(`pagarSistecredito()`,'#E30613','#fff',icLogo('/logos/sistecredito.png','Sistecrédito',icCuotas),'Pagar con Sistecrédito — a cuotas','Crédito 100% online · Solo tu cédula · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
     +`</div>`
     +`<div class="pay-trust">`
       +`<button type="button" class="pay-trust-i" onclick="openInfo('cambios')"><span>🔄</span><span>Cambios por talla fáciles</span></button>`
@@ -786,6 +787,90 @@ async function checkAddiReturn(){
     }else{setTimeout(()=>alert('✅ ¡Crédito aprobado con Addi!\nTu pedido está en camino. Pronto te contactamos.'),300);}
   }else{
     setTimeout(()=>alert('⏳ Estamos confirmando tu crédito con Addi.\nApenas Addi lo apruebe te contactamos por WhatsApp.'),300);
+  }
+}
+
+/* ── SISTECRÉDITO (pago a crédito BNPL) — espejo de pagarAddi, SIN email ── */
+async function pagarSistecredito(){
+  if(window._payBusy)return;
+  window._payBusy=true;
+  setTimeout(()=>{window._payBusy=false;},15000);
+  trackEvent('select_payment',{product_id:'sistecredito'});
+  const m={nombre:'fn',cedula:'fc',celular:'ft',direccion:'fd',barrio:'fb',ciudad:'fci'};
+  let ok=true;const d={};
+  Object.entries(m).forEach(([k,id])=>{const el=$(id);const v=el?el.value:(cData[k]||'');d[k]=v.trim();if(!v.trim())ok=false;});
+  if(!ok){
+    window._payBusy=false;
+    cData=Object.assign({},cData,d);
+    goStep(1);
+    setTimeout(()=>{const e=$('ferr');if(e){e.textContent='Completa todos los campos para continuar';e.classList.add('show');}},60);
+    return;
+  }
+  cData=Object.assign({},cData,d);
+  const rows=Object.values(cart);
+  const pricing=cartPricing(rows);
+  const tot=pricing.sub;                     // Sistecrédito cobra el subtotal (crédito = envío gratis)
+  const reference='STR-'+Date.now();
+  const totalPares=pricing.pares;
+  const sOrder={
+    id:Date.now(),fecha:new Date().toISOString(),
+    items:cartItems(rows),
+    subtotal:tot,envio:0,total:tot,pares:totalPares,pago:'sistecredito',status:'pending',session_id:SESSION_ID,cupon:cuponAplicado||null,
+    combo:pricing.combo?pricing.combo.id:null,
+    nombre:d.nombre,cedula:d.cedula,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,direccion:d.direccion,
+    reference,utm:{...getUTM(),...getFbAttribution(),...getVisitCtx()},referrer:getReferrer(),seccion:gSel
+  };
+  orders.push(sOrder);saveState();
+  try{
+    const saved=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'create_order',...sOrder})}).then(r=>r.ok?r.json():Promise.reject(new Error('order error')));
+    if(saved&&saved.order){
+      sOrder.reference=saved.order.reference;
+      sOrder.subtotal=saved.order.subtotal;sOrder.total=saved.order.total;sOrder.items=saved.order.items;
+    }
+    const res=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'sistecredito_link',reference:sOrder.reference})});
+    const j=await res.json().catch(()=>({}));
+    if(!res.ok||!j.url){
+      window._payBusy=false;
+      if(j&&j.error==='sistecredito_unavailable'){if(confirm('El pago a crédito con Sistecrédito se activará muy pronto 🙏\n¿Quieres coordinarlo por WhatsApp?'))enviarWA('credito');return;}
+      throw new Error('sistecredito link');
+    }
+    localStorage.setItem('sc_ref',sOrder.reference);
+    location.href=j.url;
+  }catch(e){window._payBusy=false;if(confirm('No pudimos conectar con Sistecrédito en este momento.\n¿Quieres coordinar tu crédito por WhatsApp?'))enviarWA('credito');}
+}
+
+async function checkSistecreditoReturn(){
+  const params=new URLSearchParams(location.search);
+  if(!params.get('sistecredito'))return;
+  const cancel=params.get('sistecredito')==='cancel';
+  const reference=localStorage.getItem('sc_ref')||'';
+  localStorage.removeItem('sc_ref');
+  history.replaceState({},'',location.pathname);
+  if(cancel){setTimeout(()=>alert('Cancelaste el pago con Sistecrédito. Tu carrito sigue disponible 🛒'),300);return;}
+  let verified=false;
+  if(reference){
+    try{
+      // El server consulta el estado en Sistecrédito (getInfoCredit) y marca la venta si está pagado.
+      const vr=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'sistecredito_status',reference})});
+      if(vr.ok){const t=await vr.json();verified=!!t.confirmed;}
+    }catch(e){}
+  }
+  if(verified){
+    comboActivo=null;
+    for(const k in cart)delete cart[k];syncDot();
+    const order=orders.find(o=>o.reference===reference)||orders.filter(o=>o.pago==='sistecredito'&&o.status==='pending').pop();
+    if(order){
+      order.status='venta';saveState();
+      if(PIXEL_ID&&typeof fbq==='function'){const np=String(order.nombre||'').trim().toLowerCase().split(' ');fbq('init',PIXEL_ID,{ph:String(order.tel||'').replace(/\D/g,''),fn:np[0]||'',ln:np.slice(1).join(' ')||'',ct:String(order.ciudad||'').trim().toLowerCase(),country:'co'});}
+      const _sIds=Array.isArray(order.items)?order.items.map(it=>pxId(it.type,it.id)):[];
+      px('Purchase',{content_ids:_sIds,content_type:'product',value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',num_items:order.pares||1,...getUTM()},(order.reference||order.id)+'_purchase');
+      trackEvent('purchase',{price:order.subtotal!=null?order.subtotal:order.total});
+      let items='';order.items.forEach(it=>{const mk=it.brand?(BRAND_LABELS[it.brand]||it.brand)+' · ':'';const ref=it.id?` · #${it.id}`:'';const ln=it.id?`\n     👉 https://strangesneakers.com/p/${it.type==='liq'?'L':''}${it.id}`:'';items+=`  • ${mk}${it.label}${ref}${it.talla?` · Talla ${it.talla}`:''} x${it.qty} — ${fmt(it.precio)}${ln}\n`;});
+      const msg=`✅ *CRÉDITO APROBADO (Sistecrédito) — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n📦 *Envío: GRATIS ✓*\n💰 *TOTAL: ${fmt(order.total)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${order.nombre}\n• Celular: ${order.tel}\n• Dirección: ${order.direccion||'-'}\n• Ciudad: ${order.ciudad}\n• Ref: ${reference}\n━━━━━━━━━━━━━━━━━━━━\n💳 *Pago Sistecrédito:* Aprobado ✓\n━━━━━━━━━━━━━━━━━━━━\n¡Gracias por tu compra! 🙏\n\n🎁 *Tu regalo — Guía de cuidado:*\nhttps://strangesneakers.com/?regalo=cuidado`;
+      setTimeout(()=>{alert('✅ ¡Crédito aprobado con Sistecrédito!\nEn un momento recibirás confirmación por WhatsApp.');window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,'_blank');},300);
+    }else{setTimeout(()=>alert('✅ ¡Crédito aprobado con Sistecrédito!\nTu pedido está en camino. Pronto te contactamos.'),300);}
+  }else{
+    setTimeout(()=>alert('⏳ Estamos confirmando tu crédito con Sistecrédito.\nApenas lo aprueben te contactamos por WhatsApp.'),300);
   }
 }
 

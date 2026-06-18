@@ -3,6 +3,7 @@ const { rateLimit } = require('./_rate_limit');
 const { anonClient, serviceClient, cleanText, createOrder, getOrderByReference, confirmPaidOrder, contentIdsDe } = require('./_orders');
 const { sendEvent } = require('./_capi');
 const { createAddiApplication } = require('./_addi');
+const { createScTransaction, getScInfo } = require('./_sistecredito');
 
 /* Lead por CAPI (FASE N8, plan Codex): misma señal que el px('Lead') del navegador pero
    server-side con teléfono/ciudad/nombre hasheados + fbp/fbc — Meta dedup por el MISMO
@@ -282,6 +283,66 @@ async function handleAddiWebhook(req, res) {
   return res.json(out);
 }
 
+/* ── SISTECRÉDITO (crédito BNPL) ── espejo de Addi. Helpers en _sistecredito.js. Tiene endpoint
+   de estado (getInfoCredit) → confirmación por retorno + webhook + reconciliación. ── */
+async function handleScLink(req, res) {
+  if (!process.env.SISTECREDITO_SUBSCRIPTION_KEY || !process.env.SISTECREDITO_VENDOR_ID) return res.status(200).json({ error: 'sistecredito_unavailable' });
+  const reference = cleanText(req.body && req.body.reference, 100);
+  if (!reference) return res.status(400).json({ error: 'reference requerida' });
+  const order = await getOrderByReference(reference);
+  if (!order) return res.status(404).json({ error: 'order_not_found' });
+  const amount = Number(order.subtotal != null ? order.subtotal : order.total);
+  if (!Number.isFinite(amount) || amount < 1000) return res.status(400).json({ error: 'amount fuera de rango' });
+  try {
+    const { transactionId, redirectUrl } = await createScTransaction(order);
+    try {
+      const sb = serviceClient();
+      const utm = Object.assign({}, order.utm || {}, { sc_txn: transactionId });
+      await sb.from('orders').update({ utm }).eq('id', order.id);
+    } catch {}
+    return res.status(200).json({ url: redirectUrl, reference });
+  } catch (e) {
+    return res.status(502).json({ error: 'sistecredito_error' });
+  }
+}
+
+// Retorno del cliente (?sistecredito=1): consulta el estado (getInfoCredit) y, si está pagado,
+// marca la venta. amount = subtotal del pedido (lo fijamos server-side al crear la transacción).
+async function handleScStatus(req, res) {
+  const reference = cleanText(req.body && req.body.reference, 100);
+  if (!reference) return res.status(400).json({ error: 'missing reference' });
+  const order = await getOrderByReference(reference);
+  if (!order) return res.status(404).json({ error: 'order_not_found' });
+  if (order.status === 'venta') return res.status(200).json({ confirmed: true, status: 'venta' });
+  const txn = order.utm && order.utm.sc_txn;
+  if (!txn) return res.status(200).json({ confirmed: false, status: order.status });
+  let paid = false;
+  try { paid = (await getScInfo(txn)).paid; } catch {}
+  if (paid) {
+    const out = await confirmPaidOrder({ reference, amount: Number(order.subtotal != null ? order.subtotal : order.total), currency: 'COP', req });
+    return res.status(200).json({ confirmed: !!out.ok, status: out.ok ? 'venta' : order.status });
+  }
+  return res.status(200).json({ confirmed: false, status: order.status });
+}
+
+// Webhook (responseUrl): Sistecrédito hace POST con OrderId (entero). En vez de confiar en el
+// payload/JWT, re-consultamos getInfoCredit y confirmamos solo si está pagado (idempotente).
+async function handleScWebhook(req, res) {
+  const d = req.body || {};
+  const oid = parseInt(d.OrderId || d.orderId || (d.data && d.data.OrderId), 10);
+  if (!Number.isFinite(oid)) return res.json({ ok: true, ignored: true, no_ref: true });
+  const sb = serviceClient();
+  const { data: order } = await sb.from('orders').select('*').eq('id', oid).single();
+  if (!order) return res.json({ ok: true, ignored: true, order_not_found: true });
+  const txn = order.utm && order.utm.sc_txn;
+  if (!txn) return res.json({ ok: true, ignored: true, no_txn: true });
+  let paid = false;
+  try { paid = (await getScInfo(txn)).paid; } catch {}
+  if (!paid) return res.json({ ok: true, ignored: true, not_paid: true });
+  const out = await confirmPaidOrder({ reference: order.reference, amount: Number(order.subtotal != null ? order.subtotal : order.total), currency: 'COP', req });
+  return res.json(out);
+}
+
 /* ── RECONCILIACIÓN (cron cada 10 min) ── malla de seguridad bajo los webhooks: toma los
    pedidos Wompi/Bold pendientes con 5+ min de vida y les pregunta DIRECTO a las pasarelas;
    si el pago está aprobado, confirma la venta (idempotente: confirmPaidOrder valida monto y
@@ -295,7 +356,7 @@ async function reconciliarPendientes(req, res) {
   const desde = new Date(Date.now() - 7 * 864e5).toISOString();   // no mirar más de 7 días atrás
   const hasta = new Date(Date.now() - 5 * 60e3).toISOString();    // dejar 5 min al flujo normal
   const { data: pend } = await sb.from('orders').select('*')
-    .eq('status', 'pending').in('pago', ['wompi', 'bold'])
+    .eq('status', 'pending').in('pago', ['wompi', 'bold', 'sistecredito'])
     .gte('created_at', desde).lte('created_at', hasta)
     .order('created_at', { ascending: false }).limit(20);
   const out = [];
@@ -318,6 +379,16 @@ async function reconciliarPendientes(req, res) {
           const c = await confirmPaidOrder({ reference: o.reference, amount: amt, currency: 'COP', req });
           out.push(o.reference + ':' + (c.ok ? 'VENTA' : c.error + (c.paid != null ? '(paid=' + c.paid + ',exp=' + c.expected + ')' : '')));
         } else out.push(o.reference + ':' + (p.status || 'sin_estado'));
+      } else if (o.pago === 'sistecredito') {
+        const txn = o.utm && o.utm.sc_txn;
+        if (!txn) { out.push(o.reference + ':sin_txn'); continue; }
+        if (!process.env.SISTECREDITO_SUBSCRIPTION_KEY) break;
+        let paid = false;
+        try { paid = (await getScInfo(txn)).paid; } catch {}
+        if (paid) {
+          const c = await confirmPaidOrder({ reference: o.reference, amount: Number(o.subtotal != null ? o.subtotal : o.total), currency: 'COP', req });
+          out.push(o.reference + ':' + (c.ok ? 'VENTA' : c.error));
+        } else out.push(o.reference + ':pendiente');
       } else {
         const key = (process.env.WOMPI_PRIVATE_KEY || '').trim();
         if (!key) break;
@@ -345,6 +416,7 @@ module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).end();
   if (req.query && req.query.webhook === 'bold') return handleBoldWebhook(req, res);
   if (req.query && req.query.webhook === 'addi') return handleAddiWebhook(req, res);
+  if (req.query && req.query.webhook === 'sistecredito') return handleScWebhook(req, res);
   if (!okOrigin) return res.status(403).json({ error: 'Forbidden' });
   if (!(await rateLimit(req, res, { scope: 'orders', max: 40, windowMs: 60_000 }))) return;
 
@@ -355,6 +427,8 @@ module.exports = async (req, res) => {
     if (kind === 'bold_status') return handleBoldStatus(req, res);
     if (kind === 'addi_link') return handleAddiLink(req, res);
     if (kind === 'addi_status') return handleAddiStatus(req, res);
+    if (kind === 'sistecredito_link') return handleScLink(req, res);
+    if (kind === 'sistecredito_status') return handleScStatus(req, res);
     if (kind === 'create_order') {
       const order = await createOrder(req.body, req.body.status || 'pending');
       await capiLead(order, req);
