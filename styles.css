@@ -601,6 +601,8 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .xs-wrap{margin-top:13px;border-top:1px dashed #cfe9d8;padding-top:11px}
 .xs-title{font-size:12.5px;font-weight:800;color:var(--ink);margin-bottom:9px}
 .xs-row{display:flex;gap:9px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px;scroll-snap-type:x proximity}
+/* Escritorio: el cross-sell (carrito + ficha) se acomoda en FILAS (sin scroll horizontal, que con mouse no se puede mover) */
+@media(min-width:700px){.xs-row,.pmx-row{flex-wrap:wrap;overflow-x:visible}}
 .xs-row::-webkit-scrollbar{height:4px}
 .xs-row::-webkit-scrollbar-thumb{background:#cfe9d8;border-radius:4px}
 .xs-card{flex:0 0 108px;scroll-snap-align:start;background:#fff;border:1px solid var(--line);border-radius:12px;padding:7px;font-family:var(--font);text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:3px}
