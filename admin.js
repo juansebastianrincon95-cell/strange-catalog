@@ -439,6 +439,10 @@ async function loadOrders(){
 }
 
 function _showAdmin(){
+  // Auto-modo-prueba: al entrar al panel, este navegador queda en modo prueba (banner visible).
+  // Así todo lo que pruebes desde aquí se marca `test` y no se mezcla con datos reales.
+  // Se apaga con ?test=off o desde el banner.
+  if(typeof setTestMode==='function'&&!window.__TEST__)setTestMode(true);
   loadCosts().then(()=>{if(avSec==='productos'||avSec==='ofertas')avSec==='ofertas'?renderLiqAdmin():renderAdmin();});
   renderAdmin();
   const swP=$('swPromo');if(swP)swP.checked=promoG;
@@ -1419,11 +1423,16 @@ function renderLeadsTab(){
   }
   // Recorrido: actividad de las sesiones de los pedidos visibles (batch, re-pinta al llegar).
   loadActivity(orders.map(o=>o.session_id)).then(ok=>{if(ok&&avSec==='leads')renderLeadsTab();});
-  const nPend=orders.filter(o=>!_isClasificado(o)&&o.status!=='abandoned').length;
-  const nVta =orders.filter(o=>o.status==='venta').length;
-  const nNo  =orders.filter(o=>o.status==='no_venta').length;
-  const nAban=orders.filter(o=>o.status==='abandoned').length;
-  const lista=orders.filter(o=>leadFilter==='all'?true:leadFilter==='pending'?(!_isClasificado(o)&&o.status!=='abandoned'):o.status===leadFilter);
+  // Pedidos de prueba (modo prueba) van aparte: no cuentan en los filtros normales ni en "Todos";
+  // solo aparecen bajo el filtro 🧪 y se borran en bloque.
+  const esTest=o=>!!(o.utm&&o.utm.test);
+  const reales=orders.filter(o=>!esTest(o));
+  const nPend=reales.filter(o=>!_isClasificado(o)&&o.status!=='abandoned').length;
+  const nVta =reales.filter(o=>o.status==='venta').length;
+  const nNo  =reales.filter(o=>o.status==='no_venta').length;
+  const nAban=reales.filter(o=>o.status==='abandoned').length;
+  const nTest=orders.filter(esTest).length;
+  const lista=leadFilter==='test'?orders.filter(esTest):reales.filter(o=>leadFilter==='all'?true:leadFilter==='pending'?(!_isClasificado(o)&&o.status!=='abandoned'):o.status===leadFilter);
   const chip=(f,txt,n,col)=>`<button onclick="setLeadFilter('${f}')" style="flex:1;padding:7px 4px;border:none;border-radius:9px;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;background:${leadFilter===f?col:'#F2F1EE'};color:${leadFilter===f?'#fff':'#6B6B67'}">${txt} ${n}</button>`;
   const pagoLabels={contra_entrega:'Contra entrega',pago_anticipado:'Pago anticipado',wompi:'Wompi',bold:'Bold',credito:'Crédito (Addi/Sistecrédito)',nequi:'Nequi',bancolombia:'Bancolombia',addi:'Addi',sistecredito:'Sistecrédito'};
   const itemsTxt=o=>Array.isArray(o.items)?o.items.map(it=>`${escHtml(it.label||'?')}${it.qty?` x${parseInt(it.qty)||1}`:''}`).join(', '):'';
@@ -1434,8 +1443,8 @@ function renderLeadsTab(){
   const cardLead=o=>`
       <div style="background:var(--bg);border-radius:12px;padding:12px 14px;margin-bottom:8px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <span style="font-size:14px;font-weight:700">${escHtml(o.nombre||'Sin nombre')}</span>
-          ${badge(o)}
+          <span style="font-size:14px;font-weight:700">${esTest(o)?'🧪 ':''}${escHtml(o.nombre||'Sin nombre')}</span>
+          ${esTest(o)?`<span style="background:#b91c1c;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px">🧪 PRUEBA</span>`:badge(o)}
         </div>
         <div style="font-size:12px;color:var(--ink2);line-height:1.6">
           ${o.tel?`📱 <a href="https://wa.me/57${String(o.tel).replace(/\D/g,'').slice(-10)}" target="_blank" style="color:var(--blue);text-decoration:none">${escHtml(o.tel)}</a><br>`:''}
@@ -1458,11 +1467,13 @@ function renderLeadsTab(){
         <div style="display:flex;gap:6px;margin-top:9px">
           <button onclick="updateOrderStatus(${o.id},'venta')" style="flex:1;padding:9px;border:none;border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;background:${o.status==='venta'?'#1BA94C':'#E7F6EC'};color:${o.status==='venta'?'#fff':'#1BA94C'}">✓ Venta</button>
           <button onclick="updateOrderStatus(${o.id},'no_venta')" style="flex:1;padding:9px;border:none;border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;background:${o.status==='no_venta'?'#E8200A':'#FDEAE8'};color:${o.status==='no_venta'?'#fff':'#E8200A'}">✕ No venta</button>
+          <button onclick="deleteOrder(${o.id})" title="Borrar pedido" style="flex:0 0 auto;padding:9px 12px;border:1px solid var(--line);border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;background:var(--white);color:#E8200A">🗑</button>
         </div>
       </div>`;
   el.innerHTML=`<div style="display:flex;gap:5px;padding:12px 14px 8px;flex-wrap:wrap">
-      ${chip('pending','⏳',nPend,'#F2A900')}${chip('venta','✓',nVta,'#1BA94C')}${chip('no_venta','✕',nNo,'#E8200A')}${chip('abandoned','🛒',nAban,'#8A6D00')}${chip('all','Todos',orders.length,'#0E0E0C')}
+      ${chip('pending','⏳',nPend,'#F2A900')}${chip('venta','✓',nVta,'#1BA94C')}${chip('no_venta','✕',nNo,'#E8200A')}${chip('abandoned','🛒',nAban,'#8A6D00')}${chip('all','Todos',reales.length,'#0E0E0C')}${nTest?chip('test','🧪',nTest,'#b91c1c'):''}
     </div>
+    ${(leadFilter==='test'&&nTest)?`<div style="padding:0 14px 8px"><button onclick="deleteAllTests()" style="width:100%;padding:10px;border:none;border-radius:10px;background:#b91c1c;color:#fff;font-family:var(--font);font-size:12.5px;font-weight:700;cursor:pointer">🗑 Borrar todas las pruebas (${nTest})</button></div>`:''}
     <div style="padding:0 14px">${_vistaChips(leadVista,'setLeadVista')}</div>
     <div style="overflow-y:auto;flex:1;min-height:0;padding:0 14px 16px">
     ${lista.length?_renderGrupos(lista,leadVista,cardLead,'lead','var(--bg)'):`<div style="padding:24px;text-align:center;color:var(--ink3);font-size:12px">No hay leads en esta categoría.</div>`}
@@ -1486,6 +1497,29 @@ async function updateOrderStatus(id,status){
   const prev=o.status;o.status=status;renderLeadsTab();
   try{await adminWrite('update_order',{id,data:{status}});}
   catch(e){o.status=prev;renderLeadsTab();alert('No se pudo guardar: '+e.message);}
+}
+
+async function deleteOrder(id){
+  const o=orders.find(x=>x.id===id);
+  if(!confirm('¿Borrar este pedido definitivamente?'+(o?'\n\n'+(o.nombre||'Sin nombre')+' · '+fmt(o.total||0):'')))return;
+  try{
+    await adminWrite('delete_order',{id});
+    orders=orders.filter(x=>x.id!==id);
+    renderLeadsTab();
+  }catch(e){alert('No se pudo borrar: '+e.message);}
+}
+
+async function deleteAllTests(){
+  const n=orders.filter(o=>o.utm&&o.utm.test).length;
+  if(!n){alert('No hay pedidos de prueba.');return;}
+  if(!confirm('¿Borrar TODOS los '+n+' pedidos de prueba?\nEsto no se puede deshacer.'))return;
+  try{
+    const r=await adminWrite('delete_test_orders',{});
+    orders=orders.filter(o=>!(o.utm&&o.utm.test));
+    if(leadFilter==='test')leadFilter='pending';
+    renderLeadsTab();
+    alert('✅ Borrados '+((r&&r.deleted!=null)?r.deleted:n)+' pedidos de prueba.');
+  }catch(e){alert('No se pudo borrar: '+e.message);}
 }
 
 function cycleLeadField(id,campo){

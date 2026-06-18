@@ -110,7 +110,7 @@ module.exports = async (req, res) => {
           .eq('status', 'venta').order('created_at', { ascending: true }).limit(5000),
         sbSvc.from('product_costs').select('ptype,pid,costo')
       ]);
-      todas = v.data || [];
+      todas = (v.data || []).filter(o => !(o.utm && o.utm.test));   // excluir ventas de prueba del dashboard
       truncadoVentas = todas.length === 5000;
       (c.data || []).forEach(r => { costos[`${r.ptype}:${r.pid}`] = r.costo; });
     }

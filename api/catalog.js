@@ -44,7 +44,7 @@ module.exports = async (req, res) => {
   const has360 = arr => { try { return JSON.parse(arr || '[]').length >= 2; } catch { return false; } };
   const stripPrivate = p => ({ ...p, imgs_360: undefined, has_360: has360(p.imgs_360) });
 
-  const allOrders = orders || [];
+  const allOrders = (orders || []).filter(o => !(o.utm && o.utm.test));   // excluir pedidos de prueba de TODAS las métricas
   const now = Date.now();
   const thirtyDays = allOrders.filter(o => now - new Date(o.created_at) < 30 * 24 * 3600 * 1000);
 

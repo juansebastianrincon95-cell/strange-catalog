@@ -1,8 +1,36 @@
 /* ═══ TRACKING ═══ Meta Pixel (px/trackEvent) + captura de UTM/fbclid/contexto.
    Carga después de base; antes que la tienda (todo lo demás lo usa). ═══ */
 
+/* ── MODO PRUEBA ── Cuando está activo (se enciende solo al entrar al panel admin, o con ?test),
+   NO se dispara Pixel/Clarity/analytics ni CAPI/Telegram, y los pedidos se marcan `test` →
+   quedan fuera de las métricas y se pueden borrar en bloque. Se apaga con ?test=off. */
+(function(){
+  try{
+    var p=new URLSearchParams(location.search);
+    if(p.has('test')){ var v=p.get('test'); if(v==='off'||v==='0'){localStorage.removeItem('ss_test');}else{localStorage.setItem('ss_test','1');} }
+  }catch(e){}
+  try{ window.__TEST__=localStorage.getItem('ss_test')==='1'; }catch(e){ window.__TEST__=false; }
+})();
+function setTestMode(on){
+  try{ if(on)localStorage.setItem('ss_test','1'); else localStorage.removeItem('ss_test'); }catch(e){}
+  window.__TEST__=!!on; updateTestBanner();
+}
+function updateTestBanner(){
+  var b=document.getElementById('testBanner');
+  if(window.__TEST__){
+    if(!b){
+      b=document.createElement('div'); b.id='testBanner';
+      b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#b91c1c;color:#fff;font:700 12.5px system-ui,Arial;text-align:center;padding:7px 12px;letter-spacing:.3px;box-shadow:0 2px 8px rgba(0,0,0,.25)';
+      b.innerHTML='🧪 MODO PRUEBA — nada cuenta como venta real &nbsp;·&nbsp; <a href="?test=off" style="color:#fff;text-decoration:underline">Salir</a>';
+      (document.body||document.documentElement).appendChild(b);
+    }
+  } else if(b){ b.remove(); }
+}
+if(document.readyState!=='loading')updateTestBanner(); else document.addEventListener('DOMContentLoaded',updateTestBanner);
+
 /* ── META PIXEL ── */
 function initPixel(){
+  if(window.__TEST__)return;                      // modo prueba: no cargar el Pixel ni disparar PageView
   if(!PIXEL_ID||window._pixelLoaded)return;
   window._pixelLoaded=true;
   !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
@@ -17,6 +45,7 @@ function initPixel(){
 }
 
 function _injectClarity(id){
+  if(window.__TEST__)return;                        // modo prueba: no grabar sesiones en Clarity
   if(document.getElementById('clarity-script'))return;
   const s=document.createElement('script');
   s.id='clarity-script';
@@ -26,6 +55,7 @@ function _injectClarity(id){
 }
 
 function px(event,params,eid){
+  if(window.__TEST__)return;                       // modo prueba: no enviar eventos a Meta
   if(typeof fbq==='function')fbq('track',event,params||{},{eventID:eid||SESSION_ID+'_'+event});
 }
 
@@ -34,6 +64,7 @@ function px(event,params,eid){
 function pxId(type,id){return (type==='liq'?'liq_':'cat_')+String(id).replace(/^L/i,'');}
 
 function trackEvent(type,extra={}){
+  if(window.__TEST__)return;                       // modo prueba: no registrar analytics/funnel
   const utm=getUTM();
   const ctx=getVisitCtx();
   // Atribución completa: cada evento del funnel lleva campaña/conjunto/anuncio + landing/device.

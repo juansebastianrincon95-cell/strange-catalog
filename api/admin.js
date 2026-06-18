@@ -97,7 +97,7 @@ module.exports = async (req, res) => {
     // ({reference}_purchase) → Meta dedup aunque el Purchase llegue por los 3 caminos.
     // content_ids en formato del feed (cat_/liq_) para asociarlo al catálogo (FASE M).
     // Nota: IP/UA NO se envían aquí (serían los del vendedor, no del cliente); sí fbp/fbc del pedido.
-    if (status === 'venta' && order && order.status !== 'venta') {
+    if (status === 'venta' && order && order.status !== 'venta' && !(order.utm && order.utm.test)) {
       const utm = order.utm || {};
       // await (Codex #8) + fallback UNIFICADO con _orders.js y el navegador (Codex se quedó
       // corto: su fallback era order_{id} mientras los otros 2 caminos usan {id} → las 8
@@ -114,6 +114,26 @@ module.exports = async (req, res) => {
       }).catch(() => {});
     }
     return res.json({ ok: true });
+  }
+
+  // Borrar un pedido por id (para limpiar basura/pruebas viejas desde el panel Leads).
+  if (action === 'delete_order') {
+    if (!id) return res.status(400).json({ error: 'id required' });
+    const { error } = await sb.from('orders').delete().eq('id', id);
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json({ ok: true });
+  }
+
+  // Borrar EN BLOQUE todos los pedidos marcados de prueba (utm.test = true). Se filtra en JS
+  // (no con el operador jsonb en la query) para evitar sorpresas de sintaxis y ser a prueba de balas.
+  if (action === 'delete_test_orders') {
+    const { data: rows, error: selErr } = await sb.from('orders').select('id,utm');
+    if (selErr) return res.status(500).json({ error: selErr.message });
+    const ids = (rows || []).filter(o => o.utm && o.utm.test === true).map(o => o.id);
+    if (!ids.length) return res.json({ ok: true, deleted: 0 });
+    const { error } = await sb.from('orders').delete().in('id', ids);
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json({ ok: true, deleted: ids.length });
   }
 
   // Costos de adquisición (tabla product_costs, solo service_role — el costo NUNCA es público)

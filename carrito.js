@@ -424,7 +424,7 @@ function captureLead(d){
   const lead={
     id:Date.now(),fecha:new Date().toISOString(),
     items:cartItems(rows),
-    subtotal:sub,envio:0,total:sub,pares:totalPares,pago:null,status:'abandoned',session_id:SESSION_ID,
+    subtotal:sub,envio:0,total:sub,pares:totalPares,pago:null,status:'abandoned',session_id:SESSION_ID,test:!!window.__TEST__,
     combo:pricing.combo?pricing.combo.id:null,
     nombre:d.nombre,cedula:d.cedula,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,direccion:d.direccion,
     utm:{...getUTM(),...getFbAttribution(),...getVisitCtx()},referrer:getReferrer(),seccion:gSel
@@ -498,7 +498,7 @@ async function enviarWA(tipo){
   const orderObj={
     id:Date.now(),fecha:new Date().toISOString(),
     items:cartItems(rows),
-    subtotal:sub,envio:flete,total:tot,pares:totalPares,pago:tipo,session_id:SESSION_ID,cupon:cuponAplicado||null,
+    subtotal:sub,envio:flete,total:tot,pares:totalPares,pago:tipo,session_id:SESSION_ID,test:!!window.__TEST__,cupon:cuponAplicado||null,
     combo:pricing.combo?pricing.combo.id:null,
     nombre:d.nombre,cedula:d.cedula,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,direccion:d.direccion,
     utm:{...getUTM(),...getFbAttribution(),...getVisitCtx()},referrer:getReferrer(),seccion:gSel
@@ -542,7 +542,7 @@ async function pagarWompi(){
   const wOrder={
     id:Date.now(),fecha:new Date().toISOString(),
     items:cartItems(rows),
-    subtotal:tot,envio:0,total:tot,pares:totalPares,pago:'wompi',status:'pending',session_id:SESSION_ID,cupon:cuponAplicado||null,
+    subtotal:tot,envio:0,total:tot,pares:totalPares,pago:'wompi',status:'pending',session_id:SESSION_ID,test:!!window.__TEST__,cupon:cuponAplicado||null,
     combo:pricing.combo?pricing.combo.id:null,
     nombre:d.nombre,cedula:d.cedula,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,direccion:d.direccion,
     reference,utm:{...getUTM(),...getFbAttribution(),...getVisitCtx()},referrer:getReferrer(),seccion:gSel
@@ -647,7 +647,7 @@ async function pagarBold(){
   const bOrder={
     id:Date.now(),fecha:new Date().toISOString(),
     items:cartItems(rows),
-    subtotal:tot,envio:0,total:tot,pares:totalPares,pago:'bold',status:'pending',session_id:SESSION_ID,cupon:cuponAplicado||null,
+    subtotal:tot,envio:0,total:tot,pares:totalPares,pago:'bold',status:'pending',session_id:SESSION_ID,test:!!window.__TEST__,cupon:cuponAplicado||null,
     combo:pricing.combo?pricing.combo.id:null,
     nombre:d.nombre,cedula:d.cedula,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,direccion:d.direccion,
     reference,utm:{...getUTM(),...getFbAttribution(),...getVisitCtx()},referrer:getReferrer(),seccion:gSel
@@ -730,7 +730,7 @@ async function pagarAddi(){
   const aOrder={
     id:Date.now(),fecha:new Date().toISOString(),
     items:cartItems(rows),
-    subtotal:tot,envio:0,total:tot,pares:totalPares,pago:'addi',status:'pending',session_id:SESSION_ID,cupon:cuponAplicado||null,
+    subtotal:tot,envio:0,total:tot,pares:totalPares,pago:'addi',status:'pending',session_id:SESSION_ID,test:!!window.__TEST__,cupon:cuponAplicado||null,
     combo:pricing.combo?pricing.combo.id:null,
     nombre:d.nombre,cedula:d.cedula,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,direccion:d.direccion,
     reference,utm:{...getUTM(),...getFbAttribution(),...getVisitCtx(),email:d.email},referrer:getReferrer(),seccion:gSel
@@ -815,7 +815,7 @@ async function pagarSistecredito(){
   const sOrder={
     id:Date.now(),fecha:new Date().toISOString(),
     items:cartItems(rows),
-    subtotal:tot,envio:0,total:tot,pares:totalPares,pago:'sistecredito',status:'pending',session_id:SESSION_ID,cupon:cuponAplicado||null,
+    subtotal:tot,envio:0,total:tot,pares:totalPares,pago:'sistecredito',status:'pending',session_id:SESSION_ID,test:!!window.__TEST__,cupon:cuponAplicado||null,
     combo:pricing.combo?pricing.combo.id:null,
     nombre:d.nombre,cedula:d.cedula,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,direccion:d.direccion,
     reference,utm:{...getUTM(),...getFbAttribution(),...getVisitCtx()},referrer:getReferrer(),seccion:gSel

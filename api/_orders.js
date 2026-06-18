@@ -146,6 +146,9 @@ async function createOrder(input, defaultStatus = 'pending') {
     seccion: cleanText(input.seccion, 20),
     session_id: cleanText(input.session_id, 64)
   };
+  // Modo prueba: marca el pedido en utm (jsonb, sin migración). Queda fuera de métricas, no
+  // dispara Meta/CAPI/Telegram, y se puede borrar en bloque desde el panel.
+  if (input.test === true) row.utm = Object.assign({}, row.utm || {}, { test: true });
   if (row.status !== 'abandoned' && row.session_id) {
     await sb.from('orders').delete().eq('session_id', row.session_id).eq('status', 'abandoned');
   }
@@ -204,6 +207,9 @@ async function confirmPaidOrder({ reference, amount, amountInCents, currency = '
     const { error } = await sb.from('orders').update({ status: 'venta' }).eq('id', order.id);
     if (error) return { ok: false, error: error.message };
     const utm = order.utm || {};
+    // Pedido de prueba: queda marcado 'venta' (para completar el flujo) pero SIN enviar Purchase
+    // a Meta/CAPI ni notificar por Telegram.
+    if (utm.test) return { ok: true, order: { ...order, status: 'venta' } };
     const clientIp = req ? String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || undefined : undefined;
     // await (Codex #8): en serverless el fire-and-forget puede morir al responder.
     await sendEvent({

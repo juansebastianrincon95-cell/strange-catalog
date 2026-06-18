@@ -12,6 +12,7 @@ const { createScTransaction, getScInfo } = require('./_sistecredito');
    garantiza que un fallo de Meta jamás rompa el checkout. */
 function capiLead(order, req) {
   if (!order || order.status === 'abandoned' || !order.tel || !order.session_id) return Promise.resolve();
+  if (order.utm && order.utm.test) return Promise.resolve();   // modo prueba: no enviar Lead a Meta
   const utm = order.utm || {};
   return sendEvent({
     eventName: 'Lead',
