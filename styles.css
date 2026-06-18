@@ -601,8 +601,13 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .xs-wrap{margin-top:13px;border-top:1px dashed #cfe9d8;padding-top:11px}
 .xs-title{font-size:12.5px;font-weight:800;color:var(--ink);margin-bottom:9px}
 .xs-row{display:flex;gap:9px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px;scroll-snap-type:x proximity}
-/* Escritorio: el cross-sell (carrito + ficha) se acomoda en FILAS (sin scroll horizontal, que con mouse no se puede mover) */
-@media(min-width:700px){.xs-row,.pmx-row{flex-wrap:wrap;overflow-x:visible}}
+/* Cross-sell (carrito + ficha): carrusel horizontal con flechas ‹ › en ESCRITORIO (en móvil = swipe). */
+.crsl{position:relative}
+.crsl-a{position:absolute;top:42%;transform:translateY(-50%);z-index:2;width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.96);color:var(--ink);font-size:18px;line-height:1;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.16)}
+.crsl-a.prev{left:2px}
+.crsl-a.next{right:2px}
+.crsl-a:hover{background:#fff}
+@media(min-width:700px){.crsl.crsl-on .crsl-a{display:flex}}
 .xs-row::-webkit-scrollbar{height:4px}
 .xs-row::-webkit-scrollbar-thumb{background:#cfe9d8;border-radius:4px}
 .xs-card{flex:0 0 108px;scroll-snap-align:start;background:#fff;border:1px solid var(--line);border-radius:12px;padding:7px;font-family:var(--font);text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:3px}

@@ -853,6 +853,22 @@ function genDescripcion(p,type){
 
 let pmReviewN=0;
 
+// ── CARRUSEL del cross-sell (carrito + ficha): flechas ‹ › en escritorio; en móvil = swipe ──
+function crslWrap(rowHtml){
+  return `<div class="crsl"><button class="crsl-a prev" onclick="crslScroll(this,-1)" aria-label="Anterior">‹</button>${rowHtml}<button class="crsl-a next" onclick="crslScroll(this,1)" aria-label="Siguiente">›</button></div>`;
+}
+function crslScroll(btn,dir){
+  const row=btn.parentElement.querySelector('.xs-row,.pmx-row');
+  if(row)row.scrollBy({left:dir*Math.max(row.clientWidth*0.8,180),behavior:'smooth'});
+}
+function crslUpd(){   // muestra las flechas solo si la fila se desborda (hay más fotos que las visibles)
+  document.querySelectorAll('.crsl').forEach(c=>{
+    const row=c.querySelector('.xs-row,.pmx-row');
+    c.classList.toggle('crsl-on',!!row&&row.scrollWidth>row.clientWidth+4);
+  });
+}
+window.addEventListener('resize',()=>{try{crslUpd();}catch(e){}});
+
 // ── "También te puede gustar" — cross-sell en la ficha (mezcla: marca+género, rellena con más vistos) ──
 function fichaSugeridos(p,type){
   const pool=(prods||[]).filter(x=>x&&!x.sold&&!(type==='cat'&&x.id===p.id));
@@ -873,12 +889,13 @@ function renderPmCross(p,type){
   const sug=fichaSugeridos(p,type);
   if(!sug.length){box.style.display='none';box.innerHTML='';return;}
   box.style.display='';
-  box.innerHTML=`<div class="pmx-t">También te puede gustar</div><div class="pmx-row">`+
-    sug.map(s=>{
-      const m=s.img?`<img src="${s.img}" alt="${altProd(s)}" loading="lazy">`:`<span style="font-size:20px">👟</span>`;
-      const nom=s.modelo||(BRAND_LABELS[s.brand]||'')||(s.g==='h'?'Hombre':'Mujer');
-      return `<button class="xs-card" onclick="openPhoto(${s.id},'cat')"><div class="xs-img">${m}</div><div class="xs-nom">${escHtml(nom)}</div><div class="xs-precio">${fmt(s.price)}</div></button>`;
-    }).join('')+`</div>`;
+  const cards=sug.map(s=>{
+    const m=s.img?`<img src="${s.img}" alt="${altProd(s)}" loading="lazy">`:`<span style="font-size:20px">👟</span>`;
+    const nom=s.modelo||(BRAND_LABELS[s.brand]||'')||(s.g==='h'?'Hombre':'Mujer');
+    return `<button class="xs-card" onclick="openPhoto(${s.id},'cat')"><div class="xs-img">${m}</div><div class="xs-nom">${escHtml(nom)}</div><div class="xs-precio">${fmt(s.price)}</div></button>`;
+  }).join('');
+  box.innerHTML=`<div class="pmx-t">También te puede gustar</div>`+crslWrap(`<div class="pmx-row">${cards}</div>`);
+  crslUpd();
 }
 function renderFichaReviews(){
   const c=$('pmRevList');if(!c)return;

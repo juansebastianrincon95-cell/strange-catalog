@@ -154,7 +154,7 @@ function crossSellHTML(rows){
       <div class="xs-precio">${fmt(p.price)}</div>
       <div class="xs-add">+ Escoger talla</div></button>`;
   }).join('');
-  return `<div class="xs-wrap"><div class="xs-title">Completa tu combo 👇</div><div class="xs-row">${cards}</div></div>`;
+  return `<div class="xs-wrap"><div class="xs-title">Completa tu combo 👇</div>${crslWrap(`<div class="xs-row">${cards}</div>`)}</div>`;
 }
 
 function salirCombo(){
@@ -381,6 +381,7 @@ function rCart(){
   const gift=`<div class="cart-line cart-regalo" style="margin-top:12px"><span class="cl-ic">🎁</span><span>Incluye <b>guía de cuidado</b> + <b>5%</b> en tu próximo par</span></div>`;
   // Orden: mensajes → productos → escalera de ahorro → aviso combo → resumen → camiseta → código → regalo
   body.innerHTML=msgs+body.innerHTML+escalera+comboAviso+summary+camisetaHtml+cupHtml+gift;
+  crslUpd();   // muestra las flechas del carrusel si la tira de cross-sell se desborda
   foot.innerHTML=`<button class="btnmain" onclick="goStep(1)">Ir a pagar &nbsp;→</button>`;
 }
 
