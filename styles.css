@@ -154,6 +154,10 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .secbar{display:flex;align-items:center;justify-content:space-between;padding:0 14px 10px;background:var(--bg)}
 .secn{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3)}
 .seccn{font-size:11px;color:var(--ink3)}
+.secright{display:flex;align-items:center;gap:10px;min-width:0}
+.catsort{flex:0 0 auto;max-width:180px;border:1px solid var(--line);background:var(--white);border-radius:10px;padding:7px 10px;font-family:var(--font);font-size:14px;color:var(--ink);cursor:pointer;outline:none}
+.catsort:focus{border-color:var(--ink)}
+@media(max-width:600px){.catsort{font-size:16px;max-width:150px;padding:8px 10px}}
 
 /* GRID */
 .catsearch{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--white);border-bottom:1px solid var(--line)}

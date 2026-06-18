@@ -233,7 +233,16 @@
   <div class="brandbar" id="brandbar"></div>
   <div class="secbar">
     <span class="secn" id="secName">Todos</span>
-    <span class="seccn" id="secCt"></span>
+    <div class="secright">
+      <span class="seccn" id="secCt"></span>
+      <select id="catSort" class="catsort" aria-label="Ordenar por" onchange="setSort(this.value)">
+        <option value="">Relevancia</option>
+        <option value="price_asc">Precio: menor a mayor</option>
+        <option value="price_desc">Precio: mayor a menor</option>
+        <option value="new">Más nuevos</option>
+        <option value="views">Más vistos</option>
+      </select>
+    </div>
   </div>
 
   <div class="grid" id="grid"></div>

@@ -250,6 +250,7 @@ function colCTA(g){ openCatalog({gender: g==='m'?'m' : g==='h'?'h' : 'all'}); }
 function openCatalog(opts){
   opts=opts||{};
   _searchQ='';{const _si=$('catSearchInput');if(_si)_si.value='';const _sx=$('catSearchX');if(_sx)_sx.style.display='none';}
+  _sortBy='';{const _so=$('catSort');if(_so)_so.value='';}
   const v=$('catView');if(!v)return;
   v.classList.add('on');lockScroll();
   const tabs=document.querySelectorAll('#catView .tabs .tab');
@@ -275,6 +276,10 @@ function openCatalog(opts){
 }
 
 function closeCatalog(){if(!_navPopping)navRemove('cat');const v=$('catView');if(v)v.classList.remove('on');unlockScroll();}
+
+/* ── ORDENAR POR (catálogo) ── '' = relevancia (orden actual), price_asc, price_desc, new, views ── */
+let _sortBy='';
+function setSort(v){_sortBy=v;if(typeof renderGrid==='function')renderGrid();}
 
 /* ── BUSCADOR de productos (filtra por modelo/marca dentro del catálogo) ── */
 let _searchQ='';
@@ -657,6 +662,14 @@ function renderGrid(){
   let items=gSel==='all'?prods:prods.filter(p=>p.g===gSel);
   if(brandSel!=='all')items=items.filter(p=>p.brand===brandSel);
   if(_searchQ)items=items.filter(p=>((p.modelo||'')+' '+brandLabel(p.brand)).toLowerCase().includes(_searchQ));
+  // Ordenar sobre una COPIA (cuando gSel==='all', items === prods por referencia: nunca ordenar in-place).
+  if(_sortBy){
+    items=items.slice();
+    if(_sortBy==='price_asc')items.sort((a,b)=>a.price-b.price);
+    else if(_sortBy==='price_desc')items.sort((a,b)=>b.price-a.price);
+    else if(_sortBy==='new')items.sort((a,b)=>b.id-a.id);
+    else if(_sortBy==='views')items.sort((a,b)=>(_views[String(b.id)]||0)-(_views[String(a.id)]||0));
+  }
   $('statN').textContent=prods.length;
   $('secName').textContent=(gSel==='all'?'Todos':gSel==='h'?'Hombre':'Mujer')+(brandSel!=='all'?' · '+brandLabel(brandSel):'');
   $('secCt').textContent=items.length+' modelos';
