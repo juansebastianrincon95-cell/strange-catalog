@@ -157,75 +157,74 @@ function renderFeatured(){
   const sec=$('lanz'),row=$('lanzRow');if(!row)return;
   computeBadges();
   const items=featuredIds.map(id=>prods.find(p=>p.id===id)).filter(p=>p&&!p.sold);
-  if(!items.length){if(sec)sec.style.display='none';row.innerHTML='';lanzAutoStop();return;}
+  if(!items.length){if(sec)sec.style.display='none';row.innerHTML='';carAutoStop(row);return;}
   if(sec)sec.style.display='';
   row.innerHTML=items.map((p,i)=>cardHTML(p,i,'kl',true)).join('');
-  lanzSetup();
+  row._prevBtn=$('lanzPrev');row._nextBtn=$('lanzNext');
+  carSetup(row);
 }
 
-/* Carrusel de lanzamientos: giro CIRCULAR real (360°) en ambas direcciones con burbujas ‹ ›
-   + auto-rotación cada 4s. Técnica de CLONES: se duplican tarjetas en los extremos y, cuando el
-   snap reposa en zona clonada, se salta instantáneo a la tarjeta real equivalente (el layout es
-   uniforme → imperceptible). Si las tarjetas caben sin desborde: fila centrada, sin burbujas ni timer. */
-let _lanzTimer=null,_lanzL=0,_lanzHome=0,_lanzWrapAt=0;
+/* ── CARRUSEL REUSABLE ── giro CIRCULAR real (clones) + auto-rotación cada 4s. Lo usan
+   "Últimos lanzamientos" Y las filas de Colección Mujer/Hombre — todas con el MISMO motor y tamaño.
+   Estado por-fila en row._car (varios carruseles independientes). Flechas opcionales en
+   row._prevBtn / row._nextBtn. Técnica de CLONES: se duplican tarjetas en los extremos y, cuando el
+   snap reposa en zona clonada, se salta instantáneo a la equivalente real (layout uniforme → imperceptible). */
+function carStep(row){const c=row&&row.querySelector('.card');return c?c.getBoundingClientRect().width+(parseFloat(getComputedStyle(row).columnGap)||10):220;}
+function carOverflow(row){return !!row&&row.scrollWidth>row.clientWidth+4;}
 
-function lanzOverflow(){const r=$('lanzRow');return r&&r.scrollWidth>r.clientWidth+4;}
-
-function lanzSetup(){
-  const row=$('lanzRow');if(!row)return;
-  row.querySelectorAll('.lanz-clone').forEach(c=>c.remove()); // idempotente (resize re-ejecuta)
-  _lanzL=0;
+function carSetup(row){
+  if(!row)return;
+  row.querySelectorAll('.lanz-clone').forEach(c=>c.remove());   // idempotente (resize re-ejecuta)
+  const st=row._car||(row._car={timer:null,L:0,home:0,wrapAt:0});
+  st.L=0;
   const reales=[...row.querySelectorAll('.card')];
-  const ov=lanzOverflow(); // medir SOLO con tarjetas reales
+  const ov=carOverflow(row);
   row.classList.toggle('centered',!ov);
-  const pv=$('lanzPrev'),nx=$('lanzNext');
-  if(pv)pv.classList.toggle('show',ov);
-  if(nx)nx.classList.toggle('show',ov);
-  lanzAutoStop();
+  if(row._prevBtn)row._prevBtn.classList.toggle('show',ov);
+  if(row._nextBtn)row._nextBtn.classList.toggle('show',ov);
+  carAutoStop(row);
   if(!ov)return;
-  // Clones a cada lado: suficientes para llenar un viewport (los ids se quitan para no duplicar
-  // los de las tarjetas reales 'kl'; el onclick inline de abrir la ficha se conserva en la copia)
-  const M=reales.length,P=Math.min(M,Math.ceil(row.clientWidth/lanzStep()));
+  const M=reales.length,P=Math.min(M,Math.ceil(row.clientWidth/carStep(row)));
   const clon=c=>{const k=c.cloneNode(true);k.classList.add('lanz-clone');k.removeAttribute('id');k.querySelectorAll('[id]').forEach(e=>e.removeAttribute('id'));return k;};
   for(let i=0;i<P;i++){
-    row.insertBefore(clon(reales[M-P+i]),row.children[i]); // últimos P al frente (en orden)
-    row.appendChild(clon(reales[i]));                      // primeros P al final
+    row.insertBefore(clon(reales[M-P+i]),row.children[i]);   // últimos P al frente (en orden)
+    row.appendChild(clon(reales[i]));                        // primeros P al final
   }
-  const apFirst=row.children[P+M];           // primer clon del bloque final
-  _lanzHome=reales[0].offsetLeft;            // reposo de la 1ª tarjeta real
-  _lanzWrapAt=apFirst.offsetLeft;            // desde aquí solo se ven clones del final
-  _lanzL=apFirst.offsetLeft-reales[0].offsetLeft; // ancho exacto del bloque real
-  row.scrollLeft=_lanzHome;                  // arrancar en la 1ª real (instantáneo)
-  if(!row._lanzPause){ // listeners una sola vez por elemento
-    row._lanzPause=true;
-    // pausa al tocar/agarrar; reanuda a los 6s
-    row.addEventListener('pointerdown',()=>{lanzAutoStop();clearTimeout(row._lanzRe);row._lanzRe=setTimeout(()=>{if(lanzOverflow())lanzAutoStart();},6000);},{passive:true});
-    // al asentarse el scroll (botón, auto-giro o swipe con momentum) corregir la vuelta circular
-    row.addEventListener('scroll',()=>{clearTimeout(row._lanzFix);row._lanzFix=setTimeout(lanzLoopFix,120);},{passive:true});
+  const apFirst=row.children[P+M];
+  st.home=reales[0].offsetLeft;
+  st.wrapAt=apFirst.offsetLeft;
+  st.L=apFirst.offsetLeft-reales[0].offsetLeft;
+  row.scrollLeft=st.home;
+  if(!row._carPause){   // listeners una sola vez por elemento
+    row._carPause=true;
+    row.addEventListener('pointerdown',()=>{carAutoStop(row);clearTimeout(row._carRe);row._carRe=setTimeout(()=>{if(carOverflow(row))carAutoStart(row);},6000);},{passive:true});
+    row.addEventListener('scroll',()=>{clearTimeout(row._carFix);row._carFix=setTimeout(()=>carLoopFix(row),120);},{passive:true});
   }
-  lanzAutoStart();
+  carAutoStart(row);
 }
 
-function lanzLoopFix(){ // si el reposo cayó en zona clonada, saltar a la tarjeta real equivalente
-  const row=$('lanzRow');if(!row||!_lanzL||!lanzOverflow())return;
-  if(row.scrollLeft>=_lanzWrapAt-1)row.scrollLeft-=_lanzL;
-  else if(row.scrollLeft<_lanzHome-1)row.scrollLeft+=_lanzL;
+function carLoopFix(row){   // si el reposo cayó en zona clonada, saltar a la tarjeta real equivalente
+  const st=row&&row._car;if(!row||!st||!st.L||!carOverflow(row))return;
+  if(row.scrollLeft>=st.wrapAt-1)row.scrollLeft-=st.L;
+  else if(row.scrollLeft<st.home-1)row.scrollLeft+=st.L;
 }
 
-function lanzStep(){const row=$('lanzRow');const c=row&&row.querySelector('.card');return c?c.getBoundingClientRect().width+10:220;}
-
-function lanzNav(dir){
-  const row=$('lanzRow');if(!row)return;
-  lanzLoopFix(); // si está en zona clonada, reubicar antes de avanzar
-  row.scrollBy({left:dir*lanzStep(),behavior:'smooth'});
-  if(_lanzTimer){lanzAutoStop();lanzAutoStart();} // interactuar reinicia el ritmo
+function carNav(row,dir){
+  if(!row)return;
+  carLoopFix(row);   // si está en zona clonada, reubicar antes de avanzar
+  row.scrollBy({left:dir*carStep(row),behavior:'smooth'});
+  const st=row._car;if(st&&st.timer){carAutoStop(row);carAutoStart(row);}   // interactuar reinicia el ritmo
 }
 
-window.addEventListener('resize',()=>{clearTimeout(window._lanzRz);window._lanzRz=setTimeout(lanzSetup,200);});
+function carAutoStart(row){const st=row&&row._car;if(!st||st.timer)return;st.timer=setInterval(()=>{if(document.hidden)return;carNav(row,1);},4000);}
+function carAutoStop(row){const st=row&&row._car;if(st&&st.timer){clearInterval(st.timer);st.timer=null;}}
 
-function lanzAutoStart(){if(_lanzTimer)return;_lanzTimer=setInterval(()=>{if(document.hidden)return;lanzNav(1);},4000);}
+// Compat: las flechas de "Últimos lanzamientos" en index.html llaman lanzNav().
+function lanzNav(dir){carNav($('lanzRow'),dir);}
 
-function lanzAutoStop(){if(_lanzTimer){clearInterval(_lanzTimer);_lanzTimer=null;}}
+// Re-arma TODOS los carruseles al cambiar el tamaño de ventana.
+function setupAllCarousels(){['lanzRow','genMRow','genHRow'].forEach(id=>{const r=$(id);if(r&&r.querySelector('.card'))carSetup(r);});}
+window.addEventListener('resize',()=>{clearTimeout(window._carRz);window._carRz=setTimeout(setupAllCarousels,200);});
 
 /* ── BANNERS DE COLECCIÓN (Mujer/Hombre/Unisex) ── */
 let bannerMujer=null, bannerHombre=null, bannerUnisex=null;
@@ -416,9 +415,11 @@ function renderGenRow(g){
   if(!row)return;
   computeBadges();
   const items=prods.filter(p=>p.g===g&&!p.sold).slice(-12).reverse();
-  if(!items.length){if(sec)sec.style.display='none';row.innerHTML='';return;}
+  if(!items.length){if(sec)sec.style.display='none';row.innerHTML='';carAutoStop(row);return;}
   if(sec)sec.style.display='';
   row.innerHTML=items.map((p,i)=>cardHTML(p,i,g==='m'?'kgm':'kgh',true)).join('');
+  row._prevBtn=$(g==='m'?'genMPrev':'genHPrev');row._nextBtn=$(g==='m'?'genMNext':'genHNext');
+  carSetup(row);   // mismo carrusel que "Últimos lanzamientos" (se corre solo)
 }
 
 /* ── FOOTER (redes sociales + newsletter) ── */

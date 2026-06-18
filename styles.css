@@ -933,11 +933,12 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .lanz{padding:22px 0 8px;background:var(--bg);position:relative}
 .lanz-hdr{padding:0 16px 12px}
 .lanz-t{font-size:18px;font-weight:700;letter-spacing:-.01em;color:var(--ink)}
-.lanz-row{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding:0 10px 6px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.lanz-row{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding:0 16px 6px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .lanz-row::-webkit-scrollbar{display:none}
 .lanz-row.centered{justify-content:center}
-.lanz-row .card{flex:0 0 43%;max-width:200px;scroll-snap-align:start}
-@media(min-width:700px){.lanz-row .card{flex:0 0 210px}}
+/* Tarjetas IGUALES en las 3 filas (lanzamientos + colección Mujer/Hombre) = mismo tamaño que "Nuestros modelos": 2 por pantalla en móvil, 4 en escritorio. */
+.lanz-row .card{flex:0 0 calc(50% - 4px);max-width:none;scroll-snap-align:start}
+@media(min-width:700px){.lanz-row{gap:10px}.lanz-row .card{flex:0 0 calc(25% - 7.5px)}}
 .lanz-nav{position:absolute;top:55%;transform:translateY(-50%);width:38px;height:38px;border-radius:50%;background:var(--white);border:1px solid var(--line);box-shadow:0 3px 12px rgba(0,0,0,.14);font-size:21px;font-weight:700;line-height:1;color:var(--ink);display:none;align-items:center;justify-content:center;cursor:pointer;z-index:5;padding:0 0 2px;font-family:var(--font);transition:transform .15s}
 .lanz-nav:active{transform:translateY(-50%) scale(.9)}
 .lanz-nav.prev{left:6px}
@@ -960,12 +961,9 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .preview-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:0 16px}
 @media(max-width:699px){#previewGrid .card:nth-child(n+7){display:none}}   /* móvil: "Nuestros modelos" solo 6 (escritorio 8); NO aplica a favoritos */
 @media(min-width:700px){.preview-grid{grid-template-columns:repeat(4,1fr);gap:10px}}
-/* Filas de variedad por género (inicio): header tipo preview + fila scrolleable.
-   Tarjetas del MISMO tamaño que "Nuestros modelos" (#preview): 2 por pantalla en móvil, 4 en escritorio. */
-.genrow{padding:18px 0 8px;background:var(--bg)}
-.genrow .lanz-row{padding:0 16px 6px;gap:8px}
-.genrow .lanz-row .card{flex:0 0 calc(50% - 4px);max-width:none}
-@media(min-width:700px){.genrow .lanz-row{gap:10px}.genrow .lanz-row .card{flex:0 0 calc(25% - 7.5px)}}
+/* Filas de variedad por género (inicio): mismo carrusel y tamaño que "Últimos lanzamientos"
+   (heredan de .lanz-row). position:relative para que las flechas ‹ › se posicionen dentro. */
+.genrow{padding:18px 0 8px;background:var(--bg);position:relative}
 /* Ventana de favoritos (modal full-screen, lo abre el ♥ del nav) */
 .favmodal{position:fixed;inset:0;z-index:600;background:var(--bg);display:none;flex-direction:column}
 .favmodal.on{display:flex}
