@@ -446,12 +446,18 @@ function rPayChoice(){
   const icBank=SV+'<path d="M3 9.5l9-5 9 5"/><path d="M5 10v7M9.5 10v7M14.5 10v7M19 10v7"/><path d="M3.5 20h17"/></svg>';
   const icCard=SV+'<rect x="2.5" y="5.5" width="19" height="13" rx="2.5"/><path d="M2.5 9.5h19"/><path d="M6 14.5h4"/></svg>';
   const icCuotas=SV+'<rect x="3.5" y="4.5" width="17" height="16" rx="2.5"/><path d="M3.5 9.5h17"/><path d="M8 3v3M16 3v3"/><path d="M8.3 14.5l2 2 4-4"/></svg>';
+  // Repartidor con caja (más profesional que el camión) para Contra entrega.
+  const icDelivery=SV+'<circle cx="12" cy="4" r="2"/><path d="M8.5 21v-5.4M15.5 21v-5.4"/><rect x="8.7" y="9.3" width="6.6" height="6.2" rx="1"/><path d="M8.7 12.4h6.6M12 9.3v6.2"/><path d="M8.7 10.6 6.9 13M15.3 10.6 17.1 13"/></svg>';
+  // Ícono de WhatsApp (reusa el SVG de redes; le forzamos fill currentColor para teñirlo con --acc).
+  const icWa=(typeof SOC_SVG!=='undefined'&&SOC_SVG.wa)?SOC_SVG.wa.replace('<svg ','<svg fill="currentColor" '):icBank;
   // Logo real con fallback al SVG genérico si el archivo no existe (mismo patrón que la ficha)
   const icLogo=(src,alt,fb)=>`<img src="${src}" alt="${alt}" class="pc-logo" onerror="this.outerHTML=${JSON.stringify(fb).replace(/"/g,'&quot;')}">`;
-  const card=(fn,acc,tint,ico,tit,desc,tot)=>`<button class="paychoice" onclick="${fn}" style="--acc:${acc}"><span class="pc-ic" style="background:${tint}">${ico}</span><span class="pc-main"><span class="pc-tit">${tit}</span><span class="pc-desc">${desc}</span><span class="pc-tot">${tot}</span></span><span class="pc-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span></button>`;
+  // tip (opcional): muestra una burbuja de info — en escritorio al pasar el cursor por la card,
+  // en móvil al tocar el marcador ⓘ (no dispara el pago: stopPropagation + preventDefault).
+  const card=(fn,acc,tint,ico,tit,desc,tot,tip)=>`<button class="paychoice" onclick="${fn}" style="--acc:${acc}"><span class="pc-ic" style="background:${tint}">${ico}</span><span class="pc-main"><span class="pc-tit">${tit}</span><span class="pc-desc">${desc}</span><span class="pc-tot">${tot}</span></span><span class="pc-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>${tip?`<span class="pc-info" onclick="event.stopPropagation();event.preventDefault();this.parentElement.classList.toggle('tipon')" aria-label="Más información">i</span><span class="pc-tip">${tip}</span>`:''}</button>`;
   $('cbody').innerHTML=`<div class="paysec"><div class="paytit">¿Cómo quieres pagar?</div><div class="paychoice-list">`
-    +card(`enviarWA('contra_entrega')`,'#1E1E1C','#f1f1ef',icTruck,'Contra entrega',`Pagas el envío ahora y los zapatos al recibir en casa`,`Hoy: envío ${fmt(flete)} · Al recibir: ${fmt(sub)}`)
-    +card(`enviarWA('pago_anticipado')`,'#FF7A00','#fff3e6',icBank,'Pago anticipado','Transfieres antes · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
+    +card(`enviarWA('contra_entrega')`,'#1E1E1C','#f1f1ef',icDelivery,'Contra entrega',`Pagas el envío ahora y los zapatos al recibir en casa`,`Hoy: envío ${fmt(flete)} · Al recibir: ${fmt(sub)}`,`📦 El envío se paga primero para <b>asegurar tu despacho</b>. Así garantizamos que tu pedido salga y llegue — evitamos los pedidos que se piden y no se reciben.`)
+    +card(`enviarWA('pago_anticipado')`,'#25D366','#e9fbf1',icWa,'Pago por WhatsApp','Coordina tu pago por WhatsApp · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
     +card(`pagarWompi()`,'#5D2D91','#fff',icLogo('/logos/wompi.png','Wompi',icCard),'Pagar en línea — Wompi','Tarjeta · PSE · Nequi · Bancolombia · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
     +card(`pagarBold()`,'#2541B2','#fff',icLogo('/logos/bold.png','Bold',icCard),'Pagar en línea — Bold','Tarjeta · PSE · Botón Bancolombia · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
     +card(`pagarAddi()`,'#0a7d4b','#fff',icLogo('/logos/addi.png','Addi',icCuotas),'Pagar con Addi — a cuotas','Crédito 100% online · Solo cédula y celular · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)

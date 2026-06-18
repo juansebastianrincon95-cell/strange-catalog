@@ -408,24 +408,17 @@ function renderPreview(){
   grid.innerHTML=items.map((p,i)=>cardHTML(p,i,'kp')).join('');
 }
 
-/* ── VISTOS RECIENTEMENTE (inicio): re-hidrata los ids guardados en ss_recent desde `prods`,
-   descarta agotados/inexistentes. Si quedan 0, oculta la sección (no deja hueco). */
-function renderRecientes(){
-  const sec=$('recientes'),grid=$('recientesGrid');if(!grid)return;
+/* ── FILAS DE VARIEDAD POR GÉNERO (inicio) ── fila scrolleable con ~12 modelos del género
+   (los más recientes), estilo "Últimos lanzamientos"; "Ver todo →" abre el catálogo filtrado.
+   Muestra curada (no todo el inventario): menos fatiga de decisión + curiosidad → mejor retención. */
+function renderGenRow(g){
+  const sec=$(g==='m'?'genM':'genH'), row=$(g==='m'?'genMRow':'genHRow');
+  if(!row)return;
   computeBadges();
-  let recent=[];
-  try{recent=JSON.parse(localStorage.getItem('ss_recent')||'[]');if(!Array.isArray(recent))recent=[];}catch(e){recent=[];}
-  const seen=new Set();
-  const items=recent.map(r=>{
-    if(!r||r.type==='liq')return null;   // solo productos del catálogo
-    const p=prods.find(x=>x.id===r.id);
-    if(!p||p.sold||seen.has(p.id))return null;
-    seen.add(p.id);
-    return p;
-  }).filter(Boolean);
-  if(!items.length){if(sec)sec.style.display='none';grid.innerHTML='';return;}
+  const items=prods.filter(p=>p.g===g&&!p.sold).slice(-12).reverse();
+  if(!items.length){if(sec)sec.style.display='none';row.innerHTML='';return;}
   if(sec)sec.style.display='';
-  grid.innerHTML=items.map((p,i)=>cardHTML(p,i,'kr',true)).join('');
+  row.innerHTML=items.map((p,i)=>cardHTML(p,i,g==='m'?'kgm':'kgh',true)).join('');
 }
 
 /* ── FOOTER (redes sociales + newsletter) ── */
@@ -642,10 +635,10 @@ function updFavDot(){
   d.classList.toggle('show',n>0);
 }
 
-/* Sección "Tus favoritos" en el inicio: re-hidrata los ids desde `prods`, descarta agotados/inexistentes.
-   Si quedan 0, oculta la sección (no deja hueco). */
+/* Favoritos ahora en su propia VENTANA (#favModal): este render llena el grid del modal.
+   Así marcar 20 favoritos no llena el inicio. Si está vacío, muestra un estado amable. */
 function renderFavoritos(){
-  const sec=$('favoritos'),grid=$('favoritosGrid');if(!grid)return;
+  const grid=$('favModalGrid');if(!grid)return;
   computeBadges();
   const seen=new Set();
   const items=favIds().map(id=>{
@@ -654,19 +647,22 @@ function renderFavoritos(){
     seen.add(p.id);
     return p;
   }).filter(Boolean);
-  if(!items.length){if(sec)sec.style.display='none';grid.innerHTML='';return;}
-  if(sec)sec.style.display='';
-  grid.innerHTML=items.map((p,i)=>cardHTML(p,i,'kf')).join('');
+  grid.innerHTML=items.length
+    ? items.map((p,i)=>cardHTML(p,i,'kf')).join('')
+    : `<div class="favmodal-empty">Aún no tienes favoritos.<br>Toca el ♥ en los zapatos que te gusten<br>y aparecerán aquí.</div>`;
 }
 
-/* Botón corazón del nav: lleva a la sección de favoritos del inicio (scroll suave).
-   Si está vacía, avisa con un toast en vez de mover la página a un sitio vacío. */
+/* Botón corazón del nav: abre la VENTANA de favoritos (si hay). Vacío → toast. */
 function abrirFavoritos(){
   if(typeof closeCatalog==='function')closeCatalog();
   if(typeof closeMenu==='function')closeMenu();
-  const sec=$('favoritos');
-  if(!sec||sec.style.display==='none'||!favIds().length){toast('Aún no tienes favoritos ❤️');return;}
-  sec.scrollIntoView({behavior:'smooth'});
+  if(!favIds().length){toast('Aún no tienes favoritos ❤️');return;}
+  renderFavoritos();
+  const m=$('favModal');if(m){m.classList.add('on');if(typeof lockScroll==='function')lockScroll();}
+}
+function cerrarFavoritos(){
+  const m=$('favModal');if(m)m.classList.remove('on');
+  if(typeof unlockScroll==='function')unlockScroll();
 }
 
 /* ── GRID ── */
@@ -830,17 +826,6 @@ function setBrand(v,btn){
 
 /* ── VISTOS RECIENTEMENTE ── últimos productos cuya ficha abrió el cliente (localStorage).
    Se registra al abrir la ficha; se re-hidrata desde `prods` al renderizar (descarta agotados). */
-function pushReciente(id,type){
-  try{
-    let arr=JSON.parse(localStorage.getItem('ss_recent')||'[]');
-    if(!Array.isArray(arr))arr=[];
-    arr=arr.filter(x=>x&&!(x.id===id&&x.type===type));   // quitar duplicado del mismo id+type
-    arr.unshift({id,type});                               // el recién visto va al inicio
-    arr=arr.slice(0,12);                                  // máximo 12
-    localStorage.setItem('ss_recent',JSON.stringify(arr));
-  }catch(e){}
-}
-
 /* ── MODAL FOTO ── */
 function openPhoto(id,type){
   const list=type==='liq'?liqs:prods;
@@ -848,7 +833,6 @@ function openPhoto(id,type){
   if(!p)return;
   // La ficha SIEMPRE abre; el giro 360 (si existe) es un botón dentro de la galería.
   if(!p.img)return;
-  pushReciente(id,type);   // registrar como "visto recientemente"
   pmId=id;pmType=type;
   renderPmGal([p.img,...(p.imgs||[])],p.imgs360?.length>=2,altProd(p));
   const _mk=BRAND_LABELS[p.brand]||'';
@@ -1037,7 +1021,6 @@ function closePhotoBtn(){
   if(!_navPopping)navRemove('ficha');
   $('photoModal').classList.remove('on');
   unlockScroll();
-  if(typeof renderRecientes==='function')renderRecientes();   // que el recién visto aparezca al volver al home
   setTimeout(()=>{const tr=$('pmGalTrack');if(tr)tr.innerHTML='';pmId=null;pmType=null;pmTalla=null;},300);
 }
 

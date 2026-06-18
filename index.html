@@ -137,9 +137,17 @@
   <button class="lanz-nav next" id="lanzNext" onclick="lanzNav(1)" aria-label="Siguiente">›</button>
 </section>
 
-<!-- BANNERS DE COLECCIÓN (se llenan desde settings; ocultos si no hay imagen) -->
+<!-- BANNERS DE COLECCIÓN + fila de variedad por género (banner Mujer→fila Mujer→banner Hombre→fila Hombre→Unisex) -->
 <section class="cbanner" id="bannerM" style="display:none"></section>
+<section class="genrow" id="genM" style="display:none">
+  <div class="preview-hdr"><span class="preview-t">Colección Mujer</span><button class="preview-all" onclick="openCatalog({gender:'m'})">Ver todo →</button></div>
+  <div class="lanz-row" id="genMRow"></div>
+</section>
 <section class="cbanner" id="bannerH" style="display:none"></section>
+<section class="genrow" id="genH" style="display:none">
+  <div class="preview-hdr"><span class="preview-t">Colección Hombre</span><button class="preview-all" onclick="openCatalog({gender:'h'})">Ver todo →</button></div>
+  <div class="lanz-row" id="genHRow"></div>
+</section>
 <section class="cbanner" id="bannerU" style="display:none"></section>
 
 <div class="hdr" style="display:none">
@@ -153,23 +161,22 @@
   </div>
 </div>
 
-<!-- TUS FAVORITOS (inicio): productos que el cliente marcó con el corazón (localStorage ss_favs) -->
-<section class="preview" id="favoritos" style="display:none">
-  <div class="preview-hdr"><span class="preview-t">Tus favoritos ❤️</span></div>
-  <div class="preview-grid" id="favoritosGrid"></div>
-</section>
-
-<!-- VISTOS RECIENTEMENTE (inicio): productos cuya ficha abrió el cliente (localStorage) -->
-<section class="preview" id="recientes" style="display:none">
-  <div class="preview-hdr"><span class="preview-t">Vistos recientemente</span></div>
-  <div class="preview-grid" id="recientesGrid"></div>
-</section>
+<!-- Los favoritos ya NO viven en el inicio: se ven en su propia ventana (#favModal), que abre el ♥ del nav. -->
 
 <!-- PREVIEW (inicio): 2 columnas + "Ver todo" → abre el catálogo completo -->
 <section class="preview" id="preview" style="display:none">
   <div class="preview-hdr"><span class="preview-t">Nuestros modelos</span><button class="preview-all" onclick="openCatalog()">Ver todo →</button></div>
   <div class="preview-grid" id="previewGrid"></div>
 </section>
+
+<!-- VENTANA DE FAVORITOS (la abre el ♥ del nav) -->
+<div class="favmodal" id="favModal">
+  <div class="favmodal-head">
+    <button class="favmodal-back" onclick="cerrarFavoritos()" aria-label="Volver">←</button>
+    <span class="favmodal-ttl">Tus favoritos ❤️</span>
+  </div>
+  <div class="favmodal-body"><div class="preview-grid" id="favModalGrid"></div></div>
+</div>
 
 <!-- CLIENTES FELICES (testimonios) -->
 <section class="testi" id="testimonios" style="display:none">

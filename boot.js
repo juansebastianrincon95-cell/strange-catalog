@@ -22,10 +22,11 @@ if(localStorage.getItem('ss_reserve_until')&&!_reserveTimer){_reserveTimer=setIn
   renderHero();   // carrusel del inicio (reemplaza el encabezado si hay banners)
   renderFeatured();    // sección "Últimos lanzamientos"
   renderColBanners();  // banners de colección Mujer/Hombre/Unisex
-  renderFavoritos();   // sección "Tus favoritos" (localStorage ss_favs)
+  renderGenRow('m');   // fila de variedad Mujer (tras banner Mujer)
+  renderGenRow('h');   // fila de variedad Hombre (tras banner Hombre)
+  renderFavoritos();   // pre-rellena la ventana de favoritos (#favModal)
   updFavDot();         // contador del corazón en el nav
-  renderRecientes();   // sección "Vistos recientemente" (localStorage)
-  renderPreview();     // preview de 2 columnas del inicio
+  renderPreview();     // "Nuestros modelos"
   renderFooter();      // footer: redes + newsletter
   renderTestimonios(); // sección clientes felices
   renderCombos();      // tarjetas de combos mundialistas (sección Ofertas)
