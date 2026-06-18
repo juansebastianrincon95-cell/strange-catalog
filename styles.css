@@ -930,7 +930,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 }
 
 /* ÚLTIMOS LANZAMIENTOS — carrusel con burbujas de rotación */
-.lanz{padding:36px 0 36px;background:var(--bg);position:relative}
+.lanz{padding:44px 0 44px;background:var(--bg);position:relative}
 .lanz-hdr{padding:0 16px 12px}
 .lanz-t{font-size:18px;font-weight:700;letter-spacing:-.01em;color:var(--ink)}
 .lanz-row{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding:0 16px 6px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
@@ -965,7 +965,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 @media(min-width:700px){.preview-grid{grid-template-columns:repeat(4,1fr);gap:10px}}
 /* Filas de variedad por género (inicio): mismo carrusel y tamaño que "Últimos lanzamientos"
    (heredan de .lanz-row). position:relative para que las flechas ‹ › se posicionen dentro. */
-.genrow{padding:36px 0 36px;background:var(--bg);position:relative}
+.genrow{padding:44px 0 44px;background:var(--bg);position:relative}
 /* Ventana de favoritos (modal full-screen, lo abre el ♥ del nav) */
 .favmodal{position:fixed;inset:0;z-index:600;background:var(--bg);display:none;flex-direction:column}
 .favmodal.on{display:flex}
