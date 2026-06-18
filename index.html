@@ -1,13 +1,22 @@
 ﻿<!DOCTYPE html>
 <html lang="es">
 <head>
-<!-- Google Analytics GA4 -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-KR4N3874YT"></script>
+<!-- Google Analytics GA4 — NO se carga en modo prueba (igual que el Pixel/Clarity) -->
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-KR4N3874YT');
+  (function(){
+    try{
+      var t=new URLSearchParams(location.search).get('test');
+      var test=(t==='off'||t==='0')?false:(t?true:localStorage.getItem('ss_test')==='1');
+      if(test)return;   // modo prueba: no cargar GA ni disparar eventos
+      var s=document.createElement('script');s.async=true;
+      s.src='https://www.googletagmanager.com/gtag/js?id=G-KR4N3874YT';
+      document.head.appendChild(s);
+      gtag('js', new Date());
+      gtag('config', 'G-KR4N3874YT');
+    }catch(e){}
+  })();
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">

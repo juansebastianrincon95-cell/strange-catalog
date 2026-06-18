@@ -267,6 +267,8 @@ function restoreCart(){
     const list=it.type==='liq'?liqs:prods;
     const p=(list||[]).find(x=>x.id===it.id);
     if(!p||p.sold)return;   // ya no existe o agotado → se descarta
+    // Ítem sin talla cuyo producto SÍ tiene tallas (residuo de versiones viejas) → se descarta
+    if(it.talla==null && typeof tallasDe==='function' && tallasDe(p).length>0)return;
     cart[cartKey(it.id,it.type,it.talla)]={p,qty:Math.max(1,parseInt(it.qty)||1),type:it.type,talla:it.talla||null};
   });
   syncDot();   // actualiza el contador; las tarjetas marcan ✓ al renderizar (via enCarrito)
