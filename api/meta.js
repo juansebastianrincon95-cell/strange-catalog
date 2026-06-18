@@ -85,7 +85,7 @@ module.exports = async (req, res) => {
     }
 
     if (resource === 'audiences') {
-      const r = await graphRequest('GET', qs(`${ACCOUNT}/customaudiences?fields=id,name,subtype,approximate_count`));
+      const r = await graphRequest('GET', qs(`${ACCOUNT}/customaudiences?fields=id,name,subtype,approximate_count_lower_bound,approximate_count_upper_bound,operation_status`));
       return res.status(r.status).json(r.body);
     }
 
