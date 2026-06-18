@@ -70,7 +70,7 @@ module.exports = async (req, res) => {
     }
 
     if (resource === 'account') {
-      const r = await graphRequest('GET', qs(`${ACCOUNT}?fields=id,name,account_status,currency,spend_cap,amount_spent`));
+      const r = await graphRequest('GET', qs(`${ACCOUNT}?fields=id,name,account_status,currency,spend_cap,amount_spent,balance,min_daily_budget,funding_source_details,disable_reason`));
       return res.status(r.status).json(r.body);
     }
 
