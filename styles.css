@@ -966,7 +966,8 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 @media(min-width:700px){.preview-grid{grid-template-columns:repeat(4,1fr);gap:10px}}
 /* Filas de variedad por género (inicio): mismo carrusel y tamaño que "Últimos lanzamientos"
    (heredan de .lanz-row). position:relative para que las flechas ‹ › se posicionen dentro. */
-.genrow{padding:99px 0 99px;background:var(--bg);position:relative}
+.genrow{padding:50px 0 50px;background:var(--bg);position:relative}
+@media(min-width:700px){.genrow{padding:99px 0 99px}}
 /* Ventana de favoritos (modal full-screen, lo abre el ♥ del nav) */
 .favmodal{position:fixed;inset:0;z-index:600;background:var(--bg);display:none;flex-direction:column}
 .favmodal.on{display:flex}
