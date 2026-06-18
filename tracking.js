@@ -69,6 +69,28 @@ function px(event,params,eid){
 // si no coinciden, Meta no asocia los eventos al catálogo (FASE M, plan Codex).
 function pxId(type,id){return (type==='liq'?'liq_':'cat_')+String(id).replace(/^L/i,'');}
 
+/* ── GOOGLE (GA4 + Google Ads) ── espejo de px() para Meta. NO disparan en modo prueba.
+   Se llaman AL LADO de cada px(...) — Meta no se toca. */
+function ga4(event,params){            // evento e-commerce para GA4 (purchase/add_to_cart/...)
+  if(window.__TEST__)return;
+  if(typeof gtag==='function')gtag('event',event,params||{});
+}
+function gads(kind,params){            // conversión de Google Ads. kind: 'purchase' | 'lead'
+  if(window.__TEST__)return;
+  if(typeof gtag!=='function'||!window.GADS)return;
+  const sendTo=GADS[kind];
+  if(!sendTo||!/^AW-\d/.test(GADS.id||''))return;   // inerte hasta pegar el AW- real
+  gtag('event','conversion',Object.assign({send_to:sendTo},params||{}));
+}
+function gadsUserData(d){              // Enhanced Conversions: gtag hashea client-side
+  if(window.__TEST__||typeof gtag!=='function'||!d)return;
+  const ud={};
+  if(d.email)ud.email=String(d.email).trim();
+  const ph=d.celular||d.tel; if(ph)ud.phone_number=String(ph).replace(/\s/g,'');
+  if(d.nombre){const n=String(d.nombre).trim().split(/\s+/);ud.address={first_name:n[0]||'',last_name:n.slice(1).join(' ')||''};}
+  gtag('set','user_data',ud);
+}
+
 function trackEvent(type,extra={}){
   if(window.__TEST__)return;                       // modo prueba: no registrar analytics/funnel
   const utm=getUTM();
@@ -88,7 +110,8 @@ function captureUTM(){
   const p=new URLSearchParams(window.location.search);
   // campaign_id/adset_id/ad_id llegan si los anuncios usan los parámetros dinámicos de Meta
   // ({{campaign.id}} etc. en "Parámetros de URL" del anuncio) → ROAS por anuncio.
-  const keys=['utm_source','utm_medium','utm_campaign','utm_content','utm_term','campaign_id','adset_id','ad_id'];
+  // gclid/gbraid/wbraid = click IDs de Google Ads (atribución). Igual que campaign_id es de Meta.
+  const keys=['utm_source','utm_medium','utm_campaign','utm_content','utm_term','campaign_id','adset_id','ad_id','gclid','gbraid','wbraid'];
   const utm={};
   keys.forEach(k=>{const v=p.get(k);if(v&&!v.startsWith('{{'))utm[k]=v;});   // ignora placeholders sin reemplazar
   // fbclid: clic desde un anuncio de Meta. Se persiste para atribución (cookie _fbc la deriva el Pixel).

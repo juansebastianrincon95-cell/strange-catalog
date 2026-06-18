@@ -84,34 +84,35 @@ module.exports = async (req, res) => {
     const status = data && data.status;
     if (!ALLOWED_ORDER_STATUS.includes(status)) return res.status(400).json({ error: 'invalid status' });
 
-    // Leer el pedido antes de actualizar (para CAPI y para no re-disparar si ya era venta)
-    const { data: order } = await sb.from('orders')
-      .select('subtotal,total,tel,ciudad,nombre,reference,status,utm,items')
-      .eq('id', id).single();
-
-    const { error } = await sb.from('orders').update({ status }).eq('id', id);
+    // Update CONDICIONAL (solo si el estado cambia) que DEVUELVE la fila → atómico: sin race,
+    // sin re-disparo, y si la BD falla NO marcamos venta a ciegas (chequeamos el error).
+    const { data: updated, error } = await sb.from('orders')
+      .update({ status })
+      .eq('id', id).neq('status', status)
+      .select('subtotal,total,tel,ciudad,nombre,reference,status,utm,items');
     if (error) return res.status(500).json({ error: error.message });
+    const order = updated && updated[0];   // undefined si ya estaba en ese estado o no existe
 
-    // Si pasa a 'venta' (y no lo era ya), enviar Purchase real a Meta vía CAPI.
+    // Si pasó a 'venta' AHORA, enviar Purchase real a Meta vía CAPI.
     // eventId = MISMO que usan el webhook de pago y el Pixel del navegador
     // ({reference}_purchase) → Meta dedup aunque el Purchase llegue por los 3 caminos.
     // content_ids en formato del feed (cat_/liq_) para asociarlo al catálogo (FASE M).
     // Nota: IP/UA NO se envían aquí (serían los del vendedor, no del cliente); sí fbp/fbc del pedido.
-    if (status === 'venta' && order && order.status !== 'venta' && !(order.utm && order.utm.test)) {
+    if (status === 'venta' && order && !(order.utm && order.utm.test)) {
       const utm = order.utm || {};
-      // await (Codex #8) + fallback UNIFICADO con _orders.js y el navegador (Codex se quedó
-      // corto: su fallback era order_{id} mientras los otros 2 caminos usan {id} → las 8
-      // órdenes legacy sin reference no dedupaban entre caminos).
-      await sendEvent({
-        eventName: 'Purchase',
-        value: order.subtotal != null ? order.subtotal : order.total,
-        currency: 'COP',
-        contentIds: contentIdsDe(order.items),
-        phone: order.tel, city: order.ciudad, name: order.nombre,
-        fbp: utm.fbp, fbc: utm.fbc,
-        eventId: String(order.reference || id) + '_purchase',
-        actionSource: 'business_messaging'
-      }).catch(() => {});
+      const value = Number(order.subtotal != null ? order.subtotal : order.total);
+      if (Number.isFinite(value) && value > 0) {
+        await sendEvent({
+          eventName: 'Purchase',
+          value,
+          currency: 'COP',
+          contentIds: contentIdsDe(order.items),
+          phone: order.tel, city: order.ciudad, name: order.nombre,
+          fbp: utm.fbp, fbc: utm.fbc,
+          eventId: String(order.reference || id) + '_purchase',
+          actionSource: 'business_messaging'
+        }).catch(() => {});
+      }
     }
     return res.json({ ok: true });
   }

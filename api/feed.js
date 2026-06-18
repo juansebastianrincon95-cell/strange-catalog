@@ -1,6 +1,7 @@
 const { createClient } = require('@supabase/supabase-js');
 
 module.exports = async (req, res) => {
+ try {
   const sb = createClient(
     process.env.SUPABASE_URL,
     process.env.SUPABASE_ANON_KEY
@@ -43,7 +44,9 @@ module.exports = async (req, res) => {
       image_link:   p.img_url || '',
       ...extraImgs(p),
       brand:        bl || brand,                       // marca real si existe; si no, la tienda
-      google_product_category: '187'
+      google_product_category: '187',                  // Google taxonomy: 187 = Apparel & Accessories > Shoes
+      product_type: 'Calzado > ' + gen,
+      identifier_exists: 'no'                           // sin GTIN/MPN → evita penalización en Merchant
     };}),
     ...(liqs || []).map(p => ({
       id:           'liq_' + p.id,
@@ -57,7 +60,9 @@ module.exports = async (req, res) => {
       image_link:   p.img_url || '',
       ...extraImgs(p),
       brand:        brand,
-      google_product_category: '187'
+      google_product_category: '187',
+      product_type: 'Calzado > Liquidación',
+      identifier_exists: 'no'
     }))
   ];
 
@@ -65,7 +70,7 @@ module.exports = async (req, res) => {
   // para data sources con schedule; CSV sí). El JSON se mantiene como default (lo usan
   // el agente y otras integraciones).
   if ((req.query || {}).format === 'csv') {
-    const cols = ['id','title','description','availability','condition','price','sale_price','link','image_link','additional_image_link','brand','google_product_category'];
+    const cols = ['id','title','description','availability','condition','price','sale_price','link','image_link','additional_image_link','brand','google_product_category','product_type','identifier_exists'];
     const esc = v => {
       if (v == null) return '';
       const s = Array.isArray(v) ? v.join(',') : String(v);
@@ -75,10 +80,16 @@ module.exports = async (req, res) => {
     all.forEach(p => lines.push(cols.map(c => esc(p[c])).join(',')));
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cache-Control', 'public, max-age=600');
     return res.send(lines.join('\n'));
   }
 
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Cache-Control', 'public, max-age=600');
   res.json({ data: all });
+ } catch (e) {
+  // Un fallo transitorio de Supabase no debe romper el feed sin diagnóstico (Merchant/Meta).
+  res.status(503).json({ error: 'feed_unavailable' });
+ }
 };

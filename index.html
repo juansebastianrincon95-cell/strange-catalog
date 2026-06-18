@@ -1,20 +1,30 @@
 ﻿<!DOCTYPE html>
 <html lang="es">
 <head>
-<!-- Google Analytics GA4 — NO se carga en modo prueba (igual que el Pixel/Clarity) -->
+<!-- Google Analytics GA4 + Google Ads — NO cargan en modo prueba (igual que el Pixel/Clarity) -->
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
+  // IDs de Google Ads — PEGA AQUÍ los tuyos (Google Ads → Objetivos → Conversiones).
+  // Mientras digan AW-XXXXXXXXX, el tag de Ads queda INERTE (GA4 sí funciona).
+  window.GADS = {
+    id:       'AW-XXXXXXXXX',
+    purchase: 'AW-XXXXXXXXX/labelCompra',   // etiqueta de la conversión "Compra"
+    lead:     'AW-XXXXXXXXX/labelLead'      // etiqueta de la conversión "Lead/Contacto"
+  };
   (function(){
     try{
       var t=new URLSearchParams(location.search).get('test');
       var test=(t==='off'||t==='0')?false:(t?true:localStorage.getItem('ss_test')==='1');
-      if(test)return;   // modo prueba: no cargar GA ni disparar eventos
+      if(test)return;   // modo prueba: no cargar Google ni disparar eventos
+      // Consent Mode v2 (CO no lo exige legalmente, pero Google lo recomienda)
+      gtag('consent','default',{ad_storage:'granted',analytics_storage:'granted',ad_user_data:'granted',ad_personalization:'granted'});
       var s=document.createElement('script');s.async=true;
       s.src='https://www.googletagmanager.com/gtag/js?id=G-KR4N3874YT';
       document.head.appendChild(s);
       gtag('js', new Date());
       gtag('config', 'G-KR4N3874YT');
+      if(window.GADS && /^AW-\d/.test(GADS.id)) gtag('config', GADS.id);   // Google Ads (solo si ya pegaste el ID real)
     }catch(e){}
   })();
 </script>

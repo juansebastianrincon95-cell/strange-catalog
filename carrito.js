@@ -221,6 +221,7 @@ function togCard(id,type,talla){
     const _acat=type==='liq'?'liquidacion':p.g;
     const _anm=type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer');
     px('AddToCart',{content_ids:[pxId(type,id)],content_type:'product',content_category:_acat,content_name:_anm,value:p.price,currency:'COP',...getUTM()});
+    ga4('add_to_cart',{currency:'COP',value:p.price,items:[{item_id:pxId(type,id),item_name:_anm,price:p.price,quantity:1}]});   // GA4 / Google Ads
     trackEvent('add_to_cart',{product_id:String(key),price:p.price,gender:type==='liq'?null:p.g});
     startReserva();   // arranca/continúa el contador de reserva al agregar al carrito
     openCart();       // el carrito se despliega como confirmación al agregar cada producto
@@ -316,6 +317,7 @@ function goStep(n){
       const icItems=cartVals.reduce((s,{qty})=>s+qty,0);
       const icIds=cartVals.map(({p,type})=>pxId(type,p.id));
       px('InitiateCheckout',{content_ids:icIds,content_type:'product',num_items:icItems,value:icTotal,currency:'COP'});
+      ga4('begin_checkout',{currency:'COP',value:icTotal,items:icIds.map(id=>({item_id:id}))});   // GA4 / Google Ads
       trackEvent('initiate_checkout',{price:icTotal});
     }
   }
@@ -539,6 +541,7 @@ async function enviarWA(tipo){
   // Esto es un LEAD (abrió WhatsApp), NO una compra. El Purchase real se dispara al
   // confirmar la venta (panel Leads → CAPI). value = subtotal de producto, sin flete.
   px('Lead',{content_ids:_pids,content_type:'product',value:sub,currency:'COP',num_items:totalPares,...getUTM()},SESSION_ID+'_lead');
+  gadsUserData(d); gads('lead',{value:sub,currency:'COP'}); ga4('generate_lead',{value:sub,currency:'COP'});   // Google Ads conversión + GA4
   trackEvent('lead',{price:sub});
   orders.push(orderObj);
   saveState();
@@ -633,6 +636,7 @@ async function checkWompiReturn(){
       }
       const _wIds=Array.isArray(order.items)?order.items.map(it=>pxId(it.type,it.id)):[];
       px('Purchase',{content_ids:_wIds,content_type:'product',value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',num_items:order.pares||1,...getUTM()},(order.reference||order.id)+'_purchase');
+      gadsUserData(order); gads('purchase',{value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',transaction_id:String(order.reference||order.id)}); ga4('purchase',{transaction_id:String(order.reference||order.id),value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',items:(order.items||[]).map(it=>({item_id:(it.type==='liq'?'liq_':'cat_')+it.id,item_name:it.label,price:it.precio,quantity:it.qty}))});
       trackEvent('purchase',{price:order.subtotal!=null?order.subtotal:order.total});
       let items='';
       order.items.forEach(it=>{const mk=it.brand?(BRAND_LABELS[it.brand]||it.brand)+' · ':'';const ref=it.id?` · #${it.id}`:'';const ln=it.id?`\n     👉 https://strangesneakers.com/p/${it.type==='liq'?'L':''}${it.id}`:'';items+=`  • ${mk}${it.label}${ref}${it.talla?` · Talla ${it.talla}`:''} x${it.qty} — ${fmt(it.precio)}${ln}\n`;});
@@ -721,6 +725,7 @@ async function checkBoldReturn(){
       if(PIXEL_ID&&typeof fbq==='function'){const np=String(order.nombre||'').trim().toLowerCase().split(' ');fbq('init',PIXEL_ID,{ph:String(order.tel||'').replace(/\D/g,''),fn:np[0]||'',ln:np.slice(1).join(' ')||'',ct:String(order.ciudad||'').trim().toLowerCase(),country:'co'});}
       const _bIds=Array.isArray(order.items)?order.items.map(it=>pxId(it.type,it.id)):[];
       px('Purchase',{content_ids:_bIds,content_type:'product',value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',num_items:order.pares||1,...getUTM()},(order.reference||order.id)+'_purchase');
+      gadsUserData(order); gads('purchase',{value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',transaction_id:String(order.reference||order.id)}); ga4('purchase',{transaction_id:String(order.reference||order.id),value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',items:(order.items||[]).map(it=>({item_id:(it.type==='liq'?'liq_':'cat_')+it.id,item_name:it.label,price:it.precio,quantity:it.qty}))});
       trackEvent('purchase',{price:order.subtotal!=null?order.subtotal:order.total});
       let items='';order.items.forEach(it=>{const mk=it.brand?(BRAND_LABELS[it.brand]||it.brand)+' · ':'';const ref=it.id?` · #${it.id}`:'';const ln=it.id?`\n     👉 https://strangesneakers.com/p/${it.type==='liq'?'L':''}${it.id}`:'';items+=`  • ${mk}${it.label}${ref}${it.talla?` · Talla ${it.talla}`:''} x${it.qty} — ${fmt(it.precio)}${ln}\n`;});
       const msg=`✅ *PAGO CONFIRMADO — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n📦 *Envío: GRATIS ✓*\n💰 *TOTAL: ${fmt(order.total)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${order.nombre}\n• Celular: ${order.tel}\n• Dirección: ${order.direccion||'-'}\n• Ciudad: ${order.ciudad}\n• Ref: ${reference}\n━━━━━━━━━━━━━━━━━━━━\n💳 *Pago Bold:* Confirmado ✓\n━━━━━━━━━━━━━━━━━━━━\n¡Gracias por tu compra! 🙏\n\n🎁 *Tu regalo — Guía de cuidado:*\nhttps://strangesneakers.com/?regalo=cuidado`;
@@ -807,6 +812,7 @@ async function checkAddiReturn(){
       if(PIXEL_ID&&typeof fbq==='function'){const np=String(order.nombre||'').trim().toLowerCase().split(' ');fbq('init',PIXEL_ID,{ph:String(order.tel||'').replace(/\D/g,''),fn:np[0]||'',ln:np.slice(1).join(' ')||'',ct:String(order.ciudad||'').trim().toLowerCase(),country:'co'});}
       const _aIds=Array.isArray(order.items)?order.items.map(it=>pxId(it.type,it.id)):[];
       px('Purchase',{content_ids:_aIds,content_type:'product',value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',num_items:order.pares||1,...getUTM()},(order.reference||order.id)+'_purchase');
+      gadsUserData(order); gads('purchase',{value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',transaction_id:String(order.reference||order.id)}); ga4('purchase',{transaction_id:String(order.reference||order.id),value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',items:(order.items||[]).map(it=>({item_id:(it.type==='liq'?'liq_':'cat_')+it.id,item_name:it.label,price:it.precio,quantity:it.qty}))});
       trackEvent('purchase',{price:order.subtotal!=null?order.subtotal:order.total});
       let items='';order.items.forEach(it=>{const mk=it.brand?(BRAND_LABELS[it.brand]||it.brand)+' · ':'';const ref=it.id?` · #${it.id}`:'';const ln=it.id?`\n     👉 https://strangesneakers.com/p/${it.type==='liq'?'L':''}${it.id}`:'';items+=`  • ${mk}${it.label}${ref}${it.talla?` · Talla ${it.talla}`:''} x${it.qty} — ${fmt(it.precio)}${ln}\n`;});
       const msg=`✅ *CRÉDITO APROBADO (Addi) — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n📦 *Envío: GRATIS ✓*\n💰 *TOTAL: ${fmt(order.total)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${order.nombre}\n• Celular: ${order.tel}\n• Dirección: ${order.direccion||'-'}\n• Ciudad: ${order.ciudad}\n• Ref: ${reference}\n━━━━━━━━━━━━━━━━━━━━\n💳 *Pago Addi:* Aprobado ✓\n━━━━━━━━━━━━━━━━━━━━\n¡Gracias por tu compra! 🙏\n\n🎁 *Tu regalo — Guía de cuidado:*\nhttps://strangesneakers.com/?regalo=cuidado`;
@@ -891,6 +897,7 @@ async function checkSistecreditoReturn(){
       if(PIXEL_ID&&typeof fbq==='function'){const np=String(order.nombre||'').trim().toLowerCase().split(' ');fbq('init',PIXEL_ID,{ph:String(order.tel||'').replace(/\D/g,''),fn:np[0]||'',ln:np.slice(1).join(' ')||'',ct:String(order.ciudad||'').trim().toLowerCase(),country:'co'});}
       const _sIds=Array.isArray(order.items)?order.items.map(it=>pxId(it.type,it.id)):[];
       px('Purchase',{content_ids:_sIds,content_type:'product',value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',num_items:order.pares||1,...getUTM()},(order.reference||order.id)+'_purchase');
+      gadsUserData(order); gads('purchase',{value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',transaction_id:String(order.reference||order.id)}); ga4('purchase',{transaction_id:String(order.reference||order.id),value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',items:(order.items||[]).map(it=>({item_id:(it.type==='liq'?'liq_':'cat_')+it.id,item_name:it.label,price:it.precio,quantity:it.qty}))});
       trackEvent('purchase',{price:order.subtotal!=null?order.subtotal:order.total});
       let items='';order.items.forEach(it=>{const mk=it.brand?(BRAND_LABELS[it.brand]||it.brand)+' · ':'';const ref=it.id?` · #${it.id}`:'';const ln=it.id?`\n     👉 https://strangesneakers.com/p/${it.type==='liq'?'L':''}${it.id}`:'';items+=`  • ${mk}${it.label}${ref}${it.talla?` · Talla ${it.talla}`:''} x${it.qty} — ${fmt(it.precio)}${ln}\n`;});
       const msg=`✅ *CRÉDITO APROBADO (Sistecrédito) — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n📦 *Envío: GRATIS ✓*\n💰 *TOTAL: ${fmt(order.total)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${order.nombre}\n• Celular: ${order.tel}\n• Dirección: ${order.direccion||'-'}\n• Ciudad: ${order.ciudad}\n• Ref: ${reference}\n━━━━━━━━━━━━━━━━━━━━\n💳 *Pago Sistecrédito:* Aprobado ✓\n━━━━━━━━━━━━━━━━━━━━\n¡Gracias por tu compra! 🙏\n\n🎁 *Tu regalo — Guía de cuidado:*\nhttps://strangesneakers.com/?regalo=cuidado`;

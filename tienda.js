@@ -906,6 +906,7 @@ function openPhoto(id,type){
   const _vcat=type==='liq'?'liquidacion':p.g;
   const _vnm=type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer');
   px('ViewContent',{content_ids:[pxId(type,id)],content_type:'product',content_category:_vcat,content_name:_vnm,value:p.price,currency:'COP',...getUTM()});
+  ga4('view_item',{currency:'COP',value:p.price,items:[{item_id:pxId(type,id),item_name:_vnm,price:p.price}]});   // GA4 / Google Ads
   trackEvent('view_product',{product_id:(type==='liq'?'L':'')+id,price:p.price,gender:type==='liq'?null:p.g||null});
   $('photoModal').classList.add('on');
   lockScroll();
