@@ -56,7 +56,13 @@ function _injectClarity(id){
 
 function px(event,params,eid){
   if(window.__TEST__)return;                       // modo prueba: no enviar eventos a Meta
-  if(typeof fbq==='function')fbq('track',event,params||{},{eventID:eid||SESSION_ID+'_'+event});
+  if(typeof fbq!=='function')return;
+  // Eventos con eid EXPLÍCITO (Purchase, Lead del pedido, suscripción, newsletter) lo mantienen
+  // para deduplicar con CAPI. Los demás (ViewContent/AddToCart/InitiateCheckout/Leads sueltos) NO
+  // tienen contraparte en CAPI: se les da un eventId ÚNICO por ocurrencia para que Meta NO los
+  // colapse en uno solo (antes compartían SESSION_ID+'_'+event y se subreportaban).
+  if(!eid){window._pxSeq=(window._pxSeq||0)+1;eid=SESSION_ID+'_'+event+'_'+Date.now()+'_'+window._pxSeq;}
+  fbq('track',event,params||{},{eventID:eid});
 }
 
 // ID de producto para Pixel/CAPI: MISMO formato que el feed de Meta (cat_34 / liq_34) —
