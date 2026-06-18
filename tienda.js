@@ -198,7 +198,7 @@ function carSetup(row){
   if(!row._carPause){   // listeners una sola vez por elemento
     row._carPause=true;
     row.addEventListener('pointerdown',()=>{carAutoStop(row);clearTimeout(row._carRe);row._carRe=setTimeout(()=>{if(carOverflow(row))carAutoStart(row);},6000);},{passive:true});
-    row.addEventListener('scroll',()=>{if(typeof closeQuickSize==='function')closeQuickSize();clearTimeout(row._carFix);row._carFix=setTimeout(()=>carLoopFix(row),250);},{passive:true});
+    row.addEventListener('scroll',()=>{clearTimeout(row._carFix);row._carFix=setTimeout(()=>carLoopFix(row),250);},{passive:true});
   }
   carAutoStart(row);
 }
@@ -211,7 +211,6 @@ function carLoopFix(row){   // si el reposo cayó en zona clonada, saltar a la t
 
 function carNav(row,dir){
   if(!row)return;
-  if(typeof closeQuickSize==='function')closeQuickSize();   // no dejar un selector de talla colgando al mover el carrusel
   carLoopFix(row);   // si está en zona clonada, reubicar antes de avanzar
   row.scrollBy({left:dir*carStep(row),behavior:'smooth'});
   const st=row._car;if(st&&st.timer){carAutoStop(row);carAutoStart(row);}   // interactuar reinicia el ritmo
@@ -707,6 +706,9 @@ function openQuickSize(card,id,tallas){
   photo.appendChild(ov);
 }
 function closeQuickSize(){document.querySelectorAll('.qsize').forEach(o=>o.remove());}
+// Cerrar el selector al tocar/arrastrar FUERA de él (incluye arrastrar el carrusel). No se cierra
+// con el auto-giro de los carruseles porque eso no genera un pointerdown del usuario.
+document.addEventListener('pointerdown',e=>{if(!e.target.closest('.qsize'))closeQuickSize();},true);
 function quickPick(id,talla){
   const key=cartKey(id,'cat',talla);
   closeQuickSize();
