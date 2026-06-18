@@ -357,6 +357,7 @@
       <button class="pm-gal-arr next" id="pmGalNext" onclick="pmGalGo(1)" aria-label="Foto siguiente">›</button>
       <div class="pm-gal-dots" id="pmGalDots"></div>
       <button class="pm-360-btn" id="pm360Btn" style="display:none" onclick="open360(pmId,pmType)">🔄 Ver en 360°</button>
+      <button class="fav-btn pm-fav" id="pmFav" data-id="" onclick="togFav(pmId,this)" aria-label="Guardar en favoritos">♥</button>
     </div>
     <div class="pm-body">
       <div class="pm-title" id="pmTitle">Sneakers</div>
@@ -367,12 +368,12 @@
       <div class="pm-sizes" id="pmSizes" style="display:none">
         <div class="pm-sizes-top"><span class="pm-sizes-lbl">Elige tu talla <span class="pm-sizes-unit">(EUR)</span></span><span class="pm-sizes-err" id="pmSizesErr">Selecciona una talla 👆</span></div>
         <div class="pm-sizes-row" id="pmSizesRow"></div>
-        <div class="pm-guia" id="pmGuia" style="display:none">
-          <button type="button" class="pm-guia-toggle" onclick="toggleGuiaTallas()">📏 ¿Cómo sé mi talla?</button>
-          <div class="pm-guia-box" id="pmGuiaBox" style="display:none">
-            <div class="pm-guia-tx">Para mayor exactitud en tu talla, revisa la marquilla o etiqueta dentro de un zapato tuyo, ejemplo:</div>
-            <div class="pm-guia-imgs" id="pmGuiaImgs"></div>
-          </div>
+      </div>
+      <div class="pm-guia" id="pmGuia" style="display:none">
+        <button type="button" class="pm-guia-toggle" onclick="toggleGuiaTallas()">📏 ¿Cómo sé mi talla?</button>
+        <div class="pm-guia-box" id="pmGuiaBox" style="display:none">
+          <div class="pm-guia-tx">Para mayor exactitud en tu talla, revisa la marquilla o etiqueta dentro de un zapato tuyo, ejemplo:</div>
+          <div class="pm-guia-imgs" id="pmGuiaImgs"></div>
         </div>
       </div>
       <div class="pm-fin-cap">Paga a cuotas con</div>

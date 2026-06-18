@@ -294,6 +294,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .fav-btn:active{transform:scale(.85)}
 .fav-btn.on{color:var(--red)}
 .card.sold .fav-btn{display:none}
+.pm-gal .fav-btn{top:12px;right:12px;left:auto;bottom:auto;width:40px;height:40px;font-size:21px}   /* corazón de la ficha: arriba-derecha de la galería */
 
 /* corazón del nav con contador (imita .nav-bag / .bdot) */
 .fav-nav{
@@ -321,7 +322,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
   transition:opacity .2s,transform .35s cubic-bezier(.34,1.56,.64,1);
 }
 .fav-dot.show{opacity:1; transform:scale(1)}
-@media(max-width:699px){.fav-nav{font-size:16px}}   /* móvil: corazón más pequeño para no encimarse al título */
+@media(max-width:699px){.fav-nav{font-size:16px}.fav-dot{min-width:14px;height:14px;font-size:8px}}   /* móvil: corazón más pequeño + contador proporcional */
 
 /* MODAL FOTO — display:none por defecto (fix del bug principal) */
 .photo-modal{position:fixed;inset:0;z-index:620;display:none;background:rgba(0,0,0,.55)}
@@ -371,7 +372,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .pm-foot-bar{display:flex;align-items:center;gap:12px;max-width:880px;margin:0 auto}
 .pm-foot-price{font-size:18px;font-weight:800;color:var(--ink);letter-spacing:-.02em;font-variant-numeric:tabular-nums;flex-shrink:0}
 .pm-foot-add{flex:1;padding:13px;background:var(--ink);color:#fff;border:none;border-radius:12px;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer;transition:transform .12s,background .15s}
-.pm-foot-add.in{background:#1ba94c}
+.pm-foot-add.in{background:var(--green)}
 .pm-foot-add:active{transform:scale(.99)}
 .pm-add:active{transform:scale(.98)}
 .pm-add.in{background:var(--green)}

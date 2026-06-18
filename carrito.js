@@ -272,6 +272,18 @@ function restoreCart(){
   syncDot();   // actualiza el contador; las tarjetas marcan ✓ al renderizar (via enCarrito)
 }
 
+// Rehidrata el cupón aplicado tras refresh/cierre/regreso (simétrico a restoreCart).
+// Si está vencido o ya no existe, limpia el guardado para no dejar código muerto.
+function restoreCupon(){
+  try{
+    const code=(localStorage.getItem('ss_cupon')||'').toUpperCase();
+    if(!code)return;
+    const vencido=code==='BIENVENIDO20'&&typeof welcomeVencido==='function'&&welcomeVencido();
+    if(CUPONES[code]&&!vencido)cuponAplicado=code;
+    else localStorage.removeItem('ss_cupon');
+  }catch(e){}
+}
+
 /* ── CART SHEET ── */
 // El carrito se abre como confirmación al agregar (puede ser muchas veces). El evento
 // InitiateCheckout NO se dispara al abrir, sino al avanzar a "Tus datos" (goStep 1), para no
@@ -315,12 +327,16 @@ function chQty(key,d){if(!cart[key])return;cart[key].qty=Math.max(1,cart[key].qt
 function rmItem(key){
   const it=cart[key];delete cart[key];
   if(it){
-    const el=$(it.type==='liq'?'lk'+it.p.id:'k'+it.p.id);
-    if(el){
-      el.classList.remove('picked');
+    // El ✓ solo se quita si NO queda otra talla del mismo modelo en el carrito (igual que togCard).
+    const anyIn=enCarrito(it.p.id,it.type);
+    const els=it.type==='liq'?[$('lk'+it.p.id)]:[$('k'+it.p.id),$('kl'+it.p.id),$('kp'+it.p.id),$('kr'+it.p.id),$('kf'+it.p.id)];
+    els.forEach(el=>{
+      if(!el)return;
+      el.classList.toggle('picked',anyIn);
       const circle=el.querySelector('.add-circle');
-      if(circle)circle.textContent='+';
-    }
+      if(circle)circle.textContent=anyIn?'✓':'+';
+    });
+    if(pmId===it.p.id&&pmType===it.type)syncPmBtn();
   }
   syncDot();renderStep();
 }
@@ -479,6 +495,9 @@ async function enviarWA(tipo){
   Object.entries(m).forEach(([k,id])=>{const el=$(id);const v=el?el.value:(cData[k]||'');d[k]=v.trim();if(!v.trim())ok=false;});
   if(!ok){const e=$('ferr');if(e)e.classList.add('show');return false;}
   cData=d;
+  if(window._payBusy)return false;   // guard anti doble-toque: evita pedido + Lead GEMELO (mismo fix que pagarBold/Wompi)
+  window._payBusy=true;
+  setTimeout(()=>{window._payBusy=false;},4000);   // se libera solo (WhatsApp abre en otra pestaña, la página no navega)
   const rows=Object.values(cart);
   const pricing=cartPricing(rows);         // combo (precio fijo) o normal con cupón
   const subBruto=pricing.subBruto;

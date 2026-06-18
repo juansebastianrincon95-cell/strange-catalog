@@ -198,7 +198,7 @@ function carSetup(row){
   if(!row._carPause){   // listeners una sola vez por elemento
     row._carPause=true;
     row.addEventListener('pointerdown',()=>{carAutoStop(row);clearTimeout(row._carRe);row._carRe=setTimeout(()=>{if(carOverflow(row))carAutoStart(row);},6000);},{passive:true});
-    row.addEventListener('scroll',()=>{clearTimeout(row._carFix);row._carFix=setTimeout(()=>carLoopFix(row),120);},{passive:true});
+    row.addEventListener('scroll',()=>{clearTimeout(row._carFix);row._carFix=setTimeout(()=>carLoopFix(row),250);},{passive:true});
   }
   carAutoStart(row);
 }
@@ -660,8 +660,10 @@ function abrirFavoritos(){
   if(!favIds().length){toast('Aún no tienes favoritos ❤️');return;}
   renderFavoritos();
   const m=$('favModal');if(m){m.classList.add('on');if(typeof lockScroll==='function')lockScroll();}
+  if(typeof navPush==='function')navPush('fav',null,'Tus favoritos — '+STORE_NAME,cerrarFavoritos);   // el botón ATRÁS cierra el modal (no se sale del sitio ni deja el scroll bloqueado)
 }
 function cerrarFavoritos(){
+  if(typeof navRemove==='function'&&!_navPopping)navRemove('fav');
   const m=$('favModal');if(m)m.classList.remove('on');
   if(typeof unlockScroll==='function')unlockScroll();
 }
@@ -835,6 +837,7 @@ function openPhoto(id,type){
   // La ficha SIEMPRE abre; el giro 360 (si existe) es un botón dentro de la galería.
   if(!p.img)return;
   pmId=id;pmType=type;
+  {const fb=$('pmFav');if(fb){fb.dataset.id=id;fb.classList.toggle('on',esFav(id));fb.style.display=type==='liq'?'none':'';}}   // corazón de la ficha (favoritos solo en catálogo, no liquidación)
   renderPmGal([p.img,...(p.imgs||[])],p.imgs360?.length>=2,altProd(p));
   const _mk=BRAND_LABELS[p.brand]||'';
   // Si el producto tiene MODELO (ej. "Nike Air Max 90"), ese es el título; si no, Marca · Género.
