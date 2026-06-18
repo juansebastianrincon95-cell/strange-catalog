@@ -1,4 +1,4 @@
-:root{color-scheme:light;--bg:#F2F1EE;--white:#FFF;--ink:#0E0E0C;--ink2:#5a5a56;--ink3:#9a9a95;--line:rgba(0,0,0,0.08);--red:#E8200A;--blue:#0066FF;--green:#1aad49;--orange:#FF7A00;--wa:#25D366;--font:'Space Grotesk',system-ui,sans-serif;--annH:56px;--navH:64px}
+:root{color-scheme:light;--bg:#FFFFFF;--white:#FFF;--ink:#0E0E0C;--ink2:#5a5a56;--ink3:#9a9a95;--line:rgba(0,0,0,0.08);--red:#E8200A;--blue:#0066FF;--green:#1aad49;--orange:#FF7A00;--wa:#25D366;--font:'Space Grotesk',system-ui,sans-serif;--annH:56px;--navH:64px}
 @media(min-width:700px){:root{--annH:62px;--navH:78px}}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 /* El scroll interno de los modales NO arrastra el fondo (anti scroll-chaining) */
@@ -170,7 +170,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 
 /* CARD */
 .cfoot-card{padding:8px 9px 10px;background:var(--white);cursor:pointer}
-.card{background:var(--white);border-radius:13px;overflow:hidden;cursor:pointer;border:1.5px solid transparent;transition:border-color .18s,box-shadow .18s,transform .15s;animation:cardUp .38s cubic-bezier(.16,1,.3,1) both;position:relative}
+.card{background:var(--white);border-radius:13px;overflow:hidden;cursor:pointer;border:1.5px solid var(--line);box-shadow:0 1px 4px rgba(0,0,0,.06);transition:border-color .18s,box-shadow .18s,transform .15s;animation:cardUp .38s cubic-bezier(.16,1,.3,1) both;position:relative}
 .card:active{transform:scale(.96)}
 .card.picked{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,102,255,.1)}
 .card.sold{opacity:.55;cursor:not-allowed}
