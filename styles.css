@@ -972,6 +972,28 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 /* Banners de colección: título + botón ABAJO (no centrado como el hero) */
 .cbanner .hero-ov{justify-content:flex-end;padding:0 22px 30px;background:linear-gradient(to top,rgba(0,0,0,.8) 6%,rgba(0,0,0,.32) 50%,transparent)}
 
+/* ── BANNER POP-OUT (out-of-bounds) — sección propia, clases scoped .pou-* (no chocan con nada) ── */
+.pou{position:relative;margin:80px 0 0;padding:0 16px}      /* margen sup = aire blanco para que la cabeza sobresalga */
+.pou-frame{position:relative;border-radius:22px;overflow:hidden;height:72vh;max-height:680px;
+  background:#0a0a0a url('/promociones/uni-bg.webp') center/cover no-repeat;
+  box-shadow:0 30px 60px -22px rgba(0,0,0,.5)}
+.pou-copy{position:absolute;left:7%;top:50%;transform:translateY(-50%);z-index:2;color:#fff;max-width:60%}
+.pou-kicker{font-size:13px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;opacity:.85}
+.pou-h1{font-size:clamp(30px,5.5vw,64px);line-height:.95;margin:8px 0 16px;font-weight:800;letter-spacing:-.02em;text-transform:uppercase}
+.pou-h1 span{color:#ffd24a}
+.pou-cta{display:inline-block;background:#fff;color:var(--ink);font-family:var(--font);font-weight:800;font-size:14px;letter-spacing:.04em;text-transform:uppercase;border:none;border-radius:11px;padding:13px 26px;cursor:pointer;transition:transform .12s,background .15s}
+.pou-cta:active{transform:scale(.97)}
+.pou-layer{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:visible}
+.pou-model{position:absolute;right:5%;bottom:0;height:122%;width:auto;display:block;
+  filter:drop-shadow(0 26px 24px rgba(0,0,0,.4));will-change:transform;transition:transform .08s linear;-webkit-user-drag:none}
+@media(max-width:699px){
+  .pou{padding:0;margin:60px 0 0}
+  .pou-frame{height:auto;aspect-ratio:4/5;max-height:82vh;border-radius:0}
+  .pou-copy{max-width:62%;left:6%}
+  .pou-model{right:0;height:118%}
+}
+@media(prefers-reduced-motion:reduce){.pou-model{transition:none}}
+
 /* PREVIEW (inicio): 2 columnas + "Ver todo" */
 .preview{padding:22px 0 12px;background:var(--bg)}
 .preview-hdr{display:flex;align-items:center;justify-content:space-between;padding:0 16px 12px}

@@ -28,6 +28,7 @@ if(localStorage.getItem('ss_reserve_until')&&!_reserveTimer){_reserveTimer=setIn
   renderFavoritos();   // pre-rellena la ventana de favoritos (#favModal)
   updFavDot();         // contador del corazón en el nav
   renderPreview();     // "Nuestros modelos"
+  if(typeof pouParallax==='function')pouParallax();   // efecto del banner pop-out (out-of-bounds)
   renderFooter();      // footer: redes + newsletter
   renderTestimonios(); // sección clientes felices
   renderCombos();      // tarjetas de combos mundialistas (sección Ofertas)

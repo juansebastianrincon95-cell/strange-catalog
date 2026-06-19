@@ -226,6 +226,28 @@ function lanzNav(dir){carNav($('lanzRow'),dir);}
 function setupAllCarousels(){['lanzRow','genMRow','genHRow'].forEach(id=>{const r=$(id);if(r&&r.querySelector('.card'))carSetup(r);});}
 window.addEventListener('resize',()=>{clearTimeout(window._carRz);window._carRz=setTimeout(setupAllCarousels,200);});
 
+/* ── BANNER POP-OUT (out-of-bounds) ── parallax (scroll) + tilt (mouse). Liviano y scoped a #popoutUni;
+   si la sección no existe no hace nada. Respeta prefers-reduced-motion y solo aplica tilt con puntero fino. */
+function pouParallax(){
+  const sec=$('popoutUni'); const model=sec&&sec.querySelector('.pou-model');
+  if(!model)return;
+  if(window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches)return;
+  const POP=45, TILT=10; let mx=0,my=0,raf=0;
+  const fine=window.matchMedia&&matchMedia('(pointer:fine)').matches;
+  function apply(){
+    raf=0;
+    const r=sec.getBoundingClientRect();
+    const prog=(window.innerHeight-r.top)/(window.innerHeight+r.height);   // ~0..1 según el scroll
+    const sy=(prog-0.5)*POP;
+    model.style.transform=`translate3d(${mx*TILT}px, ${sy - my*TILT}px, 0)`;
+  }
+  const sched=()=>{if(!raf)raf=requestAnimationFrame(apply);};
+  window.addEventListener('scroll',sched,{passive:true});
+  window.addEventListener('resize',sched);
+  if(fine)window.addEventListener('mousemove',e=>{mx=(e.clientX/innerWidth-.5)*2;my=(e.clientY/innerHeight-.5)*2;sched();});
+  apply();
+}
+
 /* ── BANNERS DE COLECCIÓN (Mujer/Hombre/Unisex) ── */
 let bannerMujer=null, bannerHombre=null, bannerUnisex=null;
 
