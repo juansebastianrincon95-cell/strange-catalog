@@ -967,8 +967,8 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .cbanner picture{display:block;width:100%;height:100%}
 .cbanner img{width:100%;height:100%;object-fit:cover;display:block;-webkit-user-drag:none}
 @media(min-width:700px){.cbanner{aspect-ratio:auto;height:62vh;max-height:640px}.cbanner img{object-position:center var(--pos,50%)}}
-/* Mujer y Hombre: banner a PANTALLA COMPLETA en escritorio (Unisex queda en 62vh) */
-@media(min-width:700px){#bannerM,#bannerH{height:100vh;max-height:100vh}}
+/* Mujer, Hombre y Unisex: banner a PANTALLA COMPLETA en escritorio (los tres iguales) */
+@media(min-width:700px){#bannerM,#bannerH,#bannerU{height:100vh;max-height:100vh}}
 /* Banners de colección: título + botón ABAJO (no centrado como el hero) */
 .cbanner .hero-ov{justify-content:flex-end;padding:0 22px 30px;background:linear-gradient(to top,rgba(0,0,0,.8) 6%,rgba(0,0,0,.32) 50%,transparent)}
 
