@@ -973,7 +973,10 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .cbanner .hero-ov{justify-content:flex-end;padding:0 22px 30px;background:linear-gradient(to top,rgba(0,0,0,.8) 6%,rgba(0,0,0,.32) 50%,transparent)}
 
 /* PREVIEW (inicio): 2 columnas + "Ver todo" */
-.preview{padding:22px 0 12px;background:var(--bg)}
+/* padding-top igual al de las filas de colección (50px móvil / 99px escritorio) → mismo espacio
+   entre el banner Unisex y "Nuestros modelos" que entre los demás banners y sus filas. */
+.preview{padding:50px 0 12px;background:var(--bg)}
+@media(min-width:700px){.preview{padding-top:99px}}
 .preview-hdr{display:flex;align-items:center;justify-content:space-between;padding:0 16px 12px}
 .preview-t{font-size:18px;font-weight:700;letter-spacing:-.01em;color:var(--ink)}
 .preview-all{border:none;background:none;color:var(--ink);font-family:var(--font);font-size:12.5px;font-weight:700;cursor:pointer;padding:6px 2px}
