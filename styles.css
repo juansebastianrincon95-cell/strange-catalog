@@ -179,6 +179,10 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .cphoto img,.cphoto .noimg{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;object-position:center center;display:block;transition:transform .35s cubic-bezier(.16,1,.3,1)}
 .cphoto .noimg{display:flex;align-items:center;justify-content:center;font-size:52px}
 .card:not(.sold):hover .cphoto img{transform:scale(1.05)}
+/* Bloquea la barra "Búsqueda visual" de Microsoft Edge sobre las fotos: el <img> no captura el
+   cursor (Edge solo la muestra al hover directo sobre un img). El clic pasa a la tarjeta y los
+   botones ♥/+ siguen funcionando; el zoom al hover también (depende del hover de la tarjeta). */
+.cphoto img,.lphoto img{pointer-events:none}
 .bdsc{position:absolute;top:8px;left:8px;background:var(--red);color:#fff;font-size:12px;font-weight:800;padding:5px 10px;border-radius:14px}
 .bsold{position:absolute;inset:0;background:rgba(255,255,255,.82);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--ink3);letter-spacing:.08em;text-transform:uppercase;pointer-events:none}
 .bnew,.bviews{position:absolute;top:8px;right:8px;z-index:3;font-size:11.5px;font-weight:800;letter-spacing:.02em;padding:5px 10px;border-radius:20px;line-height:1;pointer-events:none}
