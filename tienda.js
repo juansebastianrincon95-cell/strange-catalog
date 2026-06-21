@@ -224,7 +224,14 @@ function lanzNav(dir){carNav($('lanzRow'),dir);}
 
 // Re-arma TODOS los carruseles al cambiar el tamaño de ventana.
 function setupAllCarousels(){['lanzRow','genMRow','genHRow'].forEach(id=>{const r=$(id);if(r&&r.querySelector('.card'))carSetup(r);});}
-window.addEventListener('resize',()=>{clearTimeout(window._carRz);window._carRz=setTimeout(setupAllCarousels,200);});
+// Solo re-armar si cambió el ANCHO. En móvil el scroll dispara 'resize' (la barra de URL aparece/
+// desaparece y cambia la ALTURA); re-armar ahí reseteaba los carruseles a la primera tarjeta.
+let _carLastW=window.innerWidth;
+window.addEventListener('resize',()=>{
+  if(window.innerWidth===_carLastW)return;   // cambio de solo altura (barra URL móvil) -> ignorar
+  _carLastW=window.innerWidth;
+  clearTimeout(window._carRz);window._carRz=setTimeout(setupAllCarousels,200);
+});
 
 /* ── BANNERS DE COLECCIÓN (Mujer/Hombre/Unisex) ── */
 let bannerMujer=null, bannerHombre=null, bannerUnisex=null;
