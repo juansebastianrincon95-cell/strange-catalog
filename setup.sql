@@ -7,7 +7,7 @@
 create table if not exists products (
   id           bigint generated always as identity primary key,
   created_at   timestamptz default now(),
-  gender       text check (gender in ('h','m')),
+  gender       text check (gender in ('h','m','u')),
   brand        text,
   price        integer not null,
   price_before integer,
@@ -180,7 +180,7 @@ create table if not exists events (
   type         text not null,
   product_id   text,
   price        integer,
-  gender       text check (gender in ('h','m')),
+  gender       text check (gender in ('h','m','u')),
   utm_source   text,
   utm_medium   text,
   utm_campaign text,

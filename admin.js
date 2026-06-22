@@ -1789,11 +1789,11 @@ async function _commitQueue(dest,isC,urls){
   if(isC){
     const g=$('qGen').value,brand=($('qBrand')?.value)||'',price=Math.max(1000,parseInt($('qPrc').value)||P_DEF),was=Math.max(0,parseInt($('qAnt').value)||P_ANT);
     if(is360Cat&&urls.length>=2){
-      const r=await adminWrite('insert_product',{table:'products',data:{gender:g,brand:brand||null,price,price_before:was,promo:false,sold:false,img_url:urls[0],imgs_360:JSON.stringify(urls)}}).catch(()=>null);
+      const r=await adminWrite('insert_product',{table:'products',data:{gender:g,brand:brand||null,price,price_before:was,promo:false,sold:false,img_url:urls[0],imgs_360:JSON.stringify(urls)}});
       if(r?.id)prods.push({id:r.id,g,brand,img:urls[0],imgs360:urls,price,was,promo:false,sold:false});
     }else{
       for(let i=0;i<urls.length;i++){
-        const r=await adminWrite('insert_product',{table:'products',data:{gender:g,brand:brand||null,price,price_before:was,promo:false,sold:false,img_url:urls[i],imgs_360:'[]'}}).catch(()=>null);
+        const r=await adminWrite('insert_product',{table:'products',data:{gender:g,brand:brand||null,price,price_before:was,promo:false,sold:false,img_url:urls[i],imgs_360:'[]'}});
         if(r?.id)prods.push({id:r.id,g,brand,img:urls[i],imgs360:[],price,was,promo:false,sold:false});
       }
     }
@@ -1801,11 +1801,11 @@ async function _commitQueue(dest,isC,urls){
   }else{
     const price=Math.max(1000,parseInt($('lPrc').value)||99000),was=Math.max(0,parseInt($('lAnt').value)||P_ANT);
     if(is360Liq&&urls.length>=2){
-      const r=await adminWrite('insert_product',{table:'liq_products',data:{price,price_before:was,sold:false,img_url:urls[0],imgs_360:JSON.stringify(urls)}}).catch(()=>null);
+      const r=await adminWrite('insert_product',{table:'liq_products',data:{price,price_before:was,sold:false,img_url:urls[0],imgs_360:JSON.stringify(urls)}});
       if(r?.id)liqs.push({id:r.id,img:urls[0],imgs360:urls,price,was,sold:false});
     }else{
       for(let i=0;i<urls.length;i++){
-        const r=await adminWrite('insert_product',{table:'liq_products',data:{price,price_before:was,sold:false,img_url:urls[i],imgs_360:'[]'}}).catch(()=>null);
+        const r=await adminWrite('insert_product',{table:'liq_products',data:{price,price_before:was,sold:false,img_url:urls[i],imgs_360:'[]'}});
         if(r?.id)liqs.push({id:r.id,img:urls[i],imgs360:[],price,was,sold:false});
       }
     }

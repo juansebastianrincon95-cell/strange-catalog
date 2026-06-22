@@ -709,15 +709,19 @@ function openQuickSize(card,id,tallas){
   closeQuickSize();
   const photo=card.querySelector('.cphoto'); if(!photo)return;
   const ov=document.createElement('div'); ov.className='qsize'; ov.onclick=e=>e.stopPropagation();
+  // Mini guía de tallas: enlace que abre la foto de la marquilla en el zoom (solo si el admin la subió).
+  const guia=(sizeGuide&&sizeGuide.img1)?`<button class="qsize-guia" onclick="event.stopPropagation();zoomImg('${escHtml(sizeGuide.img1)}')">📏 ¿Cuál es mi talla?</button>`:'';
   ov.innerHTML=`<button class="qsize-x" onclick="event.stopPropagation();closeQuickSize()" aria-label="Cerrar">✕</button>
     <div class="qsize-t">Elige tu talla</div>
-    <div class="qsize-row">${tallas.map(t=>`<button class="qsize-chip" onclick="event.stopPropagation();quickPick(${id},'${escHtml(String(t))}')">${escHtml(String(t))}</button>`).join('')}</div>`;
+    <div class="qsize-row">${tallas.map(t=>`<button class="qsize-chip" onclick="event.stopPropagation();quickPick(${id},'${escHtml(String(t))}')">${escHtml(String(t))}</button>`).join('')}</div>
+    ${guia}`;
   photo.appendChild(ov);
 }
 function closeQuickSize(){document.querySelectorAll('.qsize').forEach(o=>o.remove());}
 // Cerrar el selector al tocar/arrastrar FUERA de él (incluye arrastrar el carrusel). No se cierra
-// con el auto-giro de los carruseles porque eso no genera un pointerdown del usuario.
-document.addEventListener('pointerdown',e=>{if(!e.target.closest('.qsize'))closeQuickSize();},true);
+// con el auto-giro de los carruseles porque eso no genera un pointerdown del usuario. Tampoco se
+// cierra mientras el zoom de la guía de tallas está abierto (el clic para cerrarlo cae fuera).
+document.addEventListener('pointerdown',e=>{if(document.getElementById('imgZoom')&&document.getElementById('imgZoom').classList.contains('on'))return;if(!e.target.closest('.qsize'))closeQuickSize();},true);
 function quickPick(id,talla){
   const key=cartKey(id,'cat',talla);
   closeQuickSize();
