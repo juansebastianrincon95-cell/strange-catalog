@@ -171,6 +171,16 @@ function contentIdsDe(items) {
   return items.map(it => (it.type === 'liq' ? 'liq_' : 'cat_') + parseInt(it.id)).filter(s => !s.endsWith('_NaN'));
 }
 
+// Firma del carrito (mismo contenido = misma compra). Ordena por type|id|talla|qty para comparar
+// dos pedidos sin depender del orden. Se usa para deduplicar ventas/intentos de la misma sesión.
+function cartSig(items) {
+  if (!Array.isArray(items)) return '';
+  return items
+    .map(it => `${it.type || 'cat'}|${it.id}|${it.talla || ''}|${it.qty || 1}`)
+    .sort()
+    .join('~');
+}
+
 /* Aviso de venta al vendedor por Telegram. OPCIONAL: solo actúa si existen las envs
    TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID (se activan cuando el usuario cree su bot).
    Nunca bloquea la confirmación: timeout corto y errores silenciados. */
@@ -204,8 +214,35 @@ async function confirmPaidOrder({ reference, amount, amountInCents, currency = '
   if (currency && String(currency).toUpperCase() !== 'COP') return { ok: false, error: 'currency_mismatch' };
   if (!Number.isFinite(paid) || paid !== expected) return { ok: false, error: 'amount_mismatch', expected, paid };
   if (order.status !== 'venta') {
+    // CANDADO ANTI DOBLE-VENTA: si ya hay otra venta del MISMO carrito en esta sesión (p.ej. el
+    // cliente pagó por dos pasarelas), esto es un DUPLICADO → no crear 2ª venta ni 2º Purchase.
+    // Fail-open: ante cualquier error de la consulta, seguimos y marcamos la venta (no perderla).
+    if (order.session_id) {
+      try {
+        const sig = cartSig(order.items);
+        const { data: prevVentas } = await sb.from('orders')
+          .select('id,reference,items')
+          .eq('session_id', order.session_id).eq('status', 'venta').neq('id', order.id).limit(20);
+        const dup = (prevVentas || []).find(p => cartSig(p.items) === sig);
+        if (dup) {
+          await sb.from('orders').update({ status: 'no_venta', motivo_no_venta: 'Duplicado — ya pagado en ' + (dup.reference || dup.id) }).eq('id', order.id);
+          return { ok: true, duplicate: true, order: { ...order, status: 'no_venta' } };
+        }
+      } catch (e) { /* fail-open */ }
+    }
     const { error } = await sb.from('orders').update({ status: 'venta' }).eq('id', order.id);
     if (error) return { ok: false, error: error.message };
+    // LIMPIEZA DE HERMANOS: los intentos pendientes del MISMO carrito/sesión pasan a no_venta
+    // (salen de "por hacer" y NO disparan rescate/remarketing). No bloquea la venta si falla.
+    if (order.session_id) {
+      try {
+        const sig = cartSig(order.items);
+        const { data: sib } = await sb.from('orders')
+          .select('id,items').eq('session_id', order.session_id).eq('status', 'pending').neq('id', order.id).limit(50);
+        const ids = (sib || []).filter(s => cartSig(s.items) === sig).map(s => s.id);
+        if (ids.length) await sb.from('orders').update({ status: 'no_venta', motivo_no_venta: 'Intento previo — pago confirmado en ' + (order.reference || order.id) }).in('id', ids);
+      } catch (e) { /* no bloquear la venta */ }
+    }
     const utm = order.utm || {};
     // Pedido de prueba: queda marcado 'venta' (para completar el flujo) pero SIN enviar Purchase
     // a Meta/CAPI ni notificar por Telegram.

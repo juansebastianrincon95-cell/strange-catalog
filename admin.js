@@ -1450,7 +1450,8 @@ function renderLeadsTab(){
           ${o.tel?`📱 <a href="https://wa.me/57${String(o.tel).replace(/\D/g,'').slice(-10)}" target="_blank" style="color:var(--blue);text-decoration:none">${escHtml(o.tel)}</a><br>`:''}
           ${o.ciudad?`📍 ${escHtml(o.ciudad)}${o.barrio?', '+escHtml(o.barrio):''}<br>`:''}
           ${itemsTxt(o)?`👟 ${itemsTxt(o)}<br>`:''}
-          💰 <b>${fmt(o.total||0)}</b>${o.pago?` · ${escHtml(pagoLabels[o.pago]||o.pago)}`:''}${o.combo?` · <b style="color:#b3541e">🏆 ${escHtml(o.combo)}</b>`:''}
+          💰 <b>${fmt(o.total||0)}</b>${o.combo?` · <b style="color:#b3541e">🏆 ${escHtml(o.combo)}</b>`:''}
+          ${o.pago?`<br><span style="display:inline-block;margin-top:4px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;${['wompi','bold','addi','sistecredito'].includes(o.pago)?'background:#E7F6EC;color:#1BA94C':['contra_entrega','pago_anticipado'].includes(o.pago)?'background:#FFF4E0;color:#B3791E':'background:#eee;color:#666'}">${['wompi','bold','addi','sistecredito'].includes(o.pago)?'💳 Pagado · ':['contra_entrega','pago_anticipado'].includes(o.pago)?'⏳ Por confirmar · ':''}${escHtml(pagoLabels[o.pago]||o.pago)}</span>`:''}
           ${o.utm&&o.utm.utm_campaign?`<br>📣 <span style="color:#5D2D91;font-weight:600">${escHtml(o.utm.utm_campaign)}</span>${o.utm.utm_content?` · ad: ${escHtml(o.utm.utm_content)}`:''}${o.utm.src_app?` · ${escHtml(srcAppLabel(o.utm.src_app))}`:''}`:(o.utm&&o.utm.src_app?`<br>${escHtml(srcAppLabel(o.utm.src_app))}`:'')}
           ${o.fecha?`<br><span style="color:var(--ink3);font-size:10px">${new Date(o.fecha).toLocaleString('es-CO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</span>`:''}
         </div>
@@ -1471,7 +1472,7 @@ function renderLeadsTab(){
         </div>
       </div>`;
   el.innerHTML=`<div style="display:flex;gap:5px;padding:12px 14px 8px;flex-wrap:wrap">
-      ${chip('pending','⏳',nPend,'#F2A900')}${chip('venta','✓',nVta,'#1BA94C')}${chip('no_venta','✕',nNo,'#E8200A')}${chip('abandoned','🛒',nAban,'#8A6D00')}${chip('all','Todos',reales.length,'#0E0E0C')}${nTest?chip('test','🧪',nTest,'#b91c1c'):''}
+      ${chip('pending','⏳ Por hacer',nPend,'#F2A900')}${chip('venta','✓ Ventas',nVta,'#1BA94C')}${chip('no_venta','✕',nNo,'#E8200A')}${chip('abandoned','🛒',nAban,'#8A6D00')}${chip('all','Todos',reales.length,'#0E0E0C')}${nTest?chip('test','🧪',nTest,'#b91c1c'):''}
     </div>
     ${(leadFilter==='test'&&nTest)?`<div style="padding:0 14px 8px"><button onclick="deleteAllTests()" style="width:100%;padding:10px;border:none;border-radius:10px;background:#b91c1c;color:#fff;font-family:var(--font);font-size:12.5px;font-weight:700;cursor:pointer">🗑 Borrar todas las pruebas (${nTest})</button></div>`:''}
     <div style="padding:0 14px">${_vistaChips(leadVista,'setLeadVista')}</div>
