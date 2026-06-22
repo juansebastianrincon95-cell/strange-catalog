@@ -91,7 +91,7 @@
     <button onclick="openCatalog()">Productos</button>
     <button onclick="openCatalog({gender:'h'})">Hombre</button>
     <button onclick="openCatalog({gender:'m'})">Mujer</button>
-    <button onclick="openCatalog()">Unisex</button>
+    <button onclick="openCatalog({gender:'u'})">Unisex</button>
     <button onclick="openCatalog({gender:'liq'})">Ofertas</button>
     <button onclick="openInfo('mayoristas')">Mayoristas</button>
     <button onclick="openInfo('cambios')">Cambios y Garantías</button>
@@ -272,6 +272,7 @@
     <button class="tab on" onclick="setG('all',this)">Todos</button>
     <button class="tab"    onclick="setG('h',this)">Hombre</button>
     <button class="tab"    onclick="setG('m',this)">Mujer</button>
+    <button class="tab"    onclick="setG('u',this)">Unisex</button>
     <button class="tab"    onclick="setG('liq',this)">🔥 Ofertas</button>
   </div>
   <div class="brandbar" id="brandbar"></div>

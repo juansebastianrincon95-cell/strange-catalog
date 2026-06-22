@@ -57,7 +57,7 @@ async function priceItems(sb, inputItems) {
   return items.map(it => {
     const p = it.type === 'liq' ? liqs.get(it.id) : cats.get(it.id);
     if (!p || p.sold) throw new Error('producto no disponible');
-    const label = it.type === 'liq' ? 'Liq' : (p.gender === 'h' ? 'Hombre' : 'Mujer');
+    const label = it.type === 'liq' ? 'Liq' : (p.gender === 'h' ? 'Hombre' : p.gender === 'u' ? 'Unisex' : 'Mujer');
     return {
       label, id: it.id, type: it.type, brand: p.brand || null, qty: it.qty,
       precio: Number(p.price) * it.qty, unit_price: Number(p.price), talla: it.talla || null

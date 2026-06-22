@@ -151,7 +151,8 @@ let featuredIds=[];
 // settings.featured_ids (orden = orden de aparición)
 const LANZ_MAX=10;
 
-function prodLabel(p){return (p.g==='h'?'Hombre':'Mujer')+' · '+(BRAND_LABELS[p.brand]||'—')+' · '+fmt(p.price)+' (#'+p.id+')';}
+function genLabel(g){return g==='h'?'Hombre':g==='u'?'Unisex':'Mujer';}
+function prodLabel(p){return genLabel(p.g)+' · '+(BRAND_LABELS[p.brand]||'—')+' · '+fmt(p.price)+' (#'+p.id+')';}
 
 function renderFeatured(){
   const sec=$('lanz'),row=$('lanzRow');if(!row)return;
@@ -250,8 +251,8 @@ function renderColBanners(){
   set($('bannerU'),bannerUnisex,'u');
 }
 
-// Los banners abren el catálogo completo (vista aparte) filtrado. Unisex = Todos por ahora.
-function colCTA(g){ openCatalog({gender: g==='m'?'m' : g==='h'?'h' : 'all'}); }
+// Los banners abren el catálogo (vista aparte) filtrado por su género.
+function colCTA(g){ openCatalog({gender: g==='m'?'m' : g==='h'?'h' : g==='u'?'u' : 'all'}); }
 
 function openCatalog(opts){
   opts=opts||{};
@@ -266,7 +267,7 @@ function openCatalog(opts){
     renderGrid();
   }else{
     const g=opts.gender||'all';
-    const idx=g==='h'?1:g==='m'?2:g==='liq'?3:0;
+    const idx=g==='h'?1:g==='m'?2:g==='u'?3:g==='liq'?4:0;
     setG(g, tabs[idx]);   // setG hace renderGrid
   }
   // Título del catálogo según la sección (las pestañas están ocultas).
@@ -309,11 +310,12 @@ function navGo(t){
   closeMenu();
   if(t==='h')openCatalog({gender:'h'});
   else if(t==='m')openCatalog({gender:'m'});
+  else if(t==='u')openCatalog({gender:'u'});
   else if(t==='liq')openCatalog({gender:'liq'});
   else if(t==='mayoristas')openInfo('mayoristas');
   else if(t==='cambios')openInfo('cambios');
   else if(t==='quienes')openInfo('quienes');
-  else openCatalog();   // Productos / Unisex → todos
+  else openCatalog();   // Productos → todos
 }
 
 /* ── VENTANAS INFO (Mayoristas / Cambios y Garantías) ── reusan el modal .guia-modal ── */
@@ -505,7 +507,7 @@ function renderTestimonios(){
   row.innerHTML=ts.map((t,i)=>{
     const p=t.productId?prods.find(x=>x.id===t.productId):null;
     const foto=t.foto?`<img class="testi-card-foto" src="${escHtml(t.foto)}" alt="${escHtml(t.nombre||'Cliente')}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`+_avatar(t.nombre,true):_avatar(t.nombre,false);
-    const prod=p?`<div class="testi-card-prod"><img src="${escHtml(p.img)}" alt=""><span>${escHtml((BRAND_LABELS[p.brand]||'')+' '+(p.g==='h'?'Hombre':'Mujer'))}</span></div>`:'';
+    const prod=p?`<div class="testi-card-prod"><img src="${escHtml(p.img)}" alt=""><span>${escHtml((BRAND_LABELS[p.brand]||'')+' '+(genLabel(p.g)))}</span></div>`:'';
     const meta=[t.ciudad,t.fecha].filter(Boolean).map(escHtml).join(' · ');
     const cap=t.captura?`<img class="testi-card-cap" src="${escHtml(t.captura)}" alt="Pedido recibido" loading="lazy" onerror="this.style.display='none'">`:'';
     return `<div class="testi-card" onclick="openTesti(${i})">
@@ -738,7 +740,7 @@ function cardHTML(p,i,prefix,toFicha){
   const goAdd=conTalla?`event.stopPropagation();quickAdd(event,${p.id})`:`event.stopPropagation();togCard(${p.id},'cat')`;
   // Nombre: marca (línea fina) + modelo (destacado). Sin modelo, el modelo cae a marca/género.
   const _bl=p.brand?brandLabel(p.brand):'';
-  const _modelTxt=p.modelo||_bl||(p.g==='h'?'Hombre':'Mujer');
+  const _modelTxt=p.modelo||_bl||(genLabel(p.g));
   const _showBrand=!!(p.modelo&&_bl);
   return `<div class="card ${on?'picked':''} ${p.sold?'sold':''}" id="${prefix}${p.id}" style="animation-delay:${Math.min(i*.02,.4)}s" onclick="${goCard}">
       <div class="cphoto">
@@ -772,7 +774,7 @@ function renderGrid(){
   }
   $('grid').style.display='';
   renderBrandBar();
-  let items=gSel==='all'?prods:prods.filter(p=>p.g===gSel);
+  let items=gSel==='all'?prods:gSel==='u'?prods.filter(p=>p.g==='u'):prods.filter(p=>p.g===gSel||p.g==='u');   // Hombre/Mujer incluyen Unisex; pestaña Unisex solo 'u'
   if(brandSel!=='all')items=items.filter(p=>p.brand===brandSel);
   if(_searchQ)items=items.filter(p=>((p.modelo||'')+' '+brandLabel(p.brand)).toLowerCase().includes(_searchQ));
   // Ordenar sobre una COPIA (cuando gSel==='all', items === prods por referencia: nunca ordenar in-place).
@@ -844,7 +846,7 @@ let brandSel='all';
 
 function brandLabel(b){return BRAND_LABELS[b]||b;}
 
-function altProd(p){return escHtml(p.modelo||((BRAND_LABELS[p.brand]||'Sneakers')+(p.g==='h'?' hombre':p.g==='m'?' mujer':'')));}
+function altProd(p){return escHtml(p.modelo||((BRAND_LABELS[p.brand]||'Sneakers')+(p.g==='h'?' hombre':p.g==='m'?' mujer':p.g==='u'?' unisex':'')));}
 
 function renderBrandBar(){
   const bar=$('brandbar');if(!bar)return;
@@ -880,7 +882,7 @@ function openPhoto(id,type){
   renderPmGal([p.img,...(p.imgs||[])],p.imgs360?.length>=2,altProd(p));
   const _mk=BRAND_LABELS[p.brand]||'';
   // Si el producto tiene MODELO (ej. "Nike Air Max 90"), ese es el título; si no, Marca · Género.
-  $('pmTitle').textContent=p.modelo||((_mk?_mk+' · ':'')+(type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer')));
+  $('pmTitle').textContent=p.modelo||((_mk?_mk+' · ':'')+(type==='liq'?'Liquidación':(genLabel(p.g))));
   pmReviewN=reviewsCount;   // nº de reseñas = el de marketing del admin (settings.reviews_count)
   {const rv=$('pmReviews');if(rv)rv.textContent=pmReviewN>0?`(${pmReviewN.toLocaleString('es-CO')} reseñas)`:'';}
   {const dd=$('pmDesc');if(dd)dd.textContent=genDescripcion(p,type);}
@@ -911,7 +913,7 @@ function openPhoto(id,type){
   renderPmCross(p,type);
   syncPmBtn();
   const _vcat=type==='liq'?'liquidacion':p.g;
-  const _vnm=type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer');
+  const _vnm=type==='liq'?'Liquidación':(genLabel(p.g));
   px('ViewContent',{content_ids:[pxId(type,id)],content_type:'product',content_category:_vcat,content_name:_vnm,value:p.price,currency:'COP',...getUTM()});
   ga4('view_item',{currency:'COP',value:p.price,items:[{item_id:pxId(type,id),item_name:_vnm,price:p.price}]});   // GA4 / Google Ads
   trackEvent('view_product',{product_id:(type==='liq'?'L':'')+id,price:p.price,gender:type==='liq'?null:p.g||null});
@@ -929,10 +931,13 @@ function openPhoto(id,type){
 // hombre 40-44 (tallas EUR reales del negocio). Liquidación no tiene género → sin tallas.
 // Override por producto (futuro: gestionar agotadas desde el admin): p.tallas array, o 'none'.
 const TALLAS_MUJER=['36','37','38','39'], TALLAS_HOMBRE=['40','41','42','43','44'];
+// Unisex: tallas según la SECCIÓN activa (gSel) con un poco de solape para pies de borde.
+const TALLAS_U_M=['36','37','38','39','40'], TALLAS_U_H=['39','40','41','42','43','44'], TALLAS_U_ALL=['36','37','38','39','40','41','42','43','44'];
 function tallasDe(p){
   if(!p)return [];
   if(Array.isArray(p.tallas))return p.tallas.filter(t=>t!=null&&String(t).trim()!=='');
   if(p.tallas==='none')return [];
+  if(p.g==='u')return (gSel==='m'?TALLAS_U_M:gSel==='h'?TALLAS_U_H:TALLAS_U_ALL).slice();   // contextual
   if(p.g==='m')return TALLAS_MUJER.slice();
   if(p.g==='h')return TALLAS_HOMBRE.slice();
   return [];
@@ -977,7 +982,7 @@ function syncPmBtn(){
 function genDescripcion(p,type){
   const mk=BRAND_LABELS[p.brand]||'';
   if(type==='liq')return `Edición de liquidación a precio especial — ${mk?mk+', ':''}calidad original y comodidad para uso diario. Pocas unidades. Envío gratis a todo el país, pago contra entrega, cambios por talla y 100% garantía.`;
-  const g=p.g==='h'?'hombre':'mujer';
+  const g=p.g==='h'?'hombre':p.g==='u'?'hombre y mujer':'mujer';
   return `Sneakers ${mk?mk+' ':''}para ${g}: diseño original, materiales de calidad y comodidad todo el día — perfectos para combinar con todo. Envío gratis a todo el país, pago contra entrega, cambios por talla y 100% garantía.`;
 }
 
@@ -1164,7 +1169,7 @@ function open360(id,type){
   const list=type==='liq'?liqs:prods;
   const p=list.find(x=>x.id===id);
   if(!p)return;
-  $('v360Label').textContent=type==='liq'?'🔥 Liquidación':(p.g==='h'?'Hombre':'Mujer');
+  $('v360Label').textContent=type==='liq'?'🔥 Liquidación':(genLabel(p.g));
   $('v360Price').textContent=fmt(p.price);
   sync360Btn();
   $('v360Hint').style.opacity='1';

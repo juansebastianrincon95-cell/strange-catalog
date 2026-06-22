@@ -49,6 +49,7 @@ function genderLabel(g) {
   // En la data: 'h' = Hombre, 'm' = Mujer (ver tienda.js/router.js).
   if (g === 'h' || g === 'hombre') return 'Hombre';
   if (g === 'm' || g === 'mujer') return 'Mujer';
+  if (g === 'u' || g === 'unisex') return 'Unisex';
   return '';
 }
 

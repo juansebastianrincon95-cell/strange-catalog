@@ -31,7 +31,7 @@ module.exports = async (req, res) => {
   const all = [
     ...(cats || []).map(p => {
       const bl = brandLabel(p.brand);                 // marca real del zapato (o null)
-      const gen = p.gender === 'h' ? 'Hombre' : 'Mujer';
+      const gen = p.gender === 'h' ? 'Hombre' : p.gender === 'u' ? 'Unisex' : 'Mujer';
       return {
       id:           'cat_' + p.id,
       title:        p.modelo || ((bl ? bl + ' ' : '') + 'Par ' + gen + ' — ' + brand),
