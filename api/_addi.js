@@ -74,6 +74,11 @@ async function createAddiApplication(order, email) {
   const cedula = String(order.cedula || '').replace(/\D/g, '');
   const phone = String(order.tel || '').replace(/\D/g, '');
   const address = { lineOne: String(order.direccion || '').slice(0, 200), city: String(order.ciudad || '').slice(0, 80), country: 'CO' };
+  // Secreto del webhook incrustado en el callbackUrl que NOSOTROS le damos a Addi → la confirmación
+  // es AUTOMÁTICA (Addi llama de vuelta con ?secret=...) y SEGURA (un POST forjado sin el secreto se
+  // rechaza). No depende del panel de Addi ni de un endpoint de estado. Rotar = cambiar la env.
+  const wsec = (process.env.ADDI_WEBHOOK_SECRET || '').trim();
+  const callbackUrl = 'https://strangesneakers.com/api/orders?webhook=addi' + (wsec ? '&secret=' + encodeURIComponent(wsec) : '');
   const body = {
     orderId: String(order.reference),
     totalAmount: amount,
@@ -94,7 +99,7 @@ async function createAddiApplication(order, email) {
     shippingAddress: address,
     allyUrlRedirection: {
       logoUrl: '',
-      callbackUrl: 'https://strangesneakers.com/api/orders?webhook=addi',
+      callbackUrl,
       redirectionUrl: 'https://strangesneakers.com/?addi=1',
       checkoutUrl: 'https://strangesneakers.com/?addi=cancel'
     }
