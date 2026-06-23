@@ -42,6 +42,20 @@ module.exports = async (req, res) => {
 
   if (action === 'ping') return res.json({ ok: true });
 
+  if (action === 'pixel_health') {
+    // Compara el pixel del front (settings.pixel_id) con el del CAPI (env META_PIXEL_ID).
+    // Solo devuelve los últimos 4 dígitos + si coinciden (no expone el pixel completo).
+    const capi = (process.env.META_PIXEL_ID || '').trim();
+    const { data: row } = await sb.from('settings').select('value').eq('key', 'pixel_id').maybeSingle();
+    const front = ((row && row.value) || '').trim();
+    const last4 = s => s ? String(s).slice(-4) : '';
+    return res.json({
+      ok: true,
+      front_last4: last4(front), capi_last4: last4(capi),
+      capi_configured: !!capi, match: !!front && !!capi && front === capi
+    });
+  }
+
   if (action === 'upsert_settings') {
     if (!data) return res.status(400).json({ error: 'data required' });
     const rows = Array.isArray(data) ? data : [data];

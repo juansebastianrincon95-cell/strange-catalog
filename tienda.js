@@ -274,7 +274,7 @@ function openCatalog(opts){
   const tt=v.querySelector('.catview-title');
   let _ct='Catálogo';
   if(tt){
-    const map={h:'Hombre',m:'Mujer',liq:'Ofertas',all:'Productos'};
+    const map={h:'Hombre',m:'Mujer',u:'Unisex',liq:'Ofertas',all:'Productos'};
     tt.textContent = opts.brand ? (typeof BRAND_LABELS!=='undefined' && BRAND_LABELS[opts.brand] ? BRAND_LABELS[opts.brand] : 'Productos') : (map[opts.gender||'all']||'Catálogo');
     _ct=tt.textContent;
   }

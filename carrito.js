@@ -219,7 +219,7 @@ function togCard(id,type,talla){
   const inCart=!!cart[key];
   if(inCart&&!wasInCart){
     const _acat=type==='liq'?'liquidacion':p.g;
-    const _anm=type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer');
+    const _anm=type==='liq'?'Liquidación':genLabel(p.g);
     px('AddToCart',{content_ids:[pxId(type,id)],content_type:'product',content_category:_acat,content_name:_anm,value:p.price,currency:'COP',...getUTM()});
     ga4('add_to_cart',{currency:'COP',value:p.price,items:[{item_id:pxId(type,id),item_name:_anm,price:p.price,quantity:1}]});   // GA4 / Google Ads
     trackEvent('add_to_cart',{product_id:String(key),price:p.price,gender:type==='liq'?null:p.g});

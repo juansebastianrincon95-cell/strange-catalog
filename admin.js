@@ -295,6 +295,17 @@ function renderSizeGuideAdmin(){
   const u=sizeGuide&&sizeGuide.img1;const t=$('guia1Thumb');
   if(t&&u){t.src=u;t.style.display='block';const l=$('guia1Lbl');if(l)l.textContent='Actual ✓ (toca para cambiar)';}
 }
+async function checkPixelHealth(){
+  const el=$('pixelHealth');if(!el)return;
+  try{
+    const r=await adminWrite('pixel_health',{});
+    if(!r||!r.ok){el.innerHTML='<span style="color:var(--ink3)">No se pudo comprobar.</span>';return;}
+    if(!r.capi_configured){el.innerHTML='⚠️ <span style="color:#b3791e">CAPI sin pixel (META_PIXEL_ID no configurado en Vercel).</span>';return;}
+    el.innerHTML = r.match
+      ? `✅ <span style="color:#1BA94C">Coinciden</span> · front …${escHtml(r.front_last4)} = CAPI …${escHtml(r.capi_last4)}`
+      : `❌ <span style="color:#E8200A">NO coinciden</span> · front …${escHtml(r.front_last4)} ≠ CAPI …${escHtml(r.capi_last4)} (revisa settings.pixel_id vs META_PIXEL_ID)`;
+  }catch(e){el.innerHTML='<span style="color:var(--ink3)">No se pudo comprobar.</span>';}
+}
 async function saveSocials(){
   socials={ig:(($('cfgIg')||{}).value||'').trim(), tiktok:(($('cfgTiktok')||{}).value||'').trim(), fb:(($('cfgFb')||{}).value||'').trim()};
   await adminWrite('upsert_settings',{data:{key:'socials',value:JSON.stringify(socials)}});
@@ -2033,7 +2044,7 @@ window._adminInit=(async()=>{
   const r=await fetch('/admin.html');
   if(!r.ok)throw new Error('admin.html '+r.status);
   document.body.insertAdjacentHTML('beforeend',await r.text());
-  renderHeroAdmin();renderCombosAdmin();renderFeaturedAdmin();renderColAdmin();renderTestiAdmin();renderSizeGuideAdmin();
+  renderHeroAdmin();renderCombosAdmin();renderFeaturedAdmin();renderColAdmin();renderTestiAdmin();renderSizeGuideAdmin();checkPixelHealth();
 (function(){ /* drag & drop de las zonas de subida */
   const uzEl=$('uzCat');
   if(uzEl){
