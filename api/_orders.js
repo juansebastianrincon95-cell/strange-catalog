@@ -205,6 +205,25 @@ async function notifyVentaTelegram(order) {
   } catch {} finally { clearTimeout(t); }
 }
 
+// Descuenta stock por talla al confirmar una venta. Solo afecta productos con `tallas` como mapa
+// {talla:stock} (rastreo activado); si es null/array (sin rastreo) no hace nada. Nunca rompe la venta.
+async function decrementStock(sb, items) {
+  for (const it of (Array.isArray(items) ? items : [])) {
+    try {
+      if (!it || it.talla == null || String(it.talla).trim() === '') continue;
+      const table = it.type === 'liq' ? 'liq_products' : 'products';
+      const { data: row } = await sb.from(table).select('tallas').eq('id', it.id).maybeSingle();
+      const tallas = row && row.tallas;
+      if (!tallas || typeof tallas !== 'object' || Array.isArray(tallas)) continue;
+      const key = String(it.talla);
+      if (!(key in tallas)) continue;
+      const qty = Number(it.qty) || 1;
+      const next = Math.max(0, (Number(tallas[key]) || 0) - qty);
+      await sb.from(table).update({ tallas: Object.assign({}, tallas, { [key]: next }) }).eq('id', it.id);
+    } catch (e) { /* el stock nunca bloquea la venta */ }
+  }
+}
+
 async function confirmPaidOrder({ reference, amount, amountInCents, currency = 'COP', eventSourceUrl, req }) {
   const sb = serviceClient();
   const order = await getOrderByReference(reference);
@@ -247,6 +266,7 @@ async function confirmPaidOrder({ reference, amount, amountInCents, currency = '
     // Pedido de prueba: queda marcado 'venta' (para completar el flujo) pero SIN enviar Purchase
     // a Meta/CAPI ni notificar por Telegram.
     if (utm.test) return { ok: true, order: { ...order, status: 'venta' } };
+    await decrementStock(sb, order.items).catch(() => {});   // descontar inventario por talla (solo ventas reales)
     const clientIp = req ? String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || undefined : undefined;
     // await (Codex #8): en serverless el fire-and-forget puede morir al responder.
     await sendEvent({
@@ -265,4 +285,4 @@ async function confirmPaidOrder({ reference, amount, amountInCents, currency = '
   return { ok: true, order: { ...order, status: 'venta' } };
 }
 
-module.exports = { anonClient, serviceClient, cleanText, calculateOrder, createOrder, getOrderByReference, confirmPaidOrder, contentIdsDe, cartSig };
+module.exports = { anonClient, serviceClient, cleanText, calculateOrder, createOrder, getOrderByReference, confirmPaidOrder, contentIdsDe, cartSig, decrementStock };

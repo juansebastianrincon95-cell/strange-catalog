@@ -938,22 +938,38 @@ function openPhoto(id,type){
 const TALLAS_MUJER=['36','37','38','39'], TALLAS_HOMBRE=['40','41','42','43','44'];
 // Unisex: tallas según la SECCIÓN activa (gSel) con un poco de solape para pies de borde.
 const TALLAS_U_M=['36','37','38','39','40'], TALLAS_U_H=['39','40','41','42','43','44'], TALLAS_U_ALL=['36','37','38','39','40','41','42','43','44'];
-function tallasDe(p){
-  if(!p)return [];
-  if(Array.isArray(p.tallas))return p.tallas.filter(t=>t!=null&&String(t).trim()!=='');
-  if(p.tallas==='none')return [];
-  if(p.g==='u')return (gSel==='m'?TALLAS_U_M:gSel==='h'?TALLAS_U_H:TALLAS_U_ALL).slice();   // contextual
-  if(p.g==='m')return TALLAS_MUJER.slice();
-  if(p.g==='h')return TALLAS_HOMBRE.slice();
-  return [];
+// Devuelve {tallas:[...], stock:{talla:n}|null}. stock=null => NO se rastrea inventario por talla
+// (todas disponibles). stock objeto => solo las de stock>0 son comprables (el resto se ven agotadas).
+function tallasInfo(p){
+  if(!p)return {tallas:[],stock:null};
+  // Mapa de stock por talla (jsonb): {"38":3,"39":0,...}
+  if(p.tallas && typeof p.tallas==='object' && !Array.isArray(p.tallas)){
+    const keys=Object.keys(p.tallas).filter(k=>String(k).trim()!=='');
+    keys.sort((a,b)=>(parseFloat(a)||0)-(parseFloat(b)||0));
+    return {tallas:keys, stock:p.tallas};
+  }
+  if(Array.isArray(p.tallas))return {tallas:p.tallas.filter(t=>t!=null&&String(t).trim()!==''),stock:null};
+  if(p.tallas==='none')return {tallas:[],stock:null};
+  if(p.g==='u')return {tallas:(gSel==='m'?TALLAS_U_M:gSel==='h'?TALLAS_U_H:TALLAS_U_ALL).slice(),stock:null};   // contextual
+  if(p.g==='m')return {tallas:TALLAS_MUJER.slice(),stock:null};
+  if(p.g==='h')return {tallas:TALLAS_HOMBRE.slice(),stock:null};
+  return {tallas:[],stock:null};
 }
+function tallasDe(p){return tallasInfo(p).tallas;}   // compat: lista de tallas configuradas
+function tallaDisponible(p,t){const{stock}=tallasInfo(p);return !stock||((Number(stock[t])||0)>0);}
 function renderPmSizes(p){
   const box=$('pmSizes'),row=$('pmSizesRow');if(!box||!row)return;
   pmTalla=null;box.classList.remove('err');
-  const tallas=tallasDe(p);
+  const {tallas,stock}=tallasInfo(p);
   if(!tallas.length){box.style.display='none';row.innerHTML='';return;}
   box.style.display='';
-  row.innerHTML=tallas.map(t=>`<button type="button" class="pm-size" onclick="pmPickSize('${escHtml(String(t))}',this)">${escHtml(String(t))}</button>`).join('');
+  row.innerHTML=tallas.map(t=>{
+    const out=stock&&(Number(stock[t])||0)<=0;   // sin stock → agotada (deshabilitada y tachada)
+    const s=escHtml(String(t));
+    return out
+      ? `<button type="button" class="pm-size out" disabled aria-disabled="true" title="Agotada">${s}</button>`
+      : `<button type="button" class="pm-size" onclick="pmPickSize('${s}',this)">${s}</button>`;
+  }).join('');
 }
 // Guía de tallas: link colapsable con las 2 fotos de marquilla (oculto si el admin no las subió).
 function renderPmGuia(){

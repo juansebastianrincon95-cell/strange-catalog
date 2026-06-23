@@ -148,12 +148,14 @@ async function loadState(){
       id:r.id, g:r.gender, brand:r.brand||'', modelo:r.modelo||'', img:r.img_url,
       imgs360:r.imgs_360?JSON.parse(r.imgs_360):[],
       imgs:r.imgs?JSON.parse(r.imgs):[],
+      tallas:r.tallas||null,   // jsonb {talla:stock} | null = sin rastreo (deriva por género)
       price:r.price, was:r.price_before, promo:r.promo, sold:r.sold
     }));
     liqs=(lRows||[]).map(r=>({
       id:r.id, modelo:r.modelo||'', img:r.img_url,
       imgs360:r.imgs_360?JSON.parse(r.imgs_360):[],
       imgs:r.imgs?JSON.parse(r.imgs):[],
+      tallas:r.tallas||null,
       price:r.price, was:r.price_before, sold:r.sold
     }));
     const cfg=Object.fromEntries((sRows||[]).map(r=>[r.key,r.value]));

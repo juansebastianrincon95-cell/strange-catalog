@@ -17,14 +17,25 @@
       var t=new URLSearchParams(location.search).get('test');
       var test=(t==='off'||t==='0')?false:(t?true:localStorage.getItem('ss_test')==='1');
       if(test)return;   // modo prueba: no cargar Google ni disparar eventos
-      // Consent Mode v2 (CO no lo exige legalmente, pero Google lo recomienda)
-      gtag('consent','default',{ad_storage:'granted',analytics_storage:'granted',ad_user_data:'granted',ad_personalization:'granted'});
+      // Consent Mode v2: por defecto DENIED hasta que el usuario decida (banner de cookies).
+      // Si ya aceptó/rechazó antes (localStorage ss_consent), se respeta esa elección y NO reaparece.
+      // CO no lo exige legalmente, pero respeta la elección del usuario (recomendación de Google).
+      var consent=null; try{consent=localStorage.getItem('ss_consent');}catch(e){}
+      var g=consent==='granted'?'granted':'denied';
+      gtag('consent','default',{ad_storage:g,analytics_storage:g,ad_user_data:g,ad_personalization:g,wait_for_update:500});
       var s=document.createElement('script');s.async=true;
       s.src='https://www.googletagmanager.com/gtag/js?id=G-KR4N3874YT';
       document.head.appendChild(s);
       gtag('js', new Date());
       gtag('config', 'G-KR4N3874YT');
       if(window.GADS && /^AW-\d/.test(GADS.id)) gtag('config', GADS.id);   // Google Ads (solo si ya pegaste el ID real)
+      // Botones del banner: guarda la elección y, si acepta, actualiza el consentimiento en caliente.
+      window.ssSetConsent=function(granted){
+        try{localStorage.setItem('ss_consent',granted?'granted':'denied');}catch(e){}
+        if(granted)gtag('consent','update',{ad_storage:'granted',analytics_storage:'granted',ad_user_data:'granted',ad_personalization:'granted'});
+        var b=document.getElementById('cookieBanner');if(b)b.style.display='none';
+      };
+      if(!consent){document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('cookieBanner');if(b)b.style.display='flex';});}
     }catch(e){}
   })();
 </script>
@@ -70,6 +81,15 @@
 </head>
 <body>
 <h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">Strange Sneakers — Sneakers exclusivos en Colombia</h1>
+<!-- Banner de consentimiento de cookies (Consent Mode v2). Oculto por defecto; lo muestra el script
+     de arranque solo si no hay decisión previa. Estilos inline para no depender de styles.css. -->
+<div id="cookieBanner" style="display:none;position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#1a1a1a;color:#fff;padding:14px 16px;font-family:'Space Grotesk',sans-serif;font-size:13px;line-height:1.5;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;box-shadow:0 -4px 18px rgba(0,0,0,.25)">
+  <span style="max-width:560px">🍪 Usamos cookies para mejorar tu experiencia y medir nuestros anuncios. <a href="#" onclick="if(window.openLegal)openLegal('privacidad');return false" style="color:#fff;text-decoration:underline">Política de privacidad</a>.</span>
+  <span style="display:flex;gap:8px;flex-shrink:0">
+    <button onclick="ssSetConsent(false)" style="background:transparent;color:#fff;border:1.5px solid #fff;border-radius:8px;padding:8px 16px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">Rechazar</button>
+    <button onclick="ssSetConsent(true)" style="background:#fff;color:#1a1a1a;border:none;border-radius:8px;padding:8px 16px;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer">Aceptar</button>
+  </span>
+</div>
 
 <header class="topbar" id="topbar">
 <div class="annbar" role="note" aria-label="Envío gratis a toda Colombia">

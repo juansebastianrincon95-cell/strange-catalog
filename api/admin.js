@@ -1,6 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const { sendEvent } = require('./_capi');
-const { contentIdsDe, cartSig } = require('./_orders');
+const { contentIdsDe, cartSig, decrementStock } = require('./_orders');
 const { requireAdmin, renewIfActive } = require('./_admin_auth');
 const crypto = require('crypto');
 
@@ -10,8 +10,8 @@ const ALLOWED_ORDER_STATUS = ['pending', 'venta', 'no_venta'];
 // Whitelist de columnas escribibles por tabla — evita mass-assignment (que el cliente
 // inyecte columnas internas como id/created_at o campos arbitrarios en insert/update).
 const ALLOWED_COLS = {
-  products: ['gender', 'brand', 'price', 'price_before', 'promo', 'sold', 'img_url', 'imgs_360', 'imgs', 'modelo'],
-  liq_products: ['price', 'price_before', 'sold', 'img_url', 'imgs_360', 'imgs', 'modelo'],
+  products: ['gender', 'brand', 'price', 'price_before', 'promo', 'sold', 'img_url', 'imgs_360', 'imgs', 'modelo', 'tallas'],
+  liq_products: ['price', 'price_before', 'sold', 'img_url', 'imgs_360', 'imgs', 'modelo', 'tallas'],
   settings: ['key', 'value'],
 };
 function pickCols(table, data) {
@@ -145,6 +145,7 @@ module.exports = async (req, res) => {
     // content_ids en formato del feed (cat_/liq_) para asociarlo al catálogo (FASE M).
     // Nota: IP/UA NO se envían aquí (serían los del vendedor, no del cliente); sí fbp/fbc del pedido.
     if (status === 'venta' && order && !(order.utm && order.utm.test)) {
+      await decrementStock(sb, order.items).catch(() => {});   // descontar inventario por talla
       const utm = order.utm || {};
       const value = Number(order.subtotal != null ? order.subtotal : order.total);
       if (Number.isFinite(value) && value > 0) {

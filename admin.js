@@ -866,11 +866,12 @@ function renderAdmin(){
     return `<div class="arow">
       <div class="arow-img">${m}${p.sold?`<div class="arow-sov">Agot.</div>`:''}</div>
       <div><div class="arow-gen">${p.modelo?escHtml(p.modelo):(genLabel(p.g))}</div><div class="arow-st">${p.modelo?(genLabel(p.g)+' · '):''}${p.sold?'🔴 Agotado':'🟢 Disponible'}${p.imgs360?.length>=2?`<span style="color:var(--blue);font-size:9px;display:block">🔄 ${p.imgs360.length} frames</span>`:''}</div>${costBadge('cat',p.id)}</div>
-      <div><div class="arow-price ${sp?'sale':''}">${fmt(p.price)}</div><button class="epbtn" onclick="startEP(${p.id},'cat')">Editar</button> <button class="epbtn" id="galbtncat${p.id}" onclick="togGal(${p.id},'cat')">📷 ${(p.imgs||[]).length}</button></div>
+      <div><div class="arow-price ${sp?'sale':''}">${fmt(p.price)}</div><button class="epbtn" onclick="startEP(${p.id},'cat')">Editar</button> <button class="epbtn" id="galbtncat${p.id}" onclick="togGal(${p.id},'cat')">📷 ${(p.imgs||[]).length}</button> <button class="epbtn" onclick="togTallas(${p.id},'cat')" title="Stock por talla">📏 ${tallasBadge(p)}</button></div>
       <button class="sold-btn ${p.sold?'on':''}" onclick="togSold(${p.id},'cat')">${p.sold?'✓ Agot.':'Agotado'}</button>
       <button class="adel" onclick="delProd(${p.id},'cat')">✕</button>
       <div class="ep-row" id="ep${p.id}" style="display:none"><input id="epi${p.id}" type="number" value="${p.price}" title="Precio de venta"><select id="epb${p.id}" class="ep-brand"><option value=""${!p.brand?' selected':''}>Sin marca</option>${Object.keys(BRAND_LABELS).map(b=>`<option value="${b}"${p.brand===b?' selected':''}>${BRAND_LABELS[b]}</option>`).join('')}</select><input id="epm${p.id}" type="text" placeholder="Modelo (ej. Nike Air Max 90)" value="${escHtml(p.modelo||'')}" style="flex-basis:100%"><input id="epc${p.id}" type="number" placeholder="Costo (privado, para margen)" value="${costos['cat:'+p.id]??''}" style="flex-basis:48%"><button class="ep-save" onclick="saveEP(${p.id},'cat')">Guardar</button><button class="ep-cancel" onclick="cancelEP()">✕</button></div>
       <div id="galcat${p.id}" style="display:none;grid-column:1/-1;padding:8px 0 4px"></div>
+      <div id="tallascat${p.id}" style="display:none;grid-column:1/-1;padding:8px 0 4px"></div>
     </div>`;
   }).join('');
 }
@@ -932,11 +933,12 @@ function renderLiqAdmin(){
     return `<div class="arow">
       <div class="arow-img">${m}${p.sold?`<div class="arow-sov">Agot.</div>`:''}</div>
       <div><div class="arow-gen" style="color:var(--red)">Liquidación</div><div class="arow-st">${p.sold?'🔴 Agotado':'🟢 Disponible'}${p.imgs360?.length>=2?`<span style="color:var(--blue);font-size:9px;display:block">🔄 ${p.imgs360.length} frames</span>`:''}</div>${costBadge('liq',p.id)}</div>
-      <div><div class="arow-price sale">${fmt(p.price)}</div><button class="epbtn" onclick="startEP(${p.id},'liq')">Editar</button> <button class="epbtn" id="galbtnliq${p.id}" onclick="togGal(${p.id},'liq')">📷 ${(p.imgs||[]).length}</button></div>
+      <div><div class="arow-price sale">${fmt(p.price)}</div><button class="epbtn" onclick="startEP(${p.id},'liq')">Editar</button> <button class="epbtn" id="galbtnliq${p.id}" onclick="togGal(${p.id},'liq')">📷 ${(p.imgs||[]).length}</button> <button class="epbtn" onclick="togTallas(${p.id},'liq')" title="Stock por talla">📏 ${tallasBadge(p)}</button></div>
       <button class="sold-btn ${p.sold?'on':''}" onclick="togSold(${p.id},'liq')">${p.sold?'✓ Agot.':'Agotado'}</button>
       <button class="adel" onclick="delProd(${p.id},'liq')">✕</button>
       <div class="ep-row" id="epl${p.id}" style="display:none"><input id="epli${p.id}" type="number" value="${p.price}" title="Precio de venta"><input id="eplm${p.id}" type="text" placeholder="Modelo" value="${escHtml(p.modelo||'')}"><input id="eplc${p.id}" type="number" placeholder="Costo" value="${costos['liq:'+p.id]??''}"><button class="ep-save" onclick="saveEP(${p.id},'liq')">Guardar</button><button class="ep-cancel" onclick="cancelEP()">✕</button></div>
       <div id="galliq${p.id}" style="display:none;grid-column:1/-1;padding:8px 0 4px"></div>
+      <div id="tallasliq${p.id}" style="display:none;grid-column:1/-1;padding:8px 0 4px"></div>
     </div>`;
   }).join('');
 }
@@ -1655,6 +1657,56 @@ async function loadCosts(){
 }
 
 function cancelEP(){document.querySelectorAll('.ep-row').forEach(r=>r.style.display='none');}
+
+/* ── STOCK POR TALLA en admin ── tallas = jsonb {talla:stock}. Vacío/null = sin rastreo (la tienda
+   deriva las tallas por género, todas disponibles). 0 = agotada (se muestra tachada en la ficha). */
+function tallasBadge(p){
+  if(p && p.tallas && typeof p.tallas==='object' && !Array.isArray(p.tallas)){
+    return Object.values(p.tallas).filter(n=>Number(n)>0).length;   // nº de tallas disponibles
+  }
+  return '';
+}
+function defaultSizes(p,dest){
+  if(p && p.tallas && typeof p.tallas==='object' && !Array.isArray(p.tallas)){
+    const k=Object.keys(p.tallas);if(k.length)return k.sort((a,b)=>(parseFloat(a)||0)-(parseFloat(b)||0));
+  }
+  if(dest==='liq')return ['36','37','38','39','40','41','42','43','44'];
+  if(p&&p.g==='m')return ['36','37','38','39'];
+  if(p&&p.g==='h')return ['40','41','42','43','44'];
+  return ['36','37','38','39','40','41','42','43','44'];   // unisex / desconocido
+}
+function togTallas(id,dest){
+  const el=$('tallas'+dest+id);if(!el)return;
+  const open=el.style.display!=='none';
+  el.style.display=open?'none':'block';
+  if(!open)renderTallasEditor(id,dest);
+}
+function renderTallasEditor(id,dest){
+  const list=dest==='liq'?liqs:prods;const p=list.find(x=>x.id===id);
+  const el=$('tallas'+dest+id);if(!p||!el)return;
+  const cur=(p.tallas&&typeof p.tallas==='object'&&!Array.isArray(p.tallas))?p.tallas:null;
+  const sizes=defaultSizes(p,dest);
+  el.innerHTML=`<div style="font-size:11px;color:var(--ink3);margin-bottom:6px">Stock por talla. <b>Vacío = sin rastreo</b> (se deriva por género, todas disponibles). <b>0 = agotada</b> (se muestra tachada).</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">${sizes.map(t=>`<label style="display:flex;flex-direction:column;align-items:center;font-size:10px;color:var(--ink2);font-weight:700">${escHtml(t)}<input type="number" min="0" inputmode="numeric" id="tk${dest}${id}_${escHtml(t)}" value="${cur&&cur[t]!=null?cur[t]:''}" style="width:46px;padding:5px;margin-top:2px;border:1.5px solid var(--line);border-radius:7px;text-align:center;font-family:var(--font);font-size:12px"></label>`).join('')}</div>
+    <div style="display:flex;gap:6px;margin-top:8px">
+      <button class="ep-save" onclick="saveTallas(${id},'${dest}')">Guardar stock</button>
+      <button class="ep-cancel" onclick="clearTallas(${id},'${dest}')" title="Quitar rastreo de inventario">Sin rastreo</button>
+    </div>`;
+}
+async function saveTallas(id,dest){
+  const list=dest==='liq'?liqs:prods;const p=list.find(x=>x.id===id);if(!p)return;
+  const sizes=defaultSizes(p,dest);const tallas={};
+  sizes.forEach(t=>{const el=$('tk'+dest+id+'_'+t);const v=el?String(el.value).trim():'';if(v!=='')tallas[t]=Math.max(0,parseInt(v)||0);});
+  const val=Object.keys(tallas).length?tallas:null;
+  p.tallas=val;
+  await adminWrite('update_product',{table:dest==='liq'?'liq_products':'products',id,data:{tallas:val}});
+  togTallas(id,dest);dest==='liq'?renderLiqAdmin():renderAdmin();renderGrid();
+}
+async function clearTallas(id,dest){
+  const list=dest==='liq'?liqs:prods;const p=list.find(x=>x.id===id);if(p)p.tallas=null;
+  await adminWrite('update_product',{table:dest==='liq'?'liq_products':'products',id,data:{tallas:null}}).catch(()=>{});
+  togTallas(id,dest);dest==='liq'?renderLiqAdmin():renderAdmin();renderGrid();
+}
 
 async function delProd(id,type){
   if(type==='liq'){liqs=liqs.filter(p=>p.id!==id);delete cart['L'+id];}

@@ -130,6 +130,10 @@ alter table products add column if not exists imgs text;        -- galería: fot
 alter table liq_products add column if not exists imgs text;
 alter table products add column if not exists modelo text;
 alter table liq_products add column if not exists modelo text;
+-- Stock por talla (jsonb): {"38":3,"39":0,...}. NULL = sin rastreo (la tienda deriva tallas por
+-- género, todas disponibles). 0 en una talla = agotada (se muestra tachada en la ficha).
+alter table products add column if not exists tallas jsonb;
+alter table liq_products add column if not exists tallas jsonb;
 
 -- ─── TABLA: product_costs ───────────────────────────────────
 -- Costo de adquisición por producto, SEPARADO de products: esa tabla la lee cualquier
