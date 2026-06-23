@@ -562,7 +562,7 @@ async function pagarWompi(){
   const m={nombre:'fn',cedula:'fc',celular:'ft',direccion:'fd',barrio:'fb',ciudad:'fci'};
   let ok=true;const d={};
   Object.entries(m).forEach(([k,id])=>{const el=$(id);const v=el?el.value:(cData[k]||'');d[k]=v.trim();if(!v.trim())ok=false;});
-  if(!ok){const e=$('ferr');if(e)e.classList.add('show');return;}
+  if(!ok){const e=$('ferr');if(e)e.classList.add('show');window._payBusy=false;return;}
   cData=d;
   const rows=Object.values(cart);
   const pricing=cartPricing(rows);
@@ -668,7 +668,7 @@ async function pagarBold(){
   const m={nombre:'fn',cedula:'fc',celular:'ft',direccion:'fd',barrio:'fb',ciudad:'fci'};
   let ok=true;const d={};
   Object.entries(m).forEach(([k,id])=>{const el=$(id);const v=el?el.value:(cData[k]||'');d[k]=v.trim();if(!v.trim())ok=false;});
-  if(!ok){const e=$('ferr');if(e)e.classList.add('show');return;}
+  if(!ok){const e=$('ferr');if(e)e.classList.add('show');window._payBusy=false;return;}
   cData=d;
   const rows=Object.values(cart);
   const pricing=cartPricing(rows);

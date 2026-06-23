@@ -489,9 +489,10 @@ let _tmProdId=null, _testiList=[];
 const _AVCOL=['#E8200A','#0066FF','#1aad49','#FF7A00','#7b3fe4','#0aa6b8','#d6336c','#2b8a3e'];
 
 function _avatar(name,hidden){
-  const parts=String(name||'C').trim().split(/\s+/);
+  const nm=String(name||'C');
+  const parts=nm.trim().split(/\s+/);
   const ini=((parts[0]||'')[0]||'')+((parts[1]||'')[0]||'');
-  let h=0;for(let i=0;i<name.length;i++)h=(h*31+name.charCodeAt(i))>>>0;
+  let h=0;for(let i=0;i<nm.length;i++)h=(h*31+nm.charCodeAt(i))>>>0;
   const c=_AVCOL[h%_AVCOL.length];
   return `<div class="testi-card-foto" style="display:${hidden?'none':'flex'};align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;background:${c}">${escHtml(ini.toUpperCase())}</div>`;
 }
@@ -790,7 +791,7 @@ function renderGrid(){
     else if(_sortBy==='views')items.sort((a,b)=>(_views[String(b.id)]||0)-(_views[String(a.id)]||0));
   }
   $('statN').textContent=prods.length;
-  $('secName').textContent=(gSel==='all'?'Todos':gSel==='h'?'Hombre':'Mujer')+(brandSel!=='all'?' · '+brandLabel(brandSel):'');
+  $('secName').textContent=(gSel==='all'?'Todos':genLabel(gSel))+(brandSel!=='all'?' · '+brandLabel(brandSel):'');
   $('secCt').textContent=items.length+' modelos';
   $('grid').innerHTML=items.length?items.map((p,i)=>cardHTML(p,i,'k')).join(''):`<div class="grid-empty">No encontramos "<b>${escHtml(_searchQ)}</b>" 😕<br>Prueba con otra marca o modelo.</div>`;
   if(liqs.length&&gSel==='all'){
@@ -1204,7 +1205,9 @@ function addFrom360(){
 }
 
 function sync360Btn(){
-  const key=v360Type==='liq'?'L'+v360Id:v360Id;
+  // Misma clave que usa el carrito (incluye talla) → el ✓ refleja la talla elegida en la ficha,
+  // no una clave sin talla que nunca coincidía (antes el botón nunca mostraba "Agregado").
+  const key=cartKey(v360Id,v360Type,pmTalla);
   const ic=!!cart[key];
   $('v360Add').textContent=ic?'✓ Agregado':'+ Agregar';
   $('v360Add').className='pm-add'+(ic?' in':'');

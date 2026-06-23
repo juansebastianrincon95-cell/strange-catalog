@@ -38,7 +38,7 @@ module.exports = async (req, res) => {
       description:  (bl ? bl + ' - ' : '') + brand + ' - Calzado de calidad',
       availability: 'in stock',
       condition:    'new',
-      price:        (p.price_before || p.price) + ' COP',
+      price:        ((p.price_before && p.price_before > p.price) ? p.price_before : p.price) + ' COP',
       ...(p.price_before && p.price_before > p.price ? { sale_price: p.price + ' COP' } : {}),
       link:         storeUrl + '/?type=cat&id=' + p.id,
       image_link:   p.img_url || '',
@@ -54,7 +54,7 @@ module.exports = async (req, res) => {
       description:  brand + ' - Precio especial',
       availability: 'in stock',
       condition:    'new',
-      price:        (p.price_before || p.price) + ' COP',
+      price:        ((p.price_before && p.price_before > p.price) ? p.price_before : p.price) + ' COP',
       ...(p.price_before && p.price_before > p.price ? { sale_price: p.price + ' COP' } : {}),
       link:         storeUrl + '/?type=liq&id=' + p.id,
       image_link:   p.img_url || '',
@@ -80,13 +80,13 @@ module.exports = async (req, res) => {
     all.forEach(p => lines.push(cols.map(c => esc(p[c])).join(',')));
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Cache-Control', 'public, max-age=600');
+    res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=300, stale-while-revalidate=600');
     return res.send(lines.join('\n'));
   }
 
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Cache-Control', 'public, max-age=600');
+  res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=300, stale-while-revalidate=600');
   res.json({ data: all });
  } catch (e) {
   // Un fallo transitorio de Supabase no debe romper el feed sin diagnóstico (Merchant/Meta).

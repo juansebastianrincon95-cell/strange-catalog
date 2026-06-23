@@ -1,5 +1,13 @@
 const https = require('https');
+const crypto = require('crypto');
 const { confirmPaidOrder } = require('./_orders');
+
+// Comparación en tiempo constante (evita timing attacks al comparar el secreto del webhook).
+function safeEq(a, b) {
+  const ab = Buffer.from(String(a || '')), bb = Buffer.from(String(b || ''));
+  if (ab.length !== bb.length) return false;
+  try { return crypto.timingSafeEqual(ab, bb); } catch { return false; }
+}
 
 function get(url) {
   return new Promise((resolve, reject) => {
@@ -17,7 +25,7 @@ function get(url) {
 async function handleWebhook(req, res) {
   const secret = (process.env.WOMPI_WEBHOOK_SECRET || '').trim();
   const got = req.headers['x-webhook-secret'] || req.headers['x-wompi-signature'] || req.query.secret;
-  if (!secret || got !== secret) return res.status(202).json({ ok: false, error: 'webhook_not_configured_or_invalid' });
+  if (!secret || !safeEq(got, secret)) return res.status(202).json({ ok: false, error: 'webhook_not_configured_or_invalid' });
   const payload = req.body || {};
   const tx = payload.data?.transaction || payload.transaction || payload.data || payload;
   if (tx.status === 'APPROVED' && tx.reference) {

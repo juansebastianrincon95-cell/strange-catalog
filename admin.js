@@ -200,7 +200,7 @@ function renderFeaturedAdmin(){
     return `<div onclick="featPickTog(${p.id})" style="position:relative;cursor:pointer;border:2px solid ${sel?'var(--ink)':'var(--line)'};border-radius:10px;overflow:hidden;background:var(--white)">
       <img src="${escHtml(p.img||'')}" alt="" loading="lazy" style="display:block;width:100%;aspect-ratio:1/1;object-fit:cover">
       ${sel?'<div style="position:absolute;top:4px;right:4px;background:var(--ink);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">✓</div>':''}
-      <div style="padding:4px 5px 0;font-size:9.5px;font-weight:700;line-height:1.25;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(p.modelo||brandLabel(p.brand)||(p.g==='h'?'Hombre':'Mujer'))}</div>
+      <div style="padding:4px 5px 0;font-size:9.5px;font-weight:700;line-height:1.25;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(p.modelo||brandLabel(p.brand)||(genLabel(p.g)))}</div>
       <div style="padding:0 5px 5px;font-size:9px;color:var(--ink3)">#${p.id} · ${fmt(p.price)}</div>
     </div>`;
   }).join('');
@@ -530,7 +530,7 @@ function buscarGlobal(q){
     ||String(p.id)===q.replace('#','')
   ).slice(0,5);
   if(pr.length)out.push(`<div class="avs-h">📦 Productos</div>`+pr.map(p=>
-    `<div class="avs-item" onclick="irProducto(${p.id},'${p._t}')"><img src="${escHtml(p.img||'')}" alt="" onerror="this.style.visibility='hidden'"><span>${escHtml(p.modelo||((BRAND_LABELS[p.brand]||'Par')+' '+(p._t==='liq'?'Oferta':(p.g==='h'?'Hombre':'Mujer'))))} · <b>#${p.id}</b> · ${fmt(p.price)}${p.sold?' · <span style="color:var(--red)">agotado</span>':''}</span></div>`).join(''));
+    `<div class="avs-item" onclick="irProducto(${p.id},'${p._t}')"><img src="${escHtml(p.img||'')}" alt="" onerror="this.style.visibility='hidden'"><span>${escHtml(p.modelo||((BRAND_LABELS[p.brand]||'Par')+' '+(p._t==='liq'?'Oferta':(genLabel(p.g)))))} · <b>#${p.id}</b> · ${fmt(p.price)}${p.sold?' · <span style="color:var(--red)">agotado</span>':''}</span></div>`).join(''));
   // Pedidos: por nombre, teléfono, ciudad o referencia
   const stBadge=o=>o.status==='venta'?'✓ venta':o.status==='no_venta'?'✕ no venta':o.status==='abandoned'?'🛒 abandonó':'⏳ pendiente';
   const pe=orders.filter(o=>
@@ -847,13 +847,14 @@ function renderAdmin(){
   $('aTot').textContent=prods.length;
   $('aH').textContent=prods.filter(p=>p.g==='h').length;
   $('aM').textContent=prods.filter(p=>p.g==='m').length;
+  {const u=$('aU');if(u)u.textContent=prods.filter(p=>p.g==='u').length;}
   $('aSold').textContent=[...prods,...liqs].filter(p=>p.sold).length;
   $('listCat').innerHTML=prods.map(p=>{
     const sp=p.promo||promoG;
-    const m=p.img?`<img src="${p.img}" alt="">`:`<span style="font-size:20px">👟</span>`;
+    const m=p.img?`<img src="${escHtml(p.img||'')}" alt="">`:`<span style="font-size:20px">👟</span>`;
     return `<div class="arow">
       <div class="arow-img">${m}${p.sold?`<div class="arow-sov">Agot.</div>`:''}</div>
-      <div><div class="arow-gen">${p.modelo?escHtml(p.modelo):(p.g==='h'?'Hombre':'Mujer')}</div><div class="arow-st">${p.modelo?(p.g==='h'?'Hombre · ':'Mujer · '):''}${p.sold?'🔴 Agotado':'🟢 Disponible'}${p.imgs360?.length>=2?`<span style="color:var(--blue);font-size:9px;display:block">🔄 ${p.imgs360.length} frames</span>`:''}</div>${costBadge('cat',p.id)}</div>
+      <div><div class="arow-gen">${p.modelo?escHtml(p.modelo):(genLabel(p.g))}</div><div class="arow-st">${p.modelo?(genLabel(p.g)+' · '):''}${p.sold?'🔴 Agotado':'🟢 Disponible'}${p.imgs360?.length>=2?`<span style="color:var(--blue);font-size:9px;display:block">🔄 ${p.imgs360.length} frames</span>`:''}</div>${costBadge('cat',p.id)}</div>
       <div><div class="arow-price ${sp?'sale':''}">${fmt(p.price)}</div><button class="epbtn" onclick="startEP(${p.id},'cat')">Editar</button> <button class="epbtn" id="galbtncat${p.id}" onclick="togGal(${p.id},'cat')">📷 ${(p.imgs||[]).length}</button></div>
       <button class="sold-btn ${p.sold?'on':''}" onclick="togSold(${p.id},'cat')">${p.sold?'✓ Agot.':'Agotado'}</button>
       <button class="adel" onclick="delProd(${p.id},'cat')">✕</button>
@@ -916,7 +917,7 @@ function renderLiqAdmin(){
   const el=$('listLiq');if(!el)return;
   if(!liqs.length){el.innerHTML=`<div style="padding:24px;text-align:center;color:var(--ink3);font-size:12px">Sin productos de liquidación</div>`;return;}
   el.innerHTML=liqs.map(p=>{
-    const m=p.img?`<img src="${p.img}" alt="">`:`<span style="font-size:20px">🔥</span>`;
+    const m=p.img?`<img src="${escHtml(p.img||'')}" alt="">`:`<span style="font-size:20px">🔥</span>`;
     return `<div class="arow">
       <div class="arow-img">${m}${p.sold?`<div class="arow-sov">Agot.</div>`:''}</div>
       <div><div class="arow-gen" style="color:var(--red)">Liquidación</div><div class="arow-st">${p.sold?'🔴 Agotado':'🟢 Disponible'}${p.imgs360?.length>=2?`<span style="color:var(--blue);font-size:9px;display:block">🔄 ${p.imgs360.length} frames</span>`:''}</div>${costBadge('liq',p.id)}</div>
@@ -1440,10 +1441,36 @@ function renderLeadsTab(){
     :o.status==='no_venta'?`<span style="background:#E8200A;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px">✕ NO VENTA</span>`
     :o.status==='abandoned'?`<span style="background:#8A6D00;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px">🛒 ABANDONÓ</span>`
     :`<span style="background:#F2A900;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px">⏳ PENDIENTE</span>`;
+  // Etiqueta del MOVIMIENTO del lead (entre paréntesis, al lado del nombre) para identificar en
+  // qué punto del recorrido quedó: abandonó antes de pagar, está en espera (WhatsApp/contra
+  // entrega) o intentó una pasarela y no la completó (rechazo de crédito / abandono en la pasarela).
+  const movLead=o=>{
+    let t='',c='var(--ink3)';
+    if(o.status==='abandoned'){t='(abandono)';c='#8A6D00';}
+    else if(o.status==='pending'){
+      if(o.utm&&o.utm.gateway_result==='rejected'){t='(crédito rechazado)';c='#E8200A';}
+      else if(['contra_entrega','pago_anticipado'].includes(o.pago)){t='(en espera)';c='#B3791E';}
+      else if(['wompi','bold','addi','sistecredito'].includes(o.pago)){t='(pasarela sin completar)';c='#E8200A';}
+      else {t='(en espera)';c='#B3791E';}
+    }
+    return t?` <span style="font-size:11px;font-weight:600;color:${c}">${t}</span>`:'';
+  };
+  // Badge del método de pago, AHORA consciente del estado: solo dice "Pagado" si es venta real.
+  // Un pendiente de pasarela = intentó y no completó (antes decía "Pagado" por error).
+  const pagoBadge=o=>{
+    if(!o.pago)return '';
+    const gw=['wompi','bold','addi','sistecredito'].includes(o.pago);
+    const manual=['contra_entrega','pago_anticipado','nequi','bancolombia'].includes(o.pago);
+    let pre='',bg='background:#eee;color:#666';
+    if(o.status==='venta'){pre=gw?'💳 Pagado · ':'✓ Confirmado · ';bg='background:#E7F6EC;color:#1BA94C';}
+    else if(gw){pre='⚠️ Sin completar · ';bg='background:#FDEAE8;color:#E8200A';}
+    else if(manual){pre='⏳ Por confirmar · ';bg='background:#FFF4E0;color:#B3791E';}
+    return `<br><span style="display:inline-block;margin-top:4px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;${bg}">${pre}${escHtml(pagoLabels[o.pago]||o.pago)}</span>`;
+  };
   const cardLead=o=>`
       <div style="background:var(--bg);border-radius:12px;padding:12px 14px;margin-bottom:8px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <span style="font-size:14px;font-weight:700">${esTest(o)?'🧪 ':''}${escHtml(o.nombre||'Sin nombre')}</span>
+          <span style="font-size:14px;font-weight:700">${esTest(o)?'🧪 ':''}${escHtml(o.nombre||'Sin nombre')}${movLead(o)}</span>
           ${esTest(o)?`<span style="background:#b91c1c;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px">🧪 PRUEBA</span>`:badge(o)}
         </div>
         <div style="font-size:12px;color:var(--ink2);line-height:1.6">
@@ -1451,7 +1478,7 @@ function renderLeadsTab(){
           ${o.ciudad?`📍 ${escHtml(o.ciudad)}${o.barrio?', '+escHtml(o.barrio):''}<br>`:''}
           ${itemsTxt(o)?`👟 ${itemsTxt(o)}<br>`:''}
           💰 <b>${fmt(o.total||0)}</b>${o.combo?` · <b style="color:#b3541e">🏆 ${escHtml(o.combo)}</b>`:''}
-          ${o.pago?`<br><span style="display:inline-block;margin-top:4px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;${['wompi','bold','addi','sistecredito'].includes(o.pago)?'background:#E7F6EC;color:#1BA94C':['contra_entrega','pago_anticipado'].includes(o.pago)?'background:#FFF4E0;color:#B3791E':'background:#eee;color:#666'}">${['wompi','bold','addi','sistecredito'].includes(o.pago)?'💳 Pagado · ':['contra_entrega','pago_anticipado'].includes(o.pago)?'⏳ Por confirmar · ':''}${escHtml(pagoLabels[o.pago]||o.pago)}</span>`:''}
+          ${pagoBadge(o)}
           ${o.utm&&o.utm.utm_campaign?`<br>📣 <span style="color:#5D2D91;font-weight:600">${escHtml(o.utm.utm_campaign)}</span>${o.utm.utm_content?` · ad: ${escHtml(o.utm.utm_content)}`:''}${o.utm.src_app?` · ${escHtml(srcAppLabel(o.utm.src_app))}`:''}`:(o.utm&&o.utm.src_app?`<br>${escHtml(srcAppLabel(o.utm.src_app))}`:'')}
           ${o.fecha?`<br><span style="color:var(--ink3);font-size:10px">${new Date(o.fecha).toLocaleString('es-CO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</span>`:''}
         </div>
@@ -1886,7 +1913,7 @@ async function importCatalog(file){
   let okC=0,okL=0,fail=0;
   for(const p of data.prods){
     const r=await adminWrite('insert_product',{table:'products',data:{
-      gender:(p.g||p.gender)==='m'?'m':'h',
+      gender:(g=>g==='m'||g==='u'?g:'h')(p.g||p.gender),
       price:Math.max(1000,parseInt(p.price)||P_DEF),
       price_before:Math.max(0,parseInt(p.was??p.price_before)||0),
       promo:!!p.promo,sold:!!p.sold,

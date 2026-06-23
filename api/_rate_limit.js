@@ -8,8 +8,13 @@
 const buckets = new Map();
 
 function clientKey(req, scope) {
-  const ip = String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown')
-    .split(',')[0].trim();
+  // x-real-ip lo pone Vercel con la IP real del cliente y NO es sobre-escribible por el cliente.
+  // x-forwarded-for SÍ es falsificable (el cliente puede prepender valores), por eso va de fallback.
+  const ip = String(
+    req.headers['x-real-ip'] ||
+    (req.headers['x-forwarded-for'] || '').split(',')[0] ||
+    req.socket?.remoteAddress || 'unknown'
+  ).trim() || 'unknown';
   return `${scope}:${ip}`;
 }
 

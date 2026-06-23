@@ -129,16 +129,19 @@ module.exports = async (req, res) => {
 
   if (req.method === 'POST') {
     const { action, payload } = req.body || {};
+    if (!payload || typeof payload !== 'object') return res.status(400).json({ error: 'payload required' });
+
+    if (action === 'update_campaign_status') {
+      const { campaign_id, status } = payload;
+      if (!campaign_id) return res.status(400).json({ error: 'campaign_id required' });
+      if (!['ACTIVE', 'PAUSED', 'ARCHIVED'].includes(String(status))) return res.status(400).json({ error: 'invalid status (ACTIVE|PAUSED|ARCHIVED)' });
+      const r = await graphRequest('POST', qs(`${campaign_id}`), { status });
+      return res.status(r.status).json(r.body);
+    }
 
     if (action === 'update_campaign_budget') {
       const { campaign_id, daily_budget } = payload;
       const r = await graphRequest('POST', qs(`${campaign_id}`), { daily_budget: copToMinor(daily_budget) });
-      return res.status(r.status).json(r.body);
-    }
-
-    if (action === 'update_campaign_status') {
-      const { campaign_id, status } = payload;
-      const r = await graphRequest('POST', qs(`${campaign_id}`), { status });
       return res.status(r.status).json(r.body);
     }
 

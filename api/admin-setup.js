@@ -41,7 +41,8 @@ module.exports = async (req, res) => {
     return res.status(401).json({ ok: false });
   }
 
-  const ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
+  // x-real-ip (puesto por Vercel) no es falsificable; x-forwarded-for sí → va de fallback.
+  const ip = (req.headers['x-real-ip'] || (req.headers['x-forwarded-for'] || '').split(',')[0] || req.socket?.remoteAddress || 'unknown').trim() || 'unknown';
   const ipHash = crypto.createHash('sha256').update(ip).digest('hex').slice(0, 16);
 
   const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);

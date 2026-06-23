@@ -1,9 +1,17 @@
 const { createClient } = require('@supabase/supabase-js');
+const crypto = require('crypto');
 const { rateLimit } = require('./_rate_limit');
 const { anonClient, serviceClient, cleanText, createOrder, getOrderByReference, confirmPaidOrder, contentIdsDe } = require('./_orders');
 const { sendEvent } = require('./_capi');
 const { createAddiApplication } = require('./_addi');
 const { createScTransaction, getScInfo } = require('./_sistecredito');
+
+// Comparación en tiempo constante para secretos de webhook (evita timing attacks).
+function safeEq(a, b) {
+  const ab = Buffer.from(String(a || '')), bb = Buffer.from(String(b || ''));
+  if (ab.length !== bb.length) return false;
+  try { return crypto.timingSafeEqual(ab, bb); } catch { return false; }
+}
 
 /* Lead por CAPI (FASE N8, plan Codex): misma señal que el px('Lead') del navegador pero
    server-side con teléfono/ciudad/nombre hasheados + fbp/fbc — Meta dedup por el MISMO
@@ -79,7 +87,7 @@ async function handleSubscribe(req, res) {
   // Zero-party data (paso 2 del popup): talla y género llegan por clic en chips.
   const talla = d.talla != null ? cleanText(String(d.talla), 10) : null;
   const generoRaw = String(d.genero || '').toLowerCase();
-  const genero = generoRaw === 'h' || generoRaw === 'm' ? generoRaw : null;
+  const genero = ['h', 'm', 'u'].includes(generoRaw) ? generoRaw : null;
 
   // update=1 → solo actualizar preferencias del suscriptor ya registrado (por WhatsApp o session).
   if (d.update) {
@@ -192,7 +200,7 @@ async function handleBoldStatus(req, res) {
 async function handleBoldWebhook(req, res) {
   const secret = (process.env.BOLD_WEBHOOK_SECRET || '').trim();
   const got = req.headers['x-webhook-secret'] || req.headers['x-bold-signature'] || req.query.secret;
-  if (!secret || got !== secret) return res.status(202).json({ ok: false, error: 'webhook_not_configured_or_invalid' });
+  if (!secret || !safeEq(got, secret)) return res.status(202).json({ ok: false, error: 'webhook_not_configured_or_invalid' });
   const d = req.body || {};
   // Bold envía eventos {type:'SALE_APPROVED', data:{amount, metadata:{reference}, ...}}.
   // Se acepta también el formato plano viejo {status:'PAID', reference} por compatibilidad.
@@ -267,14 +275,28 @@ async function handleAddiWebhook(req, res) {
   const p = (process.env.ADDI_WEBHOOK_PASS || '').trim();
   if (u && p) {
     const expected = 'Basic ' + Buffer.from(u + ':' + p).toString('base64');
-    if (String(req.headers.authorization || '') !== expected) return res.status(401).json({ ok: false, error: 'unauthorized' });
+    if (!safeEq(String(req.headers.authorization || ''), expected)) return res.status(401).json({ ok: false, error: 'unauthorized' });
   }
   const d = req.body || {};
   const data = d.data || d.payload || d;
   const reference = String(data.orderId || data.order_id || d.orderId || '');
   const status = String(data.status || d.status || '').toUpperCase();
   if (!reference) return res.json({ ok: true, ignored: true, no_ref: true });
-  if (status !== 'APPROVED') return res.json({ ok: true, ignored: true, status });
+  if (status !== 'APPROVED') {
+    // RECHAZO de crédito (sin cupo, etc.): antes se ignoraba y el pedido quedaba pending sin rastro.
+    // Ahora se etiqueta (queda pending para recuperar por contra entrega; NO se marca venta).
+    if (['REJECTED', 'DECLINED', 'CANCELLED', 'CANCELED', 'EXPIRED', 'FAILED'].includes(status)) {
+      try {
+        const sb = serviceClient();
+        const order = await getOrderByReference(reference);
+        if (order && order.status !== 'venta') {
+          const utm = Object.assign({}, order.utm || {}, { gateway_result: 'rejected', gateway: 'addi', gateway_status: status });
+          await sb.from('orders').update({ utm }).eq('id', order.id);
+        }
+      } catch (e) { /* nunca romper el webhook */ }
+    }
+    return res.json({ ok: true, ignored: true, status });
+  }
   const order = await getOrderByReference(reference);
   if (!order) return res.json({ ok: true, ignored: true, order_not_found: true });
   const amount = Number(order.subtotal != null ? order.subtotal : order.total);

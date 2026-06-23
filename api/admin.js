@@ -1,11 +1,25 @@
 const { createClient } = require('@supabase/supabase-js');
 const { sendEvent } = require('./_capi');
-const { contentIdsDe } = require('./_orders');
+const { contentIdsDe, cartSig } = require('./_orders');
 const { requireAdmin, renewIfActive } = require('./_admin_auth');
 const crypto = require('crypto');
 
 const ALLOWED_TABLES = ['products', 'liq_products', 'settings'];
 const ALLOWED_ORDER_STATUS = ['pending', 'venta', 'no_venta'];
+
+// Whitelist de columnas escribibles por tabla — evita mass-assignment (que el cliente
+// inyecte columnas internas como id/created_at o campos arbitrarios en insert/update).
+const ALLOWED_COLS = {
+  products: ['gender', 'brand', 'price', 'price_before', 'promo', 'sold', 'img_url', 'imgs_360', 'imgs', 'modelo'],
+  liq_products: ['price', 'price_before', 'sold', 'img_url', 'imgs_360', 'imgs', 'modelo'],
+  settings: ['key', 'value'],
+};
+function pickCols(table, data) {
+  const allow = ALLOWED_COLS[table] || [];
+  const out = {};
+  for (const k of allow) if (Object.prototype.hasOwnProperty.call(data, k)) out[k] = data[k];
+  return out;
+}
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -57,7 +71,9 @@ module.exports = async (req, res) => {
   if (action === 'insert_product') {
     if (!table || !ALLOWED_TABLES.includes(table)) return res.status(400).json({ error: 'invalid table' });
     if (!data || typeof data !== 'object') return res.status(400).json({ error: 'data required' });
-    const { data: row, error } = await sb.from(table).insert(data).select('id').single();
+    const clean = pickCols(table, data);
+    if (!Object.keys(clean).length) return res.status(400).json({ error: 'no valid fields' });
+    const { data: row, error } = await sb.from(table).insert(clean).select('id').single();
     if (error) return res.status(500).json({ error: error.message });
     return res.json({ ok: true, id: row.id });
   }
@@ -66,7 +82,9 @@ module.exports = async (req, res) => {
     if (!table || !ALLOWED_TABLES.includes(table)) return res.status(400).json({ error: 'invalid table' });
     if (!id) return res.status(400).json({ error: 'id required' });
     if (!data || typeof data !== 'object') return res.status(400).json({ error: 'data required' });
-    const { error } = await sb.from(table).update(data).eq('id', id);
+    const clean = pickCols(table, data);
+    if (!Object.keys(clean).length) return res.status(400).json({ error: 'no valid fields' });
+    const { error } = await sb.from(table).update(clean).eq('id', id);
     if (error) return res.status(500).json({ error: error.message });
     return res.json({ ok: true });
   }
@@ -89,9 +107,23 @@ module.exports = async (req, res) => {
     const { data: updated, error } = await sb.from('orders')
       .update({ status })
       .eq('id', id).neq('status', status)
-      .select('subtotal,total,tel,ciudad,nombre,reference,status,utm,items');
+      .select('subtotal,total,tel,ciudad,nombre,reference,status,utm,items,session_id');
     if (error) return res.status(500).json({ error: error.message });
     const order = updated && updated[0];   // undefined si ya estaba en ese estado o no existe
+
+    // LIMPIEZA DE HERMANOS: al marcar venta a mano, los otros intentos del MISMO carrito/sesión
+    // (pending/abandoned) pasan a no_venta → no quedan en "por hacer" ni inflan métricas (evita el
+    // doble conteo si además se confirmó por webhook). No bloquea la operación si falla.
+    if (status === 'venta' && order && order.session_id) {
+      try {
+        const sig = cartSig(order.items);
+        const { data: sib } = await sb.from('orders')
+          .select('id,items').eq('session_id', order.session_id)
+          .in('status', ['pending', 'abandoned']).neq('id', id).limit(50);
+        const ids = (sib || []).filter(s => cartSig(s.items) === sig).map(s => s.id);
+        if (ids.length) await sb.from('orders').update({ status: 'no_venta', motivo_no_venta: 'Intento previo — cerrado en otra venta' }).in('id', ids);
+      } catch (e) { /* no bloquear el marcado de venta */ }
+    }
 
     // Si pasó a 'venta' AHORA, enviar Purchase real a Meta vía CAPI.
     // eventId = MISMO que usan el webhook de pago y el Pixel del navegador

@@ -31,7 +31,7 @@ module.exports = async (req, res) => {
     type,
     product_id:   t(product_id, 32),
     price:        price ? Math.min(Math.max(0, parseInt(price)), 100_000_000) : null,
-    gender:       ['h', 'm'].includes(gender) ? gender : null,
+    gender:       ['h', 'm', 'u'].includes(gender) ? gender : null,
     utm_source:   t(utm_source, 100),
     utm_medium:   t(utm_medium, 100),
     utm_campaign: t(utm_campaign, 100),
