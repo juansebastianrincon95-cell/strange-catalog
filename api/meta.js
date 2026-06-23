@@ -1,6 +1,20 @@
 const https = require('https');
 const requireApiKey = require('./_auth');
 const { rateLimit } = require('./_rate_limit');
+const { validateSession, safeEq } = require('./_admin_auth');
+
+// Mutaciones de Meta (pausar/crear campañas, presupuestos): exigen sesión admin del panel O un
+// Bearer META_WRITE_KEY (que usa el agente de IA). El CATALOG_API_KEY (solo lectura) NO sirve aquí
+// → separa privilegios: leer métricas ≠ poder gastar/pausar dinero.
+function requireWrite(req, res) {
+  if (validateSession(req)) return true;
+  const auth = req.headers['authorization'] || '';
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+  const wk = (process.env.META_WRITE_KEY || '').trim();
+  if (wk && token && safeEq(token, wk)) return true;
+  res.status(401).json({ error: 'write access required (admin session or META_WRITE_KEY)' });
+  return false;
+}
 
 const GRAPH = 'graph.facebook.com';
 const VER   = 'v21.0';
@@ -32,7 +46,9 @@ function graphRequest(method, path, body) {
 
 module.exports = async (req, res) => {
   try {
-  if (!requireApiKey(req, res)) return;
+  // GET (lecturas) → CATALOG_API_KEY. POST (mutaciones) → sesión admin o META_WRITE_KEY.
+  if (req.method === 'POST') { if (!requireWrite(req, res)) return; }
+  else if (!requireApiKey(req, res)) return;
   if (!(await rateLimit(req, res, { scope: 'meta', max: 60, windowMs: 60_000 }))) return;
 
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -130,6 +146,8 @@ module.exports = async (req, res) => {
   if (req.method === 'POST') {
     const { action, payload } = req.body || {};
     if (!payload || typeof payload !== 'object') return res.status(400).json({ error: 'payload required' });
+    // Log de auditoría de cada mutación (acción + payload acotado) → rastro en los logs de Vercel.
+    try { console.log('[meta:write]', String(action), JSON.stringify(payload).slice(0, 200)); } catch {}
 
     if (action === 'update_campaign_status') {
       const { campaign_id, status } = payload;

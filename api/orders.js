@@ -187,10 +187,13 @@ async function handleBoldStatus(req, res) {
   } catch {}
   let confirmed = false;
   if (status === 'PAID' && d.reference) {
-    if (amount == null) { // el GET del link no siempre trae monto; el link CLOSE lo creamos con el monto de BD
-      const ord = await getOrderByReference(d.reference);
-      if (ord) amount = Number(ord.subtotal != null ? ord.subtotal : ord.total);
-    }
+    const ord = await getOrderByReference(d.reference);
+    if (!ord) return res.status(404).json({ error: 'order_not_found' });
+    // BINDING: el link consultado DEBE ser el guardado en ESA orden. Sin esto, cualquiera con un
+    // payment_link PAID (el suyo) + una reference ajena válida podría marcar venta de otra orden.
+    const bound = ord.utm && ord.utm.bold_link ? String(ord.utm.bold_link).replace(/[^\w-]/g, '').slice(0, 80) : '';
+    if (!bound || bound !== link) return res.status(403).json({ error: 'link_mismatch' });
+    if (amount == null) amount = Number(ord.subtotal != null ? ord.subtotal : ord.total); // link CLOSE creado server-side con el monto de BD
     const out = await confirmPaidOrder({ reference: d.reference, amount, currency: 'COP', req }).catch(() => null);
     confirmed = !!(out && out.ok);
   }
@@ -270,13 +273,24 @@ async function handleAddiStatus(req, res) {
 }
 
 async function handleAddiWebhook(req, res) {
-  // Auth opcional: si ADDI_WEBHOOK_USER/PASS están configuradas, exigir Basic auth de Addi.
+  // FAIL-CLOSED: exigir autenticación SIEMPRE. Acepta Basic auth (ADDI_WEBHOOK_USER/PASS) o un
+  // secreto simple (ADDI_WEBHOOK_SECRET por header x-webhook-secret / x-addi-signature / ?secret).
+  // Sin NINGUNA credencial configurada NO se procesa: un POST forjado {status:'APPROVED', orderId}
+  // marcaría venta sin pago real (el monto sale del pedido server-side y pasaría la validación).
   const u = (process.env.ADDI_WEBHOOK_USER || '').trim();
   const p = (process.env.ADDI_WEBHOOK_PASS || '').trim();
+  const sec = (process.env.ADDI_WEBHOOK_SECRET || '').trim();
+  if (!((u && p) || sec)) return res.status(202).json({ ok: false, error: 'webhook_not_configured' });
+  let authed = false;
   if (u && p) {
     const expected = 'Basic ' + Buffer.from(u + ':' + p).toString('base64');
-    if (!safeEq(String(req.headers.authorization || ''), expected)) return res.status(401).json({ ok: false, error: 'unauthorized' });
+    if (safeEq(String(req.headers.authorization || ''), expected)) authed = true;
   }
+  if (!authed && sec) {
+    const got = req.headers['x-webhook-secret'] || req.headers['x-addi-signature'] || req.query.secret;
+    if (safeEq(got, sec)) authed = true;
+  }
+  if (!authed) return res.status(401).json({ ok: false, error: 'unauthorized' });
   const d = req.body || {};
   const data = d.data || d.payload || d;
   const reference = String(data.orderId || data.order_id || d.orderId || '');
@@ -379,7 +393,7 @@ async function reconciliarPendientes(req, res) {
   const desde = new Date(Date.now() - 7 * 864e5).toISOString();   // no mirar más de 7 días atrás
   const hasta = new Date(Date.now() - 5 * 60e3).toISOString();    // dejar 5 min al flujo normal
   const { data: pend } = await sb.from('orders').select('*')
-    .eq('status', 'pending').in('pago', ['wompi', 'bold', 'sistecredito'])
+    .eq('status', 'pending').in('pago', ['wompi', 'bold', 'sistecredito', 'addi'])
     .gte('created_at', desde).lte('created_at', hasta)
     .order('created_at', { ascending: false }).limit(20);
   const out = [];
@@ -412,6 +426,15 @@ async function reconciliarPendientes(req, res) {
           const c = await confirmPaidOrder({ reference: o.reference, amount: Number(o.subtotal != null ? o.subtotal : o.total), currency: 'COP', req });
           out.push(o.reference + ':' + (c.ok ? 'VENTA' : c.error));
         } else out.push(o.reference + ':pendiente');
+      } else if (o.pago === 'addi') {
+        // Addi no tiene API de consulta de estado → no se puede auto-confirmar aquí. Tras 30 min sin
+        // confirmación por webhook, marcar para revisión MANUAL (el panel lo resalta). NO marca venta.
+        const ageMin = (Date.now() - new Date(o.created_at).getTime()) / 60000;
+        if (ageMin >= 30 && !(o.utm && o.utm.needs_manual_review)) {
+          const utm = Object.assign({}, o.utm || {}, { needs_manual_review: true });
+          await sb.from('orders').update({ utm }).eq('id', o.id);
+          out.push(o.reference + ':revisar_manual');
+        } else out.push(o.reference + ':addi_pendiente');
       } else {
         const key = (process.env.WOMPI_PRIVATE_KEY || '').trim();
         if (!key) break;

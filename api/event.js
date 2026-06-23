@@ -26,7 +26,7 @@ module.exports = async (req, res) => {
   // service_role: la policy de insert anónimo se eliminó (la anon key es pública y permitía
   // ensuciar datos saltándose esta API). Fallback a anon solo para instalaciones sin service key.
   const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY);
-  await sb.from('events').insert({
+  const { error } = await sb.from('events').insert({
     session_id:   String(session_id).slice(0, 64),
     type,
     product_id:   t(product_id, 32),
@@ -45,5 +45,11 @@ module.exports = async (req, res) => {
     device:       ['movil', 'escritorio'].includes(device) ? device : null,
     referrer:     t(referrer, 300),
   });
+  // No fingir éxito: si el insert falla, registrarlo y devolver 500 (el front dispara estos eventos
+  // fire-and-forget, así que un 500 no rompe la UX, pero deja de mentir y queda en los logs).
+  if (error) {
+    console.error('[event] insert fail:', error.message);
+    return res.status(500).json({ ok: false });
+  }
   return res.json({ ok: true });
 };
