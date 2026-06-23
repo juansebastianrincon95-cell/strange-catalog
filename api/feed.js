@@ -1,11 +1,16 @@
 const { createClient } = require('@supabase/supabase-js');
 
+// La anon key publishable (sb_publishable_...) es PÚBLICA por diseño (ya está en base.js y
+// middleware.js; RLS protege). Supabase deprecó las llaves JWT legacy (eyJ...) → la env vieja
+// daba 503 en el feed. Se prefiere la env SI ya está en el formato nuevo sb_*; si no, esta.
+// (Self-healing: cuando se actualice SUPABASE_ANON_KEY en Vercel al formato nuevo, se usará esa.)
+const ANON_KEY = String(process.env.SUPABASE_ANON_KEY || '').startsWith('sb_')
+  ? process.env.SUPABASE_ANON_KEY
+  : 'sb_publishable_ZjVLucKCxH2RM2CycRhkhQ_Gw95sl7s';
+
 module.exports = async (req, res) => {
  try {
-  const sb = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_ANON_KEY
-  );
+  const sb = createClient(process.env.SUPABASE_URL, ANON_KEY);
 
   // .trim() + sin "/" final: un env mal pegado (BOM/CRLF/slash) ya ensució los links del feed una vez.
   const storeUrl = (process.env.STORE_URL || `https://${req.headers.host}`).trim().replace(/\/+$/, '');
