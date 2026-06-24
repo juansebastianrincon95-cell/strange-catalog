@@ -253,6 +253,8 @@ module.exports = async (req, res) => {
 
     if (action === 'create_dpa_adcreative') {
       const { page_id, name, product_set_id, link, message, call_to_action = 'SHOP_NOW' } = payload;
+      // product_set canónico por defecto si el payload no lo trae (governance).
+      const PSET = (product_set_id || process.env.META_PRODUCT_SET_ID || '').toString().trim();
       const r = await graphRequest('POST', qs(`${ACCOUNT}/adcreatives`), {
         name,
         object_story_spec: {
@@ -265,26 +267,30 @@ module.exports = async (req, res) => {
             call_to_action: { type: call_to_action }
           }
         },
-        product_set_id
+        product_set_id: PSET
       });
       return res.status(r.status).json(r.body);
     }
 
     if (action === 'create_dpa_adset') {
       const { campaign_id, name, product_set_id, pixel_id, daily_budget, status = 'PAUSED' } = payload;
+      // Governance: el píxel SIEMPRE es el canónico del env (nunca un adset con el píxel equivocado);
+      // el product_set cae al canónico si no viene en el payload.
+      const PSET  = (product_set_id || process.env.META_PRODUCT_SET_ID || '').toString().trim();
+      const PIXEL = (process.env.META_PIXEL_ID || '').trim() || pixel_id;
       const r = await graphRequest('POST', qs(`${ACCOUNT}/adsets`), {
         campaign_id, name, status,
         optimization_goal: 'OFFSITE_CONVERSIONS',
         billing_event: 'IMPRESSIONS',
         daily_budget: copToMinor(daily_budget),
         promoted_object: {
-          product_set_id,
+          product_set_id: PSET,
           custom_event_type: 'PURCHASE'
         },
         targeting: {
           geo_locations: { countries: ['CO'] },
           dynamic_audience_targeting: 'REMARKETING_ONLY',
-          pixel_id
+          pixel_id: PIXEL
         },
         special_ad_categories: []
       });

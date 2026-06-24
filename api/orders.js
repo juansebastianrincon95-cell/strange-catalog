@@ -37,7 +37,7 @@ function capiLead(order, req) {
   }).catch(() => {});
 }
 
-const ALLOWED_ORIGINS = ['https://strangesneakers.com', 'https://www.strangesneakers.com', 'https://catalogo.strangesneakers.com', 'https://strange-catalog.vercel.app'];
+const ALLOWED_ORIGINS = ['https://strangesneakers.com', 'https://www.strangesneakers.com'];
 const CODIGO_BIENVENIDA = 'BIENVENIDO20';
 
 function allowedOrigin(req, res) {
