@@ -135,6 +135,9 @@ async function createOrder(input, defaultStatus = 'pending') {
     envio: calc.envio,
     total: calc.total,
     pares: calc.pares,
+    // Cupón usado: se guarda SOLO si el descuento se aplicó de verdad (desc > 0) → así la
+    // columna 'cupon' significa "este pedido usó el descuento" (para el panel de suscriptores).
+    cupon: calc.desc > 0 ? calc.cupon : null,
     items: calc.items,
     // El cliente solo puede crear 'pending' o 'abandoned'. 'venta'/'no_venta' se marcan
     // únicamente server-side (confirmPaidOrder o panel admin) — evita ventas falsas inyectadas.

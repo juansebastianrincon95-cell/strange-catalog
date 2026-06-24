@@ -441,7 +441,7 @@ async function loadOrders(){
       orders=j.orders.map(o=>({
         id:o.id,fecha:o.fecha||o.created_at,subtotal:o.subtotal,envio:o.envio,total:o.total||0,pares:o.pares,
         pago:o.pago,ciudad:o.ciudad,barrio:o.barrio,nombre:o.nombre,tel:o.tel,
-        cedula:o.cedula,direccion:o.direccion,utm:o.utm||null,combo:o.combo||null,
+        cedula:o.cedula,direccion:o.direccion,utm:o.utm||null,combo:o.combo||null,cupon:o.cupon||null,
         wa_status:o.wa_status,temperatura:o.temperatura,motivo_no_venta:o.motivo_no_venta,nota:o.nota,seguimiento:o.seguimiento,
         items:o.items,status:o.status,reference:o.reference,seccion:o.seccion,session_id:o.session_id||null
       }));
@@ -525,7 +525,7 @@ function setAdminSection(name){
   if(name==='pedidos'){renderPedidos();loadOrders().then(()=>{if(avSec==='pedidos')renderPedidos();});}
   if(name==='clientes'){renderClientes();loadOrders().then(()=>{if(avSec==='clientes')renderClientes();});}
   if(name==='leads'){renderLeadsTab();loadOrders().then(()=>{if(avSec==='leads')renderLeadsTab();});}
-  if(name==='suscriptores'){renderSubsTab();loadSubscribers().then(()=>{if(avSec==='suscriptores')renderSubsTab();});}
+  if(name==='suscriptores'){renderSubsTab();loadSubscribers().then(()=>{if(avSec==='suscriptores')renderSubsTab();});loadOrders().then(()=>{if(avSec==='suscriptores')renderSubsTab();});}
 }
 
 /* ── BÚSQUEDA GLOBAL (estilo Shopify): productos + pedidos + clientes, todo en memoria ── */
@@ -989,7 +989,19 @@ function renderStatsTab(){
       const names=interesadoEn(s.session_id);
       tareas.push({txt:`Escribir a <b>${escHtml(s.nombre||s.whatsapp)}</b>${names.length?` — miró <b>${escHtml(names[0])}</b>`:''}, su cupón vence en <b>${v.dias} día${v.dias===1?'':'s'}</b>`,go:`avGo('suscriptores')`,ic:'🎟'});
     });
-    loadActivity(porVencer.map(s=>s.session_id)).then(ok=>{if(ok&&avSec==='inicio')renderStatsTab();});
+    // Cupones YA vencidos sin compra → recuperar (reactivar el cupón + escribir).
+    const vencidos=subsData.filter(s=>{
+      if(s.source!=='popup_bienvenida')return false;
+      const v=cuponVigencia(s.welcome_issued_at||s.created_at);
+      if(!v||!v.vencido)return false;
+      const tel=String(s.whatsapp||'').replace(/\D/g,'').slice(-10);
+      return tel&&!telsPedidos.has(tel);
+    }).slice(0,3);
+    vencidos.forEach(s=>{
+      const names=interesadoEn(s.session_id);
+      tareas.push({txt:`Recuperar a <b>${escHtml(s.nombre||s.whatsapp)}</b>${names.length?` — miró <b>${escHtml(names[0])}</b>`:''}, su cupón <b>venció</b> → reactívalo`,go:`avGo('suscriptores')`,ic:'🔄'});
+    });
+    loadActivity([...porVencer,...vencidos].map(s=>s.session_id)).then(ok=>{if(ok&&avSec==='inicio')renderStatsTab();});
   }
   el.innerHTML=`<div style="padding:14px 16px 24px;overflow-y:auto;flex:1;min-height:0">
     <div style="background:var(--white);border:1px solid var(--line);border-radius:14px;padding:13px 15px;margin-bottom:14px">
@@ -1337,6 +1349,41 @@ function waCuponSub(s){
   const msg=`¡Hola ${nombre}! 👋 Soy de ${STORE_NAME}.${vio}\n\nTu cupón *BIENVENIDO20* de $20.000 OFF ${vig} ⏰ ¿Aprovechas y escoges tu par? Envío GRATIS y pago contra entrega 🙌`;
   return `https://wa.me/57${tel}?text=${encodeURIComponent(msg)}`;
 }
+// Suscriptor con cupón VENCIDO que acabamos de REACTIVAR: mensaje win-back (le damos 7 días más).
+function waRecuperarSub(s){
+  const wa=String(s.whatsapp||'').replace(/\D/g,'');const tel=wa.length===10?wa:wa.slice(-10);
+  if(tel.length<10)return null;
+  const nombre=(s.nombre||'').trim().split(/\s+/)[0]||'';
+  const mira=interesadoEn(s.session_id);
+  const vio=mira.length?` Vi que te gustó: ${mira.join(', ')} 👟.`:'';
+  const msg=`¡Hola ${nombre}! 👋 Soy de ${STORE_NAME}.${vio}\n\n¡Buenas noticias! 🎉 Te REACTIVÉ tu cupón *BIENVENIDO20* de $20.000 OFF por 7 días más ⏰ Sé que se te había vencido, así que aquí tienes otra oportunidad 🙌 ¿Escoges tu par? Envío GRATIS y pago contra entrega.`;
+  return `https://wa.me/57${tel}?text=${encodeURIComponent(msg)}`;
+}
+// Suscriptores cuyo cupón se reactivó en esta sesión del panel → muestran el mensaje win-back.
+const cuponReactivado=new Set();
+// ¿El suscriptor ya compró? Cruza su WhatsApp con los pedidos 'venta' (por teléfono, últimos 10
+// dígitos). Devuelve {cupon} si compró: cupon = código usado (o null si compró sin descuento).
+function subUsoCupon(s){
+  if(typeof orders==='undefined'||!Array.isArray(orders))return null;
+  const wa=String(s.whatsapp||'').replace(/\D/g,'').slice(-10);
+  if(wa.length<10)return null;
+  const venta=orders.find(o=>o.status==='venta'&&String(o.tel||'').replace(/\D/g,'').slice(-10)===wa);
+  return venta?{cupon:venta.cupon||null}:null;
+}
+// Reactivar el cupón (server) y, al volver a pintar, ofrecer el botón de WhatsApp win-back.
+async function reactivarCupon(id,btn){
+  try{
+    if(btn){btn.disabled=true;btn.textContent='Reactivando…';}
+    await adminWrite('reissue_welcome',{id});
+    const s=(subsData||[]).find(x=>x.id===id);
+    if(s)s.welcome_issued_at=new Date().toISOString();
+    cuponReactivado.add(id);
+    renderSubsTab();
+  }catch(e){
+    alert('No se pudo reactivar: '+e.message);
+    if(btn){btn.disabled=false;btn.textContent='🔄 Reactivar cupón $20.000';}
+  }
+}
 function timelineHTML(sid){
   const evs=(activityBySession[sid]||[]).slice().reverse();   // cronológico
   if(!evs.length)return `<div style="font-size:11px;color:var(--ink3);padding:8px 0">Sin actividad registrada en esa visita.</div>`;
@@ -1380,6 +1427,8 @@ function renderSubsTab(){
     const pref=[s.talla?('👟 '+escHtml(s.talla)):'',fGen(s.genero)].filter(Boolean).join(' · ');
     const f=s.created_at?new Date(s.created_at).toLocaleDateString('es-CO',{day:'2-digit',month:'short'}):'';
     const cupon=s.source==='popup_bienvenida'?cuponBadge(s.welcome_issued_at||s.created_at):'';
+    const compra=subUsoCupon(s);
+    const compraBadge=compra?`<span style="font-size:9.5px;font-weight:700;color:var(--green)">${compra.cupon?'✅ usó '+escHtml(compra.cupon):'🛍 ya compró'}</span>`:'';
     const tieneAct=!!(activityBySession[s.session_id]||[]).length;
     return `<div style="padding:10px 14px;border-bottom:1px solid var(--line)">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;${tieneAct?'cursor:pointer':''}" ${tieneAct?`onclick="togActividad('s_${s.id}')"`:''}>
@@ -1392,11 +1441,29 @@ function renderSubsTab(){
         <div style="text-align:right;flex:0 0 auto">
           <div style="font-size:11px;font-weight:700">${pref||'—'}</div>
           <div style="font-size:10px;color:var(--ink3);margin-top:2px">${f}</div>
-          ${cupon?`<div style="margin-top:2px">${cupon}</div>`:''}
+          ${compraBadge?`<div style="margin-top:2px">${compraBadge}</div>`:(cupon?`<div style="margin-top:2px">${cupon}</div>`:'')}
           ${tieneAct?`<div style="font-size:9.5px;color:var(--blue);font-weight:700;margin-top:3px">👁 ver recorrido</div>`:''}
         </div>
       </div>
-      ${(()=>{const v=s.source==='popup_bienvenida'&&cuponVigencia(s.welcome_issued_at||s.created_at);const u=v&&!v.vencido&&waCuponSub(s);return u?`<a href="${u}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;background:var(--wa);color:#fff;text-decoration:none;padding:8px;border-radius:9px;font-size:11.5px;font-weight:700">💬 Recordar cupón por WhatsApp</a>`:'';})()}
+      ${(()=>{
+        // Ya compró → no perseguir con cupón.
+        if(compra)return '';
+        if(s.source!=='popup_bienvenida')return '';
+        const v=cuponVigencia(s.welcome_issued_at||s.created_at);
+        if(!v)return '';
+        const waStyle='display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;background:var(--wa);color:#fff;text-decoration:none;padding:8px;border-radius:9px;font-size:11.5px;font-weight:700';
+        if(!v.vencido){
+          // Vigente: si se acaba de reactivar, mensaje win-back; si no, recordatorio normal.
+          const reac=cuponReactivado.has(s.id);
+          const u=reac?waRecuperarSub(s):waCuponSub(s);
+          if(!u)return '';
+          return `<a href="${u}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="${waStyle}">💬 ${reac?'Escribir: ¡cupón reactivado!':'Recordar cupón por WhatsApp'}</a>`;
+        }
+        // Vencido: botón para reactivar (renueva 7 días) — luego aparece el de WhatsApp.
+        const wa=String(s.whatsapp||'').replace(/\D/g,'');
+        if((wa.length===10?wa:wa.slice(-10)).length<10)return '';
+        return `<button onclick="event.stopPropagation();reactivarCupon(${s.id},this)" style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;width:100%;border:none;cursor:pointer;background:#5D2D91;color:#fff;padding:8px;border-radius:9px;font-size:11.5px;font-weight:700">🔄 Reactivar cupón $20.000</button>`;
+      })()}
       ${tieneAct?`<div id="act_s_${s.id}" style="display:none;margin-top:8px;padding:8px 10px;background:var(--bg);border-radius:9px">${timelineHTML(s.session_id)}</div>`:''}
     </div>`;
   }).join('');

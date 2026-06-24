@@ -247,10 +247,22 @@ module.exports = async (req, res) => {
     return res.json({ ok: true, subscribers: rows || [] });
   }
 
+  // Reactivar el cupón de bienvenida de un suscriptor: renueva welcome_issued_at = ahora,
+  // dándole 7 días nuevos de BIENVENIDO20 ($20.000 OFF). La validación en _orders.js usa
+  // welcome_issued_at para la vigencia, así que esto rehabilita el descuento de verdad.
+  if (action === 'reissue_welcome') {
+    if (!id) return res.status(400).json({ error: 'id required' });
+    const { error } = await sb.from('subscribers')
+      .update({ welcome_issued_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json({ ok: true });
+  }
+
   if (action === 'list_orders') {
     const { data: rows, error } = await sb
       .from('orders')
-      .select('id,created_at,fecha,nombre,cedula,tel,ciudad,barrio,direccion,pago,subtotal,envio,total,pares,items,status,reference,seccion,utm,combo,wa_status,temperatura,motivo_no_venta,nota,seguimiento,session_id')
+      .select('id,created_at,fecha,nombre,cedula,tel,ciudad,barrio,direccion,pago,subtotal,envio,total,pares,items,status,reference,seccion,utm,combo,cupon,wa_status,temperatura,motivo_no_venta,nota,seguimiento,session_id')
       .order('created_at', { ascending: false })
       .limit(500);
     if (error) return res.status(500).json({ error: error.message });
