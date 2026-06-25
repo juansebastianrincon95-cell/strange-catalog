@@ -443,7 +443,8 @@ async function loadOrders(){
         pago:o.pago,ciudad:o.ciudad,barrio:o.barrio,nombre:o.nombre,tel:o.tel,
         cedula:o.cedula,direccion:o.direccion,utm:o.utm||null,combo:o.combo||null,cupon:o.cupon||null,
         wa_status:o.wa_status,temperatura:o.temperatura,motivo_no_venta:o.motivo_no_venta,nota:o.nota,seguimiento:o.seguimiento,
-        items:o.items,status:o.status,reference:o.reference,seccion:o.seccion,session_id:o.session_id||null
+        items:o.items,status:o.status,reference:o.reference,seccion:o.seccion,session_id:o.session_id||null,
+        guia:o.guia||null,tracking_url:o.tracking_url||null,transportadora:o.transportadora||null,estado_envio:o.estado_envio||null,recaudo:o.recaudo
       }));
     }
   }catch(e){}
@@ -840,9 +841,50 @@ function togPedDetail(id){
     +fila('Anuncio',[u.campaign_id?'campaña: '+escHtml(u.campaign_id):'',u.adset_id?'conjunto: '+escHtml(u.adset_id):'',u.ad_id?'anuncio: '+escHtml(u.ad_id):''].filter(Boolean).join(' · '))
     +fila('Meta',[u.fbclid?'fbclid: '+corto(u.fbclid):'',u.fbp?'fbp: '+corto(u.fbp):'',u.fbc?'fbc: '+corto(u.fbc):''].filter(Boolean).join(' · '))
     +fila('Contexto',[u.src_app?'Origen: '+escHtml(srcAppLabel(u.src_app)):'',u.landing?'Landing: '+escHtml(u.landing):'',u.device?'Dispositivo: '+escHtml(u.device):''].filter(Boolean).join(' · '))
-    +fila('Fecha',o.fecha?new Date(o.fecha).toLocaleString('es-CO',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}):'');
+    +fila('Fecha',o.fecha?new Date(o.fecha).toLocaleString('es-CO',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}):'')
+    +envioBloque(o);
   det.style.display='block';
   if(chev)chev.textContent='Ocultar ▴';
+}
+
+/* ── ENVÍO (Coordinadora) — bloque en el detalle del pedido ── */
+// Si ya hay guía: muestra guía + tracking + recaudo + botón para avisar al cliente.
+// Si no: botón para generar la guía (recaudo = total si es contra-entrega, 0 si es prepago).
+function envioBloque(o){
+  const pagoCOD=o.pago==='contra_entrega';
+  if(o.guia){
+    const wa=String(o.tel||'').replace(/\D/g,'').slice(-10);
+    const nombre=(o.nombre||'').trim().split(/\s+/)[0]||'';
+    const msg=`¡Hola ${nombre}! 👋 Tu pedido de ${STORE_NAME} ya va en camino 📦\nTransportadora: Coordinadora\nN° de guía: ${o.guia}\n${o.tracking_url?'Rastrea aquí: '+o.tracking_url:''}`;
+    const waBtn=wa.length===10?`<a href="https://wa.me/57${wa}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener" style="display:inline-block;margin-top:7px;background:var(--wa);color:#fff;text-decoration:none;padding:7px 12px;border-radius:8px;font-size:11px;font-weight:700">💬 Avisar tracking al cliente</a>`:'';
+    return `<div style="margin-top:10px;padding:10px;background:#eaf6ee;border:1px solid #bfe3cc;border-radius:9px">
+      <div style="font-weight:700;font-size:11px;color:#137a3a">📦 Envío — guía generada</div>
+      <div style="margin-top:3px">Guía: <b>${escHtml(o.guia)}</b> · Coordinadora${o.recaudo?` · Recaudo <b>${fmt(o.recaudo)}</b>`:' · Prepago (sin recaudo)'}</div>
+      ${o.tracking_url?`<div><a href="${escHtml(o.tracking_url)}" target="_blank" rel="noopener" style="color:var(--blue)">Ver rastreo ↗</a></div>`:''}
+      ${waBtn}
+    </div>`;
+  }
+  return `<div style="margin-top:10px">
+    <button onclick="generarGuiaPedido(${o.id},this)" style="border:none;cursor:pointer;background:#5D2D91;color:#fff;padding:8px 13px;border-radius:8px;font-size:11.5px;font-weight:700">📦 Generar guía Coordinadora ${pagoCOD?`(recaudo ${fmt(o.total||0)})`:'(prepago)'}</button>
+  </div>`;
+}
+
+async function generarGuiaPedido(id,btn){
+  try{
+    if(btn){btn.disabled=true;btn.textContent='Generando…';}
+    const r=await adminWrite('generar_guia',{id});
+    const o=orders.find(x=>x.id===id);
+    if(o){o.guia=r.guia;o.tracking_url=r.tracking_url;o.recaudo=r.recaudo;o.estado_envio='guia_generada';}
+    const det=$('pedDet'+id);if(det){det.style.display='none';togPedDetail(id);}   // re-pinta con la guía
+  }catch(e){
+    const msg=e.message==='coordinadora_no_configurado'
+      ?'Coordinadora aún no está configurada. Pon las credenciales en Vercel o activa COORDINADORA_SIMULACION=1 para probar.'
+      :e.message==='coordinadora_pendiente_integracion'
+      ?'La conexión con la API de Coordinadora está pendiente (Fase 3, falta el manual del Web Service).'
+      :e.message;
+    alert('No se pudo generar la guía:\n'+msg);
+    if(btn){btn.disabled=false;btn.textContent='📦 Generar guía Coordinadora';}
+  }
 }
 
 /* Badge de costo (privado, solo admin): verde con el monto si está puesto, rojo "Sin costo" si falta.

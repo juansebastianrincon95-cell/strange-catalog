@@ -1,6 +1,7 @@
 const { createClient } = require('@supabase/supabase-js');
 const { sendEvent } = require('./_capi');
 const { contentIdsDe, cartSig, decrementStock } = require('./_orders');
+const { generarGuia } = require('./_coordinadora');
 const { requireAdmin, renewIfActive } = require('./_admin_auth');
 const crypto = require('crypto');
 
@@ -172,6 +173,23 @@ module.exports = async (req, res) => {
     return res.json({ ok: true });
   }
 
+  // ENVÍOS (Coordinadora): generar la guía de un pedido. Esqueleto — funciona en modo
+  // simulación (env COORDINADORA_SIMULACION=1) o con la API real cuando se configure.
+  if (action === 'generar_guia') {
+    if (!id) return res.status(400).json({ error: 'id required' });
+    const { data: order, error: e1 } = await sb.from('orders').select('*').eq('id', id).single();
+    if (e1 || !order) return res.status(404).json({ error: 'order_not_found' });
+    if (order.guia) return res.json({ ok: true, guia: order.guia, tracking_url: order.tracking_url, recaudo: order.recaudo, yaExistia: true });
+    const r = await generarGuia(order);
+    if (!r.ok) return res.status(400).json({ error: r.error });
+    const { error: e2 } = await sb.from('orders').update({
+      guia: r.guia, tracking_url: r.tracking_url, transportadora: r.transportadora,
+      recaudo: r.recaudo, estado_envio: 'guia_generada'
+    }).eq('id', id);
+    if (e2) return res.status(500).json({ error: e2.message });
+    return res.json({ ok: true, guia: r.guia, tracking_url: r.tracking_url, recaudo: r.recaudo, simulado: !!r.simulado });
+  }
+
   // Borrar EN BLOQUE todos los pedidos marcados de prueba (utm.test = true). Se filtra en JS
   // (no con el operador jsonb en la query) para evitar sorpresas de sintaxis y ser a prueba de balas.
   if (action === 'delete_test_orders') {
@@ -262,7 +280,7 @@ module.exports = async (req, res) => {
   if (action === 'list_orders') {
     const { data: rows, error } = await sb
       .from('orders')
-      .select('id,created_at,fecha,nombre,cedula,tel,ciudad,barrio,direccion,pago,subtotal,envio,total,pares,items,status,reference,seccion,utm,combo,cupon,wa_status,temperatura,motivo_no_venta,nota,seguimiento,session_id')
+      .select('id,created_at,fecha,nombre,cedula,tel,ciudad,barrio,direccion,pago,subtotal,envio,total,pares,items,status,reference,seccion,utm,combo,cupon,wa_status,temperatura,motivo_no_venta,nota,seguimiento,session_id,guia,tracking_url,transportadora,estado_envio,recaudo')
       .order('created_at', { ascending: false })
       .limit(500);
     if (error) return res.status(500).json({ error: error.message });
