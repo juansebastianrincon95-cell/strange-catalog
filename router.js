@@ -94,6 +94,18 @@ function navUpdateCat(){ // al filtrar dentro del catálogo abierto, refrescar s
 
 function checkDeepLink(){
   const params=new URLSearchParams(location.search);
+  // ── PWA del admin ──
+  // La tienda del cliente NO es instalable (solo el contexto admin enlaza el manifest),
+  // así que si la app corre instalada (standalone) es, necesariamente, la PWA del admin →
+  // abrir SIEMPRE el panel sin importar con qué URL la lanzó el sistema. Esto es clave en
+  // iOS: "Agregar a inicio" guarda la URL ya limpia de ?admin, y la PWA tiene su propio
+  // almacenamiento (el flag ss_admin_pwa de Safari no viaja allí).
+  const _standalone=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone;
+  if(_standalone){
+    history.replaceState(null,'',location.pathname);
+    setTimeout(()=>openAdmin(),200);
+    return;
+  }
   // ── Rutas SPA (path): /p/126, /carrito, /catalogo/hombre, /mayoristas, /cambios, /legal/x ──
   // Al aterrizar directo en una ruta de capa se inyecta el home DEBAJO en el historial →
   // el botón ATRÁS lleva al catálogo, no de vuelta a Instagram/WhatsApp.
