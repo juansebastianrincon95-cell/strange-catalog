@@ -1249,6 +1249,7 @@ function loadExtras(){
 let _adminScriptEl=null;
 
 function openAdmin(){
+  try{localStorage.setItem('ss_admin_pwa','1');}catch(e){} // marca el dispositivo como admin → habilita la PWA
   if(window._adminReady){_openAdminReal();return;}
   if(_adminScriptEl)return; // ya está cargando
   _adminScriptEl=document.createElement('script');

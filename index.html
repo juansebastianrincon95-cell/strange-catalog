@@ -43,6 +43,29 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="color-scheme" content="light">
 <meta name="theme-color" content="#F2F1EE">
+<!-- PWA del panel admin: manifest + service worker SOLO en contexto admin.
+     La tienda del cliente nunca ve prompt de instalacion ni descarga sw.js/admin.js. -->
+<script>
+  (function(){
+    try{
+      var p=new URLSearchParams(location.search);
+      var standalone=window.matchMedia&&matchMedia('(display-mode: standalone)').matches;
+      var isAdmin=p.has('admin')||localStorage.getItem('ss_admin_pwa')==='1'||standalone||navigator.standalone;
+      if(!isAdmin)return;
+      var m=document.createElement('link');m.rel='manifest';m.href='/admin.webmanifest';document.head.appendChild(m);
+      // iOS: "Agregar a inicio" (no usa el manifest install prompt)
+      [['apple-mobile-web-app-capable','yes'],
+       ['apple-mobile-web-app-status-bar-style','black-translucent'],
+       ['apple-mobile-web-app-title','Strange Admin']].forEach(function(a){
+        var t=document.createElement('meta');t.name=a[0];t.content=a[1];document.head.appendChild(t);
+      });
+      var ai=document.createElement('link');ai.rel='apple-touch-icon';ai.href='/icons/admin-apple-180.png';document.head.appendChild(ai);
+      if('serviceWorker' in navigator){
+        window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});
+      }
+    }catch(e){}
+  })();
+</script>
 <title>Strange Sneakers — Sneakers exclusivos en Colombia</title>
 <meta name="description" content="Strange Sneakers: catálogo de sneakers exclusivos en Colombia. Envío a todo el país, pago contra entrega o por Wompi. Adidas, Nike, New Balance y más.">
 <link rel="canonical" href="https://strangesneakers.com/">
