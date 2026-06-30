@@ -496,6 +496,12 @@ async function logoutAdmin(){
   await fetch('/api/admin-setup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'logout'})}).catch(()=>{});
   ADMIN_OK=false;
   closeAdmin();
+  // En la app instalada (kiosko): nunca caer a la tienda → splash + re-pedir PIN.
+  if((window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone){
+    if(window._ssSplash)window._ssSplash(true);
+    if(window._ssWatchPanel)window._ssWatchPanel();
+    setTimeout(()=>openAdmin(),50);
+  }
 }
 
 function closeAdmin(){$('apanel').classList.remove('on');unlockScroll();}

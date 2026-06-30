@@ -63,27 +63,35 @@
       if('serviceWorker' in navigator){
         window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});
       }
-      // App instalada (standalone): splash inmediato (la "S" sobre charcoal) que tapa la tienda
-      // desde el primer frame y se desvanece cuando el panel admin esta listo. Cero parpadeo.
+      // App instalada (standalone) = modo KIOSKO admin: la app es SOLO el panel.
+      // - Splash inmediato (la "S" sobre charcoal) que tapa la tienda desde el primer frame.
+      // - Se oculta la ✕ (cerrar a la tienda); "Salir" re-muestra splash y re-pide PIN.
       if(standalone||navigator.standalone){
-        document.documentElement.classList.add('ss-pwa');
+        var H=document.documentElement;
+        H.classList.add('ss-pwa-app');           // marca persistente del modo app (kiosko)
         var st=document.createElement('style');
         st.textContent='html.ss-pwa::before{content:"";position:fixed;inset:0;z-index:99999;'
           +'background:#0F0F0F url(/icons/admin-512.png) center/110px no-repeat;'
           +'animation:ssPwaPulse 1.4s ease-in-out infinite}'
           +'@keyframes ssPwaPulse{0%,100%{opacity:.82}50%{opacity:1}}'
-          +'html.ss-pwa.ss-pwa-done::before{animation:none;opacity:0;transition:opacity .35s ease;pointer-events:none}';
+          +'html.ss-pwa.ss-pwa-done::before{animation:none;opacity:0;transition:opacity .35s ease;pointer-events:none}'
+          +'html.ss-pwa-app .apanel .ax{display:none!important}';   // sin boton de cerrar a la tienda
         document.head.appendChild(st);
-        var _ssHide=function(){
-          var h=document.documentElement;
-          if(!h.classList.contains('ss-pwa'))return;
-          h.classList.add('ss-pwa-done');
-          setTimeout(function(){h.classList.remove('ss-pwa','ss-pwa-done');},400);
+        // Splash reutilizable (lo usa el arranque y el "Salir" del panel)
+        window._ssSplash=function(show){
+          if(show){H.classList.remove('ss-pwa-done');H.classList.add('ss-pwa');return;}
+          if(!H.classList.contains('ss-pwa'))return;
+          H.classList.add('ss-pwa-done');
+          setTimeout(function(){H.classList.remove('ss-pwa','ss-pwa-done');},400);
         };
-        var _ssIv=setInterval(function(){
-          if(document.querySelector('#apanel.on')){clearInterval(_ssIv);_ssHide();}
-        },120);
-        setTimeout(function(){clearInterval(_ssIv);_ssHide();},8000); // safety: nunca quedarse pegado
+        window._ssWatchPanel=function(){           // oculta el splash cuando el panel esta listo
+          var iv=setInterval(function(){
+            if(document.querySelector('#apanel.on')){clearInterval(iv);window._ssSplash(false);}
+          },120);
+          setTimeout(function(){clearInterval(iv);window._ssSplash(false);},8000); // safety: nunca pegado
+        };
+        window._ssSplash(true);                    // splash de arranque
+        window._ssWatchPanel();
       }
     }catch(e){}
   })();
