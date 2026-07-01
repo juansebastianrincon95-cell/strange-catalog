@@ -1,6 +1,20 @@
 /* ═══ BOOT ═══ Arranque: tracking inicial, carga de estado y catálogo, deep links,
    retornos de pago, popup. SIEMPRE el último script. ═══ */
 
+// ═══ ARRANQUE LIGERO (SOLO app instalada / standalone) ═══
+// En la PWA del admin no cargamos NI renderizamos la tienda (sin hero/grilla/imagenes/tracking):
+// solo config + estado (datos que el panel lee) y abrimos el panel directo. Elimina el lag y la
+// tienda nunca se pinta. En navegador normal (y ?admin en escritorio) el arranque sigue completo.
+var _ssApp=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone;
+if(_ssApp){
+  loadConfig();
+  (async()=>{
+    try{await loadState();}catch(e){}   // pobla prods/liqs/combos/featuredIds/banners/testimonios que el panel necesita
+    if(new URLSearchParams(location.search).has('admin'))history.replaceState(null,'',location.pathname);
+    try{openAdmin();}catch(e){}         // panel directo (PIN solo la 1a vez; sesion persiste)
+  })();
+}else{
+
 captureUTM();
 
 captureReferrer();
@@ -42,3 +56,5 @@ if(localStorage.getItem('ss_reserve_until')&&!_reserveTimer){_reserveTimer=setIn
   maybeWelcome();   // popup de bienvenida ($20.000 OFF), una vez por visitante
   maybeWaBubble();  // mini-anuncio "pregunta por los combos" sobre el FAB de WhatsApp
 })();
+
+}
