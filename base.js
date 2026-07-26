@@ -29,8 +29,6 @@ let v360Id=null,v360Type=null,v360Pos=0,v360Dragging=false,v360LastX=0,_preview3
 
 let orders=[];
 
-let SHEETS_URL='';
-
 let PIXEL_ID='';
 
 let WOMPI_PK='';
@@ -105,7 +103,6 @@ function loadConfig(){
     const c=JSON.parse(localStorage.getItem('ss_config')||'{}');
     if(c.wa)WA=c.wa;
     if(c.nombre)STORE_NAME=c.nombre;
-    if(c.sheetsUrl)SHEETS_URL=c.sheetsUrl;
     if(c.pixelId)PIXEL_ID=c.pixelId;
     if(c.wompiPk)WOMPI_PK=c.wompiPk;
     if(c.clarityId)CLARITY_ID=c.clarityId;
@@ -115,7 +112,6 @@ function loadConfig(){
     setMeta('ogTitle',STORE_NAME+' — Sneakers exclusivos');
     setMeta('ogDesc','Catálogo de sneakers. Paga por WhatsApp, recibe en casa.');
     setMeta('ogUrl',location.href.split('?')[0]);
-    const cfgS=$('cfgSheets');if(cfgS)cfgS.value=SHEETS_URL;
     const cfgPx=$('cfgPixel');if(cfgPx)cfgPx.value=PIXEL_ID;
     const cfgWo=$('cfgWompi');if(cfgWo)cfgWo.value=WOMPI_PK;
     const cfgCl=$('cfgClarity');if(cfgCl)cfgCl.value=CLARITY_ID;
@@ -179,7 +175,6 @@ async function loadState(){
     if(cfg.store_name)STORE_NAME=cfg.store_name;
     if(cfg.wa)WA=cfg.wa;
     if(cfg.pixel_id)PIXEL_ID=cfg.pixel_id;
-    if(cfg.sheets_url)SHEETS_URL=cfg.sheets_url;
     if(cfg.wompi_pk)WOMPI_PK=cfg.wompi_pk;
     if(cfg.clarity_id)CLARITY_ID=cfg.clarity_id;
     applyStoreName();
@@ -187,7 +182,6 @@ async function loadState(){
     if(firstImg){const el=document.getElementById('ogImg');if(el)el.content=firstImg;}
     const cfgW=$('cfgWA');if(cfgW)cfgW.value=WA;
     const cfgPx=$('cfgPixel');if(cfgPx)cfgPx.value=PIXEL_ID;
-    const cfgS=$('cfgSheets');if(cfgS)cfgS.value=SHEETS_URL;
     const cfgWo=$('cfgWompi');if(cfgWo)cfgWo.value=WOMPI_PK;
     const cfgCl=$('cfgClarity');if(cfgCl)cfgCl.value=CLARITY_ID;
     initPixel();

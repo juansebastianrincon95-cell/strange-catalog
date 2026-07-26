@@ -1311,27 +1311,6 @@ const _isClasificado=o=>o.status==='venta'||o.status==='no_venta';
 
 /* (drag & drop de las zonas de subida: vive en admin.js) */
 
-/* ═══════════════════════════════════════════════════════════════
-   GOOGLE APPS SCRIPT — Pegar en https://script.google.com
-   1. Ir a script.google.com → Nuevo proyecto
-   2. Borrar el código existente y pegar:
-
-   function doPost(e){
-     const data=JSON.parse(e.postData.contents);
-     const sheet=SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-     sheet.appendRow([data.fecha,data.nombre,data.tel,data.ciudad,
-       data.barrio,data.pago,data.total,data.pares,JSON.stringify(data.items)]);
-     return ContentService.createTextOutput('ok');
-   }
-
-   3. Guardar (Ctrl+S) → Implementar → Nueva implementación
-   4. Tipo: Aplicación web | Ejecutar como: Yo | Acceso: Cualquier persona
-   5. Implementar → Copiar la URL → pegarla en Admin → Google Sheets URL
-   Columnas: A=Fecha B=Nombre C=Tel D=Ciudad E=Barrio F=Pago G=Total H=Pares I=Items
-   ═══════════════════════════════════════════════════════════════
-
-   ═══════════════════════════════════════════════════════════════ */
-
 /* ── DRAG/TOUCH VISOR 360° ── */
 (function(){
   const stage=$('v360Stage');

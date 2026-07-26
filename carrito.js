@@ -549,7 +549,6 @@ async function enviarWA(tipo){
   // activación del gesto → popup bloqueado). keepalive:true hace que el navegador complete
   // el request aunque la pestaña navegue a WhatsApp — sin esto el pedido/lead podía perderse.
   fetch('/api/orders',{method:'POST',keepalive:true,headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'create_order',...orderObj})}).catch(()=>{});
-  if(SHEETS_URL){fetch(SHEETS_URL,{method:'POST',keepalive:true,body:JSON.stringify(orderObj),headers:{'Content-Type':'application/json'}}).catch(()=>{});}
   window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,'_blank');
   return false;
 }

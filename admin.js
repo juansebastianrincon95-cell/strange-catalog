@@ -461,7 +461,6 @@ function _showAdmin(){
   const swB=$('swBanner');if(swB)swB.checked=bannerOn;
   const cfgN=$('cfgNombre');if(cfgN)cfgN.value=STORE_NAME;
   const cfgW=$('cfgWA');if(cfgW)cfgW.value=WA;
-  const cfgS=$('cfgSheets');if(cfgS)cfgS.value=SHEETS_URL;
   const cfgPx=$('cfgPixel');if(cfgPx)cfgPx.value=PIXEL_ID;
   const cfgWo=$('cfgWompi');if(cfgWo)cfgWo.value=WOMPI_PK;
   const cfgCl=$('cfgClarity');if(cfgCl)cfgCl.value=CLARITY_ID;
@@ -1382,7 +1381,7 @@ function waRescate(o){
   const lista=items.length?items.join(', '):interesadoEn(o.session_id).join(', ');
   const saludo=nombre?`¡Hola ${nombre}! 👋`:'¡Hola! 👋';
   const vio=lista?` Vi que te interesó: ${lista} 👟`:' Vi que estuviste mirando nuestros sneakers 👟';
-  const msg=`${saludo} Te escribo de ${STORE_NAME}.${vio}\n\n¿Te ayudo a completar tu pedido? 🙌 Tenemos *pago contra entrega* (pagas al recibir en tu casa) y *envío GRATIS* a todo el país. ¿Te lo aparto?`;
+  const msg=`${saludo} Te escribo de ${STORE_NAME}.${vio}\n\n¿Te ayudo a completar tu pedido? 🙌 Pagando en línea el *envío es GRATIS*, o si prefieres *contra entrega* pagas solo el envío hoy y los zapatos al recibir en casa. ¿Te lo aparto?`;
   return `https://wa.me/57${tel}?text=${encodeURIComponent(msg)}`;
 }
 // Suscriptor con cupón de bienvenida vigente: recordatorio con su vencimiento.
@@ -1394,7 +1393,7 @@ function waCuponSub(s){
   const vig=v&&!v.vencido?(v.dias<=1?'vence HOY':`vence en ${v.dias} días`):'está por vencer';
   const mira=interesadoEn(s.session_id);
   const vio=mira.length?` Vi que te gustó: ${mira.join(', ')} 👟.`:'';
-  const msg=`¡Hola ${nombre}! 👋 Soy de ${STORE_NAME}.${vio}\n\nTu cupón *BIENVENIDO20* de $20.000 OFF ${vig} ⏰ ¿Aprovechas y escoges tu par? Envío GRATIS y pago contra entrega 🙌`;
+  const msg=`¡Hola ${nombre}! 👋 Soy de ${STORE_NAME}.${vio}\n\nTu cupón *BIENVENIDO20* de $20.000 OFF ${vig} ⏰ ¿Aprovechas y escoges tu par? Pagando en línea el *envío es GRATIS*; también puedes pedir *contra entrega* 🙌`;
   return `https://wa.me/57${tel}?text=${encodeURIComponent(msg)}`;
 }
 // Suscriptor con cupón VENCIDO que acabamos de REACTIVAR: mensaje win-back (le damos 7 días más).
@@ -1404,7 +1403,7 @@ function waRecuperarSub(s){
   const nombre=(s.nombre||'').trim().split(/\s+/)[0]||'';
   const mira=interesadoEn(s.session_id);
   const vio=mira.length?` Vi que te gustó: ${mira.join(', ')} 👟.`:'';
-  const msg=`¡Hola ${nombre}! 👋 Soy de ${STORE_NAME}.${vio}\n\n¡Buenas noticias! 🎉 Te REACTIVÉ tu cupón *BIENVENIDO20* de $20.000 OFF por 7 días más ⏰ Sé que se te había vencido, así que aquí tienes otra oportunidad 🙌 ¿Escoges tu par? Envío GRATIS y pago contra entrega.`;
+  const msg=`¡Hola ${nombre}! 👋 Soy de ${STORE_NAME}.${vio}\n\n¡Buenas noticias! 🎉 Te REACTIVÉ tu cupón *BIENVENIDO20* de $20.000 OFF por 7 días más ⏰ Sé que se te había vencido, así que aquí tienes otra oportunidad 🙌 ¿Escoges tu par? Pagando en línea el *envío es GRATIS*; también puedes pedir *contra entrega*.`;
   return `https://wa.me/57${tel}?text=${encodeURIComponent(msg)}`;
 }
 // Suscriptores cuyo cupón se reactivó en esta sesión del panel → muestran el mensaje win-back.
@@ -2073,7 +2072,7 @@ function exportMetaCatalog(){
 
 /* ── BACKUP ── */
 function exportCatalog(){
-  const data={prods,liqs,orders,config:{wa:WA,nombre:STORE_NAME,sheetsUrl:SHEETS_URL,pixelId:PIXEL_ID},exportado:new Date().toISOString()};
+  const data={prods,liqs,orders,config:{wa:WA,nombre:STORE_NAME,pixelId:PIXEL_ID},exportado:new Date().toISOString()};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
@@ -2115,7 +2114,6 @@ async function importCatalog(file){
   if(data.config){
     if(data.config.wa)WA=data.config.wa;
     if(data.config.nombre)STORE_NAME=data.config.nombre;
-    if(data.config.sheetsUrl)SHEETS_URL=data.config.sheetsUrl;
     if(data.config.pixelId)PIXEL_ID=data.config.pixelId;
     await saveConfig().catch(()=>{});
   }
@@ -2127,12 +2125,11 @@ async function importCatalog(file){
 
 /* ── CONFIGURACIÓN ── */
 async function saveConfig(){
-  localStorage.setItem('ss_config',JSON.stringify({wa:WA,nombre:STORE_NAME,sheetsUrl:SHEETS_URL,pixelId:PIXEL_ID,wompiPk:WOMPI_PK,clarityId:CLARITY_ID}));
+  localStorage.setItem('ss_config',JSON.stringify({wa:WA,nombre:STORE_NAME,pixelId:PIXEL_ID,wompiPk:WOMPI_PK,clarityId:CLARITY_ID}));
   await adminWrite('upsert_settings',{data:[
     {key:'store_name', value:STORE_NAME},
     {key:'wa',         value:WA},
     {key:'pixel_id',   value:PIXEL_ID},
-    {key:'sheets_url', value:SHEETS_URL},
     {key:'wompi_pk',   value:WOMPI_PK},
     {key:'clarity_id', value:CLARITY_ID}
   ]});
