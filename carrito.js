@@ -5,10 +5,9 @@
 // Fallback si el admin no ha configurado settings.combos. camiseta:true = REGALO al completar
 // (el campo se llama `camiseta` por historia; el texto que ve el cliente dice "regalo").
 const DEFAULT_COMBOS=[
-  {id:'bronce',  nombre:'Combo Bronce',  bandera:'🥉', pares:2, precio:379000, img:null, activo:true},
-  {id:'plata',   nombre:'Combo Plata',   bandera:'🥈', pares:3, precio:549000, img:null, activo:true},
-  {id:'oro',     nombre:'Combo Oro',     bandera:'🥇', pares:4, precio:700000, img:null, activo:true},
-  {id:'diamante',nombre:'Combo Diamante',bandera:'💎', pares:5, precio:860000, img:null, activo:true, camiseta:true}
+  {id:'bronce', nombre:'Combo Bronce', bandera:'🥉', pares:2, precio:379000, img:null, activo:true},
+  {id:'plata',  nombre:'Combo Plata',  bandera:'🥈', pares:3, precio:549000, img:null, activo:true},
+  {id:'oro',    nombre:'Combo Oro',    bandera:'🥇', pares:4, precio:700000, img:null, activo:true, camiseta:true}
 ];
 
 let combos=DEFAULT_COMBOS.slice();
