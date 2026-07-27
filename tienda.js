@@ -351,7 +351,7 @@ const INFO_QUIENES=`<div class="info-pad">
   <p class="info-lead">Una tienda colombiana hecha por amantes de los sneakers. Traemos los modelos que quieres a un precio justo y, sobre todo, con la confianza de comprar sin riesgo.</p>
   <div class="info-subt">Por qué comprarnos</div>
   <div class="info-benes">
-    <div class="info-bene">🚚 Envío GRATIS a toda Colombia</div>
+    <div class="info-bene">🚚 Envío GRATIS pagando en línea</div>
     <div class="info-bene">📦 Pago contra entrega — pagas al recibir</div>
     <div class="info-bene">🔄 Cambios por talla fáciles</div>
     <div class="info-bene">🛡️ 1 mes de garantía</div>

@@ -386,8 +386,12 @@ function rCart(){
     if(ahorro>0) sumRows+=`<div class="csum-row disc"><span>Descuento</span><span class="v">−${fmt(ahorro)}</span></div>`;
     if(desc>0)   sumRows+=`<div class="csum-row disc"><span>Cupón ${cuponAplicado}</span><span class="v">−${fmt(desc)}</span></div>`;
   }
-  sumRows+=`<div class="csum-row"><span>Envío</span><span class="free">Gratis</span></div>`;
-  const summary=`<div class="csum"><div class="csum-t">Resumen del pedido</div>${sumRows}<div class="csum-total"><span class="l">Total</span><span class="v">${fmt(totalFinal)}</span></div></div>`;
+  // Envío: GRATIS es cierto en 5 de los 6 métodos de pago, pero contra entrega cobra flete
+  // (calcFlete). Decirlo aquí — con el monto real — evita el costo sorpresa en el paso de pago,
+  // que es la causa #1 de abandono. El "Gratis" se conserva: es verdad pagando por adelantado.
+  sumRows+=`<div class="csum-row"><span>Envío <span style="color:var(--ink3);font-size:11px">pagando en línea</span></span><span class="free">Gratis</span></div>`;
+  const notaCOD=`<div style="font-size:10.5px;color:var(--ink3);line-height:1.45;margin-top:9px">📦 ¿Prefieres <b>contra entrega</b>? El envío cuesta ${fmt(calcFlete(tot))} y se paga por adelantado; los zapatos los pagas al recibir en casa.</div>`;
+  const summary=`<div class="csum"><div class="csum-t">Resumen del pedido</div>${sumRows}<div class="csum-total"><span class="l">Total</span><span class="v">${fmt(totalFinal)}</span></div>${notaCOD}</div>`;
   // Código promocional: NO acumulable con combo (si el combo aplica, el cupón se oculta/ignora)
   const cupHtml=pricing.combo
     ? (cuponAplicado?`<div class="cart-line" style="background:var(--bg);color:var(--ink3);border-color:var(--line);margin-top:14px"><span class="cl-ic">🏷️</span><span>El cupón no es acumulable con el combo — se aplicó el precio del combo.</span></div>`:'')
