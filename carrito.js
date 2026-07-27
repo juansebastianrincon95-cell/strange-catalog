@@ -1,13 +1,14 @@
 /* ═══ CARRITO ═══ El dinero: carrito, checkout 3 pasos, cupones/combos (pricing),
    contra entrega (WhatsApp), Wompi y Bold con sus retornos. ═══ */
 
-/* ── COMBOS MUNDIALISTAS ── bundles con precio fijo (validados también server-side) ── */
-// Fallback si el admin no ha configurado settings.combos. camiseta:true = regalo al completar.
+/* ── COMBOS STRANGE ── bundles con precio fijo (validados también server-side) ── */
+// Fallback si el admin no ha configurado settings.combos. camiseta:true = REGALO al completar
+// (el campo se llama `camiseta` por historia; el texto que ve el cliente dice "regalo").
 const DEFAULT_COMBOS=[
-  {id:'espana',   nombre:'Combo España',   bandera:'🇪🇸', pares:2, precio:379000, img:null, activo:true},
-  {id:'francia',  nombre:'Combo Francia',  bandera:'🇫🇷', pares:3, precio:549000, img:null, activo:true},
-  {id:'argentina',nombre:'Combo Argentina',bandera:'🇦🇷', pares:4, precio:700000, img:null, activo:true},
-  {id:'colombia', nombre:'Combo Colombia', bandera:'🇨🇴', pares:5, precio:860000, img:null, activo:true, camiseta:true}
+  {id:'bronce',  nombre:'Combo Bronce',  bandera:'🥉', pares:2, precio:379000, img:null, activo:true},
+  {id:'plata',   nombre:'Combo Plata',   bandera:'🥈', pares:3, precio:549000, img:null, activo:true},
+  {id:'oro',     nombre:'Combo Oro',     bandera:'🥇', pares:4, precio:700000, img:null, activo:true},
+  {id:'diamante',nombre:'Combo Diamante',bandera:'💎', pares:5, precio:860000, img:null, activo:true, camiseta:true}
 ];
 
 let combos=DEFAULT_COMBOS.slice();
@@ -45,9 +46,9 @@ function renderCombos(){
   const box=$('combosRow');if(!box)return;
   const activos=(combos||[]).filter(c=>c&&c.activo!==false);
   if(!activos.length){box.innerHTML='';return;}
-  box.innerHTML=`<div style="padding:10px 14px 0"><div style="font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-.01em">🏆 Combos Mundialistas</div><div style="font-size:11.5px;color:var(--ink2);margin-top:2px">Escoge tu selección, arma tu combo y paga precio fijo</div></div>
+  box.innerHTML=`<div style="padding:10px 14px 0"><div style="font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-.01em">🏆 Sube de nivel</div><div style="font-size:11.5px;color:var(--ink2);margin-top:2px">Entre más pares, menos pagas por cada uno</div></div>
   <div class="combos-grid">${activos.map(c=>{
-    // Con FOTO: la imagen trae todo el diseño (bandera, pares, precio, camiseta) → solo se
+    // Con FOTO: la imagen trae todo el diseño (medalla, pares, precio, regalo) → solo se
     // añade la franja CTA. <picture> sirve la versión escritorio en pantallas ≥700px.
     if(c.img||c.img_desktop){
       const movil=c.img||c.img_desktop, desk=c.img_desktop||c.img;
@@ -57,11 +58,11 @@ function renderCombos(){
       </div>`;
     }
     return `<div class="combo-card" onclick="activarCombo('${escHtml(c.id)}')">
-      <div class="combo-flag">${c.bandera||'⚽'}</div>
+      <div class="combo-flag">${c.bandera||'🏆'}</div>
       <div class="combo-nom">${escHtml(c.nombre)}</div>
       <div class="combo-det">${c.pares} pares a tu elección</div>
       <div class="combo-precio">${fmt(parseInt(c.precio))}</div>
-      ${c.camiseta?`<div class="combo-cami">+ 🎁 CAMISETA GRATIS</div>`:''}
+      ${c.camiseta?`<div class="combo-cami">+ 🎁 REGALO GRATIS</div>`:''}
       <div class="combo-cta">Armar combo →</div>
     </div>`;
   }).join('')}</div>`;
@@ -173,15 +174,15 @@ function renderComboBar(){
   bar.className='combo-bar'+(estado?' '+estado:'');
   bar.style.display='flex';
   const txt=n===N
-    ?`✅ ¡${escHtml(comboActivo.nombre)} COMPLETO! ${N} pares por ${fmt(parseInt(comboActivo.precio))}${comboActivo.camiseta?' + 🎁 camiseta GRATIS':''} — ve al carrito`
+    ?`✅ ¡${escHtml(comboActivo.nombre)} COMPLETO! ${N} pares por ${fmt(parseInt(comboActivo.precio))}${comboActivo.camiseta?' + 🎁 REGALO GRATIS':''} — ve al carrito`
     :n>N
     ?`⚠️ ${escHtml(comboActivo.nombre)}: tienes ${n} pares — el combo es de ${N}. Quita ${n-N}.`
-    :`🏆 ${escHtml(comboActivo.nombre)} · ${n}/${N} pares · ${fmt(parseInt(comboActivo.precio))}${comboActivo.camiseta?' + 🎁 camiseta':''}`;
+    :`🏆 ${escHtml(comboActivo.nombre)} · ${n}/${N} pares · ${fmt(parseInt(comboActivo.precio))}${comboActivo.camiseta?' + 🎁 regalo':''}`;
   bar.innerHTML=`<span>${txt}</span><button class="cb-x" onclick="salirCombo()">✕ Salir</button>`;
-  // Celebración de la camiseta: UNA vez al completar
+  // Celebración del regalo: UNA vez al completar
   if(n===N&&comboActivo.camiseta&&!_comboCamisetaCelebrada){
     _comboCamisetaCelebrada=true;
-    toast('🎉 ¡Gracias por escoger tu selección ganadora! Liberaste una CAMISETA GRATIS 🎁');
+    toast('🎉 ¡Combo completo! Liberaste tu REGALO GRATIS 🎁');
   }
   if(n!==N)_comboCamisetaCelebrada=false;
 }
@@ -398,12 +399,12 @@ function rCart(){
     : (cuponAplicado
       ? `<div class="cart-line cart-cupon" style="margin-top:14px"><span class="cl-ic">🏷️</span><span>Cupón <b>${cuponAplicado}</b> aplicado: −${fmt(desc)}</span></div>`
       : `<div class="cpromo"><button class="cpromo-toggle" onclick="toggleCupon()">🏷️ ¿Tienes un código promocional?</button><div class="cpromo-box" id="cpromoBox" style="display:none"><div class="cup-box"><input id="cupInput" placeholder="Código promocional" autocomplete="off"><button class="cup-btn" onclick="aplicarCupon()">Aplicar</button></div><div class="cup-err" id="cupErr" style="display:none">Código no válido</div></div></div>`);
-  // 🎉 CAMISETA GRATIS: combo con camiseta COMPLETO
+  // 🎉 REGALO GRATIS: combo con regalo COMPLETO
   const camisetaHtml=pricing.camiseta
-    ? `<div class="cart-line" style="background:#eafaf0;color:#137a3a;border-color:#bfe9cd;margin-top:12px;font-weight:700"><span class="cl-ic">🎉</span><span>¡Gracias por escoger tu selección ganadora! Liberaste una <b>CAMISETA GRATIS</b> de tu selección 🎁 (confírmanos la talla por WhatsApp)</span></div>`
+    ? `<div class="cart-line" style="background:#eafaf0;color:#137a3a;border-color:#bfe9cd;margin-top:12px;font-weight:700"><span class="cl-ic">🎉</span><span>¡Combo completo! Liberaste tu <b>REGALO GRATIS</b> 🎁 (te lo coordinamos por WhatsApp)</span></div>`
     :'';
   const gift=`<div class="cart-line cart-regalo" style="margin-top:12px"><span class="cl-ic">🎁</span><span>Incluye <b>guía de cuidado</b> + <b>5%</b> en tu próximo par</span></div>`;
-  // Orden: mensajes → productos → escalera de ahorro → aviso combo → resumen → camiseta → código → regalo
+  // Orden: mensajes → productos → escalera de ahorro → aviso combo → resumen → regalo del combo → código → regalo de compra
   body.innerHTML=msgs+body.innerHTML+escalera+comboAviso+summary+camisetaHtml+cupHtml+gift;
   crslUpd();   // muestra las flechas del carrusel si la tira de cross-sell se desborda
   foot.innerHTML=`<button class="btnmain" onclick="goStep(1)">Ir a pagar &nbsp;→</button>`;
@@ -523,7 +524,7 @@ async function enviarWA(tipo){
   // Ahorro REAL del combo: contra el precio original (antes→ahora + combo), igual que el carrito.
   const origWA=rows.reduce((s,{p,qty})=>{const act=(p.promo||promoG)&&p.was&&p.was>p.price;return s+(act?p.was:p.price)*qty;},0);
   const descLinea=pricing.combo
-    ?`🏆 *${pricing.combo.nombre}: ${pricing.combo.pares} pares por ${fmt(pricing.sub)}* (ahorra en total ${fmt(Math.max(origWA,subBruto)-pricing.sub)})\n${pricing.camiseta?`🎁 *CAMISETA GRATIS de su selección* — pedirle la talla ⚽\n`:''}`
+    ?`🏆 *${pricing.combo.nombre}: ${pricing.combo.pares} pares por ${fmt(pricing.sub)}* (ahorra en total ${fmt(Math.max(origWA,subBruto)-pricing.sub)})\n${pricing.camiseta?`🎁 *REGALO GRATIS* — coordinar con el cliente\n`:''}`
     :(desc>0?`🏷️ *Descuento ${cuponAplicado}:* -${fmt(desc)}\n`:'');
   const pagoLbl=tipo==='contra_entrega'?'Contra entrega 📦':tipo==='credito'?'Crédito (Addi / Sistecrédito) 🧾':'Pago anticipado 💸';
   const instruccion=tipo==='contra_entrega'?`El cliente paga primero el *ENVÍO* (${fmt(flete)}) y los *zapatos al recibir* en casa. Coordinemos el pago del envío 🙏`:tipo==='credito'?'El cliente quiere pagar a *CRÉDITO*. Indícale si aplica por *Addi* o *Sistecrédito* y el paso a paso 🙏':'Enviar comprobante de pago para procesar el envío 🙏';

@@ -36,7 +36,7 @@ function renderCombosAdmin(){
       <input id="cbP${i}" type="number" value="${parseInt(c.pares)||0}" min="1" max="20" title="Pares" style="flex:0 0 58px;padding:7px 6px;background:var(--bg);border:1px solid var(--line);border-radius:7px;font-family:var(--font);font-size:12px;font-weight:700;text-align:center">
       <span style="font-size:10px;color:var(--ink3)">pares</span>
       <input id="cbV${i}" type="number" value="${parseInt(c.precio)||0}" step="1000" title="Precio total" style="flex:1;min-width:0;padding:7px 9px;background:var(--bg);border:1px solid var(--line);border-radius:7px;font-family:var(--font);font-size:12px;font-weight:700">
-      <label style="display:flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:var(--ink2);cursor:pointer">🎁<input id="cbC${i}" type="checkbox" ${c.camiseta?'checked':''} title="Camiseta gratis"></label>
+      <label style="display:flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:var(--ink2);cursor:pointer">🎁<input id="cbC${i}" type="checkbox" ${c.camiseta?'checked':''} title="Regalo gratis al completar el combo"></label>
       <label style="display:flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:var(--ink2);cursor:pointer">ON<input id="cbA${i}" type="checkbox" ${c.activo!==false?'checked':''} title="Activo"></label>
     </div>
   </div>`).join('');
@@ -46,7 +46,7 @@ async function guardarCombos(){
   const nuevos=(combos||[]).map((c,i)=>({
     id:c.id,
     nombre:($('cbN'+i)||{}).value?.trim()||c.nombre,
-    bandera:($('cbB'+i)||{}).value?.trim()||c.bandera||'⚽',
+    bandera:($('cbB'+i)||{}).value?.trim()||c.bandera||'🏆',
     pares:Math.min(Math.max(parseInt(($('cbP'+i)||{}).value)||c.pares,1),20),
     precio:Math.max(parseInt(($('cbV'+i)||{}).value)||c.precio,1000),
     img:c.img||null,

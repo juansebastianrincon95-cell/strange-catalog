@@ -70,7 +70,7 @@ async function calculateOrder(input) {
   const items = await priceItems(sb, input.items);
   const subBruto = items.reduce((s, i) => s + i.precio, 0);
   const pares = items.reduce((s, i) => s + i.qty, 0);
-  // COMBO mundialista: precio fijo del bundle, validado SERVER-SIDE contra settings.combos.
+  // COMBO: precio fijo del bundle, validado SERVER-SIDE contra settings.combos.
   // Solo aplica si el combo existe, está activo y el carrito trae EXACTAMENTE sus pares.
   // Si no matchea, se ignora en silencio y se cobra normal (anti-manipulación).
   let combo = null;

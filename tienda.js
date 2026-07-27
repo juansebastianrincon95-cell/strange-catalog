@@ -108,7 +108,7 @@ function renderHero(){
   if(hdr)hdr.style.display='none';             // el carrusel reemplaza el encabezado
   hero.classList.add('on');
   const posMap={top:'18%',center:'50%',bottom:'82%'};
-  // CTA por slide: TODOS los botones llevan a la sección OFERTAS (los combos mundialistas).
+  // CTA por slide: TODOS los botones llevan a la sección OFERTAS (los combos).
   // Solo cambia el texto: slide 1 "Ver ofertas", los demás "¡Comprar ya!".
   track.innerHTML=slides.map((s,i)=>`<div class="hero-slide"><picture>${s.img_desktop?`<source media="(min-width:700px)" srcset="${escHtml(s.img_desktop)}">`:''}<img src="${escHtml(s.img)}" alt="${escHtml(s.titulo)}" loading="lazy" style="--pos:${posMap[s.pos]||'50%'}"></picture><div class="hero-ov">${s.titulo?`<div class="hero-tit">${escHtml(s.titulo)}</div>`:''}${s.subtitulo?`<div class="hero-sub">${escHtml(s.subtitulo)}</div>`:''}<button class="hero-cta" onclick="openCatalog({gender:'liq'})">${i===0?'Ver ofertas':'¡Comprar ya!'}</button></div></div>`).join('');
   dots.innerHTML=slides.length>1?slides.map((_,i)=>`<span class="hero-dot${i===0?' on':''}" onclick="heroGoStop(${i})"></span>`).join(''):'';
@@ -594,7 +594,7 @@ function openWA(){
 /* Mini-anuncio del FAB: chat que llega preguntando por un combo = lead caliente precalificado.
    content_name distinto (whatsapp_combos) para medir cuántos leads trae la burbuja. */
 function openWACombos(){
-  const msg=`¡Hola ${STORE_NAME}! 👟 Vengo del catálogo, estoy interesado en los combos mundialistas 🏆⚽ Dame más información...`;
+  const msg=`¡Hola ${STORE_NAME}! 👟 Vengo del catálogo, estoy interesado en los combos 🏆 Dame más información...`;
   trackEvent('lead',{});
   if(typeof px==='function')px('Lead',{content_name:'whatsapp_combos',...getUTM()});
   hideWaBubble(true);

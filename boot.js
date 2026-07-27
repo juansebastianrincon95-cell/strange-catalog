@@ -44,7 +44,7 @@ if(localStorage.getItem('ss_reserve_until')&&!_reserveTimer){_reserveTimer=setIn
   renderPreview();     // "Nuestros modelos"
   renderFooter();      // footer: redes + newsletter
   renderTestimonios(); // sección clientes felices
-  renderCombos();      // tarjetas de combos mundialistas (sección Ofertas)
+  renderCombos();      // tarjetas de combos (sección Ofertas)
   renderComboBar();    // barra de progreso si hay combo activo de la sesión
   renderGrid();
   if(checkPedidoLink())return;   // ?pedido= → mostrar solo el pedido con fotos (link del vendedor)
