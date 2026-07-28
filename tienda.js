@@ -312,6 +312,7 @@ function navGo(t){
   else if(t==='m')openCatalog({gender:'m'});
   else if(t==='u')openCatalog({gender:'u'});
   else if(t==='liq')openCatalog({gender:'liq'});
+  else if(t==='envios')openInfo('envios');
   else if(t==='mayoristas')openInfo('mayoristas');
   else if(t==='cambios')openInfo('cambios');
   else if(t==='quienes')openInfo('quienes');
@@ -346,6 +347,20 @@ const INFO_CAMBIOS=`<div class="info-pad">
   </div>
 </div>`;
 
+/* Condiciones del envío. Existe porque la barra superior promete "ENVÍO GRATIS" y eso es cierto
+   SOLO pagando por adelantado: contra entrega cobra flete (calcFlete). Decirlo aquí, con el monto,
+   es lo que exige el Estatuto del Consumidor (Ley 1480) sobre publicidad con condiciones. */
+const INFO_ENVIOS=`<div class="info-pad">
+  <p class="info-lead" style="margin-top:0">Enviamos a toda Colombia. Así funciona el costo del envío 👇</p>
+  <div class="info-grid">
+  <div class="info-sec"><h3>✅ Envío GRATIS pagando por adelantado</h3><p>Si pagas en línea (Wompi, Bold, Addi o Sistecrédito) o coordinas el pago por WhatsApp, el envío no te cuesta nada: el precio que ves es el precio final.</p></div>
+  <div class="info-sec"><h3>📦 Contra entrega: el envío se paga primero</h3><p>Si prefieres pagar los zapatos al recibirlos, el envío sí tiene costo y se paga por adelantado: <b>$25.000</b> por el primer par y <b>$15.000</b> por cada par adicional. Los zapatos los pagas cuando lleguen a tu casa.</p></div>
+  <div class="info-sec"><h3>💡 ¿Por qué cobramos el envío contra entrega?</h3><p>Para asegurar que tu pedido salga y llegue. Así evitamos los pedidos que se piden y nadie recibe, que encarecen los precios para todos.</p></div>
+  <div class="info-sec"><h3>🕐 Tiempos de entrega</h3><p>Entre 2 y 5 días hábiles según la ciudad. Te avisamos por WhatsApp cuando tu pedido salga, con el número de guía para que lo rastrees.</p></div>
+  <div class="info-sec"><h3>🏠 Hasta la puerta de tu casa</h3><p>La transportadora entrega en la dirección que nos indiques. Asegúrate de que haya alguien para recibir el pedido.</p></div>
+  </div>
+</div>`;
+
 const INFO_QUIENES=`<div class="info-pad">
   <h2 class="info-h1">Somos <span class="big">Strange Sneakers</span></h2>
   <p class="info-lead">Una tienda colombiana hecha por amantes de los sneakers. Traemos los modelos que quieres a un precio justo y, sobre todo, con la confianza de comprar sin riesgo.</p>
@@ -370,7 +385,7 @@ function waHola(){
 
 function openInfo(which){
   const b=$('infoBody');if(!b)return;
-  const INFO={mayoristas:[INFO_MAYORISTAS,'Mayoristas','/mayoristas'],cambios:[INFO_CAMBIOS,'Cambios y Garantías','/cambios'],quienes:[INFO_QUIENES,'Quiénes somos','/quienes']};
+  const INFO={mayoristas:[INFO_MAYORISTAS,'Mayoristas','/mayoristas'],cambios:[INFO_CAMBIOS,'Cambios y Garantías','/cambios'],quienes:[INFO_QUIENES,'Quiénes somos','/quienes'],envios:[INFO_ENVIOS,'Condiciones de envío','/envios']};
   const cfg=INFO[which]||INFO.cambios;
   b.innerHTML=cfg[0];
   const t=$('infoTitle');if(t)t.textContent=cfg[1];

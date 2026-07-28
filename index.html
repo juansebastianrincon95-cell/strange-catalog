@@ -145,11 +145,14 @@
 </div>
 
 <header class="topbar" id="topbar">
-<div class="annbar" role="note" aria-label="Envío gratis a toda Colombia">
+<!-- El envío es gratis SOLO pagando por adelantado; contra entrega cobra flete. La condición va
+     visible y el banner abre /envios con el detalle y los montos (Ley 1480, publicidad condicionada). -->
+<div class="annbar" role="note" aria-label="Envío gratis pagando por adelantado. Toca para ver las condiciones de envío"
+     onclick="openInfo('envios')" style="cursor:pointer">
   <span class="annbar-ic">🎉</span>
   <span class="annbar-tx">
     <strong>ENVÍO GRATIS A TODA COLOMBIA</strong>
-    <small>(hasta la puerta de tu casa)</small>
+    <small>pagando por adelantado · <u>ver condiciones</u></small>
   </span>
 </div>
 <nav>
@@ -166,6 +169,7 @@
     <button onclick="openCatalog({gender:'m'})">Mujer</button>
     <button onclick="openCatalog({gender:'u'})">Unisex</button>
     <button onclick="openCatalog({gender:'liq'})">Ofertas</button>
+    <button onclick="openInfo('envios')">Envíos</button>
     <button onclick="openInfo('mayoristas')">Mayoristas</button>
     <button onclick="openInfo('cambios')">Cambios y Garantías</button>
     <button onclick="openInfo('quienes')">Quiénes somos</button>

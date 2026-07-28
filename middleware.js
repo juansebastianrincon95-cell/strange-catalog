@@ -128,7 +128,7 @@ async function sitemap() {
       .then(r => r.ok ? r.json() : []).catch(() => []);
     const [pr, lq] = await Promise.all([get('products'), get('liq_products')]);
 
-    const urls = ['/', '/catalogo', '/quienes', '/mayoristas', '/cambios'].map(f => SITE + f);
+    const urls = ['/', '/catalogo', '/quienes', '/mayoristas', '/cambios', '/envios'].map(f => SITE + f);
     for (const p of (Array.isArray(pr) ? pr : [])) {
       if (p && p.id && !p.sold) urls.push(SITE + '/p/' + p.id + (p.modelo ? '-' + slugify(p.modelo) : ''));
     }
