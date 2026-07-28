@@ -779,6 +779,15 @@ function cardHTML(p,i,prefix,toFicha){
 function renderGrid(){
   computeBadges();
   const liqEl=$('liqSec');
+  // El buscador filtra por marca/modelo de `prods`; en Ofertas manda `liqs` (sin columna brand),
+  // así que ahí no aplica: se oculta y se limpia para no dejar un filtro activo invisible.
+  const cs=document.querySelector('#catView .catsearch');
+  if(cs)cs.style.display=(gSel==='liq')?'none':'';
+  if(gSel==='liq'&&_searchQ){
+    _searchQ='';
+    const si=$('catSearchInput');if(si)si.value='';
+    const sx=$('catSearchX');if(sx)sx.style.display='none';
+  }
   if(gSel==='liq'){
     $('grid').innerHTML='';
     $('grid').style.display='none';
