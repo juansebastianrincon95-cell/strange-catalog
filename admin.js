@@ -39,10 +39,49 @@ function renderCombosAdmin(){
       <label style="display:flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:var(--ink2);cursor:pointer">🎁<input id="cbC${i}" type="checkbox" ${c.camiseta?'checked':''} title="Regalo gratis al completar el combo"></label>
       <label style="display:flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:var(--ink2);cursor:pointer">ON<input id="cbA${i}" type="checkbox" ${c.activo!==false?'checked':''} title="Activo"></label>
     </div>
+    <div style="display:flex;gap:7px;align-items:center;margin-top:7px">
+      ${c.img
+        ? `<img src="${escHtml(c.img)}" alt="" style="width:78px;height:31px;object-fit:cover;border-radius:5px;border:1px solid var(--line);display:block;flex:0 0 auto">`
+        : `<div style="width:78px;height:31px;border:1.5px dashed var(--ink3);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:700;color:var(--ink3);flex:0 0 auto">SIN FOTO</div>`}
+      <label style="flex:1;text-align:center;padding:7px 4px;border:1px solid var(--line);border-radius:6px;background:var(--bg);font-family:var(--font);font-size:10px;font-weight:700;color:var(--ink2);cursor:pointer">
+        <span id="cbImgLbl${i}">${c.img?'📷 Cambiar foto':'📷 Subir foto'}</span>
+        <input type="file" accept="image/*" style="display:none" onchange="comboImgUp(${i},this.files[0]);this.value=''">
+      </label>
+      ${c.img?`<button onclick="comboImgDel(${i})" title="Quitar la foto" style="flex:0 0 auto;border:none;background:#ffe9e6;color:var(--red);border-radius:6px;width:29px;height:29px;cursor:pointer;font-size:11px">🗑</button>`:''}
+    </div>
   </div>`).join('');
 }
 
-async function guardarCombos(){
+/* ── FOTO DE LA TARJETA DEL COMBO ──
+   La imagen trae TODO el diseño quemado (nombre, pares y precio); el código solo agrega debajo la
+   franja "Armar Combo X →". Sin foto, la tarjeta cae al diseño por código (medalla + texto).
+   Se guarda la MISMA imagen en img e img_desktop: la tarjeta es fluida (width:100%), no necesita
+   dos versiones. Recomendado 1240×496 (2.5:1). */
+function comboImgUp(i,file){
+  if(!file||!combos[i])return;
+  const lbl=$('cbImgLbl'+i);
+  if(lbl)lbl.textContent='Subiendo…';
+  compressImg(file,async dataUrl=>{
+    try{
+      const url=await uploadToStorage(dataUrl,0,false);
+      combos[i].img=url;combos[i].img_desktop=url;
+      await guardarCombos('✓ Foto del combo actualizada y publicada');   // persiste + re-pinta panel y tienda
+    }catch(e){
+      if(lbl)lbl.textContent='📷 Subir foto';
+      alert('❌ No se pudo subir la foto:\n'+(e.message||e));
+    }
+  },false,BANNER_MAX);
+}
+
+async function comboImgDel(i){
+  if(!combos[i])return;
+  if(!confirm('¿Quitar la foto de este combo?\n\nLa tarjeta volverá al diseño automático (medalla + nombre + precio).'))return;
+  combos[i].img=null;combos[i].img_desktop=null;
+  await guardarCombos('✓ Foto quitada. La tarjeta usa el diseño automático.');
+}
+
+// msg: mensaje de confirmación a medida (lo usan las acciones de foto). Sin argumento → el genérico.
+async function guardarCombos(msg){
   const nuevos=(combos||[]).map((c,i)=>({
     id:c.id,
     nombre:($('cbN'+i)||{}).value?.trim()||c.nombre,
@@ -57,7 +96,7 @@ async function guardarCombos(){
   combos=nuevos;
   await adminWrite('upsert_settings',{data:{key:'combos',value:JSON.stringify(nuevos)}});
   renderCombos();renderCombosAdmin();
-  alert('✓ Combos guardados y publicados');
+  alert(msg||'✓ Combos guardados y publicados');
 }
 
 // navegación manual reinicia el timer
