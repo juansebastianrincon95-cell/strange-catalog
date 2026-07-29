@@ -188,10 +188,14 @@ function renderComboBar(){
 
 function aplicarCupon(){
   const inp=$('cupInput');if(!inp)return;
-  const code=inp.value.trim().toUpperCase();
+  let code=inp.value.trim().toUpperCase();
   const cupFail=msg=>{const e=$('cupErr');if(e){e.textContent=msg||'Código no válido';e.style.display='block';setTimeout(()=>{e.style.display='none';e.textContent='Código no válido';},3000);}};
-  if(code==='BIENVENIDO20'&&welcomeVencido())return cupFail('Tu código de bienvenida venció (era válido por 7 días) 😢');
-  if(CUPONES[code]){cuponAplicado=code;localStorage.setItem('ss_cupon',code);trackEvent('apply_coupon',{product_id:code});rCart();}
+  // El suscriptor nuevo tiene código propio (BIENVENIDO20-XXXXX, lo guarda el popup). Si teclea
+  // el genérico de memoria, se sube en silencio al suyo — el server ya no acepta el genérico
+  // de quien no es suscriptor identificable, y el propio siempre valida.
+  if(code==='BIENVENIDO20'&&localStorage.getItem('ss_wm_code'))code=localStorage.getItem('ss_wm_code');
+  if(esCodigoBienvenida(code)&&welcomeVencido())return cupFail('Tu código de bienvenida venció (era válido por 7 días) 😢');
+  if(CUPONES[code]||esCodigoBienvenida(code)){cuponAplicado=code;localStorage.setItem('ss_cupon',code);trackEvent('apply_coupon',{product_id:code});rCart();}
   else cupFail();
 }
 
@@ -281,8 +285,8 @@ function restoreCupon(){
   try{
     const code=(localStorage.getItem('ss_cupon')||'').toUpperCase();
     if(!code)return;
-    const vencido=code==='BIENVENIDO20'&&typeof welcomeVencido==='function'&&welcomeVencido();
-    if(CUPONES[code]&&!vencido)cuponAplicado=code;
+    const vencido=esCodigoBienvenida(code)&&typeof welcomeVencido==='function'&&welcomeVencido();
+    if((CUPONES[code]||esCodigoBienvenida(code))&&!vencido)cuponAplicado=code;
     else localStorage.removeItem('ss_cupon');
   }catch(e){}
 }

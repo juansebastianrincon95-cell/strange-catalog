@@ -236,6 +236,11 @@ alter table subscribers add column if not exists genero text;   -- 'h' / 'm' (pa
 -- Vigencia del código BIENVENIDO20 (7 días): se renueva cada vez que el popup entrega el
 -- código (también en re-registro del mismo WhatsApp) — sincroniza front (ss_welcome_ts) y back.
 alter table subscribers add column if not exists welcome_issued_at timestamptz;
+-- Cupón ÚNICO por suscriptor, de un solo uso (migración 003): BIENVENIDO20-XXXXX atado a su
+-- fila. El genérico compartido regalaba $20.000 a cualquiera que lo viera en un grupo.
+alter table subscribers add column if not exists welcome_code text;            -- null = suscriptor de la era del genérico
+alter table subscribers add column if not exists welcome_used_at timestamptz;  -- cuándo se gastó (reissue_welcome lo limpia)
+create unique index if not exists subscribers_welcome_code_idx on subscribers(welcome_code);
 create index if not exists subscribers_whatsapp_idx on subscribers(whatsapp);
 create index if not exists subscribers_email_idx on subscribers(email);
 create index if not exists subscribers_session_idx on subscribers(session_id);

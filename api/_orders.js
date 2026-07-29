@@ -7,6 +7,26 @@ const CUPONES = {
   BIENVENIDO20: { tipo: 'fijo', val: 20000 }
 };
 
+/* ── CÓDIGO DE BIENVENIDA ÚNICO POR SUSCRIPTOR ──
+   BIENVENIDO20 era un código compartido: si alguien lo publicaba en un grupo, cada uso ajeno
+   eran $20.000. Ahora cada suscriptor recibe BIENVENIDO20-XXXXX atado a SU fila en subscribers
+   (un solo uso, 7 días); el genérico queda solo para los suscriptores previos al cambio. */
+// Alfabeto sin ambigüedades (sin 0/O ni 1/I/L): el código se dicta por WhatsApp y se teclea
+// en el celular — un carácter confundible es un cupón "que no funciona" y una venta en riesgo.
+const CODE_ALFABETO = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+
+function genWelcomeCode() {
+  let suf = '';
+  for (let i = 0; i < 5; i++) suf += CODE_ALFABETO[crypto.randomInt(CODE_ALFABETO.length)];
+  return 'BIENVENIDO20-' + suf;
+}
+
+// ¿Es un código de bienvenida? El genérico (suscriptores viejos) o el único BIENVENIDO20-XXXXX.
+// El rango 4-6 del sufijo deja margen si algún día cambia el largo sin tocar la validación.
+function esCodigoBienvenida(code) {
+  return /^BIENVENIDO20(-[A-Z0-9]{4,6})?$/.test(String(code || ''));
+}
+
 function serviceClient() {
   return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 }
@@ -24,7 +44,11 @@ function calcFlete(pares) {
 }
 
 function cuponDesc(code, subtotal) {
-  const c = code && CUPONES[String(code).trim().toUpperCase()];
+  let key = code ? String(code).trim().toUpperCase() : '';
+  // El código único descuenta lo mismo que la entrada BIENVENIDO20; si de verdad existe,
+  // no está usado y no venció lo decide calculateOrder contra la BD (aquí solo el monto).
+  if (esCodigoBienvenida(key)) key = 'BIENVENIDO20';
+  const c = key && CUPONES[key];
   if (!c) return 0;
   return c.tipo === 'pct' ? Math.round(subtotal * c.val) : Math.min(c.val, subtotal);
 }
@@ -89,27 +113,45 @@ async function calculateOrder(input) {
   // Cupones NO acumulables con combo.
   const cupon = combo ? null : (input.cupon ? String(input.cupon).trim().toUpperCase() : null);
   let desc = combo ? 0 : cuponDesc(cupon, subBruto);
-  // Vigencia BIENVENIDO20: 7 días desde el registro en el popup. Si encontramos al suscriptor
-  // (por tel del pedido o session_id) y su registro es viejo, el cupón no aplica. Si NO lo
-  // encontramos, se respeta (mejor un falso positivo que perder una venta por $20.000).
-  if (cupon === 'BIENVENIDO20' && desc > 0) {
+  // CUPÓN DE BIENVENIDA — el descuento SOLO existe atado a un suscriptor real, con dos variantes:
+  //  · BIENVENIDO20-XXXXX (único): debe existir en subscribers, no estar usado (welcome_used_at
+  //    null) y tener menos de 7 días desde welcome_issued_at. Inventarse uno válido es imposible.
+  //  · BIENVENIDO20 (genérico, suscriptores previos al código único): mismas reglas, pero el
+  //    suscriptor se identifica por el tel del pedido o su session_id. Antes, si no aparecía,
+  //    se respetaba el cupón — ese fail-open convertía el código compartido en $20.000 para
+  //    CUALQUIERA que lo viera en un grupo. Ahora sin suscriptor no hay descuento.
+  if (cupon && esCodigoBienvenida(cupon) && desc > 0) {
+    let valido = false;
     try {
-      const d = input.customer || input;
-      const dig = String(d.tel || d.celular || '').replace(/\D/g, '').slice(0, 20);
-      const sid = String(input.session_id || '').replace(/[^\w-]/g, '').slice(0, 64);
-      const ors = [];
-      if (dig.length >= 7) ors.push(`whatsapp.eq.${dig}`);
-      if (sid) ors.push(`session_id.eq.${sid}`);
-      if (ors.length) {
-        // welcome_issued_at se renueva en cada entrega del código (re-registro incluido);
-        // created_at queda como fallback para suscriptores previos a la columna.
-        const { data: subs } = await sb.from('subscribers').select('created_at,welcome_issued_at')
-          .or(ors.join(',')).order('created_at', { ascending: false }).limit(1);
-        const s = subs && subs[0];
-        const t = s && Date.parse(s.welcome_issued_at || s.created_at);
-        if (t && (Date.now() - t) > 7 * 24 * 60 * 60 * 1000) desc = 0;
+      let s = null;
+      if (cupon.includes('-')) {
+        const { data: subs } = await sb.from('subscribers')
+          .select('created_at,welcome_issued_at,welcome_used_at').eq('welcome_code', cupon).limit(1);
+        s = subs && subs[0];
+      } else {
+        const d = input.customer || input;
+        const dig = String(d.tel || d.celular || '').replace(/\D/g, '').slice(0, 20);
+        const sid = String(input.session_id || '').replace(/[^\w-]/g, '').slice(0, 64);
+        const ors = [];
+        if (dig.length >= 7) {
+          ors.push(`whatsapp.eq.${dig}`);
+          // El pedido puede traer indicativo (57...) y el registro solo los 10 dígitos.
+          if (dig.length > 10) ors.push(`whatsapp.eq.${dig.slice(-10)}`);
+        }
+        if (sid) ors.push(`session_id.eq.${sid}`);
+        if (ors.length) {
+          const { data: subs } = await sb.from('subscribers')
+            .select('created_at,welcome_issued_at,welcome_used_at')
+            .or(ors.join(',')).order('created_at', { ascending: false }).limit(1);
+          s = subs && subs[0];
+        }
       }
-    } catch (e) { /* ante la duda, no bloquear la venta */ }
+      // welcome_issued_at se renueva en cada entrega del código (re-registro incluido);
+      // created_at queda como fallback para suscriptores previos a la columna.
+      const t = s && Date.parse(s.welcome_issued_at || s.created_at);
+      valido = !!(s && !s.welcome_used_at && t && (Date.now() - t) <= 7 * 24 * 60 * 60 * 1000);
+    } catch (e) { /* si la BD falla no se regalan $20.000 a ciegas (fail-closed) */ }
+    if (!valido) desc = 0;
   }
   const subtotal = combo ? combo.precio : (subBruto - desc);
   const pago = cleanText(input.pago || input.payment_method || 'pending', 50);
@@ -208,6 +250,35 @@ async function notifyVentaTelegram(order) {
   } catch {} finally { clearTimeout(t); }
 }
 
+// Marca el cupón de bienvenida como USADO al confirmarse la venta (un solo uso). Se llama con
+// el pedido ya en 'venta' (confirmPaidOrder y el marcado manual del panel — reissue_welcome lo
+// desmarca si el admin quiere reactivarlo). El código único se resuelve directo por welcome_code;
+// el genérico, por el mismo tel/session con el que calculateOrder validó el descuento.
+// Nunca bloquea la venta: perder el candado una vez es mejor que tumbar una confirmación.
+async function marcarCuponBienvenidaUsado(sb, order) {
+  try {
+    const cupon = String((order && order.cupon) || '').toUpperCase();
+    if (!esCodigoBienvenida(cupon)) return;
+    const upd = { welcome_used_at: new Date().toISOString() };
+    if (cupon.includes('-')) {
+      await sb.from('subscribers').update(upd).eq('welcome_code', cupon).is('welcome_used_at', null);
+      return;
+    }
+    const dig = String(order.tel || '').replace(/\D/g, '').slice(0, 20);
+    const sid = String(order.session_id || '').replace(/[^\w-]/g, '').slice(0, 64);
+    const ors = [];
+    if (dig.length >= 7) {
+      ors.push(`whatsapp.eq.${dig}`);
+      if (dig.length > 10) ors.push(`whatsapp.eq.${dig.slice(-10)}`);   // pedido con indicativo 57
+    }
+    if (sid) ors.push(`session_id.eq.${sid}`);
+    if (!ors.length) return;
+    const { data: subs } = await sb.from('subscribers').select('id')
+      .or(ors.join(',')).order('created_at', { ascending: false }).limit(1);
+    if (subs && subs[0]) await sb.from('subscribers').update(upd).eq('id', subs[0].id);
+  } catch (e) { /* el candado nunca bloquea la venta */ }
+}
+
 // Descuenta stock por talla al confirmar una venta. Solo afecta productos con `tallas` como mapa
 // {talla:stock} (rastreo activado); si es null/array (sin rastreo) no hace nada. Nunca rompe la venta.
 async function decrementStock(sb, items) {
@@ -270,6 +341,7 @@ async function confirmPaidOrder({ reference, amount, amountInCents, currency = '
     // a Meta/CAPI ni notificar por Telegram.
     if (utm.test) return { ok: true, order: { ...order, status: 'venta' } };
     await decrementStock(sb, order.items).catch(() => {});   // descontar inventario por talla (solo ventas reales)
+    await marcarCuponBienvenidaUsado(sb, order).catch(() => {});   // el cupón de bienvenida se quema con la venta (un solo uso)
     const clientIp = req ? String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || undefined : undefined;
     // await (Codex #8): en serverless el fire-and-forget puede morir al responder.
     await sendEvent({
@@ -288,4 +360,4 @@ async function confirmPaidOrder({ reference, amount, amountInCents, currency = '
   return { ok: true, order: { ...order, status: 'venta' } };
 }
 
-module.exports = { anonClient, serviceClient, cleanText, calculateOrder, createOrder, getOrderByReference, confirmPaidOrder, contentIdsDe, cartSig, decrementStock };
+module.exports = { anonClient, serviceClient, cleanText, calculateOrder, createOrder, getOrderByReference, confirmPaidOrder, contentIdsDe, cartSig, decrementStock, genWelcomeCode, esCodigoBienvenida, marcarCuponBienvenidaUsado };

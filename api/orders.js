@@ -1,7 +1,7 @@
 const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
 const { rateLimit } = require('./_rate_limit');
-const { anonClient, serviceClient, cleanText, createOrder, getOrderByReference, confirmPaidOrder, contentIdsDe } = require('./_orders');
+const { anonClient, serviceClient, cleanText, createOrder, getOrderByReference, confirmPaidOrder, contentIdsDe, genWelcomeCode } = require('./_orders');
 const { sendEvent } = require('./_capi');
 const { createAddiApplication } = require('./_addi');
 const { createScTransaction, getScInfo } = require('./_sistecredito');
@@ -38,6 +38,8 @@ function capiLead(order, req) {
 }
 
 const ALLOWED_ORIGINS = ['https://strangesneakers.com', 'https://www.strangesneakers.com'];
+// Fallback si no se pudo asignar código único (p.ej. BD sin la columna aún): el genérico
+// sigue existiendo para no dejar al suscriptor sin nada en la mano.
 const CODIGO_BIENVENIDA = 'BIENVENIDO20';
 
 function allowedOrigin(req, res) {
@@ -107,22 +109,50 @@ async function handleSubscribe(req, res) {
   if (!nombre) return res.status(400).json({ error: 'nombre requerido' });
   if (whatsapp.length < 7) return res.status(400).json({ error: 'whatsapp invalido' });
   const cumple = cleanText(d.cumple, 20);   // compat: el popup ya no lo pide
-  const { data: prev } = await sb.from('subscribers').select('id').eq('whatsapp', whatsapp).limit(1);
+  const { data: prev } = await sb.from('subscribers').select('id,welcome_code').eq('whatsapp', whatsapp).limit(1);
+  let codigo = null;
   if (!prev || !prev.length) {
-    const { error } = await sb.from('subscribers').insert({
-      nombre, whatsapp, cumple, talla, genero, utm, session_id, source: 'popup_bienvenida',
-      welcome_issued_at: new Date().toISOString()
-    });
-    if (error) return res.status(500).json({ error: error.message });
+    // Código ÚNICO por suscriptor (BIENVENIDO20-XXXXX): el descuento vive atado a ESTA fila
+    // (un solo uso, 7 días). Compartirlo en un grupo ya no regala $20.000 a desconocidos.
+    // Reintento ante colisión del índice único — improbable (30^5 ≈ 24M combinaciones), pero
+    // gratis de cubrir; cualquier otro error sí tumba el registro (mejor saberlo que callar).
+    let err = null;
+    for (let i = 0; i < 3 && !codigo; i++) {
+      const cand = genWelcomeCode();
+      const { error } = await sb.from('subscribers').insert({
+        nombre, whatsapp, cumple, talla, genero, utm, session_id, source: 'popup_bienvenida',
+        welcome_issued_at: new Date().toISOString(), welcome_code: cand
+      });
+      if (!error) codigo = cand;
+      else if (/duplicate|unique/i.test(String(error.message))) err = error;   // colisión → otro código
+      else return res.status(500).json({ error: error.message });
+    }
+    if (!codigo) return res.status(500).json({ error: err ? err.message : 'welcome_code' });
     await capiSubLead('_subscribe', { phone: whatsapp, name: nombre });
   } else {
     // Re-registro del mismo WhatsApp: se entrega el código de nuevo → renovar la vigencia
     // (el front también resetea ss_welcome_ts). Sin esto, el server quitaba el descuento
     // de un cupón que el front mostraba como válido (hallazgo Codex #2).
-    await sb.from('subscribers').update({ welcome_issued_at: new Date().toISOString(), session_id })
-      .eq('id', prev[0].id);
+    // OJO: welcome_used_at NO se toca — si ya gastó su cupón, re-registrarse no lo revive
+    // (para eso está "Reactivar" en el panel, decisión del admin).
+    codigo = prev[0].welcome_code || null;
+    const upd = { welcome_issued_at: new Date().toISOString(), session_id };
+    if (codigo) {
+      await sb.from('subscribers').update(upd).eq('id', prev[0].id);
+    } else {
+      // Suscriptor de la era del genérico: migración perezosa — se le asigna su código único
+      // aquí y el popup ya le muestra el suyo. El genérico le sigue funcionando igual.
+      for (let i = 0; i < 3 && !codigo; i++) {
+        const cand = genWelcomeCode();
+        const { error } = await sb.from('subscribers').update({ ...upd, welcome_code: cand }).eq('id', prev[0].id);
+        if (!error) codigo = cand;
+        else if (!/duplicate|unique/i.test(String(error.message))) break;   // error real → seguir sin código (el genérico lo cubre)
+      }
+      // Si no se pudo asignar código, al menos renovar la vigencia (comportamiento de siempre).
+      if (!codigo) await sb.from('subscribers').update(upd).eq('id', prev[0].id);
+    }
   }
-  return res.status(201).json({ ok: true, codigo: CODIGO_BIENVENIDA });
+  return res.status(201).json({ ok: true, codigo: codigo || CODIGO_BIENVENIDA });
 }
 
 async function handleBoldLink(req, res) {

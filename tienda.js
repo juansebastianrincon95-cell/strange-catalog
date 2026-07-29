@@ -7,7 +7,8 @@ let WELCOME_ON=true;
 // se sobreescribe desde settings (welcome_popup)
 const WELCOME_CODE='BIENVENIDO20';
 
-// debe coincidir con CUPONES y api/subscribe.js
+// Fallback visual: el código REAL es único por suscriptor (BIENVENIDO20-XXXXX) y lo entrega
+// el servidor al registrarse (ss_wm_code). Debe coincidir con CUPONES y api/orders.js.
 let _wmOpen=false;
 
 let _wmShownTracked=false;
@@ -62,6 +63,7 @@ function submitWelcome(){
       const code=(j&&j.codigo)||WELCOME_CODE;
       localStorage.setItem('ss_subscribed','1');   // ya se registró → el popup no vuelve a aparecer
       localStorage.setItem('ss_welcome_ts',String(Date.now()));   // arranca el reloj de 7 días del código
+      localStorage.setItem('ss_wm_code',code);     // su código ÚNICO: si luego teclea el genérico en el carrito, se sube al suyo
       localStorage.setItem('ss_wm_wa',whatsapp);   // para el paso 2 (chips talla/género → update)
       {const t=$('wmReopen');if(t)t.classList.remove('show');}   // ya no se necesita el tag de reapertura
       const cEl=$('wmCode');if(cEl)cEl.textContent=code;

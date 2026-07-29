@@ -1,6 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const { sendEvent } = require('./_capi');
-const { contentIdsDe, cartSig, decrementStock } = require('./_orders');
+const { contentIdsDe, cartSig, decrementStock, marcarCuponBienvenidaUsado } = require('./_orders');
 const { generarGuia } = require('./_coordinadora');
 const { requireAdmin, renewIfActive } = require('./_admin_auth');
 const crypto = require('crypto');
@@ -122,7 +122,7 @@ module.exports = async (req, res) => {
     const { data: updated, error } = await sb.from('orders')
       .update({ status })
       .eq('id', id).neq('status', status)
-      .select('subtotal,total,tel,ciudad,nombre,reference,status,utm,items,session_id');
+      .select('subtotal,total,tel,ciudad,nombre,reference,status,utm,items,session_id,cupon');
     if (error) return res.status(500).json({ error: error.message });
     const order = updated && updated[0];   // undefined si ya estaba en ese estado o no existe
 
@@ -147,6 +147,7 @@ module.exports = async (req, res) => {
     // Nota: IP/UA NO se envían aquí (serían los del vendedor, no del cliente); sí fbp/fbc del pedido.
     if (status === 'venta' && order && !(order.utm && order.utm.test)) {
       await decrementStock(sb, order.items).catch(() => {});   // descontar inventario por talla
+      await marcarCuponBienvenidaUsado(sb, order).catch(() => {});   // venta manual (WhatsApp/contra entrega) también quema el cupón de bienvenida
       const utm = order.utm || {};
       const value = Number(order.subtotal != null ? order.subtotal : order.total);
       if (Number.isFinite(value) && value > 0) {
@@ -258,20 +259,21 @@ module.exports = async (req, res) => {
   if (action === 'list_subscribers') {
     const { data: rows, error } = await sb
       .from('subscribers')
-      .select('id,created_at,nombre,whatsapp,email,cumple,talla,genero,utm,source,session_id,welcome_issued_at')
+      .select('id,created_at,nombre,whatsapp,email,cumple,talla,genero,utm,source,session_id,welcome_issued_at,welcome_code,welcome_used_at')
       .order('created_at', { ascending: false })
       .limit(1000);
     if (error) return res.status(500).json({ error: error.message });
     return res.json({ ok: true, subscribers: rows || [] });
   }
 
-  // Reactivar el cupón de bienvenida de un suscriptor: renueva welcome_issued_at = ahora,
-  // dándole 7 días nuevos de BIENVENIDO20 ($20.000 OFF). La validación en _orders.js usa
-  // welcome_issued_at para la vigencia, así que esto rehabilita el descuento de verdad.
+  // Reactivar el cupón de bienvenida de un suscriptor: renueva welcome_issued_at = ahora y
+  // desmarca el uso (welcome_used_at = null) → 7 días nuevos y el código vuelve a valer aunque
+  // ya se hubiera gastado. La validación en _orders.js mira ambas columnas, así que esto
+  // rehabilita el descuento de verdad ($20.000 OFF).
   if (action === 'reissue_welcome') {
     if (!id) return res.status(400).json({ error: 'id required' });
     const { error } = await sb.from('subscribers')
-      .update({ welcome_issued_at: new Date().toISOString() })
+      .update({ welcome_issued_at: new Date().toISOString(), welcome_used_at: null })
       .eq('id', id);
     if (error) return res.status(500).json({ error: error.message });
     return res.json({ ok: true });

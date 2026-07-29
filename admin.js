@@ -1045,6 +1045,7 @@ function renderStatsTab(){
     const telsPedidos=new Set(orders.map(o=>String(o.tel||'').replace(/\D/g,'').slice(-10)).filter(Boolean));
     const porVencer=subsData.filter(s=>{
       if(s.source!=='popup_bienvenida')return false;
+      if(s.welcome_used_at)return false;   // cupón ya gastado → no hay nada que venza
       const v=cuponVigencia(s.welcome_issued_at||s.created_at);
       if(!v||v.vencido||v.dias>3)return false;
       const tel=String(s.whatsapp||'').replace(/\D/g,'').slice(-10);
@@ -1058,6 +1059,7 @@ function renderStatsTab(){
     // Cupones YA vencidos sin compra → recuperar (reactivar el cupón + escribir).
     const vencidos=subsData.filter(s=>{
       if(s.source!=='popup_bienvenida')return false;
+      if(s.welcome_used_at)return false;   // gastado ≠ vencido: si compró con él, no hay que recuperarlo
       const v=cuponVigencia(s.welcome_issued_at||s.created_at);
       if(!v||!v.vencido)return false;
       const tel=String(s.whatsapp||'').replace(/\D/g,'').slice(-10);
@@ -1412,7 +1414,9 @@ function waCuponSub(s){
   const vig=v&&!v.vencido?(v.dias<=1?'vence HOY':`vence en ${v.dias} días`):'está por vencer';
   const mira=interesadoEn(s.session_id);
   const vio=mira.length?` Vi que te gustó: ${mira.join(', ')} 👟.`:'';
-  const msg=`¡Hola ${nombre}! 👋 Soy de ${STORE_NAME}.${vio}\n\nTu cupón *BIENVENIDO20* de $20.000 OFF ${vig} ⏰ ¿Aprovechas y escoges tu par? Pagando en línea el *envío es GRATIS*; también puedes pedir *contra entrega* 🙌`;
+  // El mensaje lleva SU código único; los suscriptores viejos (sin welcome_code) siguen con el genérico.
+  const cod=s.welcome_code||'BIENVENIDO20';
+  const msg=`¡Hola ${nombre}! 👋 Soy de ${STORE_NAME}.${vio}\n\nTu cupón *${cod}* de $20.000 OFF ${vig} ⏰ ¿Aprovechas y escoges tu par? Pagando en línea el *envío es GRATIS*; también puedes pedir *contra entrega* 🙌`;
   return `https://wa.me/57${tel}?text=${encodeURIComponent(msg)}`;
 }
 // Suscriptor con cupón VENCIDO que acabamos de REACTIVAR: mensaje win-back (le damos 7 días más).
@@ -1422,7 +1426,8 @@ function waRecuperarSub(s){
   const nombre=(s.nombre||'').trim().split(/\s+/)[0]||'';
   const mira=interesadoEn(s.session_id);
   const vio=mira.length?` Vi que te gustó: ${mira.join(', ')} 👟.`:'';
-  const msg=`¡Hola ${nombre}! 👋 Soy de ${STORE_NAME}.${vio}\n\n¡Buenas noticias! 🎉 Te REACTIVÉ tu cupón *BIENVENIDO20* de $20.000 OFF por 7 días más ⏰ Sé que se te había vencido, así que aquí tienes otra oportunidad 🙌 ¿Escoges tu par? Pagando en línea el *envío es GRATIS*; también puedes pedir *contra entrega*.`;
+  const cod=s.welcome_code||'BIENVENIDO20';
+  const msg=`¡Hola ${nombre}! 👋 Soy de ${STORE_NAME}.${vio}\n\n¡Buenas noticias! 🎉 Te REACTIVÉ tu cupón *${cod}* de $20.000 OFF por 7 días más ⏰ Sé que se te había vencido, así que aquí tienes otra oportunidad 🙌 ¿Escoges tu par? Pagando en línea el *envío es GRATIS*; también puedes pedir *contra entrega*.`;
   return `https://wa.me/57${tel}?text=${encodeURIComponent(msg)}`;
 }
 // Suscriptores cuyo cupón se reactivó en esta sesión del panel → muestran el mensaje win-back.
@@ -1442,7 +1447,8 @@ async function reactivarCupon(id,btn){
     if(btn){btn.disabled=true;btn.textContent='Reactivando…';}
     await adminWrite('reissue_welcome',{id});
     const s=(subsData||[]).find(x=>x.id===id);
-    if(s)s.welcome_issued_at=new Date().toISOString();
+    // Espejo local de lo que hizo el server: vigencia nueva Y uso desmarcado (código reutilizable).
+    if(s){s.welcome_issued_at=new Date().toISOString();s.welcome_used_at=null;}
     cuponReactivado.add(id);
     renderSubsTab();
   }catch(e){
@@ -1492,7 +1498,14 @@ function renderSubsTab(){
       :(s.email?'✉️ '+escHtml(s.email):'—');
     const pref=[s.talla?('👟 '+escHtml(s.talla)):'',fGen(s.genero)].filter(Boolean).join(' · ');
     const f=s.created_at?new Date(s.created_at).toLocaleDateString('es-CO',{day:'2-digit',month:'short'}):'';
-    const cupon=s.source==='popup_bienvenida'?cuponBadge(s.welcome_issued_at||s.created_at):'';
+    // Badge del cupón: "usado" manda sobre la vigencia (un código gastado no "vence", ya se gastó).
+    const cupon=s.source==='popup_bienvenida'
+      ?(s.welcome_used_at?`<span style="font-size:9.5px;font-weight:700;color:var(--green)">🎟 cupón usado ✓</span>`:cuponBadge(s.welcome_issued_at||s.created_at))
+      :'';
+    // Código único del suscriptor (los viejos no tienen: usan el genérico BIENVENIDO20).
+    const codigoLinea=s.welcome_code
+      ?`<div style="font-size:10px;color:var(--ink3);margin-top:2px">🎟 <b style="font-weight:700;color:var(--ink2)">${escHtml(s.welcome_code)}</b></div>`
+      :(s.source==='popup_bienvenida'?`<div style="font-size:10px;color:var(--ink3);margin-top:2px">🎟 BIENVENIDO20 (genérico)</div>`:'');
     const compra=subUsoCupon(s);
     const compraBadge=compra?`<span style="font-size:9.5px;font-weight:700;color:var(--green)">${compra.cupon?'✅ usó '+escHtml(compra.cupon):'🛍 ya compró'}</span>`:'';
     const tieneAct=!!(activityBySession[s.session_id]||[]).length;
@@ -1501,6 +1514,7 @@ function renderSubsTab(){
         <div style="min-width:0">
           <div style="font-size:12.5px;font-weight:700">${escHtml(s.nombre||'(sin nombre)')}</div>
           <div style="font-size:11px;color:var(--ink2);margin-top:2px" onclick="event.stopPropagation()">${contacto}</div>
+          ${codigoLinea}
           <div style="font-size:10px;color:var(--ink3);margin-top:2px">📣 ${escHtml(camp)}${u.src_app?' · '+escHtml(srcAppLabel(u.src_app)):''} · ${escHtml(s.source||'')}</div>
           ${interesadoEnLinea(s.session_id)}
         </div>
@@ -1518,14 +1532,15 @@ function renderSubsTab(){
         const v=cuponVigencia(s.welcome_issued_at||s.created_at);
         if(!v)return '';
         const waStyle='display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;background:var(--wa);color:#fff;text-decoration:none;padding:8px;border-radius:9px;font-size:11.5px;font-weight:700';
-        if(!v.vencido){
-          // Vigente: si se acaba de reactivar, mensaje win-back; si no, recordatorio normal.
+        if(!v.vencido&&!s.welcome_used_at){
+          // Vigente y sin gastar: si se acaba de reactivar, mensaje win-back; si no, recordatorio normal.
           const reac=cuponReactivado.has(s.id);
           const u=reac?waRecuperarSub(s):waCuponSub(s);
           if(!u)return '';
           return `<a href="${u}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="${waStyle}">💬 ${reac?'Escribir: ¡cupón reactivado!':'Recordar cupón por WhatsApp'}</a>`;
         }
-        // Vencido: botón para reactivar (renueva 7 días) — luego aparece el de WhatsApp.
+        // Vencido O ya usado: botón para reactivar (renueva 7 días y desmarca el uso) — luego
+        // aparece el de WhatsApp. "Usado" sin venta cruzada por teléfono pasa por aquí también.
         const wa=String(s.whatsapp||'').replace(/\D/g,'');
         if((wa.length===10?wa:wa.slice(-10)).length<10)return '';
         return `<button onclick="event.stopPropagation();reactivarCupon(${s.id},this)" style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;width:100%;border:none;cursor:pointer;background:#5D2D91;color:#fff;padding:8px;border-radius:9px;font-size:11.5px;font-weight:700">🔄 Reactivar cupón $20.000</button>`;

@@ -57,11 +57,17 @@ const CUPONES={
 let cuponAplicado=null;
 
 // null o el CÓDIGO aplicado (string)
+// ¿Es un código de bienvenida? El genérico (suscriptores viejos) o el ÚNICO por suscriptor
+// (BIENVENIDO20-XXXXX) que entrega el popup. Ambos descuentan lo de la entrada BIENVENIDO20;
+// si el código de verdad existe, no está usado y no venció lo decide SIEMPRE el servidor.
+function esCodigoBienvenida(code){return /^BIENVENIDO20(-[A-Z0-9]{4,6})?$/.test(code||'');}
+
 // Descuento real para un subtotal dado, según el cupón aplicado. Nunca deja el subtotal negativo.
-// BIENVENIDO20 tiene vigencia de 7 días desde el registro (welcomeVencido) — el server replica la regla.
+// El código de bienvenida tiene vigencia de 7 días desde el registro (welcomeVencido) — el server replica la regla.
 function cuponDesc(sub){
-  const c=cuponAplicado&&CUPONES[cuponAplicado];if(!c)return 0;
-  if(cuponAplicado==='BIENVENIDO20'&&typeof welcomeVencido==='function'&&welcomeVencido())return 0;
+  const key=cuponAplicado&&(esCodigoBienvenida(cuponAplicado)?'BIENVENIDO20':cuponAplicado);
+  const c=key&&CUPONES[key];if(!c)return 0;
+  if(esCodigoBienvenida(cuponAplicado)&&typeof welcomeVencido==='function'&&welcomeVencido())return 0;
   return c.tipo==='pct'?Math.round(sub*c.val):Math.min(c.val,sub);
 }
 
