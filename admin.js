@@ -442,7 +442,8 @@ async function loadOrders(){
         cedula:o.cedula,direccion:o.direccion,utm:o.utm||null,combo:o.combo||null,cupon:o.cupon||null,
         wa_status:o.wa_status,temperatura:o.temperatura,motivo_no_venta:o.motivo_no_venta,nota:o.nota,seguimiento:o.seguimiento,
         items:o.items,status:o.status,reference:o.reference,seccion:o.seccion,session_id:o.session_id||null,
-        guia:o.guia||null,tracking_url:o.tracking_url||null,transportadora:o.transportadora||null,estado_envio:o.estado_envio||null,recaudo:o.recaudo
+        guia:o.guia||null,tracking_url:o.tracking_url||null,transportadora:o.transportadora||null,estado_envio:o.estado_envio||null,recaudo:o.recaudo,
+        despachado_at:o.despachado_at||null,entregado_at:o.entregado_at||null
       }));
     }
   }catch(e){}
@@ -678,6 +679,15 @@ let pedVista='dia';
 
 function setPedVista(v){pedVista=v;renderPedidosList();}
 
+/* Filtro por estado de envío en Pedidos (solo mira VENTAS: los demás no se despachan).
+   null = sin filtro; tocar el chip activo lo apaga (toggle). */
+let pedEnvioF=null;
+
+function setPedEnvioF(v){pedEnvioF=pedEnvioF===v?null:v;renderPedidosList();}
+
+// Navegar desde una tarea del Inicio a Pedidos con el filtro de envío puesto (como avGo con leadFilter).
+function avGoEnvio(f){pedEnvioF=f;setAdminSection('pedidos');}
+
 function renderPedidosList(){
   const box=$('pedList');if(!box)return;
   const pagoLabels={contra_entrega:'Contra entrega',pago_anticipado:'Pago anticipado',wompi:'Wompi',bold:'Bold',credito:'Crédito (Addi/Sistecrédito)',nequi:'Nequi',bancolombia:'Bancolombia',addi:'Addi',sistecredito:'Sistecrédito'};
@@ -686,12 +696,28 @@ function renderPedidosList(){
     :o.status==='abandoned'?`<span style="background:#8A6D00;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px">🛒 ABANDONÓ</span>`
     :`<span style="background:#F2A900;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px">⏳ PENDIENTE</span>`;
   const itemsTxt=o=>Array.isArray(o.items)?o.items.map(it=>`${escHtml(it.label||'?')}${it.id?' #'+parseInt(it.id):''}${it.qty?` x${parseInt(it.qty)||1}`:''}`).join(', '):'';
+  // Badge de envío en la tarjeta (solo ventas): de un vistazo se ve qué está sin despachar,
+  // en la calle, cobrado o devuelto — sin abrir el detalle.
+  const envBadge=o=>{
+    if(o.status!=='venta')return '';
+    const v=envioEfectivo(o);
+    return `<span style="background:${ENVIO_COLS[v]};color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px">${ENVIO_LABELS[v]}</span>`;
+  };
   const q=pedidosQ.trim().toLowerCase();
-  const lista=orders.filter(o=>!q
+  const lista0=orders.filter(o=>!q
     ||String(o.nombre||'').toLowerCase().includes(q)
     ||String(o.tel||'').includes(q)
     ||String(o.ciudad||'').toLowerCase().includes(q)
     ||String(o.reference||'').toLowerCase().includes(q));
+  // El filtro de envío se aplica DESPUÉS del buscador: ambos se combinan.
+  const lista=pedEnvioF?lista0.filter(o=>o.status==='venta'&&envioEfectivo(o)===pedEnvioF):lista0;
+  // Chips del filtro con contador por estado (sobre TODAS las ventas, sin el buscador):
+  // el conteo de 'devuelto' es la métrica que dice si el contra entrega es rentable.
+  const ventas=orders.filter(o=>o.status==='venta');
+  const envChips=`<div style="display:flex;gap:5px;flex-wrap:wrap;margin:0 0 8px">${['por_despachar','enviado','entregado','devuelto'].map(v=>{
+    const on=pedEnvioF===v,n=ventas.filter(o=>envioEfectivo(o)===v).length;
+    return `<button onclick="setPedEnvioF('${v}')" title="Solo ventas · toca de nuevo para quitar el filtro" style="padding:5px 11px;border:1px solid ${on?ENVIO_COLS[v]:'var(--line)'};border-radius:14px;background:${on?ENVIO_COLS[v]:'var(--white)'};color:${on?'#fff':'var(--ink2)'};font-family:var(--font);font-size:10.5px;font-weight:700;cursor:pointer">${ENVIO_LABELS[v]} ${n}</button>`;
+  }).join('')}</div>`;
   if(!orders.length){box.innerHTML=`<div style="padding:32px 8px;text-align:center;color:var(--ink3);font-size:13px;line-height:1.7">🧾 Aún no hay pedidos.</div>`;return;}
   const cardPed=o=>{
     const camp=o.utm&&o.utm.utm_campaign?escHtml(String(o.utm.utm_campaign).slice(0,28)):'';
@@ -700,7 +726,7 @@ function renderPedidosList(){
     <div style="background:var(--white);border:1px solid var(--line);border-radius:12px;margin-bottom:8px;overflow:hidden">
       <div class="ped-main" onclick="togPedDetail(${o.id})" style="padding:12px 14px;cursor:pointer">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-          <span style="font-size:13.5px;font-weight:700">${escHtml(o.nombre||'Sin nombre')}</span>${badge(o)}
+          <span style="font-size:13.5px;font-weight:700">${escHtml(o.nombre||'Sin nombre')}</span><span style="display:flex;gap:4px;align-items:center">${badge(o)}${envBadge(o)}</span>
         </div>
         <div style="font-size:12px;color:var(--ink2);line-height:1.6">
           ${o.tel?`📱 <a href="https://wa.me/57${String(o.tel).replace(/\D/g,'').slice(-10)}" target="_blank" onclick="event.stopPropagation()" style="color:var(--blue);text-decoration:none">${escHtml(o.tel)}</a> · `:''}${o.ciudad?`📍 ${escHtml(o.ciudad)}`:''}${camp?` · 📣 ${camp}`:srcA?` · ${srcA}`:''}${o.combo?` · <b style="color:#b3541e">🏆 ${escHtml(o.combo)}</b>`:''}<br>
@@ -712,9 +738,10 @@ function renderPedidosList(){
       </div>
       <div id="pedDet${o.id}" style="display:none;border-top:1px solid var(--line);background:var(--bg);padding:12px 14px;font-size:12px;color:var(--ink2);line-height:1.7"></div>
     </div>`;};
-  box.innerHTML=`<div style="font-size:11px;color:var(--ink3);font-weight:600;padding:2px 2px 8px">${lista.length} pedido${lista.length===1?'':'s'}${q?' (filtro activo)':''}</div>`
+  box.innerHTML=`<div style="font-size:11px;color:var(--ink3);font-weight:600;padding:2px 2px 8px">${lista.length} pedido${lista.length===1?'':'s'}${(q||pedEnvioF)?' (filtro activo)':''}</div>`
     +_vistaChips(pedVista,'setPedVista')
-    +(lista.length?_renderGrupos(lista,pedVista,cardPed,'pedido','var(--bg)'):`<div style="padding:24px 8px;text-align:center;color:var(--ink3);font-size:12.5px">Sin resultados para "${escHtml(pedidosQ)}"</div>`);
+    +envChips
+    +(lista.length?_renderGrupos(lista,pedVista,cardPed,'pedido','var(--bg)'):`<div style="padding:24px 8px;text-align:center;color:var(--ink3);font-size:12.5px">${pedEnvioF?`Sin ventas en "${ENVIO_LABELS[pedEnvioF]}"${q?` con "${escHtml(pedidosQ)}"`:''}.`:`Sin resultados para "${escHtml(pedidosQ)}"`}</div>`);
   // Focus pendiente desde la búsqueda global: abrir el detalle y centrar (sobrevive al refresh)
   if(window._pedFocus){
     const fid=window._pedFocus;
@@ -850,31 +877,92 @@ function togPedDetail(id){
   if(chev)chev.textContent='Ocultar ▴';
 }
 
-/* ── ENVÍO (Coordinadora) — bloque en el detalle del pedido ── */
+/* ── ENVÍO — bloques en el detalle del pedido ── */
+/* Pipeline de entrega manual: el negocio vende CONTRA ENTREGA, así que "venta" no es plata
+   hasta que el paquete llega (rechazo en puerta en Colombia: 10-25%). Estos estados se avanzan
+   a mano y NO dependen de Coordinadora (dormida): hoy se despacha igual y hay que saber cuánta
+   plata está en la calle. */
+const ENVIO_LABELS={por_despachar:'📦 Por despachar',guia_generada:'🏷 Guía generada',enviado:'🚚 Enviado',entregado:'✅ Entregado',devuelto:'↩️ Devuelto'};
+
+const ENVIO_COLS={por_despachar:'#B3791E',enviado:'#5D2D91',entregado:'#1BA94C',devuelto:'#E8200A'};
+
+// Estado EFECTIVO de envío de una venta: null (ventas de antes del pipeline) y 'guia_generada'
+// (legado de generar_guia: guía impresa pero el paquete aún no viaja) cuentan como
+// 'por_despachar' — así ninguna venta vieja queda invisible para la tarea del Inicio.
+function envioEfectivo(o){
+  const e=o.estado_envio;
+  return (!e||e==='guia_generada')?'por_despachar':e;
+}
+
 // Si ya hay guía: muestra guía + tracking + recaudo + botón para avisar al cliente.
 // Si no: botón para generar la guía (recaudo = total si es contra-entrega, 0 si es prepago).
+// En toda VENTA, además, el pipeline manual de entrega (antes de venta no hay nada que despachar).
 function envioBloque(o){
   const pagoCOD=o.pago==='contra_entrega';
+  let html='';
   if(o.guia){
     const wa=String(o.tel||'').replace(/\D/g,'').slice(-10);
     const nombre=(o.nombre||'').trim().split(/\s+/)[0]||'';
     const msg=`¡Hola ${nombre}! 👋 Tu pedido de ${STORE_NAME} ya va en camino 📦\nTransportadora: Coordinadora\nN° de guía: ${o.guia}\n${o.tracking_url?'Rastrea aquí: '+o.tracking_url:''}`;
     const waBtn=wa.length===10?`<a href="https://wa.me/57${wa}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener" style="display:inline-block;margin-top:7px;background:var(--wa);color:#fff;text-decoration:none;padding:7px 12px;border-radius:8px;font-size:11px;font-weight:700">💬 Avisar tracking al cliente</a>`:'';
-    return `<div style="margin-top:10px;padding:10px;background:#eaf6ee;border:1px solid #bfe3cc;border-radius:9px">
+    html=`<div style="margin-top:10px;padding:10px;background:#eaf6ee;border:1px solid #bfe3cc;border-radius:9px">
       <div style="font-weight:700;font-size:11px;color:#137a3a">📦 Envío — guía generada</div>
       <div style="margin-top:3px">Guía: <b>${escHtml(o.guia)}</b> · Coordinadora${o.recaudo?` · Recaudo <b>${fmt(o.recaudo)}</b>`:' · Prepago (sin recaudo)'}</div>
       ${o.tracking_url?`<div><a href="${escHtml(o.tracking_url)}" target="_blank" rel="noopener" style="color:var(--blue)">Ver rastreo ↗</a></div>`:''}
       ${waBtn}
     </div>`;
+  }else{
+    // El botón de generar guía está OCULTO: Coordinadora aún no tiene credenciales en Vercel
+    // (COORDINADORA_WS_URL/USER/PASSWORD), así que hoy solo puede devolver error. Para reactivarlo
+    // cuando llegue el manual del Web Service, cambia COORDINADORA_LISTA a true.
+    const COORDINADORA_LISTA=false;
+    if(COORDINADORA_LISTA)html=`<div style="margin-top:10px">
+      <button onclick="generarGuiaPedido(${o.id},this)" style="border:none;cursor:pointer;background:#5D2D91;color:#fff;padding:8px 13px;border-radius:8px;font-size:11.5px;font-weight:700">📦 Generar guía Coordinadora ${pagoCOD?`(recaudo ${fmt(o.total||0)})`:'(prepago)'}</button>
+    </div>`;
   }
-  // El botón de generar guía está OCULTO: Coordinadora aún no tiene credenciales en Vercel
-  // (COORDINADORA_WS_URL/USER/PASSWORD), así que hoy solo puede devolver error. Para reactivarlo
-  // cuando llegue el manual del Web Service, cambia COORDINADORA_LISTA a true.
-  const COORDINADORA_LISTA=false;
-  if(!COORDINADORA_LISTA)return '';
-  return `<div style="margin-top:10px">
-    <button onclick="generarGuiaPedido(${o.id},this)" style="border:none;cursor:pointer;background:#5D2D91;color:#fff;padding:8px 13px;border-radius:8px;font-size:11.5px;font-weight:700">📦 Generar guía Coordinadora ${pagoCOD?`(recaudo ${fmt(o.total||0)})`:'(prepago)'}</button>
+  if(o.status==='venta')html+=envioPipeline(o);
+  return html;
+}
+
+// Chips tipo SELECTOR, no ciclo como chipWa/chipTemp: el rechazo en puerta salta de 'enviado'
+// a 'devuelto' SIN pasar por 'entregado', así que obligar a ciclar marcaría estados falsos.
+// Cada chip fija su estado directo; el activo va coloreado.
+function envioPipeline(o){
+  const cur=envioEfectivo(o);
+  const chips=['por_despachar','enviado','entregado','devuelto'].map(v=>{
+    const on=cur===v;
+    return `<button onclick="setEnvioEstado(${o.id},'${v}')" style="padding:6px 10px;border:1px solid ${on?ENVIO_COLS[v]:'var(--line)'};border-radius:14px;background:${on?ENVIO_COLS[v]:'var(--white)'};color:${on?'#fff':'var(--ink2)'};font-family:var(--font);font-size:10.5px;font-weight:700;cursor:pointer">${ENVIO_LABELS[v]}</button>`;
+  }).join('');
+  const f=ts=>ts?new Date(ts).toLocaleDateString('es-CO',{day:'2-digit',month:'short'}):'';
+  const fechas=[o.despachado_at?`Despachado ${f(o.despachado_at)}`:'',o.entregado_at?`${cur==='devuelto'?'Devuelto':'Entregado'} ${f(o.entregado_at)}`:''].filter(Boolean).join(' · ');
+  return `<div style="margin-top:10px;padding:10px;background:var(--white);border:1px solid var(--line);border-radius:9px">
+    <div style="font-weight:700;font-size:11px;color:var(--ink2);margin-bottom:7px">🚚 Estado del envío${o.estado_envio==='guia_generada'?' <span style="font-weight:600;color:var(--ink3)">(guía generada, aún sin despachar)</span>':''}</div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap">${chips}</div>
+    ${fechas?`<div style="font-size:10px;color:var(--ink3);margin-top:6px">${fechas}</div>`:''}
   </div>`;
+}
+
+// Guarda el estado de envío: espejo local optimista + rollback si el server falla (mismo patrón
+// que updateOrderMeta), pero re-pintando PEDIDOS y reabriendo el detalle (el re-render lo cierra).
+async function setEnvioEstado(id,estado){
+  const o=orders.find(x=>x.id===id);if(!o)return;
+  if(o.estado_envio===estado)return;   // ya está guardado así (tocar 'por_despachar' sobre null/guia_generada SÍ guarda: normaliza el legado)
+  const prev={estado_envio:o.estado_envio,despachado_at:o.despachado_at,entregado_at:o.entregado_at};
+  // Espejo de los sellos de fecha que pone el server (ver update_order_meta en api/admin.js):
+  o.estado_envio=estado;
+  if(estado==='enviado'){o.despachado_at=new Date().toISOString();o.entregado_at=null;}
+  else if(estado==='entregado'||estado==='devuelto')o.entregado_at=new Date().toISOString();
+  else{o.despachado_at=null;o.entregado_at=null;}
+  _repintarPedido(id);
+  try{await adminWrite('update_order_meta',{id,data:{estado_envio:estado}});}
+  catch(e){Object.assign(o,prev);_repintarPedido(id);alert('No se pudo guardar: '+e.message);}
+}
+
+// Re-pinta la lista de pedidos y deja el detalle del pedido abierto (renderPedidosList lo cierra).
+function _repintarPedido(id){
+  renderPedidosList();
+  const d=$('pedDet'+id);
+  if(d&&d.style.display==='none')togPedDetail(id);
 }
 
 async function generarGuiaPedido(id,btn){
@@ -1022,6 +1110,15 @@ function renderStatsTab(){
   const seguirHoy=orders.filter(o=>o.seguimiento&&o.seguimiento<=hoyISO&&o.status!=='venta'&&o.status!=='no_venta').length;
   if(seguirHoy)tareas.push({txt:`Hacer seguimiento a <b>${seguirHoy} lead${seguirHoy===1?'':'s'}</b> con fecha cumplida 📅`,go:`avGo('leads','pending')`,ic:'📅'});
   if(aban24)tareas.push({txt:`Contactar <b>${aban24} carrito${aban24===1?'':'s'} abandonado${aban24===1?'':'s'}</b> de las últimas 24h`,go:`avGo('leads','abandoned')`,ic:'🛒'});
+  // VENTAS SIN DESPACHAR: contra entrega = la plata solo entra cuando el paquete llega, y cada
+  // día quieto sube el rechazo en puerta. null y 'guia_generada' cuentan (ver envioEfectivo).
+  // Las ventas de prueba no cuentan: el modo prueba no es operación real.
+  const ventasReales=orders.filter(o=>o.status==='venta'&&!(o.utm&&o.utm.test));
+  const sinDespachar=ventasReales.filter(o=>envioEfectivo(o)==='por_despachar');
+  if(sinDespachar.length){
+    const n=sinDespachar.length,plata=sinDespachar.reduce((s,o)=>s+(o.total||0),0);
+    tareas.push({txt:`Despachar <b>${n} venta${n===1?'':'s'} sin envío</b> (${fmt(plata)}) — la plata solo entra cuando el paquete llega`,go:`avGoEnvio('por_despachar')`,ic:'📦'});
+  }
   if(agotados)tareas.push({txt:`<b>${agotados} producto${agotados===1?'':'s'} agotado${agotados===1?'':'s'}</b> — repón stock o libera la vitrina`,go:`avGo('productos')`,ic:'📦'});
   // Ventas de los últimos 7 días cuyo producto sigue SIN marcar agotado: mientras nadie lo
   // marque, el feed de Meta (solo excluye sold=true) sigue pautando un par que quizá ya no
@@ -1071,6 +1168,23 @@ function renderStatsTab(){
     });
     loadActivity([...porVencer,...vencidos].map(s=>s.session_id)).then(ok=>{if(ok&&avSec==='inicio')renderStatsTab();});
   }
+  // ── SALUD DEL CONTRA ENTREGA (últimos 30 días): entregado vs devuelto. Cada devolución paga
+  //    flete ida y vuelta SIN venta — esta tasa dice si el contra entrega es rentable de verdad.
+  //    Se calcula en memoria sobre los pedidos ya cargados (no toca /api/dashboard); solo cuenta
+  //    envíos CERRADOS (entregado/devuelto): lo que va en camino aún no se sabe.
+  const hace30=Date.now()-30*24*60*60*1000;
+  const cerradas=ventasReales.filter(o=>new Date(o.fecha).getTime()>=hace30&&['entregado','devuelto'].includes(envioEfectivo(o)));
+  const nDev=cerradas.filter(o=>envioEfectivo(o)==='devuelto').length;
+  const plataDev=cerradas.filter(o=>envioEfectivo(o)==='devuelto').reduce((s,o)=>s+(o.total||0),0);
+  const tasaDev=cerradas.length?Math.round(nDev/cerradas.length*100):0;
+  const envioSalud=cerradas.length?`<div style="background:var(--white);border:1px solid var(--line);border-radius:14px;padding:13px 15px;margin-bottom:14px">
+      <div style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);margin-bottom:9px">🚚 Entregas · últimos 30 días</div>
+      <div style="font-size:12.5px;color:var(--ink2);line-height:1.7">
+        ✅ <b>${cerradas.length-nDev}</b> entregada${cerradas.length-nDev===1?'':'s'} · ↩️ <b style="color:${nDev?'var(--red)':'var(--ink2)'}">${nDev}</b> devuelta${nDev===1?'':'s'}${nDev?` (${fmt(plataDev)} que no entró)`:''}
+        · Tasa de devolución <b style="color:${tasaDev>15?'var(--red)':'var(--green)'}">${tasaDev}%</b>
+        <span style="color:var(--ink3);font-size:10.5px">(contra entrega en Colombia: 10-25% típico)</span>
+      </div>
+    </div>`:'';
   el.innerHTML=`<div style="padding:14px 16px 24px;overflow-y:auto;flex:1;min-height:0">
     <div style="background:var(--white);border:1px solid var(--line);border-radius:14px;padding:13px 15px;margin-bottom:14px">
       <div style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);margin-bottom:9px">✅ Tareas de hoy</div>
@@ -1080,6 +1194,7 @@ function renderStatsTab(){
         <span style="color:var(--ink3);font-size:13px">→</span>
       </div>`).join(''):`<div style="font-size:12.5px;color:var(--green);font-weight:600;padding:4px 0">✅ Al día — no hay tareas pendientes.</div>`}
     </div>
+    ${envioSalud}
     <div id="anaWrap"></div>
     <button onclick="exportOrders()" style="width:100%;padding:11px;background:var(--ink);color:#fff;border:none;border-radius:11px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;margin:6px 0 8px">📤 Exportar datos para IA</button>
   </div>`;

@@ -8,6 +8,11 @@ const crypto = require('crypto');
 const ALLOWED_TABLES = ['products', 'liq_products', 'settings'];
 const ALLOWED_ORDER_STATUS = ['pending', 'venta', 'no_venta'];
 
+// Pipeline de entrega (contra entrega): la venta avanza por_despachar → enviado → entregado /
+// devuelto. 'guia_generada' es un valor LEGADO que escribe la acción generar_guia (Coordinadora,
+// dormida) — se acepta aquí para poder corregir a mano pedidos que ya lo tengan sin romper ese flujo.
+const ALLOWED_ESTADO_ENVIO = ['por_despachar', 'guia_generada', 'enviado', 'entregado', 'devuelto'];
+
 // Whitelist de columnas escribibles por tabla — evita mass-assignment (que el cliente
 // inyecte columnas internas como id/created_at o campos arbitrarios en insert/update).
 const ALLOWED_COLS = {
@@ -242,6 +247,19 @@ module.exports = async (req, res) => {
         return res.status(400).json({ error: 'invalid temperatura' });
       upd.temperatura = d.temperatura;
     }
+    if ('estado_envio' in d) {
+      if (d.estado_envio !== null && !ALLOWED_ESTADO_ENVIO.includes(d.estado_envio))
+        return res.status(400).json({ error: 'invalid estado_envio' });
+      upd.estado_envio = d.estado_envio;
+      // Sellos de fecha del pipeline: los pone el SERVIDOR (no el cliente) para que la hora sea
+      // confiable. El último cambio manda: corregir un estado re-sella la fecha a propósito.
+      // - enviado             → despachado_at = ahora (y se limpia el cierre si era corrección)
+      // - entregado/devuelto  → entregado_at = ahora (fecha de cierre; en devuelto = cuando volvió)
+      // - por_despachar/null  → se limpian ambos (marcha atrás = corrección, no hubo despacho)
+      if (d.estado_envio === 'enviado') { upd.despachado_at = new Date().toISOString(); upd.entregado_at = null; }
+      else if (d.estado_envio === 'entregado' || d.estado_envio === 'devuelto') upd.entregado_at = new Date().toISOString();
+      else if (d.estado_envio === 'por_despachar' || d.estado_envio === null) { upd.despachado_at = null; upd.entregado_at = null; }
+    }
     if ('motivo_no_venta' in d) upd.motivo_no_venta = d.motivo_no_venta == null ? null : String(d.motivo_no_venta).slice(0, 300);
     if ('nota' in d) upd.nota = d.nota == null ? null : String(d.nota).slice(0, 500);
     if ('seguimiento' in d) {
@@ -282,7 +300,7 @@ module.exports = async (req, res) => {
   if (action === 'list_orders') {
     const { data: rows, error } = await sb
       .from('orders')
-      .select('id,created_at,fecha,nombre,cedula,tel,ciudad,barrio,direccion,pago,subtotal,envio,total,pares,items,status,reference,seccion,utm,combo,cupon,wa_status,temperatura,motivo_no_venta,nota,seguimiento,session_id,guia,tracking_url,transportadora,estado_envio,recaudo')
+      .select('id,created_at,fecha,nombre,cedula,tel,ciudad,barrio,direccion,pago,subtotal,envio,total,pares,items,status,reference,seccion,utm,combo,cupon,wa_status,temperatura,motivo_no_venta,nota,seguimiento,session_id,guia,tracking_url,transportadora,estado_envio,recaudo,despachado_at,entregado_at')
       .order('created_at', { ascending: false })
       .limit(500);
     if (error) return res.status(500).json({ error: error.message });
