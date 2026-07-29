@@ -453,7 +453,6 @@
       <button class="pm-gal-arr prev" id="pmGalPrev" onclick="pmGalGo(-1)" aria-label="Foto anterior">‹</button>
       <button class="pm-gal-arr next" id="pmGalNext" onclick="pmGalGo(1)" aria-label="Foto siguiente">›</button>
       <div class="pm-gal-dots" id="pmGalDots"></div>
-      <button class="pm-360-btn" id="pm360Btn" style="display:none" onclick="open360(pmId,pmType)">🔄 Ver en 360°</button>
       <button class="fav-btn pm-fav" id="pmFav" data-id="" onclick="togFav(pmId,this)" aria-label="Guardar en favoritos">♥</button>
     </div>
     <div class="pm-body">
@@ -518,32 +517,6 @@
 <div class="toast" id="toast"></div>
 
 <!-- GUÍA DE CUIDADO: se inyecta desde extras.js -->
-<!-- VISOR 360° -->
-<div class="viewer360" id="viewer360">
-  <div class="v360-scrim" onclick="close360()"></div>
-  <div class="v360-wrap">
-    <button class="v360-close" onclick="close360()">✕</button>
-    <div class="v360-stage" id="v360Stage">
-      <canvas class="v360-img" id="v360Canvas"></canvas>
-      <div class="v360-hint" id="v360Hint">← Arrastra para girar →</div>
-      <div class="v360-counter" id="v360Counter">1/12</div>
-    </div>
-    <div class="pm-trust">
-      <div class="pm-trust-item">🚚 <span>Envío GRATIS pagando en línea</span></div>
-      <div class="pm-trust-item">📦 <span>Pago contra entrega</span></div>
-      <div class="pm-trust-item">🔄 <span>Cambios por talla</span></div>
-      <div class="pm-trust-item">⭐ <span>100% Garantía</span></div>
-    </div>
-    <div class="pm-bar" style="margin-top:16px;width:100%">
-      <div>
-        <div class="pm-label" id="v360Label"></div>
-        <div class="pm-price" id="v360Price"></div>
-      </div>
-      <button class="pm-add" id="v360Add" onclick="addFrom360()">+ Agregar</button>
-    </div>
-  </div>
-</div>
-
 <!-- ZOOM de imagen (guía de tallas) -->
 <div id="imgZoom" onclick="closeZoom()"><img id="imgZoomImg" alt="Ampliada"></div>
 

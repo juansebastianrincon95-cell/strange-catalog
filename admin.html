@@ -196,7 +196,6 @@
       </div>
     </div>
     <div style="display:flex;gap:8px;padding:10px 14px">
-      <button onclick="exportMetaCatalog()" style="flex:1;padding:9px;background:#0066FF;color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📦 Catálogo Meta</button>
       <button onclick="exportCatalog()" style="flex:1;padding:9px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">⬇ Exportar backup</button>
       <label style="flex:1;padding:9px;background:var(--bg);border:1.5px solid var(--line);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;text-align:center;color:var(--ink2)">
         ⬆ Importar backup<input type="file" accept=".json" style="display:none" onchange="importCatalog(this.files[0]);this.value=''">
@@ -204,18 +203,12 @@
     </div>
   </div>
   <div id="panCat" data-sec="productos" data-disp="flex" style="display:flex;flex-direction:column;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0">
-    <div class="mode-row" id="modeRowCat">
-      <button class="mode-btn on" id="mBtnNormCat" onclick="set360('cat',false)">📸 Una por una</button>
-      <button class="mode-btn" id="mBtnSpinCat" onclick="set360('cat',true)">🔄 360° Spin</button>
-    </div>
     <div class="uz" id="uzCat">
       <input type="file" accept="image/*" multiple onchange="handleFiles(this.files,'cat')">
       <div class="uz-ico">📸</div><div class="uz-txt">Toca para subir fotos</div><div class="uz-sub">Puedes seleccionar varias a la vez</div>
     </div>
     <label class="uz-ai-btn" id="aiBtn">✨ IA Studio — fondo blanco profesional<input type="file" accept="image/*" id="aiInpCat" style="display:none" onchange="handleAIFile(this.files[0],'cat');this.value=''"></label>
     <div class="uqueue" id="qCat" style="display:none"></div>
-    <button class="prev360-btn" id="prevBtn360Cat" onclick="previewQueue360('cat')">▶ Previsualizar giro</button>
-    <div class="q360-count" id="cnt360Cat"></div>
     <div class="uopts" id="optCat" style="display:none">
       <div class="uopt"><label>Género</label><select id="qGen"><option value="h">👨 Hombre</option><option value="m">👩 Mujer</option><option value="u">🧑 Unisex</option></select></div>
       <div class="uopt"><label>Marca</label><select id="qBrand"><option value="">Sin marca</option><option value="adidas">Adidas</option><option value="nike">Nike</option><option value="reebok">Reebok</option><option value="new_balance">New Balance</option><option value="on_cloud">On Cloud</option><option value="puma">Puma</option><option value="lecoq_sportif">Le Coq Sportif</option><option value="jordan">Jordan</option><option value="lacoste">Lacoste</option><option value="asics">Asics</option><option value="onitsuka_tiger">Onitsuka Tiger</option><option value="luxury">Luxury</option></select></div>
@@ -227,18 +220,12 @@
     <div class="alist" id="listCat"></div>
   </div>
   <div id="panLiq" data-sec="ofertas" data-disp="flex" style="display:none;flex-direction:column;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0">
-    <div class="mode-row" id="modeRowLiq">
-      <button class="mode-btn on" id="mBtnNormLiq" onclick="set360('liq',false)">📸 Una por una</button>
-      <button class="mode-btn" id="mBtnSpinLiq" onclick="set360('liq',true)">🔄 360° Spin</button>
-    </div>
     <div class="uz" style="border-color:rgba(232,32,10,.3);background:#fff5f5">
       <input type="file" accept="image/*" multiple onchange="handleFiles(this.files,'liq')">
       <div class="uz-ico">🔥</div><div class="uz-txt" style="color:var(--red)">Subir fotos de liquidación</div><div class="uz-sub">Precios especiales</div>
     </div>
     <label class="uz-ai-btn" id="aiBtnLiq">✨ IA Studio — fondo blanco profesional<input type="file" accept="image/*" id="aiInpLiq" style="display:none" onchange="handleAIFile(this.files[0],'liq');this.value=''"></label>
     <div class="uqueue" id="qLiq" style="display:none"></div>
-    <button class="prev360-btn" id="prevBtn360Liq" onclick="previewQueue360('liq')">▶ Previsualizar giro</button>
-    <div class="q360-count" id="cnt360Liq"></div>
     <div class="uopts" id="optLiq" style="display:none">
       <div class="uopt"><label>Precio liq.</label><input id="lPrc" type="number" value="99000"></div>
       <div class="uopt"><label>Antes</label><input id="lAnt" type="number" value="240000"></div>

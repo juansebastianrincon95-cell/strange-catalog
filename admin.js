@@ -22,7 +22,6 @@ async function adminWrite(action, payload = {}) {
 
 let qC=[],qL=[];
 
-let is360Cat=false,is360Liq=false;
 
 // Editor de combos en Admin → Ofertas (settings.combos)
 function renderCombosAdmin(){
@@ -428,46 +427,6 @@ async function testiDel(i){if(_testiEditIdx!==null)_testiFormReset();testimonios
 async function saveTestimonios(){await adminWrite('upsert_settings',{data:{key:'testimonios',value:JSON.stringify(testimonios)}});renderTestimonios();renderTestiAdmin();}
 
 async function saveReviews(){reviewsCount=parseInt(($('cfgReviews')||{}).value)||0;await adminWrite('upsert_settings',{data:{key:'reviews_count',value:String(reviewsCount)}});renderTestimonios();}
-
-/* ── VISOR 360° ── */
-function set360(dest,on){
-  if(dest==='cat'){
-    is360Cat=on;
-    $('mBtnNormCat').className='mode-btn'+(on?'':' on');
-    $('mBtnSpinCat').className='mode-btn'+(on?' on':'');
-    const uz=$('uzCat');
-    const inp=uz.querySelector('input[type=file]');
-    if(inp)inp.accept=on?'image/*,video/*':'image/*';
-    uz.querySelector('.uz-txt').textContent=on?'Sube fotos o un video girando el zapato':'Toca para subir fotos';
-    uz.querySelector('.uz-sub').textContent=on?'Video .mp4/.mov → extrae 24 frames automático':'Puedes seleccionar varias a la vez';
-  }else{
-    is360Liq=on;
-    $('mBtnNormLiq').className='mode-btn'+(on?'':' on');
-    $('mBtnSpinLiq').className='mode-btn'+(on?' on':'');
-    const uz=document.querySelector('#panLiq .uz');
-    if(uz){
-      const inp=uz.querySelector('input[type=file]');
-      if(inp)inp.accept=on?'image/*,video/*':'image/*';
-      uz.querySelector('.uz-txt').textContent=on?'Sube fotos o un video girando el zapato':'Subir fotos de liquidación';
-      uz.querySelector('.uz-sub').textContent=on?'Video .mp4/.mov → extrae 24 frames automático':'Precios especiales';
-    }
-  }
-}
-
-function previewQueue360(dest){
-  const q=dest==='cat'?qC:qL;
-  if(q.length<2)return;
-  _preview360Frames=q.map(x=>x.src);
-  v360Id='__preview__';v360Type=dest;v360Pos=0;
-  $('v360Label').textContent='Vista previa';
-  $('v360Price').textContent='';
-  $('v360Add').style.display='none';
-  $('v360Hint').style.opacity='1';
-  $('viewer360').classList.add('on');
-  lockScroll();
-  navPush('v360',null,null,close360);
-  _preload360(_preview360Frames,()=>drawFrame360(0));
-}
 
 /* ── ADMIN ── */
 async function loadOrders(){
@@ -908,6 +867,11 @@ function envioBloque(o){
       ${waBtn}
     </div>`;
   }
+  // El botón de generar guía está OCULTO: Coordinadora aún no tiene credenciales en Vercel
+  // (COORDINADORA_WS_URL/USER/PASSWORD), así que hoy solo puede devolver error. Para reactivarlo
+  // cuando llegue el manual del Web Service, cambia COORDINADORA_LISTA a true.
+  const COORDINADORA_LISTA=false;
+  if(!COORDINADORA_LISTA)return '';
   return `<div style="margin-top:10px">
     <button onclick="generarGuiaPedido(${o.id},this)" style="border:none;cursor:pointer;background:#5D2D91;color:#fff;padding:8px 13px;border-radius:8px;font-size:11.5px;font-weight:700">📦 Generar guía Coordinadora ${pagoCOD?`(recaudo ${fmt(o.total||0)})`:'(prepago)'}</button>
   </div>`;
@@ -951,7 +915,7 @@ function renderAdmin(){
     const m=p.img?`<img src="${escHtml(p.img||'')}" alt="">`:`<span style="font-size:20px">👟</span>`;
     return `<div class="arow">
       <div class="arow-img">${m}${p.sold?`<div class="arow-sov">Agot.</div>`:''}</div>
-      <div><div class="arow-gen">${p.modelo?escHtml(p.modelo):(genLabel(p.g))}</div><div class="arow-st">${p.modelo?(genLabel(p.g)+' · '):''}${p.sold?'🔴 Agotado':'🟢 Disponible'}${p.imgs360?.length>=2?`<span style="color:var(--blue);font-size:9px;display:block">🔄 ${p.imgs360.length} frames</span>`:''}</div>${costBadge('cat',p.id)}</div>
+      <div><div class="arow-gen">${p.modelo?escHtml(p.modelo):(genLabel(p.g))}</div><div class="arow-st">${p.modelo?(genLabel(p.g)+' · '):''}${p.sold?'🔴 Agotado':'🟢 Disponible'}</div>${costBadge('cat',p.id)}</div>
       <div><div class="arow-price ${sp?'sale':''}">${fmt(p.price)}</div><button class="epbtn" onclick="startEP(${p.id},'cat')">Editar</button> <button class="epbtn" id="galbtncat${p.id}" onclick="togGal(${p.id},'cat')">📷 ${(p.imgs||[]).length}</button> <button class="epbtn" onclick="togTallas(${p.id},'cat')" title="Stock por talla">📏 ${tallasBadge(p)}</button></div>
       <button class="sold-btn ${p.sold?'on':''}" onclick="togSold(${p.id},'cat')">${p.sold?'✓ Agot.':'Agotado'}</button>
       <button class="adel" onclick="delProd(${p.id},'cat')">✕</button>
@@ -1018,7 +982,7 @@ function renderLiqAdmin(){
     const m=p.img?`<img src="${escHtml(p.img||'')}" alt="">`:`<span style="font-size:20px">🔥</span>`;
     return `<div class="arow">
       <div class="arow-img">${m}${p.sold?`<div class="arow-sov">Agot.</div>`:''}</div>
-      <div><div class="arow-gen" style="color:var(--red)">Liquidación</div><div class="arow-st">${p.sold?'🔴 Agotado':'🟢 Disponible'}${p.imgs360?.length>=2?`<span style="color:var(--blue);font-size:9px;display:block">🔄 ${p.imgs360.length} frames</span>`:''}</div>${costBadge('liq',p.id)}</div>
+      <div><div class="arow-gen" style="color:var(--red)">Liquidación</div><div class="arow-st">${p.sold?'🔴 Agotado':'🟢 Disponible'}</div>${costBadge('liq',p.id)}</div>
       <div><div class="arow-price sale">${fmt(p.price)}</div><button class="epbtn" onclick="startEP(${p.id},'liq')">Editar</button> <button class="epbtn" id="galbtnliq${p.id}" onclick="togGal(${p.id},'liq')">📷 ${(p.imgs||[]).length}</button> <button class="epbtn" onclick="togTallas(${p.id},'liq')" title="Stock por talla">📏 ${tallasBadge(p)}</button></div>
       <button class="sold-btn ${p.sold?'on':''}" onclick="togSold(${p.id},'liq')">${p.sold?'✓ Agot.':'Agotado'}</button>
       <button class="adel" onclick="delProd(${p.id},'liq')">✕</button>
@@ -1898,7 +1862,7 @@ function compressImg(file,cb,square=false,max=IMG_MAX){
         cb(c.toDataURL('image/webp',IMG_Q));
         return;
       }
-      // Comportamiento original: conservar proporción (usado por 360° y la IA).
+      // Comportamiento original: conservar proporción (lo usa la IA).
       let w=img.width,h=img.height;
       if(w>MAX||h>MAX){const s=MAX/Math.max(w,h);w=Math.round(w*s);h=Math.round(h*s);}
       const c=document.createElement('canvas');c.width=w;c.height=h;
@@ -1933,85 +1897,24 @@ async function handleAIFile(file, dest){
 }
 
 function handleFiles(files,dest){
-  const is360=dest==='cat'?is360Cat:is360Liq;
   const nuevas=Array.from(files);
-  // Si es modo 360° y el primer archivo es video, extraer frames
-  if(is360&&nuevas.length===1&&nuevas[0].type.startsWith('video/')){
-    extractFramesFromVideo(nuevas[0],dest,24);
-    return;
-  }
   const q=dest==='liq'?qL:qC;
   if(q.length+nuevas.length>20){alert('Máximo 20 fotos por sección. Agrega las actuales primero.');return;}
   nuevas.forEach(f=>{
-    compressImg(f,src=>{q.push({id:Date.now()+Math.random(),src});renderQ(dest);},!is360);
+    compressImg(f,src=>{q.push({id:Date.now()+Math.random(),src});renderQ(dest);},true);
   });
-}
-
-function extractFramesFromVideo(file,dest,count){
-  const q=dest==='cat'?qC:qL;
-  const uzEl=dest==='cat'?$('uzCat'):document.querySelector('#panLiq .uz');
-  const txtEl=uzEl?uzEl.querySelector('.uz-txt'):null;
-  const subEl=uzEl?uzEl.querySelector('.uz-sub'):null;
-  if(txtEl)txtEl.textContent='⏳ Extrayendo frames…';
-  if(subEl)subEl.textContent='Esto tarda unos segundos';
-  const url=URL.createObjectURL(file);
-  const vid=document.createElement('video');
-  vid.src=url;vid.muted=true;vid.preload='metadata';
-  vid.onloadedmetadata=()=>{
-    const dur=vid.duration;
-    let i=0;
-    function next(){
-      if(i>=count){
-        URL.revokeObjectURL(url);
-        renderQ(dest);
-        if(txtEl)txtEl.textContent='Sube todas las fotos del mismo par';
-        if(subEl)subEl.textContent='8–24 ángulos → un solo producto 360°';
-        return;
-      }
-      vid.currentTime=(i/count)*dur;
-    }
-    vid.onseeked=()=>{
-      const cvs=document.createElement('canvas');
-      const MAX=800;
-      const r=Math.min(MAX/vid.videoWidth,MAX/vid.videoHeight,1);
-      cvs.width=Math.round(vid.videoWidth*r);
-      cvs.height=Math.round(vid.videoHeight*r);
-      cvs.getContext('2d').drawImage(vid,0,0,cvs.width,cvs.height);
-      const src=cvs.toDataURL('image/webp',0.72);
-      q.push({id:Date.now()+Math.random(),src});
-      if(txtEl)txtEl.textContent=`⏳ Frame ${i+1}/${count}…`;
-      i++;
-      renderQ(dest);
-      next();
-    };
-    vid.onerror=()=>{URL.revokeObjectURL(url);alert('Error al leer el video.');};
-    next();
-  };
 }
 
 function renderQ(dest){
   const isC=dest==='cat';
   const q=isC?qC:qL;
-  const is360=isC?is360Cat:is360Liq;
   const qEl=$(isC?'qCat':'qLiq'),optEl=$(isC?'optCat':'optLiq'),btnEl=$(isC?'btnCat':'btnLiq');
-  const prevBtn=$(isC?'prevBtn360Cat':'prevBtn360Liq'),cntEl=$(isC?'cnt360Cat':'cnt360Liq');
   if(!q.length){
     qEl.style.display='none';optEl.style.display='none';btnEl.style.display='none';
-    if(prevBtn)prevBtn.style.display='none';
-    if(cntEl)cntEl.style.display='none';
     return;
   }
   qEl.style.display='flex';optEl.style.display='flex';btnEl.style.display='flex';
-  qEl.innerHTML=q.map((x,i)=>`<div class="qthumb"><img src="${x.src}" alt=""><button class="qdel" onclick="rmQ('${x.id}','${dest}')">✕</button>${is360?`<div class="qnum">${i+1}</div>`:''}</div>`).join('');
-  if(prevBtn)prevBtn.style.display=is360&&q.length>=2?'flex':'none';
-  if(cntEl){
-    if(is360&&q.length){
-      const col=q.length<6?'var(--red)':q.length<12?'var(--orange)':'var(--green)';
-      const tip=q.length<6?'Mínimo 6 para que gire bien':q.length<12?'Bien — más fotos = más suave':'Óptimo ✓';
-      cntEl.innerHTML=`<span style="color:${col};font-weight:700">${q.length} frames</span> — ${tip}`;
-      cntEl.style.display='block';
-    }else{cntEl.style.display='none';}
-  }
+  qEl.innerHTML=q.map(x=>`<div class="qthumb"><img src="${x.src}" alt=""><button class="qdel" onclick="rmQ('${x.id}','${dest}')">✕</button></div>`).join('');
 }
 
 function rmQ(id,dest){
@@ -2028,29 +1931,21 @@ async function uploadToStorage(base64, idx, isAI){
   return r.url;
 }
 
+// Cada foto de la cola = un producto. (Antes, en modo 360, las fotos se agrupaban en un solo
+// producto con frames; esa función se retiró porque no se usaba: 0 de 177 productos la tenían.)
 async function _commitQueue(dest,isC,urls){
   if(isC){
     const g=$('qGen').value,brand=($('qBrand')?.value)||'',price=Math.max(1000,parseInt($('qPrc').value)||P_DEF),was=Math.max(0,parseInt($('qAnt').value)||P_ANT);
-    if(is360Cat&&urls.length>=2){
-      const r=await adminWrite('insert_product',{table:'products',data:{gender:g,brand:brand||null,price,price_before:was,promo:false,sold:false,img_url:urls[0],imgs_360:JSON.stringify(urls)}});
-      if(r?.id)prods.push({id:r.id,g,brand,img:urls[0],imgs360:urls,price,was,promo:false,sold:false});
-    }else{
-      for(let i=0;i<urls.length;i++){
-        const r=await adminWrite('insert_product',{table:'products',data:{gender:g,brand:brand||null,price,price_before:was,promo:false,sold:false,img_url:urls[i],imgs_360:'[]'}});
-        if(r?.id)prods.push({id:r.id,g,brand,img:urls[i],imgs360:[],price,was,promo:false,sold:false});
-      }
+    for(let i=0;i<urls.length;i++){
+      const r=await adminWrite('insert_product',{table:'products',data:{gender:g,brand:brand||null,price,price_before:was,promo:false,sold:false,img_url:urls[i]}});
+      if(r?.id)prods.push({id:r.id,g,brand,img:urls[i],price,was,promo:false,sold:false});
     }
     qC=[];
   }else{
     const price=Math.max(1000,parseInt($('lPrc').value)||99000),was=Math.max(0,parseInt($('lAnt').value)||P_ANT);
-    if(is360Liq&&urls.length>=2){
-      const r=await adminWrite('insert_product',{table:'liq_products',data:{price,price_before:was,sold:false,img_url:urls[0],imgs_360:JSON.stringify(urls)}});
-      if(r?.id)liqs.push({id:r.id,img:urls[0],imgs360:urls,price,was,sold:false});
-    }else{
-      for(let i=0;i<urls.length;i++){
-        const r=await adminWrite('insert_product',{table:'liq_products',data:{price,price_before:was,sold:false,img_url:urls[i],imgs_360:'[]'}});
-        if(r?.id)liqs.push({id:r.id,img:urls[i],imgs360:[],price,was,sold:false});
-      }
+    for(let i=0;i<urls.length;i++){
+      const r=await adminWrite('insert_product',{table:'liq_products',data:{price,price_before:was,sold:false,img_url:urls[i]}});
+      if(r?.id)liqs.push({id:r.id,img:urls[i],price,was,sold:false});
     }
     qL=[];renderLiqAdmin();
   }
@@ -2080,35 +1975,6 @@ async function addQueue(dest){
   }
 }
 
-/* ── META CATALOG FEED ── */
-function exportMetaCatalog(){
-  const base=location.href.split('?')[0];
-  const toItem=(p,prefix)=>({
-    id:prefix+p.id,
-    title:(prefix==='L'?'Liquidación — ':'Zapatilla — ')+STORE_NAME,
-    description:(prefix==='L'?'Zapatilla en liquidación':'Zapatilla')+' — '+STORE_NAME,
-    availability:'in stock',
-    condition:'new',
-    price:p.price+' COP',
-    link:base.replace(/\/$/,'')+'/p/'+prefix+p.id,
-    image_link:p.img||'',
-    brand:STORE_NAME,
-    google_product_category:'187'
-  });
-  const items=[
-    ...prods.filter(p=>!p.sold).map(p=>toItem(p,'')),
-    ...liqs.filter(p=>!p.sold).map(p=>toItem(p,'L'))
-  ];
-  if(!items.length){alert('No hay productos disponibles para exportar.');return;}
-  const headers=Object.keys(items[0]);
-  const csv=[headers.join('\t'),...items.map(r=>headers.map(h=>String(r[h]||'')).join('\t'))].join('\n');
-  const blob=new Blob([csv],{type:'text/tab-separated-values'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download='catalogo-meta-'+STORE_NAME.toLowerCase().replace(/\s+/g,'-')+'-'+new Date().toISOString().slice(0,10)+'.tsv';
-  a.click();URL.revokeObjectURL(a.href);
-}
-
 /* ── BACKUP ── */
 function exportCatalog(){
   const data={prods,liqs,orders,config:{wa:WA,nombre:STORE_NAME,pixelId:PIXEL_ID},exportado:new Date().toISOString()};
@@ -2134,7 +2000,6 @@ async function importCatalog(file){
       price_before:Math.max(0,parseInt(p.was??p.price_before)||0),
       promo:!!p.promo,sold:!!p.sold,
       img_url:p.img||p.img_url||'',
-      imgs_360:JSON.stringify(p.imgs360||[]),
       imgs:JSON.stringify(p.imgs||[])
     }}).catch(()=>null);
     if(r?.id)okC++;else fail++;
@@ -2145,7 +2010,6 @@ async function importCatalog(file){
       price_before:Math.max(0,parseInt(p.was??p.price_before)||0),
       sold:!!p.sold,
       img_url:p.img||p.img_url||'',
-      imgs_360:JSON.stringify(p.imgs360||[]),
       imgs:JSON.stringify(p.imgs||[])
     }}).catch(()=>null);
     if(r?.id)okL++;else fail++;

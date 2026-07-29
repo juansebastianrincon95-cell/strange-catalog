@@ -24,9 +24,6 @@ let step=0,cData={};
 
 let pmId=null,pmType=null,pmTalla=null;
 
-// modo 360 del ADMIN al subir fotos
-let v360Id=null,v360Type=null,v360Pos=0,v360Dragging=false,v360LastX=0,_preview360Frames=null,_v360Images=[];
-
 let orders=[];
 
 let PIXEL_ID='';
@@ -72,7 +69,7 @@ const escHtml=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&l
 
 /* ── CATÁLOGO COMPLETO (vista a pantalla completa) + PREVIEW del inicio ── */
 /* Bloqueo de scroll del fondo (iOS no respeta body{overflow:hidden}: hay que fijar el body).
-   Ref-contado para soportar modales apilados (ej. visor 360 → carrito). */
+   Ref-contado para soportar modales apilados (ej. ficha → carrito). */
 let _slCount=0,_slY=0;
 
 function lockScroll(){
@@ -142,14 +139,12 @@ async function loadState(){
     ]);
     prods=(pRows||[]).map(r=>({
       id:r.id, g:r.gender, brand:r.brand||'', modelo:r.modelo||'', img:r.img_url,
-      imgs360:r.imgs_360?JSON.parse(r.imgs_360):[],
       imgs:r.imgs?JSON.parse(r.imgs):[],
       tallas:r.tallas||null,   // jsonb {talla:stock} | null = sin rastreo (deriva por género)
       price:r.price, was:r.price_before, promo:r.promo, sold:r.sold
     }));
     liqs=(lRows||[]).map(r=>({
       id:r.id, modelo:r.modelo||'', img:r.img_url,
-      imgs360:r.imgs_360?JSON.parse(r.imgs_360):[],
       imgs:r.imgs?JSON.parse(r.imgs):[],
       tallas:r.tallas||null,
       price:r.price, was:r.price_before, sold:r.sold

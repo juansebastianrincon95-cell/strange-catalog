@@ -6,7 +6,7 @@
    (clave en el navegador de Instagram). Modelo: pila _layers = capas abiertas en orden; cada
    open hace navPush y cada close navRemove; los cambios de historial se COMMITEAN en un
    microtask (batch) → los flujos compuestos (cerrar ficha + abrir carrito en el mismo tick)
-   quedan en UN solo replaceState, sin razas pushState/back. Capas sin URL (360, testimonios,
+   quedan en UN solo replaceState, sin razas pushState/back. Capas sin URL (testimonios,
    guía, menú) igual entran a la pila: consumen un "atrás" y heredan la URL de abajo. */
 const _layers=[];
 

@@ -1,5 +1,5 @@
 /* ═══ TIENDA ═══ Todo el render público: home, hero, lanzamientos, catálogo, ficha,
-   galería, 360, testimonios, footer, popup, menú, info. ═══ */
+   galería, testimonios, footer, popup, menú, info. ═══ */
 
 /* ── POPUP DE BIENVENIDA ($20.000 OFF) ── */
 let WELCOME_ON=true;
@@ -27,7 +27,7 @@ function maybeWelcome(){
   if(localStorage.getItem('ss_subscribed'))return;
   setTimeout(()=>{
     if(localStorage.getItem('ss_subscribed'))return;
-    const open=document.querySelector('.photo-modal.on,.guia-modal.on,.csheet.on,.apanel.on,.viewer360.on');
+    const open=document.querySelector('.photo-modal.on,.guia-modal.on,.csheet.on,.apanel.on');
     if(open)return;   // no interrumpir si el usuario ya está en otra cosa (deep link, etc.)
     openWelcome();
   },7000);
@@ -628,7 +628,7 @@ function maybeWaBubble(){
   setTimeout(function intentar(){
     try{if(sessionStorage.getItem('ss_wabub'))return;}catch(e){}
     if(!(combos||[]).some(c=>c&&c.activo!==false))return;
-    const open=document.querySelector('.wm.on,.photo-modal.on,.guia-modal.on,.csheet.on,.apanel.on,.viewer360.on');
+    const open=document.querySelector('.wm.on,.photo-modal.on,.guia-modal.on,.csheet.on,.apanel.on');
     if(open){setTimeout(intentar,8000);return;}
     const b=$('waBubble');if(b)b.classList.add('show');
   },12000);
@@ -765,8 +765,7 @@ function cardHTML(p,i,prefix,toFicha){
   return `<div class="card ${on?'picked':''} ${p.sold?'sold':''}" id="${prefix}${p.id}" style="animation-delay:${Math.min(i*.02,.4)}s" onclick="${goCard}">
       <div class="cphoto">
         ${m}
-        ${p.imgs360?.length>=2?`<div class="b360">360°</div>`:''}
-        ${pct?`<div class="bdsc"${p.imgs360?.length>=2?' style="top:42px"':''}>-${pct}%</div>`:''}
+        ${pct?`<div class="bdsc">-${pct}%</div>`:''}
         ${p.sold?`<div class="bsold">Agotado</div>`:cardBadge(p)}
         <div class="bchk">✓</div>
         <button class="fav-btn ${esFav(p.id)?'on':''}" data-id="${p.id}" onclick="event.stopPropagation();togFav(${p.id},this)" aria-label="Favorito">♥</button>
@@ -837,8 +836,7 @@ function renderLiqGrid(){
     return `<div class="liq-card ${on?'picked':''} ${p.sold?'sold':''}" id="lk${p.id}" style="animation-delay:${Math.min(i*.02,.4)}s" onclick="cardClick(event,${p.id},'liq')">
       <div class="lphoto">
         ${m}
-        ${p.imgs360?.length>=2?`<div class="b360">360°</div>`:''}
-        ${pct?`<div class="lbdsc"${p.imgs360?.length>=2?' style="top:30px"':''}>-${pct}%</div>`:''}
+        ${pct?`<div class="lbdsc">-${pct}%</div>`:''}
         ${p.sold?`<div class="lbsold">Agotado</div>`:''}
         <div class="lbchk">✓</div>
         <button class="add-circle" onclick="event.stopPropagation();togCard(${p.id},'liq')">${on?'✓':'+'}</button>
@@ -904,11 +902,10 @@ function openPhoto(id,type){
   const list=type==='liq'?liqs:prods;
   const p=list.find(x=>x.id===id);
   if(!p)return;
-  // La ficha SIEMPRE abre; el giro 360 (si existe) es un botón dentro de la galería.
   if(!p.img)return;
   pmId=id;pmType=type;
   {const fb=$('pmFav');if(fb){fb.dataset.id=id;fb.classList.toggle('on',esFav(id));fb.style.display=type==='liq'?'none':'';}}   // corazón de la ficha (favoritos solo en catálogo, no liquidación)
-  renderPmGal([p.img,...(p.imgs||[])],p.imgs360?.length>=2,altProd(p));
+  renderPmGal([p.img,...(p.imgs||[])],altProd(p));
   const _mk=BRAND_LABELS[p.brand]||'';
   // Si el producto tiene MODELO (ej. "Nike Air Max 90"), ese es el título; si no, Marca · Género.
   $('pmTitle').textContent=p.modelo||((_mk?_mk+' · ':'')+(type==='liq'?'Liquidación':(genLabel(p.g))));
@@ -1121,7 +1118,7 @@ function closePhotoBtn(){
 /* ── GALERÍA de la ficha ── */
 let _galIdx=0,_galN=1;
 
-function renderPmGal(urls,has360,altTxt){
+function renderPmGal(urls,altTxt){
   _galIdx=0;_galN=urls.length;
   const tr=$('pmGalTrack');if(!tr)return;
   tr.style.transform='translateX(0)';
@@ -1133,7 +1130,6 @@ function renderPmGal(urls,has360,altTxt){
   // En móvil las flechas no se muestran (swipe); en escritorio aparecen al hover si hay >1 foto
   if(pv)pv.dataset.multi=showArr===''?'1':'0';
   if(nx)nx.dataset.multi=showArr===''?'1':'0';
-  const b3=$('pm360Btn');if(b3)b3.style.display=has360?'':'none';
 }
 
 function pmGalGo(dir){
@@ -1158,100 +1154,7 @@ function pmGalGo(dir){
 /* ── GUÍA DE CUIDADO — vive en extras.js (carga bajo demanda) ── */
 function openGuia(){loadExtras().then(()=>openGuia()).catch(()=>{});}
 
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){const z=$('imgZoom');if(z&&z.classList.contains('on')){closeZoom();return;}closePhotoBtn();close360();if(typeof closeGuia==='function')closeGuia();closeInfo();closeMenu();}});
-
-function _preload360(srcs,cb){
-  _v360Images=[];
-  let done=0;
-  srcs.forEach((src,i)=>{
-    const img=new Image();
-    img.onload=()=>{done++;if(done===srcs.length&&cb)cb();};
-    img.onerror=()=>{done++;if(done===srcs.length&&cb)cb();};
-    img.src=src;
-    _v360Images[i]=img;
-  });
-}
-
-function drawFrame360(pos){
-  const imgs=_v360Images;
-  const n=imgs.length;
-  if(!n)return;
-  const canvas=$('v360Canvas');
-  if(!canvas)return;
-  const INTERP=3; // pasos virtuales entre frames reales
-  pos=((pos%n)+n)%n;
-  const scaled=pos*INTERP;
-  const a=Math.floor(scaled/INTERP)%n;
-  const b=(a+1)%n;
-  const ratio=(scaled%INTERP)/INTERP;
-  const imgA=imgs[a];
-  if(!imgA||!imgA.complete||!imgA.naturalWidth)return;
-  if(canvas.width!==imgA.naturalWidth){
-    canvas.width=imgA.naturalWidth;
-    canvas.height=imgA.naturalHeight;
-    const aspect=imgA.naturalHeight/imgA.naturalWidth;
-    const maxH=window.innerHeight*0.68;
-    const cssW=canvas.parentElement?canvas.parentElement.offsetWidth:300;
-    canvas.style.height=Math.min(cssW*aspect,maxH)+'px';
-  }
-  const ctx=canvas.getContext('2d');
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.globalAlpha=1;
-  ctx.drawImage(imgA,0,0,canvas.width,canvas.height);
-  if(ratio>0.01&&b!==a){
-    const imgB=imgs[b];
-    if(imgB&&imgB.complete&&imgB.naturalWidth){
-      ctx.globalAlpha=ratio;
-      ctx.drawImage(imgB,0,0,canvas.width,canvas.height);
-      ctx.globalAlpha=1;
-    }
-  }
-  $('v360Counter').textContent=`${a+1}/${n}`;
-}
-
-function open360(id,type){
-  v360Id=id;v360Type=type;v360Pos=0;
-  const list=type==='liq'?liqs:prods;
-  const p=list.find(x=>x.id===id);
-  if(!p)return;
-  $('v360Label').textContent=type==='liq'?'🔥 Liquidación':(genLabel(p.g));
-  $('v360Price').textContent=fmt(p.price);
-  sync360Btn();
-  $('v360Hint').style.opacity='1';
-  $('viewer360').classList.add('on');
-  lockScroll();
-  navPush('v360',null,null,close360);
-  _preload360(p.imgs360,()=>drawFrame360(0));
-}
-
-function close360(){
-  if(!_navPopping)navRemove('v360');
-  $('viewer360').classList.remove('on');
-  unlockScroll();
-  $('v360Add').style.display='';
-  _preview360Frames=null;
-  _v360Images=[];
-  setTimeout(()=>{const c=$('v360Canvas');if(c){const ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);}v360Id=null;},300);
-}
-
-function addFrom360(){
-  if(v360Id===null)return;
-  const list=v360Type==='liq'?liqs:prods;
-  const p=list.find(x=>x.id===v360Id);
-  // Si el producto requiere talla y no hay una elegida en la ficha, volver a la ficha a elegirla
-  // (el visor 360 no tiene chips). Si ya hay talla seleccionada (pmTalla), se respeta.
-  if(tallasDe(p).length&&!pmTalla){close360();const sc=document.querySelector('.pm-scroll');const box=$('pmSizes');if(box){box.classList.remove('err');void box.offsetWidth;box.classList.add('err');if(sc)sc.scrollTo({top:Math.max(0,box.offsetTop-130),behavior:'smooth'});}return;}
-  togCard(v360Id,v360Type,pmTalla);sync360Btn();
-}
-
-function sync360Btn(){
-  // Misma clave que usa el carrito (incluye talla) → el ✓ refleja la talla elegida en la ficha,
-  // no una clave sin talla que nunca coincidía (antes el botón nunca mostraba "Agregado").
-  const key=cartKey(v360Id,v360Type,pmTalla);
-  const ic=!!cart[key];
-  $('v360Add').textContent=ic?'✓ Agregado':'+ Agregar';
-  $('v360Add').className='pm-add'+(ic?' in':'');
-}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){const z=$('imgZoom');if(z&&z.classList.contains('on')){closeZoom();return;}closePhotoBtn();if(typeof closeGuia==='function')closeGuia();closeInfo();closeMenu();}});
 
 /* openAdmin = STUB público: carga /admin.js (todo el JS del panel) UNA vez y delega.
    La tienda del cliente nunca descarga el código del admin. */
@@ -1334,30 +1237,3 @@ function openAdmin(){
 const _isClasificado=o=>o.status==='venta'||o.status==='no_venta';
 
 /* (drag & drop de las zonas de subida: vive en admin.js) */
-
-/* ── DRAG/TOUCH VISOR 360° ── */
-(function(){
-  const stage=$('v360Stage');
-  const DRAG_SCALE=16;
-  function drag360(dx){
-    if(!v360Id||!_v360Images.length)return;
-    const n=_v360Images.length;
-    v360Pos=((v360Pos-dx/DRAG_SCALE)%n+n)%n;
-    drawFrame360(v360Pos);
-    $('v360Hint').style.opacity='0';
-  }
-  stage.addEventListener('mousedown',e=>{v360Dragging=true;v360LastX=e.clientX;e.preventDefault();});
-  document.addEventListener('mousemove',e=>{
-    if(!v360Dragging)return;
-    drag360(e.clientX-v360LastX);
-    v360LastX=e.clientX;
-  });
-  document.addEventListener('mouseup',()=>{v360Dragging=false;});
-  stage.addEventListener('touchstart',e=>{v360Dragging=true;v360LastX=e.touches[0].clientX;},{passive:true});
-  stage.addEventListener('touchmove',e=>{
-    if(!v360Dragging)return;
-    drag360(e.touches[0].clientX-v360LastX);
-    v360LastX=e.touches[0].clientX;
-  },{passive:true});
-  stage.addEventListener('touchend',()=>{v360Dragging=false;});
-})();
