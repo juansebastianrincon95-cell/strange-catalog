@@ -1,7 +1,7 @@
 const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
 const { rateLimit } = require('./_rate_limit');
-const { anonClient, serviceClient, cleanText, createOrder, getOrderByReference, confirmPaidOrder, contentIdsDe, genWelcomeCode } = require('./_orders');
+const { anonClient, serviceClient, cleanText, createOrder, getOrderByReference, confirmPaidOrder, contentIdsDe, genWelcomeCode, sendTelegram } = require('./_orders');
 const { sendEvent } = require('./_capi');
 const { createAddiApplication } = require('./_addi');
 const { createScTransaction, getScInfo } = require('./_sistecredito');
@@ -482,9 +482,217 @@ async function reconciliarPendientes(req, res) {
   return res.status(200).json({ ok: true, revisados: (pend || []).length, resultado: out });
 }
 
+/* ── PARTE DE RESCATE (cron diario) ── el problema real: todo el rescate dependía de que el
+   dueño ABRIERA el panel ("Tareas de hoy"). Si no entraba, los cupones vencían, los leads
+   calientes se enfriaban y los carritos abandonados se perdían. Este cron arma el resumen del
+   día y se lo manda por el MISMO bot de Telegram de las ventas (sendTelegram en _orders.js),
+   con cada enlace wa.me YA pre-escrito (mismo texto que los botones del panel) → contactar
+   es UN toque desde el celular.
+   IMPORTANTE: el bot solo le avisa al DUEÑO. El mensaje al cliente lo envía un humano desde
+   su WhatsApp — automatizar ese envío arriesga el baneo del número. */
+
+// Mismo mapa del feed (api/feed.js): los items guardan la marca en clave (nike, new_balance…).
+const BRAND_LABELS = { adidas: 'Adidas', nike: 'Nike', reebok: 'Reebok', new_balance: 'New Balance', on_cloud: 'On Cloud', puma: 'Puma', lecoq_sportif: 'Le Coq Sportif', jordan: 'Jordan', lacoste: 'Lacoste', asics: 'Asics', onitsuka_tiger: 'Onitsuka Tiger', luxury: 'Luxury' };
+const STORE_NAME = 'Strange Sneakers';
+const fmtCop = n => '$' + Number(n || 0).toLocaleString('es-CO');
+// Escape para el parse_mode HTML de Telegram: un nombre con "<" no puede tumbar el parte.
+const escTg = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+// Últimos 10 dígitos = celular colombiano (el registro puede traer el indicativo 57 pegado).
+function telWa(raw) {
+  const d = String(raw || '').replace(/\D/g, '').slice(-10);
+  return d.length === 10 ? d : null;
+}
+function waUrl(tel, msg) { return 'https://wa.me/57' + tel + '?text=' + encodeURIComponent(msg); }
+
+// Vigencia del cupón de bienvenida (7 días) — mismo cálculo que cuponVigencia en admin.js.
+function vigenciaCupon(issued) {
+  if (!issued) return null;
+  const vence = Date.parse(issued) + 7 * 864e5;
+  const dias = Math.ceil((vence - Date.now()) / 864e5);
+  return { dias, vencido: dias <= 0 };
+}
+
+/* Réplicas server-side de los mensajes pre-escritos del panel (waRescate / waCuponSub en
+   admin.js): MISMO texto, para que dé igual tocar el botón del panel o el enlace del parte.
+   Única diferencia: aquí no hay "interesado en" por eventos (eso vive en el navegador del
+   panel), así que sin items cae al genérico "estuviste mirando nuestros sneakers". */
+function msgRescate(o) {
+  const nombre = String(o.nombre || '').trim().split(/\s+/)[0] || '';
+  const items = (Array.isArray(o.items) ? o.items : []).map(it => {
+    const mk = it.brand ? (BRAND_LABELS[it.brand] || it.brand) + ' ' : '';
+    return mk + (it.label || '') + (it.talla ? ` talla ${it.talla}` : '');
+  }).filter(Boolean);
+  const saludo = nombre ? `¡Hola ${nombre}! 👋` : '¡Hola! 👋';
+  const vio = items.length ? ` Vi que te interesó: ${items.join(', ')} 👟` : ' Vi que estuviste mirando nuestros sneakers 👟';
+  return `${saludo} Te escribo de ${STORE_NAME}.${vio}\n\n¿Te ayudo a completar tu pedido? 🙌 Pagando en línea el *envío es GRATIS*, o si prefieres *contra entrega* pagas solo el envío hoy y los zapatos al recibir en casa. ¿Te lo aparto?`;
+}
+function msgCuponSub(s) {
+  const nombre = String(s.nombre || '').trim().split(/\s+/)[0] || '';
+  const v = vigenciaCupon(s.welcome_issued_at || s.created_at);
+  const vig = v && !v.vencido ? (v.dias <= 1 ? 'vence HOY' : `vence en ${v.dias} días`) : 'está por vencer';
+  // El mensaje lleva SU código único; los suscriptores viejos (sin welcome_code) siguen con el genérico.
+  const cod = s.welcome_code || 'BIENVENIDO20';
+  return `¡Hola ${nombre}! 👋 Soy de ${STORE_NAME}.\n\nTu cupón *${cod}* de $20.000 OFF ${vig} ⏰ ¿Aprovechas y escoges tu par? Pagando en línea el *envío es GRATIS*; también puedes pedir *contra entrega* 🙌`;
+}
+
+// Resumen corto de items para la línea del parte (los detalles van en el wa.me, no aquí).
+function itemsResumen(items) {
+  const l = (Array.isArray(items) ? items : []).map(it => {
+    const mk = it.brand ? (BRAND_LABELS[it.brand] || it.brand) + ' ' : '';
+    return mk + (it.label || 'Producto') + ' #' + it.id + (it.talla ? ' T' + it.talla : '');
+  });
+  if (!l.length) return 'sin items';
+  return l.slice(0, 2).join(', ') + (l.length > 2 ? ` +${l.length - 2}` : '');
+}
+function hace(ts) {
+  const h = Math.max(0, Math.round((Date.now() - Date.parse(ts)) / 3600e3));
+  return h < 24 ? `hace ${h} h` : `hace ${Math.round(h / 24)} d`;
+}
+// Máx 5 líneas por sección: cada enlace wa.me pesa ~600 caracteres y Telegram corta en 4096.
+// El resto no se pierde: la línea "…y N más" manda al panel.
+function seccionTg(titulo, lineas, max = 5) {
+  if (!lineas.length) return null;
+  const vis = lineas.slice(0, max);
+  const resto = lineas.length - vis.length;
+  return `<b>${titulo} (${lineas.length})</b>\n${vis.join('\n')}` + (resto > 0 ? `\n…y ${resto} más en el panel` : '');
+}
+
+async function parteRescate(req, res) {
+  // Misma protección que la reconciliación: solo Vercel Cron con el Bearer CRON_SECRET.
+  const cs = (process.env.CRON_SECRET || '').trim();
+  if (!cs || String(req.headers.authorization || '') !== 'Bearer ' + cs) return res.status(401).json({ ok: false });   // fail-closed: sin CRON_SECRET, rechazar
+  const sb = serviceClient();
+  const desde24 = new Date(Date.now() - 24 * 3600e3).toISOString();
+  const desde7d = new Date(Date.now() - 7 * 864e5).toISOString();
+
+  // Todo en paralelo. Si una consulta falla, su lista queda vacía y el parte sale igual con
+  // el resto (mejor un parte incompleto que ninguno).
+  const [subsQ, leadsQ, abanQ, ventasQ, pedidosQ] = await Promise.all([
+    // Cupones de bienvenida SIN usar: vigencia = issued + 7 días, así que cualquier cupón vivo
+    // tiene issued (o created_at, fallback pre-columna) dentro de los últimos 7 días.
+    sb.from('subscribers')
+      .select('id,nombre,whatsapp,welcome_code,welcome_issued_at,welcome_used_at,created_at')
+      .eq('source', 'popup_bienvenida').is('welcome_used_at', null)
+      .or(`welcome_issued_at.gte.${desde7d},created_at.gte.${desde7d}`)
+      .order('created_at', { ascending: false }).limit(200),
+    // Leads pendientes sin contactar (mismo criterio que "Tareas de hoy" del panel).
+    sb.from('orders')
+      .select('id,created_at,nombre,tel,items,subtotal,total,wa_status,utm,session_id')
+      .eq('status', 'pending').or('wa_status.is.null,wa_status.eq.sin_contactar')
+      .gte('created_at', desde7d).order('created_at', { ascending: false }).limit(50),
+    sb.from('orders')
+      .select('id,created_at,nombre,tel,items,subtotal,total,utm,session_id')
+      .eq('status', 'abandoned').gte('created_at', desde24)
+      .order('created_at', { ascending: false }).limit(50),
+    // Ventas sin guía de envío (columna guia, migración 002 Coordinadora) = sin despachar.
+    sb.from('orders')
+      .select('id,created_at,nombre,ciudad,subtotal,total,reference,pago,utm')
+      .eq('status', 'venta').is('guia', null).gte('created_at', desde7d)
+      .order('created_at', { ascending: false }).limit(50),
+    // Teléfonos con algún pedido (cualquier status): igual que el panel, a un suscriptor que ya
+    // pidió no se le insiste con el cupón — ya está en el embudo de leads.
+    sb.from('orders').select('tel').not('tel', 'is', null)
+      .order('created_at', { ascending: false }).limit(1000)
+  ]);
+
+  const noTest = o => !(o.utm && o.utm.test);   // modo prueba: fuera del parte, como de toda métrica
+  const telsPedidos = new Set((pedidosQ.data || []).map(o => telWa(o.tel)).filter(Boolean));
+
+  // 1) Cupones de bienvenida que vencen en ≤48h, de suscriptores que aún no compraron/pidieron.
+  const cupLineas = (subsQ.data || []).filter(s => {
+    const v = vigenciaCupon(s.welcome_issued_at || s.created_at);
+    if (!v || v.vencido || v.dias > 2) return false;
+    const tel = telWa(s.whatsapp);
+    return tel && !telsPedidos.has(tel);
+  }).map(s => {
+    const tel = telWa(s.whatsapp);
+    const v = vigenciaCupon(s.welcome_issued_at || s.created_at);
+    const cuando = v.dias <= 1 ? 'vence HOY ⚠️' : `vence en ${v.dias} días`;
+    return `• ${escTg(s.nombre || tel)} — ${escTg(s.welcome_code || 'BIENVENIDO20')} ${cuando} → <a href="${waUrl(tel, msgCuponSub(s))}">Escribirle</a>`;
+  });
+
+  // 2) Leads pendientes sin contactar (dedup por teléfono: la misma persona con dos intentos
+  //    es UNA conversación, se toma el intento más reciente).
+  const telsLeads = new Set();
+  const leadLineas = [];
+  for (const o of (leadsQ.data || []).filter(noTest)) {
+    const tel = telWa(o.tel);
+    if (tel && telsLeads.has(tel)) continue;
+    if (tel) telsLeads.add(tel);
+    const linea = `• ${escTg(o.nombre || 'Sin nombre')} — ${escTg(itemsResumen(o.items))} — ${fmtCop(o.subtotal != null ? o.subtotal : o.total)} · ${hace(o.created_at)}`;
+    leadLineas.push(tel ? `${linea} → <a href="${waUrl(tel, msgRescate(o))}">Escribirle</a>` : `${linea} (sin tel)`);
+  }
+
+  // 3) Carritos abandonados de las últimas 24h. Si el mismo teléfono ya salió como lead
+  //    pendiente, no se repite (una persona = un mensaje).
+  const abanLineas = [];
+  for (const o of (abanQ.data || []).filter(noTest)) {
+    const tel = telWa(o.tel);
+    if (tel && telsLeads.has(tel)) continue;
+    if (tel) telsLeads.add(tel);
+    const linea = `• ${escTg(o.nombre || 'Sin nombre')} — ${escTg(itemsResumen(o.items))} · ${hace(o.created_at)}`;
+    abanLineas.push(tel ? `${linea} → <a href="${waUrl(tel, msgRescate(o))}">Escribirle</a>` : `${linea} (sin tel)`);
+  }
+
+  // 4) Ventas sin despachar: aquí la acción es generar la guía en el panel, no un WhatsApp.
+  const despLineas = (ventasQ.data || []).filter(noTest).map(o =>
+    `• ${escTg(o.nombre || 'Sin nombre')} — ${escTg(o.ciudad || 'sin ciudad')} — ${fmtCop(o.subtotal != null ? o.subtotal : o.total)} · Ref ${escTg(o.reference || o.id)}`
+  );
+
+  const secciones = [
+    seccionTg('🎟 Cupones por vencer (≤48h)', cupLineas),
+    seccionTg('📱 Leads sin contactar', leadLineas),
+    seccionTg('🛒 Carritos abandonados (24h)', abanLineas),
+    seccionTg('📦 Ventas sin despachar', despLineas)
+  ].filter(Boolean);
+
+  const fechaCol = new Date().toLocaleDateString('es-CO', { timeZone: 'America/Bogota', weekday: 'short', day: 'numeric', month: 'short' });
+  const cab = `📋 <b>Parte de rescate — ${escTg(fechaCol)}</b>`;
+  const pie = `Panel: https://strangesneakers.com/?admin`;
+  // Sin pendientes también se avisa (una línea): sirve de latido — si un día no llega NADA,
+  // el dueño sabe que el cron se rompió, no que "no había trabajo".
+  const bloques = secciones.length ? [cab, ...secciones, pie] : [cab + '\n✅ Sin rescates pendientes hoy. Todo al día.'];
+
+  // Telegram corta en 4096 caracteres y los wa.me son largos → agrupar secciones en mensajes
+  // de máx ~3500 y mandar varios si hace falta (cada sección viaja completa, nunca partida).
+  const mensajes = [];
+  let cur = '';
+  for (const b of bloques) {
+    if (cur && (cur.length + b.length + 2) > 3500) { mensajes.push(cur); cur = b; }
+    else cur = cur ? cur + '\n\n' + b : b;
+  }
+  if (cur) mensajes.push(cur);
+
+  let enviados = 0;
+  for (const m of mensajes) {
+    // HTML para que "Escribirle" sea un toque. Si Telegram rechaza el HTML (tag mal cerrado,
+    // caso que el escape ya cubre), reintento en texto plano con las URLs a la vista:
+    // feo pero llega — el parte nunca se pierde por formato.
+    let ok = await sendTelegram(m, { parseMode: 'HTML', timeoutMs: 5000 });
+    if (!ok) {
+      const plano = m.replace(/<a href="([^"]+)">[^<]*<\/a>/g, '$1').replace(/<\/?b>/g, '');
+      ok = await sendTelegram(plano, { timeoutMs: 5000 });
+    }
+    if (ok) enviados++;
+  }
+
+  return res.status(200).json({
+    ok: true, cupones: cupLineas.length, leads: leadLineas.length,
+    abandonados: abanLineas.length, sin_despachar: despLineas.length,
+    mensajes: mensajes.length, enviados
+  });
+}
+
 module.exports = async (req, res) => {
   const okOrigin = allowedOrigin(req, res);
   if (req.method === 'OPTIONS') return res.status(200).end();
+  // Crons (GET): se enruta por query param ANTES del atajo por user-agent, porque TODOS los
+  // crons de Vercel llegan con user-agent vercel-cron y sin el orden correcto el parte de
+  // rescate caería en la reconciliación.
+  if (req.method === 'GET' && req.query && req.query.cron === 'parte_rescate') {
+    return parteRescate(req, res);
+  }
   // Cron de reconciliación (GET): por query o por el user-agent oficial de Vercel Cron.
   if (req.method === 'GET' && ((req.query && req.query.cron === 'reconciliar') || String(req.headers['user-agent'] || '').startsWith('vercel-cron'))) {
     return reconciliarPendientes(req, res);

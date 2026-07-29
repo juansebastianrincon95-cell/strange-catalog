@@ -226,13 +226,30 @@ function cartSig(items) {
     .join('~');
 }
 
-/* Aviso de venta al vendedor por Telegram. OPCIONAL: solo actúa si existen las envs
+/* Mensaje al dueño por el bot de Telegram. OPCIONAL: solo actúa si existen las envs
    TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID (se activan cuando el usuario cree su bot).
-   Nunca bloquea la confirmación: timeout corto y errores silenciados. */
-async function notifyVentaTelegram(order) {
+   Nunca bloquea a quien lo llama: timeout corto y errores silenciados (devuelve false).
+   parseMode ('HTML') sirve para mensajes con enlaces tocables (el parte de rescate);
+   en ese caso se apaga el preview para que un wa.me no infle el chat con tarjetas. */
+async function sendTelegram(text, { parseMode, timeoutMs = 2500 } = {}) {
   const token = (process.env.TELEGRAM_BOT_TOKEN || '').trim();
   const chat = (process.env.TELEGRAM_CHAT_ID || '').trim();
-  if (!token || !chat) return;
+  if (!token || !chat) return false;
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const body = { chat_id: chat, text };
+    if (parseMode) { body.parse_mode = parseMode; body.disable_web_page_preview = true; }
+    const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body), signal: ctrl.signal
+    });
+    return r.ok;
+  } catch { return false; } finally { clearTimeout(t); }
+}
+
+// Aviso de venta al vendedor: arma el texto y lo manda por el bot (nunca bloquea la confirmación).
+async function notifyVentaTelegram(order) {
   const fmtCop = n => '$' + Number(n || 0).toLocaleString('es-CO');
   const items = (Array.isArray(order.items) ? order.items : [])
     .map(it => `• ${it.label || 'Producto'} #${it.id} x${it.qty}`).join('\n');
@@ -240,14 +257,7 @@ async function notifyVentaTelegram(order) {
     `${fmtCop(order.subtotal != null ? order.subtotal : order.total)} — ${order.nombre || ''}\n` +
     `📍 ${order.ciudad || ''}${order.barrio ? ' · ' + order.barrio : ''}\n` +
     `📞 ${order.tel || ''}\n${items}\nRef: ${order.reference || order.id}`;
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 2500);
-  try {
-    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chat, text }), signal: ctrl.signal
-    });
-  } catch {} finally { clearTimeout(t); }
+  await sendTelegram(text);
 }
 
 // Marca el cupón de bienvenida como USADO al confirmarse la venta (un solo uso). Se llama con
@@ -360,4 +370,4 @@ async function confirmPaidOrder({ reference, amount, amountInCents, currency = '
   return { ok: true, order: { ...order, status: 'venta' } };
 }
 
-module.exports = { anonClient, serviceClient, cleanText, calculateOrder, createOrder, getOrderByReference, confirmPaidOrder, contentIdsDe, cartSig, decrementStock, genWelcomeCode, esCodigoBienvenida, marcarCuponBienvenidaUsado };
+module.exports = { anonClient, serviceClient, cleanText, calculateOrder, createOrder, getOrderByReference, confirmPaidOrder, contentIdsDe, cartSig, decrementStock, genWelcomeCode, esCodigoBienvenida, marcarCuponBienvenidaUsado, sendTelegram };
