@@ -1023,6 +1023,22 @@ function renderStatsTab(){
   if(seguirHoy)tareas.push({txt:`Hacer seguimiento a <b>${seguirHoy} lead${seguirHoy===1?'':'s'}</b> con fecha cumplida 📅`,go:`avGo('leads','pending')`,ic:'📅'});
   if(aban24)tareas.push({txt:`Contactar <b>${aban24} carrito${aban24===1?'':'s'} abandonado${aban24===1?'':'s'}</b> de las últimas 24h`,go:`avGo('leads','abandoned')`,ic:'🛒'});
   if(agotados)tareas.push({txt:`<b>${agotados} producto${agotados===1?'':'s'} agotado${agotados===1?'':'s'}</b> — repón stock o libera la vitrina`,go:`avGo('productos')`,ic:'📦'});
+  // Ventas de los últimos 7 días cuyo producto sigue SIN marcar agotado: mientras nadie lo
+  // marque, el feed de Meta (solo excluye sold=true) sigue pautando un par que quizá ya no
+  // existe → plata quemada en tráfico. Red de seguridad por si se omitió el confirm de venta.
+  const hace7d=Date.now()-7*24*60*60*1000;
+  const porRevisar=[],prVistos=new Set();
+  orders.filter(o=>o.status==='venta'&&new Date(o.fecha).getTime()>=hace7d).forEach(o=>{
+    productosDePedido(o).forEach(({p,type,it})=>{
+      const key=type+':'+p.id;
+      if(p.sold||prVistos.has(key))return;
+      prVistos.add(key);porRevisar.push(it.label||p.modelo||('#'+p.id));
+    });
+  });
+  if(porRevisar.length){
+    const n=porRevisar.length,s=n===1?'':'n';
+    tareas.push({txt:`Revisa si sigue${s} disponible${n===1?'':'s'}: <b>${escHtml(porRevisar.slice(0,3).join(', '))}</b>${n>3?` y ${n-3} más`:''} — se vendi${n===1?'ó':'eron'} esta semana y Meta aún lo${n===1?'':'s'} pauta`,go:`avGo('productos')`,ic:'👟'});
+  }
   // Suscriptores con cupón de bienvenida por vencer (1-3 días) y sin pedido → escribirles HOY.
   if(subsData===null){loadSubscribers().then(()=>{if(avSec==='inicio')renderStatsTab();});}
   else{
@@ -1653,7 +1669,12 @@ async function updateOrderStatus(id,status){
     await updateOrderMeta(id,{motivo_no_venta:motivo});
   }
   const prev=o.status;o.status=status;renderLeadsTab();
-  try{await adminWrite('update_order',{id,data:{status}});}
+  try{
+    await adminWrite('update_order',{id,data:{status}});
+    // Venta recién cerrada → ofrecer agotar sus productos AQUÍ MISMO. Si se deja "para
+    // después", nadie lo marca y el feed de Meta sigue pautando un par que ya no existe.
+    if(status==='venta'&&prev!=='venta')ofrecerAgotarVendidos(o);
+  }
   catch(e){o.status=prev;renderLeadsTab();alert('No se pudo guardar: '+e.message);}
 }
 
@@ -1840,6 +1861,37 @@ async function togSold(id,type){
   if(p.sold)delete cart[key];
   syncDot();renderGrid();renderAdmin();if(type==='liq')renderLiqAdmin();
   await adminWrite('update_product',{table:type==='liq'?'liq_products':'products',id,data:{sold:p.sold}});
+}
+
+/* ── AGOTADO AL CERRAR VENTA ── El feed de Meta (api/feed) solo excluye sold=true: un par
+   vendido que nadie marca sigue en el catálogo de anuncios y se paga tráfico hacia un zapato
+   que ya no existe. Por eso agotar es parte del gesto de cerrar la venta, no un botón aparte. */
+
+// Cruza los items de un pedido con los productos vivos (catálogo o liquidación).
+// Devuelve [{p,type,it}] sin duplicados; ignora items sin id o ya borrados del catálogo.
+function productosDePedido(o){
+  const out=[],vistos=new Set();
+  (Array.isArray(o.items)?o.items:[]).forEach(it=>{
+    if(it.id==null)return;
+    const type=it.type==='liq'?'liq':'cat';
+    const p=(type==='liq'?liqs:prods).find(x=>x.id===parseInt(it.id));
+    const key=type+':'+parseInt(it.id);
+    if(p&&!vistos.has(key)){vistos.add(key);out.push({p,type,it});}
+  });
+  return out;
+}
+
+// confirm simple a propósito: OK = agotar todo el pedido, Cancelar = no tocar nada (cero
+// fricción). Las ventas parciales de un pedido multi-producto son raras; para esos casos
+// queda el botón "Agotado" de siempre en Productos.
+async function ofrecerAgotarVendidos(o){
+  const cand=productosDePedido(o).filter(x=>!x.p.sold);
+  if(!cand.length)return;
+  const n=cand.length,s=n===1?'':'s';
+  const lista=cand.map(x=>'• '+(x.it.label||x.p.modelo||'Producto')+' #'+x.p.id+(x.it.talla?' · Talla '+x.it.talla:'')).join('\n');
+  if(!confirm(`✓ Venta registrada.\n\n¿Marcar AGOTADO${s.toUpperCase()} para que Meta deje de pautarlo${s}?\n\n${lista}\n\n(Cancelar = sigue${n===1?'':'n'} disponible${s} en catálogo y feed)`))return;
+  // togSold reusa el camino ya probado: saca del carrito, re-renderiza y guarda sold en la BD.
+  for(const x of cand)if(!x.p.sold)await togSold(x.p.id,x.type);
 }
 
 // calidad WebP (88%) — buen detalle, peso razonable
