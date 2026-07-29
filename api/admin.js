@@ -88,6 +88,63 @@ module.exports = async (req, res) => {
     return res.json({ ok: true, url: pub.publicUrl });
   }
 
+  // IA — SUGERIR MODELO: manda la foto principal del producto a Gemini (misma GEMINI_API_KEY
+  // que ai-photo.js) y devuelve una PROPUESTA de nombre ("Nike Air Max 90 blanco/gris") para
+  // los productos sin modelo, que en el feed de Meta caen a títulos genéricos duplicados.
+  // Solo PROPONE: guardar pasa por update_product cuando el admin aprueba en el panel — un
+  // modelo mal identificado guardado en automático sería un dato falso en el catálogo y en
+  // los anuncios dinámicos. Vive aquí como action (y no como endpoint propio) porque el plan
+  // de Vercel ya está en el límite de 12 funciones.
+  if (action === 'sugerir_modelo') {
+    if (!table || !['products', 'liq_products'].includes(table)) return res.status(400).json({ error: 'invalid table' });
+    if (!id) return res.status(400).json({ error: 'id required' });
+    const GEMINI_KEY = (process.env.GEMINI_API_KEY || '').trim();
+    if (!GEMINI_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY no configurada' });
+
+    // liq_products no tiene columnas brand/gender → el select cambia por tabla
+    const cols = table === 'products' ? 'id,img_url,brand,gender' : 'id,img_url';
+    const { data: p, error: e1 } = await sb.from(table).select(cols).eq('id', id).single();
+    if (e1 || !p) return res.status(404).json({ error: 'product_not_found' });
+    if (!p.img_url) return res.status(400).json({ error: 'producto sin foto' });
+
+    // La foto se baja de Storage y va inline: Gemini no lee URLs externas de forma confiable
+    // y así la propuesta sale de EXACTAMENTE la foto que ve el cliente en el catálogo.
+    const imgRes = await fetch(p.img_url).catch(() => null);
+    if (!imgRes || !imgRes.ok) return res.status(502).json({ error: 'no se pudo bajar la foto del producto' });
+    const mime = (imgRes.headers.get('content-type') || 'image/webp').split(';')[0];
+    const b64 = Buffer.from(await imgRes.arrayBuffer()).toString('base64');
+
+    // La marca ya registrada va como pista (reduce que alucine la marca); NO_IDENTIFICADO es la
+    // salida honesta para que el panel no ofrezca una invención como propuesta.
+    const BRAND_LABELS = { adidas: 'Adidas', nike: 'Nike', reebok: 'Reebok', new_balance: 'New Balance', on_cloud: 'On Cloud', puma: 'Puma', lecoq_sportif: 'Le Coq Sportif', jordan: 'Jordan', lacoste: 'Lacoste', asics: 'Asics', onitsuka_tiger: 'Onitsuka Tiger', luxury: 'Luxury' };
+    const pista = p.brand && BRAND_LABELS[p.brand] ? ' La tienda lo tiene registrado como marca ' + BRAND_LABELS[p.brand] + '.' : '';
+    const prompt = 'Identifica el tenis (sneaker) de la foto para el catálogo de una tienda en Colombia.' + pista +
+      ' Responde UNA sola línea con el formato "Marca Modelo color/es" (ej: "Nike Air Max 90 blanco/gris"), en español, sin comillas ni punto final, máximo 60 caracteres.' +
+      ' Si no reconoces el modelo con certeza razonable responde exactamente NO_IDENTIFICADO. Nunca inventes una referencia.';
+
+    // Modelo de TEXTO con visión (el de ai-photo.js es el de generación de IMAGEN — aquí no aplica)
+    const gRes = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_KEY },
+      body: JSON.stringify({
+        contents: [{ parts: [{ inline_data: { mime_type: mime, data: b64 } }, { text: prompt }] }],
+        generationConfig: { temperature: 0.2 }
+      })
+    }).catch(() => null);
+    if (!gRes) return res.status(502).json({ error: 'Gemini no respondió' });
+    if (gRes.status !== 200) {
+      const detail = (await gRes.text().catch(() => '')).slice(0, 300);
+      return res.status(502).json({ error: 'Gemini error', detail });
+    }
+    const gJson = await gRes.json().catch(() => null);
+    const texto = (((((gJson || {}).candidates || [])[0] || {}).content || {}).parts || [])
+      .map(pt => pt.text || '').join(' ').trim();
+    // Limpieza defensiva: a veces envuelve en comillas/markdown aunque el prompt diga que no
+    const sugerencia = texto.split('\n')[0].replace(/^["'`*\s]+|["'`*\s.]+$/g, '').slice(0, 120);
+    if (!sugerencia || /NO_IDENTIFICADO/i.test(sugerencia)) return res.json({ ok: true, sugerencia: null });
+    return res.json({ ok: true, sugerencia });
+  }
+
   if (action === 'insert_product') {
     if (!table || !ALLOWED_TABLES.includes(table)) return res.status(400).json({ error: 'invalid table' });
     if (!data || typeof data !== 'object') return res.status(400).json({ error: 'data required' });

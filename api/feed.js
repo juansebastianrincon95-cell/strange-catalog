@@ -27,6 +27,53 @@ module.exports = async (req, res) => {
   // Etiquetas legibles de marca para el feed de Meta
   const BRAND_LABELS = { adidas:'Adidas', nike:'Nike', reebok:'Reebok', new_balance:'New Balance', on_cloud:'On Cloud', puma:'Puma', lecoq_sportif:'Le Coq Sportif', jordan:'Jordan', lacoste:'Lacoste', asics:'Asics', onitsuka_tiger:'Onitsuka Tiger', luxury:'Luxury' };
   const brandLabel = b => BRAND_LABELS[b] || null;
+
+  // ── Tallas por género — MISMA regla que tallasInfo() en tienda.js ──
+  // La tienda NO rastrea stock por talla (la columna tallas está en null en todo el catálogo):
+  // deriva las tallas del género del producto. Se replica esa regla aquí para que el feed nunca
+  // anuncie una talla que la ficha no ofrece. Si algún día se llena tallas (jsonb {talla:stock}),
+  // se respeta: solo se listan las tallas con stock > 0.
+  const TALLAS_MUJER = ['36','37','38','39'], TALLAS_HOMBRE = ['40','41','42','43','44'];
+  const TALLAS_UNISEX = ['36','37','38','39','40','41','42','43','44'];
+  const tallasDe = p => {
+    const t = p.tallas;
+    if (t && typeof t === 'object' && !Array.isArray(t)) {
+      // jsonb con stock: anunciar solo lo disponible (todo en 0 → mejor callar tallas que
+      // prometer una agotada en un anuncio pago)
+      return Object.keys(t).filter(k => Number(t[k]) > 0).sort((a, b) => (parseFloat(a) || 0) - (parseFloat(b) || 0));
+    }
+    if (Array.isArray(t)) return t.filter(x => x != null && String(x).trim() !== '');
+    if (p.gender === 'm') return TALLAS_MUJER;
+    if (p.gender === 'h') return TALLAS_HOMBRE;
+    if (p.gender === 'u') return TALLAS_UNISEX;
+    return [];   // liquidación no tiene género → la ficha no muestra selector de tallas
+  };
+  // "Tallas 40 a 44" si son consecutivas (el caso normal por género); lista explícita si hay
+  // huecos (pasa cuando el jsonb de stock deja tallas agotadas por fuera).
+  const tallasTexto = ts => {
+    if (!ts.length) return '';
+    if (ts.length === 1) return 'Talla ' + ts[0];
+    const n = ts.map(Number);
+    const seguidas = n.every((v, i) => i === 0 || v === n[i - 1] + 1);
+    return seguidas && ts.length > 2 ? 'Tallas ' + ts[0] + ' a ' + ts[ts.length - 1] : 'Tallas ' + ts.join(', ');
+  };
+
+  // Descripción ÚNICA por producto (nombre/marca + género + tallas + Ref). Antes era idéntica
+  // para todo el catálogo → Meta agrupaba los anuncios dinámicos como duplicados y castigaba
+  // la entrega. Solo datos REALES de la fila; los claims comerciales calcan el copy del sitio
+  // (contra entrega en todo el país). El "envío gratis" es condicional (solo pago anticipado,
+  // ver annbar de index.html) → NO se promete aquí.
+  const descDe = (p, bl, gen, ref) => {
+    const genTxt = gen === 'Hombre' ? 'hombre' : gen === 'Unisex' ? 'hombre y mujer' : 'mujer';
+    const nombre = p.modelo || (bl ? 'Tenis ' + bl : 'Tenis');
+    const tt = tallasTexto(tallasDe(p));
+    return [
+      nombre + ' para ' + genTxt,
+      tt ? tt + ' disponibles' : '',
+      'Envío a toda Colombia con pago contra entrega: pagas al recibir',
+      brand + ' · Ref. ' + ref
+    ].filter(Boolean).join('. ') + '.';
+  };
   // Galería: fotos secundarias (columna imgs = JSON array) → additional_image_link (máx 10)
   const extraImgs = p => {
     try { const a = JSON.parse(p.imgs || '[]'); return Array.isArray(a) && a.length ? { additional_image_link: a.slice(0, 10) } : {}; }
@@ -39,8 +86,10 @@ module.exports = async (req, res) => {
       const gen = p.gender === 'h' ? 'Hombre' : p.gender === 'u' ? 'Unisex' : 'Mujer';
       return {
       id:           'cat_' + p.id,
-      title:        p.modelo || ((bl ? bl + ' ' : '') + 'Par ' + gen + ' — ' + brand),
-      description:  (bl ? bl + ' - ' : '') + brand + ' - Calzado de calidad',
+      // Sin modelo, la Ref. hace el título único: 45 productos compartían "Nike Par Hombre — ..."
+      // y Meta los trataba como duplicados en el catálogo. .slice(0,200) porque Meta corta ahí.
+      title:        (p.modelo || ('Tenis ' + (bl ? bl + ' ' : '') + gen + ' Ref. ' + p.id + ' — ' + brand)).slice(0, 200),
+      description:  descDe(p, bl, gen, p.id),
       availability: 'in stock',
       condition:    'new',
       price:        ((p.price_before && p.price_before > p.price) ? p.price_before : p.price) + ' COP',
@@ -55,8 +104,13 @@ module.exports = async (req, res) => {
     };}),
     ...(liqs || []).map(p => ({
       id:           'liq_' + p.id,
-      title:        p.modelo ? p.modelo + ' — Liquidación' : ('Liquidación — ' + brand),
-      description:  brand + ' - Precio especial',
+      // Ref. L{id} para no chocar con las Ref. del catálogo (los ids de las dos tablas se solapan)
+      title:        (p.modelo ? p.modelo + ' — Liquidación' : ('Liquidación Ref. L' + p.id + ' — ' + brand)).slice(0, 200),
+      description:  [
+        (p.modelo || 'Tenis') + ' a precio especial de liquidación',
+        'Envío a toda Colombia con pago contra entrega: pagas al recibir',
+        brand + ' · Ref. L' + p.id
+      ].join('. ') + '.',
       availability: 'in stock',
       condition:    'new',
       price:        ((p.price_before && p.price_before > p.price) ? p.price_before : p.price) + ' COP',

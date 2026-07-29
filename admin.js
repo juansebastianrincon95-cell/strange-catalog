@@ -998,18 +998,24 @@ function renderAdmin(){
   $('aM').textContent=prods.filter(p=>p.g==='m').length;
   {const u=$('aU');if(u)u.textContent=prods.filter(p=>p.g==='u').length;}
   $('aSold').textContent=[...prods,...liqs].filter(p=>p.sold).length;
-  $('listCat').innerHTML=prods.map(p=>{
+  // Barra IA: los productos sin modelo salen al feed de Meta con título genérico DUPLICADO
+  // (castiga los anuncios dinámicos). El lote solo PROPONE: cada nombre se aprueba a mano.
+  const sinModelo=prods.filter(p=>!p.modelo).length+liqs.filter(p=>!p.modelo).length;
+  const barIA=sinModelo?`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--white);border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-bottom:8px;font-size:11.5px;color:var(--ink2)">✨ <b>${sinModelo}</b> producto${sinModelo===1?'':'s'} sin modelo → títulos duplicados en el feed de Meta
+    <button class="epbtn" id="btnSugTodos" onclick="sugerirModelosFaltantes()">✨ Sugerir modelos con IA</button></div>`:'';
+  $('listCat').innerHTML=barIA+prods.map(p=>{
     const sp=p.promo||promoG;
     const m=p.img?`<img src="${escHtml(p.img||'')}" alt="">`:`<span style="font-size:20px">👟</span>`;
     return `<div class="arow">
       <div class="arow-img">${m}${p.sold?`<div class="arow-sov">Agot.</div>`:''}</div>
       <div><div class="arow-gen">${p.modelo?escHtml(p.modelo):(genLabel(p.g))}</div><div class="arow-st">${p.modelo?(genLabel(p.g)+' · '):''}${p.sold?'🔴 Agotado':'🟢 Disponible'}</div>${costBadge('cat',p.id)}</div>
-      <div><div class="arow-price ${sp?'sale':''}">${fmt(p.price)}</div><button class="epbtn" onclick="startEP(${p.id},'cat')">Editar</button> <button class="epbtn" id="galbtncat${p.id}" onclick="togGal(${p.id},'cat')">📷 ${(p.imgs||[]).length}</button> <button class="epbtn" onclick="togTallas(${p.id},'cat')" title="Stock por talla">📏 ${tallasBadge(p)}</button></div>
+      <div><div class="arow-price ${sp?'sale':''}">${fmt(p.price)}</div><button class="epbtn" onclick="startEP(${p.id},'cat')">Editar</button> <button class="epbtn" id="galbtncat${p.id}" onclick="togGal(${p.id},'cat')">📷 ${(p.imgs||[]).length}</button> <button class="epbtn" onclick="togTallas(${p.id},'cat')" title="Stock por talla">📏 ${tallasBadge(p)}</button>${p.modelo?'':` <button class="epbtn" onclick="sugerirModelo(${p.id},'cat',this)" title="La IA propone el modelo mirando la foto (tú apruebas antes de guardar)">✨ Modelo</button>`}</div>
       <button class="sold-btn ${p.sold?'on':''}" onclick="togSold(${p.id},'cat')">${p.sold?'✓ Agot.':'Agotado'}</button>
       <button class="adel" onclick="delProd(${p.id},'cat')">✕</button>
       <div class="ep-row" id="ep${p.id}" style="display:none"><input id="epi${p.id}" type="number" value="${p.price}" title="Precio de venta"><select id="epb${p.id}" class="ep-brand"><option value=""${!p.brand?' selected':''}>Sin marca</option>${Object.keys(BRAND_LABELS).map(b=>`<option value="${b}"${p.brand===b?' selected':''}>${BRAND_LABELS[b]}</option>`).join('')}</select><input id="epm${p.id}" type="text" placeholder="Modelo (ej. Nike Air Max 90)" value="${escHtml(p.modelo||'')}" style="flex-basis:100%"><input id="epc${p.id}" type="number" placeholder="Costo (privado, para margen)" value="${costos['cat:'+p.id]??''}" style="flex-basis:48%"><button class="ep-save" onclick="saveEP(${p.id},'cat')">Guardar</button><button class="ep-cancel" onclick="cancelEP()">✕</button></div>
       <div id="galcat${p.id}" style="display:none;grid-column:1/-1;padding:8px 0 4px"></div>
       <div id="tallascat${p.id}" style="display:none;grid-column:1/-1;padding:8px 0 4px"></div>
+      ${sugStrip('cat',p)}
     </div>`;
   }).join('');
 }
@@ -1071,12 +1077,13 @@ function renderLiqAdmin(){
     return `<div class="arow">
       <div class="arow-img">${m}${p.sold?`<div class="arow-sov">Agot.</div>`:''}</div>
       <div><div class="arow-gen" style="color:var(--red)">Liquidación</div><div class="arow-st">${p.sold?'🔴 Agotado':'🟢 Disponible'}</div>${costBadge('liq',p.id)}</div>
-      <div><div class="arow-price sale">${fmt(p.price)}</div><button class="epbtn" onclick="startEP(${p.id},'liq')">Editar</button> <button class="epbtn" id="galbtnliq${p.id}" onclick="togGal(${p.id},'liq')">📷 ${(p.imgs||[]).length}</button> <button class="epbtn" onclick="togTallas(${p.id},'liq')" title="Stock por talla">📏 ${tallasBadge(p)}</button></div>
+      <div><div class="arow-price sale">${fmt(p.price)}</div><button class="epbtn" onclick="startEP(${p.id},'liq')">Editar</button> <button class="epbtn" id="galbtnliq${p.id}" onclick="togGal(${p.id},'liq')">📷 ${(p.imgs||[]).length}</button> <button class="epbtn" onclick="togTallas(${p.id},'liq')" title="Stock por talla">📏 ${tallasBadge(p)}</button>${p.modelo?'':` <button class="epbtn" onclick="sugerirModelo(${p.id},'liq',this)" title="La IA propone el modelo mirando la foto (tú apruebas antes de guardar)">✨ Modelo</button>`}</div>
       <button class="sold-btn ${p.sold?'on':''}" onclick="togSold(${p.id},'liq')">${p.sold?'✓ Agot.':'Agotado'}</button>
       <button class="adel" onclick="delProd(${p.id},'liq')">✕</button>
       <div class="ep-row" id="epl${p.id}" style="display:none"><input id="epli${p.id}" type="number" value="${p.price}" title="Precio de venta"><input id="eplm${p.id}" type="text" placeholder="Modelo" value="${escHtml(p.modelo||'')}"><input id="eplc${p.id}" type="number" placeholder="Costo" value="${costos['liq:'+p.id]??''}"><button class="ep-save" onclick="saveEP(${p.id},'liq')">Guardar</button><button class="ep-cancel" onclick="cancelEP()">✕</button></div>
       <div id="galliq${p.id}" style="display:none;grid-column:1/-1;padding:8px 0 4px"></div>
       <div id="tallasliq${p.id}" style="display:none;grid-column:1/-1;padding:8px 0 4px"></div>
+      ${sugStrip('liq',p)}
     </div>`;
   }).join('');
 }
@@ -1974,6 +1981,91 @@ async function clearTallas(id,dest){
   const list=dest==='liq'?liqs:prods;const p=list.find(x=>x.id===id);if(p)p.tallas=null;
   await adminWrite('update_product',{table:dest==='liq'?'liq_products':'products',id,data:{tallas:null}}).catch(()=>{});
   togTallas(id,dest);dest==='liq'?renderLiqAdmin():renderAdmin();renderGrid();
+}
+
+/* ── IA: SUGERIR MODELO ── Los productos sin modelo salen al feed de Meta con títulos genéricos
+   duplicados (Meta los agrupa y castiga los anuncios dinámicos). Gemini mira la FOTO real y
+   propone un nombre vía la action sugerir_modelo de /api/admin (sesión admin obligatoria).
+   REGLA DE ORO: la IA solo PROPONE — nada toca la BD hasta que el admin pulsa "✓ Usar" (o
+   edita y guarda). Un modelo mal identificado guardado en automático sería un dato falso en
+   el catálogo y en los anuncios. Las propuestas viven solo en memoria (se pierden al recargar,
+   a propósito: una propuesta sin revisar no debe sobrevivir a la sesión). */
+let sugerenciasIA={};   // 'cat:ID' / 'liq:ID' → texto propuesto pendiente de aprobación
+
+function sugStrip(type,p){
+  const s=sugerenciasIA[type+':'+p.id];
+  if(!s)return '';
+  return `<div style="grid-column:1/-1;display:flex;gap:6px;align-items:center;flex-wrap:wrap;background:#f3fbf5;border:1px solid #bfe6c8;border-radius:8px;padding:6px 9px;font-size:11.5px;color:var(--ink)">✨ IA propone: <b>${escHtml(s)}</b>
+    <button class="ep-save" onclick="aplicarSugerencia(${p.id},'${type}')">✓ Usar</button>
+    <button class="epbtn" onclick="editarSugerencia(${p.id},'${type}')">✏️ Editar</button>
+    <button class="ep-cancel" onclick="descartarSugerencia(${p.id},'${type}')">✕</button></div>`;
+}
+
+async function sugerirModelo(id,type,btn){
+  if(btn){btn.disabled=true;btn.textContent='⏳ IA…';}
+  try{
+    const r=await adminWrite('sugerir_modelo',{table:type==='liq'?'liq_products':'products',id});
+    if(!r.sugerencia){alert('🤷 La IA no reconoció el modelo con certeza.\nSi tú lo conoces, ponlo a mano con "Editar".');return;}
+    sugerenciasIA[type+':'+id]=r.sugerencia;
+    type==='liq'?renderLiqAdmin():renderAdmin();   // re-render → aparece la franja de aprobación
+  }catch(e){alert('❌ IA: '+e.message);}
+  finally{if(btn&&document.body.contains(btn)){btn.disabled=false;btn.textContent='✨ Modelo';}}
+}
+
+// "✓ Usar" ES la aprobación humana: recién aquí se escribe modelo en la BD (mismo camino
+// update_product del editor de siempre). Si falla el guardado se revierte todo, incluida
+// la propuesta, para poder reintentar.
+async function aplicarSugerencia(id,type){
+  const key=type+':'+id,s=sugerenciasIA[key];if(!s)return;
+  const list=type==='liq'?liqs:prods;const p=list.find(x=>x.id===id);if(!p)return;
+  const prev=p.modelo||null;   // para revertir sin inventar: pudo haberse editado a mano entretanto
+  p.modelo=s;delete sugerenciasIA[key];
+  renderGrid();type==='liq'?renderLiqAdmin():renderAdmin();
+  try{await adminWrite('update_product',{table:type==='liq'?'liq_products':'products',id,data:{modelo:s}});}
+  catch(e){p.modelo=prev;sugerenciasIA[key]=s;renderGrid();type==='liq'?renderLiqAdmin():renderAdmin();alert('No se pudo guardar: '+e.message);}
+}
+
+// "✏️ Editar" abre el editor de siempre con la propuesta precargada — corregir y Guardar.
+function editarSugerencia(id,type){
+  const s=sugerenciasIA[type+':'+id];if(!s)return;
+  startEP(id,type);
+  const inp=$(type==='liq'?'eplm'+id:'epm'+id);
+  if(inp){inp.value=s;inp.focus();}
+}
+
+function descartarSugerencia(id,type){
+  delete sugerenciasIA[type+':'+id];
+  type==='liq'?renderLiqAdmin():renderAdmin();
+}
+
+// LOTE: recorre los que faltan (catálogo + liquidación) en SERIE — una llamada a la vez para
+// no estrellarse contra el rate limit de Gemini ni saturar la función de Vercel. Solo junta
+// propuestas; la aprobación sigue siendo fila por fila. Clic de nuevo mientras corre = parar.
+let _sugBatchOn=false;
+async function sugerirModelosFaltantes(){
+  if(_sugBatchOn){_sugBatchOn=false;const b=$('btnSugTodos');if(b)b.textContent='⏹ Parando…';return;}
+  const cola=[
+    ...prods.filter(p=>!p.modelo&&!sugerenciasIA['cat:'+p.id]).map(p=>({id:p.id,type:'cat'})),
+    ...liqs.filter(p=>!p.modelo&&!sugerenciasIA['liq:'+p.id]).map(p=>({id:p.id,type:'liq'}))
+  ];
+  if(!cola.length){renderAdmin();renderLiqAdmin();return;}
+  _sugBatchOn=true;
+  let ok=0,sin=0,err=0;
+  for(let i=0;i<cola.length;i++){
+    if(!_sugBatchOn)break;
+    const b=$('btnSugTodos');if(b)b.textContent=`⏳ ${i+1}/${cola.length}… (clic = parar)`;
+    try{
+      const r=await adminWrite('sugerir_modelo',{table:cola[i].type==='liq'?'liq_products':'products',id:cola[i].id});
+      if(r.sugerencia){sugerenciasIA[cola[i].type+':'+cola[i].id]=r.sugerencia;ok++;}else sin++;
+    }catch(e){
+      err++;
+      if(!ADMIN_OK)break;                    // sesión vencida: seguir sería martillar 401s
+      if(err>=3&&!ok){break;}                // 3 fallos seguidos sin ningún éxito = algo está roto, no insistir
+    }
+  }
+  _sugBatchOn=false;
+  renderAdmin();renderLiqAdmin();   // re-render → franjas de aprobación en cada fila
+  alert(`✨ IA terminó:\n• ${ok} propuesta${ok===1?'':'s'} lista${ok===1?'':'s'} para revisar (franja verde en cada producto)\n• ${sin} sin identificar\n• ${err} error${err===1?'':'es'}\n\nNada se guardó todavía: aprueba con "✓ Usar" producto por producto.`);
 }
 
 async function delProd(id,type){
