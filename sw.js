@@ -10,7 +10,7 @@
    - cross-origin      → passthrough sin tocar (supabase, GA, fbq, etc.).
 
    Sube el numero de version (v1 → v2 …) en cada deploy que cambie el app-shell. */
-const CACHE = 'strange-admin-v5';   // v5: cupón de bienvenida único por suscriptor (base/carrito/tienda/admin)
+const CACHE = 'strange-admin-v6';   // v6: recibo de pago confirmado, botón de reenvío a Telegram y talla en ?pedido=
 
 const SHELL = [
   '/',
@@ -21,6 +21,7 @@ const SHELL = [
   '/tienda.js',
   '/carrito.js',
   '/boot.js',
+  '/extras.js',
   '/admin.html',
   '/admin.js',
   '/icons/admin-192.png',
