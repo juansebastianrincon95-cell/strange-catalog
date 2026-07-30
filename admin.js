@@ -904,9 +904,26 @@ function togPedDetail(id){
     +fila('Meta',[u.fbclid?'fbclid: '+corto(u.fbclid):'',u.fbp?'fbp: '+corto(u.fbp):'',u.fbc?'fbc: '+corto(u.fbc):''].filter(Boolean).join(' · '))
     +fila('Contexto',[u.src_app?'Origen: '+escHtml(srcAppLabel(u.src_app)):'',u.landing?'Landing: '+escHtml(u.landing):'',u.device?'Dispositivo: '+escHtml(u.device):''].filter(Boolean).join(' · '))
     +fila('Fecha',o.fecha?new Date(o.fecha).toLocaleString('es-CO',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}):'')
-    +envioBloque(o);
+    +envioBloque(o)
+    +`<div style="margin-top:10px"><button id="tgBtn${o.id}" onclick="reenviarTelegram(${o.id},this)" style="border:none;cursor:pointer;background:#229ED9;color:#fff;padding:8px 13px;border-radius:8px;font-size:11.5px;font-weight:700">📲 Reenviar aviso a Telegram</button></div>`;
   det.style.display='block';
   if(chev)chev.textContent='Ocultar ▴';
+}
+
+/* Reenviar A MANO el aviso de esta venta a Telegram. El bot sigue avisando SOLO las ventas de
+   pasarela de forma automática; este botón es para revisar el formato o recuperar un aviso que
+   se perdió. Dice la verdad: si el bot no está configurado o Telegram rechaza, avisa que no salió. */
+async function reenviarTelegram(id,btn){
+  const txt='📲 Reenviar aviso a Telegram';
+  if(btn){btn.disabled=true;btn.textContent='Enviando…';}
+  try{
+    const r=await adminWrite('reenviar_telegram',{id});
+    if(btn)btn.textContent=r.enviado?'✅ Enviado — míralo en Telegram':'⚠️ No salió (revisa el bot)';
+  }catch(e){
+    if(btn)btn.textContent='⚠️ '+(e.message||'error');
+  }finally{
+    if(btn)setTimeout(()=>{btn.disabled=false;btn.textContent=txt;},5000);
+  }
 }
 
 /* ── ENVÍO — bloques en el detalle del pedido ── */

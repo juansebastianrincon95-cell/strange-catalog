@@ -267,7 +267,7 @@ async function notifyVentaTelegram(order) {
     (dir ? `📍 ${dir}\n` : '') +
     (order.cedula ? `🪪 ${order.cedula}\n` : '') +
     `${items}${linkFotos}\nRef: ${order.reference || order.id}`;
-  await sendTelegram(text);
+  return sendTelegram(text);   // true/false: lo usa el botón de reenvío del panel para poder decir si salió
 }
 
 // Marca el cupón de bienvenida como USADO al confirmarse la venta (un solo uso). Se llama con

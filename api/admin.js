@@ -1,6 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const { sendEvent } = require('./_capi');
-const { contentIdsDe, cartSig, decrementStock, marcarCuponBienvenidaUsado } = require('./_orders');
+const { contentIdsDe, cartSig, decrementStock, marcarCuponBienvenidaUsado, notifyVentaTelegram } = require('./_orders');
 const { generarGuia } = require('./_coordinadora');
 const { requireAdmin, renewIfActive } = require('./_admin_auth');
 const crypto = require('crypto');
@@ -230,6 +230,22 @@ module.exports = async (req, res) => {
       // vendedor marca a mano ya la conoce, y avisarla convierte el canal en ruido.
     }
     return res.json({ ok: true });
+  }
+
+  /* Reenviar A MANO el aviso de una venta a Telegram. Esto NO contradice la regla del canal
+     (el bot avisa solo las ventas de pasarela, automáticamente): esto es un botón que aprieta
+     el vendedor cuando quiere revisar el formato o recuperar un aviso que se perdió. Por eso
+     no cuelga de ningún camino automático. Devuelve `enviado` para poder decir la verdad:
+     sendTelegram silencia sus errores y sin las envs del bot no manda nada. */
+  if (action === 'reenviar_telegram') {
+    if (!id) return res.status(400).json({ error: 'id required' });
+    const { data: order, error } = await sb.from('orders')
+      .select('id,subtotal,total,tel,ciudad,barrio,direccion,cedula,pago,nombre,reference,status,items')
+      .eq('id', id).maybeSingle();
+    if (error) return res.status(500).json({ error: error.message });
+    if (!order) return res.status(404).json({ error: 'order_not_found' });
+    const enviado = await notifyVentaTelegram(order).catch(() => false);
+    return res.json({ ok: true, enviado: !!enviado });
   }
 
   // Borrar un pedido por id (para limpiar basura/pruebas viejas desde el panel Leads).
