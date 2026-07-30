@@ -852,7 +852,38 @@ function togCliDetail(tel){
   if(chev)chev.textContent='Ocultar ▴';
 }
 
-/* Detalle profundo del pedido: dirección, montos separados, campaña/atribución, contexto */
+/* ── FOTOS DEL PEDIDO ── Ver QUÉ se vendió, no solo leerlo. El detalle mostraba los productos
+   como texto ("Adidas #29 x1"), inútil para reconocer un par de un vistazo o para responderle
+   al cliente por WhatsApp. Reusa productosDePedido(), que ya cruza los items con el catálogo.
+   Cada foto abre la ficha del producto; el link de abajo abre el pedido COMPLETO con fotos
+   (la misma vista ?pedido= que recibe el vendedor por WhatsApp), útil para reenviársela. */
+function fotosPedido(o){
+  const prods=productosDePedido(o);
+  if(!prods.length)return '';
+  const items=Array.isArray(o.items)?o.items:[];
+  const cards=prods.map(({p,type,it})=>{
+    const qty=parseInt(it.qty)||1;
+    const nom=escHtml(it.label||p.modelo||('#'+p.id));
+    return `<div onclick="irProducto(${p.id},'${type}')" title="Ver en Productos" style="flex:0 0 auto;width:74px;cursor:pointer">
+      <div style="position:relative">
+        ${p.img?`<img src="${escHtml(p.img)}" alt="" loading="lazy" style="width:74px;height:74px;object-fit:cover;border-radius:9px;border:1px solid var(--line);display:block">`
+              :`<div style="width:74px;height:74px;border-radius:9px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:22px;background:var(--bg)">👟</div>`}
+        ${qty>1?`<div style="position:absolute;top:-5px;right:-5px;background:var(--ink);color:#fff;font-size:10px;font-weight:800;min-width:19px;height:19px;border-radius:10px;display:flex;align-items:center;justify-content:center;padding:0 4px">x${qty}</div>`:''}
+        ${p.sold?`<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(232,32,10,.9);color:#fff;font-size:8px;font-weight:800;text-align:center;padding:2px 0;border-radius:0 0 8px 8px">AGOTADO</div>`:''}
+      </div>
+      <div style="font-size:9.5px;font-weight:700;color:var(--ink2);line-height:1.2;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${nom}</div>
+      <div style="font-size:9px;color:var(--ink3)">#${p.id}${it.talla?' · T'+escHtml(String(it.talla)):''}</div>
+    </div>`;
+  }).join('');
+  // Mismo formato que arma el carrito para WhatsApp: 29x1,L5x2
+  const code=items.filter(it=>it.id!=null).map(it=>(it.type==='liq'?'L':'')+parseInt(it.id)+'x'+(parseInt(it.qty)||1)).join(',');
+  return `<div style="margin-bottom:10px">
+    <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch">${cards}</div>
+    ${code?`<a href="https://strangesneakers.com/?pedido=${code}" target="_blank" rel="noopener" style="display:inline-block;margin-top:4px;font-size:10.5px;font-weight:700;color:var(--blue);text-decoration:none">📸 Abrir el pedido con fotos ↗</a>`:''}
+  </div>`;
+}
+
+/* Detalle profundo del pedido: fotos, dirección, montos separados, campaña/atribución, contexto */
 function togPedDetail(id){
   const det=$('pedDet'+id),chev=$('pedChev'+id);if(!det)return;
   const abierto=det.style.display!=='none';
@@ -863,7 +894,8 @@ function togPedDetail(id){
   const fila=(l,v)=>v?`<div style="display:flex;gap:8px"><span style="flex:0 0 92px;font-weight:700;color:var(--ink3);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;padding-top:1px">${l}</span><span style="flex:1;word-break:break-word">${v}</span></div>`:'';
   const utmLinea=['utm_source','utm_medium','utm_campaign','utm_content','utm_term'].map(k=>u[k]?`<b>${k.replace('utm_','')}:</b> ${escHtml(u[k])}`:'').filter(Boolean).join(' · ');
   det.innerHTML=
-    fila('Dirección',[o.direccion,o.barrio,o.ciudad].filter(Boolean).map(escHtml).join(', '))
+    fotosPedido(o)
+    +fila('Dirección',[o.direccion,o.barrio,o.ciudad].filter(Boolean).map(escHtml).join(', '))
     +fila('Cédula',o.cedula?escHtml(o.cedula):'')
     +fila('Montos',`Subtotal <b>${fmt(o.subtotal!=null?o.subtotal:o.total)}</b>${o.envio?` · Envío <b>${fmt(o.envio)}</b>`:''} · Total <b>${fmt(o.total||0)}</b>`)
     +fila('Referencia',o.reference?escHtml(o.reference):'')

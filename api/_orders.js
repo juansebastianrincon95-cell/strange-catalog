@@ -251,12 +251,22 @@ async function sendTelegram(text, { parseMode, timeoutMs = 2500 } = {}) {
 // Aviso de venta al vendedor: arma el texto y lo manda por el bot (nunca bloquea la confirmación).
 async function notifyVentaTelegram(order) {
   const fmtCop = n => '$' + Number(n || 0).toLocaleString('es-CO');
-  const items = (Array.isArray(order.items) ? order.items : [])
-    .map(it => `• ${it.label || 'Producto'} #${it.id} x${it.qty}`).join('\n');
+  const lista = Array.isArray(order.items) ? order.items : [];
+  const items = lista.map(it => `• ${it.label || 'Producto'} #${it.id} x${it.qty}${it.talla ? ' · T' + it.talla : ''}`).join('\n');
+  // Link a la vista ?pedido= — el MISMO que recibe el vendedor por WhatsApp: abre el pedido
+  // completo con las fotos de cada par. Sin esto el aviso era solo texto y había que entrar al
+  // panel para saber qué par se vendió. Formato del código: 29x1,L5x2 (L = liquidación).
+  const code = lista.filter(it => it && it.id != null)
+    .map(it => (it.type === 'liq' ? 'L' : '') + parseInt(it.id) + 'x' + (parseInt(it.qty) || 1))
+    .join(',');
+  const linkFotos = code ? `\n📸 Ver el pedido con fotos:\nhttps://strangesneakers.com/?pedido=${code}` : '';
+  const dir = [order.direccion, order.barrio, order.ciudad].filter(Boolean).join(', ');
   const text = `💰 VENTA CONFIRMADA (${order.pago || 'online'})\n` +
     `${fmtCop(order.subtotal != null ? order.subtotal : order.total)} — ${order.nombre || ''}\n` +
-    `📍 ${order.ciudad || ''}${order.barrio ? ' · ' + order.barrio : ''}\n` +
-    `📞 ${order.tel || ''}\n${items}\nRef: ${order.reference || order.id}`;
+    `📞 ${order.tel || ''}\n` +
+    (dir ? `📍 ${dir}\n` : '') +
+    (order.cedula ? `🪪 ${order.cedula}\n` : '') +
+    `${items}${linkFotos}\nRef: ${order.reference || order.id}`;
   await sendTelegram(text);
 }
 
