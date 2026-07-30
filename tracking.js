@@ -15,6 +15,18 @@ function setTestMode(on){
   try{ if(on)localStorage.setItem('ss_test','1'); else localStorage.removeItem('ss_test'); }catch(e){}
   window.__TEST__=!!on; updateTestBanner();
 }
+
+/* ── ¿ESTE EQUIPO ES DE PRUEBAS? ── Marca POR DISPOSITIVO (vive en su localStorage, no viaja al
+   servidor ni se comparte entre celular y PC). Solo en un equipo marcado el panel enciende el
+   modo prueba solo. Antes se encendía en CUALQUIER dispositivo donde abrieras el panel: el
+   celular de trabajo quedaba en modo prueba y darle "Salir" no servía, porque al reabrir el
+   panel se volvía a prender. En el equipo donde se atienden ventas reales tiene que estar
+   apagado, o una venta de verdad se marca como prueba y no cuenta. */
+function esEquipoPruebas(){ try{ return localStorage.getItem('ss_test_equipo')==='1'; }catch(e){ return false; } }
+function setEquipoPruebas(on){
+  try{ if(on)localStorage.setItem('ss_test_equipo','1'); else localStorage.removeItem('ss_test_equipo'); }catch(e){}
+  setTestMode(!!on);   // marcarlo lo prende ya; desmarcarlo lo apaga (sin dejar el banner colgado)
+}
 function updateTestBanner(){
   var b=document.getElementById('testBanner');
   if(window.__TEST__){

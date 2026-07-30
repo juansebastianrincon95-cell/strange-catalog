@@ -450,14 +450,19 @@ async function loadOrders(){
 }
 
 function _showAdmin(){
-  // Auto-modo-prueba: al entrar al panel, este navegador queda en modo prueba (banner visible).
-  // Así todo lo que pruebes desde aquí se marca `test` y no se mezcla con datos reales.
-  // Se apaga con ?test=off o desde el banner.
-  if(typeof setTestMode==='function'&&!window.__TEST__)setTestMode(true);
+  // El modo prueba se SINCRONIZA con la marca del equipo (Ajustes → 🧪 Este equipo es de pruebas):
+  // se enciende solo donde tú lo marcaste, y se apaga solo donde no. Antes se encendía en
+  // cualquier dispositivo que abriera el panel, así que el celular de trabajo quedaba atrapado
+  // en modo prueba: "Salir" lo apagaba, pero al reabrir el panel volvía a prenderse.
+  if(typeof setTestMode==='function'&&typeof esEquipoPruebas==='function'){
+    const debe=esEquipoPruebas();
+    if(!!window.__TEST__!==debe)setTestMode(debe);
+  }
   loadCosts().then(()=>{if(avSec==='productos'||avSec==='ofertas')avSec==='ofertas'?renderLiqAdmin():renderAdmin();});
   renderAdmin();
   const swP=$('swPromo');if(swP)swP.checked=promoG;
   const swB=$('swBanner');if(swB)swB.checked=bannerOn;
+  const swT=$('swTestEquipo');if(swT)swT.checked=(typeof esEquipoPruebas==='function'&&esEquipoPruebas());
   const cfgN=$('cfgNombre');if(cfgN)cfgN.value=STORE_NAME;
   const cfgW=$('cfgWA');if(cfgW)cfgW.value=WA;
   const cfgPx=$('cfgPixel');if(cfgPx)cfgPx.value=PIXEL_ID;
