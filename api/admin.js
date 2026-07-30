@@ -1,6 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const { sendEvent } = require('./_capi');
-const { contentIdsDe, cartSig, decrementStock, marcarCuponBienvenidaUsado } = require('./_orders');
+const { contentIdsDe, cartSig, decrementStock, marcarCuponBienvenidaUsado, notifyVentaTelegram } = require('./_orders');
 const { generarGuia } = require('./_coordinadora');
 const { requireAdmin, renewIfActive } = require('./_admin_auth');
 const crypto = require('crypto');
@@ -184,7 +184,8 @@ module.exports = async (req, res) => {
     const { data: updated, error } = await sb.from('orders')
       .update({ status })
       .eq('id', id).neq('status', status)
-      .select('subtotal,total,tel,ciudad,nombre,reference,status,utm,items,session_id,cupon');
+      // pago/direccion/barrio/cedula/id: los pide el aviso de Telegram para llegar completo
+      .select('id,subtotal,total,tel,ciudad,barrio,direccion,cedula,pago,nombre,reference,status,utm,items,session_id,cupon');
     if (error) return res.status(500).json({ error: error.message });
     const order = updated && updated[0];   // undefined si ya estaba en ese estado o no existe
 
@@ -224,6 +225,12 @@ module.exports = async (req, res) => {
           actionSource: 'business_messaging'
         }).catch(() => {});
       }
+      // Aviso por Telegram también en la venta MANUAL. Antes solo avisaban las pasarelas
+      // (confirmPaidOrder), así que las ventas por contra entrega y WhatsApp —la mayoría—
+      // nunca aparecían: queda un historial incompleto. Con el link de fotos el aviso ya
+      // sirve de registro con imagen, ordenado por fecha, y avisa si alguien más cierra una
+      // venta desde el panel. Nunca bloquea el marcado: si Telegram falla, la venta ya quedó.
+      await notifyVentaTelegram({ ...order, id }).catch(() => {});
     }
     return res.json({ ok: true });
   }
