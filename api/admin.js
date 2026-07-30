@@ -1,6 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const { sendEvent } = require('./_capi');
-const { contentIdsDe, cartSig, decrementStock, marcarCuponBienvenidaUsado, notifyVentaTelegram } = require('./_orders');
+const { contentIdsDe, cartSig, decrementStock, marcarCuponBienvenidaUsado } = require('./_orders');
 const { generarGuia } = require('./_coordinadora');
 const { requireAdmin, renewIfActive } = require('./_admin_auth');
 const crypto = require('crypto');
@@ -225,12 +225,9 @@ module.exports = async (req, res) => {
           actionSource: 'business_messaging'
         }).catch(() => {});
       }
-      // Aviso por Telegram también en la venta MANUAL. Antes solo avisaban las pasarelas
-      // (confirmPaidOrder), así que las ventas por contra entrega y WhatsApp —la mayoría—
-      // nunca aparecían: queda un historial incompleto. Con el link de fotos el aviso ya
-      // sirve de registro con imagen, ordenado por fecha, y avisa si alguien más cierra una
-      // venta desde el panel. Nunca bloquea el marcado: si Telegram falla, la venta ya quedó.
-      await notifyVentaTelegram({ ...order, id }).catch(() => {});
+      // NO se avisa por Telegram en la venta manual, por decisión del negocio: el bot es SOLO
+      // para pagos de pasarela, que ocurren sin que nadie esté mirando. Una venta que el
+      // vendedor marca a mano ya la conoce, y avisarla convierte el canal en ruido.
     }
     return res.json({ ok: true });
   }

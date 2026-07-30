@@ -59,7 +59,6 @@
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "crons": [
-    { "path": "/api/orders?cron=reconciliar", "schedule": "*/10 * * * *" },
-    { "path": "/api/orders?cron=parte_rescate", "schedule": "0 13 * * *" }
+    { "path": "/api/orders?cron=reconciliar", "schedule": "*/10 * * * *" }
   ]
 }
