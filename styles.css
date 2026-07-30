@@ -712,6 +712,20 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .ped-pr{font-size:14px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
 .ped-total{display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding:14px 4px 4px;border-top:1px solid var(--line);font-size:16px;font-weight:800;color:var(--ink)}
 .ped-cta{display:block;text-align:center;margin-top:18px;background:var(--ink);color:var(--white);text-decoration:none;padding:14px;border-radius:13px;font-size:14px;font-weight:700}
+
+/* PAGO CONFIRMADO (el recibo que ve el cliente al volver de la pasarela) */
+.rec-ok{background:#0f9d58;color:#fff;padding:26px 16px 22px;text-align:center}
+.rec-check{font-size:40px;line-height:1}
+.rec-h1{font-size:22px;font-weight:800;margin-top:6px;letter-spacing:-.01em}
+.rec-ref{font-size:12px;font-weight:600;opacity:.9;margin-top:6px;font-variant-numeric:tabular-nums}
+.rec-envio{display:flex;justify-content:space-between;align-items:center;padding:4px 4px 0;font-size:13px;font-weight:600;color:var(--ink2)}
+.rec-datos{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:18px}
+.rec-tit{font-size:10px;font-weight:700;color:var(--ink3);letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px}
+.rec-l{font-size:14px;color:var(--ink);line-height:1.55}
+.rec-nota{font-size:12px;color:var(--ink2);margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.rec-wa{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:18px;min-height:54px;background:#25D366;color:#fff;text-decoration:none;border-radius:14px;font-size:16px;font-weight:800;box-shadow:0 6px 18px rgba(37,211,102,.32)}
+.rec-extra{display:flex;flex-direction:column;gap:10px;align-items:center;margin:18px 0 28px;font-size:13px;color:var(--ink2);text-align:center}
+.rec-extra a{color:var(--ink);font-weight:600;text-decoration:none}
 .paysec{padding:4px 0 16px}
 .paytit{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:12px}
 /* Métodos de pago (paso 3): tarjetas pro con ícono, acento, sombra y hover */

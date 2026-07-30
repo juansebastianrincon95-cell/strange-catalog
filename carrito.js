@@ -612,6 +612,89 @@ async function pagarWompi(){
   }
 }
 
+/* ── RECIBO DE PAGO CONFIRMADO ────────────────────────────────────────────────
+   Antes, al volver de la pasarela, el cliente solo veía un alert() y el WhatsApp con el pedido
+   se abría por window.open dentro de un setTimeout — o sea SIN gesto suyo, así que Chrome y
+   Safari de celular lo bloqueaban seguido y el mensaje nunca le llegaba a la tienda. Ahora se
+   pinta un recibo real con las fotos y el WhatsApp es un <a> que el cliente TOCA: eso no lo
+   bloquea ningún navegador. Vive aquí y no en extras.js para no depender de una descarga extra
+   justo después de un pago (su onerror muestra un alert que ahí sería pésimo).
+   Solo cambia lo que se le MUESTRA al cliente: cuando se llega aquí el pago ya se verificó
+   server-side y el Purchase ya se disparó. ── */
+
+/* "Adidas · ADIDAS RUNNING" se leía redundante: muchos modelos ya traen la marca en el nombre.
+   Solo se antepone la marca cuando el nombre no la menciona. */
+function nombreItem(it){
+  const marca=it.brand?(BRAND_LABELS[it.brand]||it.brand):'';
+  const label=it.label||'Producto';
+  if(!marca||label.toLowerCase().includes(marca.toLowerCase()))return label;
+  return marca+' · '+label;
+}
+
+// Texto del pedido para WhatsApp. Era el mismo bloque copiado en los 4 retornos de pasarela.
+function msgPedidoWA(order,pasarela,esCredito){
+  const titulo=esCredito?`CRÉDITO APROBADO (${pasarela})`:'PAGO CONFIRMADO';
+  const metodo=`${pasarela==='Wompi'?'💜':'💳'} *Pago ${pasarela}:* ${esCredito?'Aprobado':'Confirmado'} ✓`;
+  let items='';
+  (order.items||[]).forEach(it=>{
+    const ref=it.id?` · #${it.id}`:'';
+    const ln=it.id?`\n     👉 https://strangesneakers.com/p/${it.type==='liq'?'L':''}${it.id}`:'';
+    items+=`  • ${nombreItem(it)}${ref}${it.talla?` · Talla ${it.talla}`:''} x${it.qty} — ${fmt(it.precio)}${ln}\n`;
+  });
+  const sep='━━━━━━━━━━━━━━━━━━━━';
+  const prod=items?`👟 *PRODUCTOS*\n${items}\n📦 *Envío: GRATIS ✓*\n💰 *TOTAL: ${order.total!=null?fmt(order.total):'-'}*\n${sep}\n`:'';
+  // Sin el pedido en localStorage solo tenemos la referencia: se omite el bloque de datos en vez
+  // de mandar seis guiones (la tienda igual tiene todo en el panel buscando por la ref).
+  const datos=order.nombre?`👤 *DATOS*\n`+
+    `• Nombre: ${order.nombre}\n• Cédula: ${order.cedula||'-'}\n• Celular: ${order.tel||'-'}\n`+
+    `• Dirección: ${order.direccion||'-'}\n• Barrio: ${order.barrio||'-'}\n• Ciudad: ${order.ciudad||'-'}\n`:'';
+  return `✅ *${titulo} — ${STORE_NAME}*\n${sep}\n${prod}${datos}`+
+    `• Ref: ${order.reference||order.id||'-'}\n${sep}\n${metodo}\n${sep}\n`+
+    `¡Gracias por tu compra! Tu pedido está siendo procesado 🙏\n\n`+
+    `🎁 *Tu regalo — Guía de cuidado de tus sneakers:*\nhttps://strangesneakers.com/?regalo=cuidado`;
+}
+
+/* Pantalla de confirmación a pantalla completa. Reusa las clases .ped-* de la vista ?pedido=.
+   Tolera un pedido incompleto: si se perdió el localStorage solo llega la referencia y se pinta
+   la versión mínima (sin fotos ni datos), pero con el mismo botón de WhatsApp. */
+function mostrarRecibo(order,pasarela,esCredito){
+  const wa=`https://wa.me/${WA}?text=${encodeURIComponent(msgPedidoWA(order,pasarela,esCredito))}`;
+  const lista=Array.isArray(order.items)?order.items:[];
+  const pares=lista.reduce((s,it)=>s+(Number(it.qty)||1),0);
+  const rows=lista.map(it=>{
+    const p=(it.type==='liq'?liqs:prods).find(x=>x.id===it.id);
+    const img=p&&p.img?`<img src="${escHtml(p.img)}" alt="${altProd(p)}">`:'👟';
+    const sub=[it.talla?'Talla '+it.talla:'','Cantidad '+(it.qty||1)].filter(Boolean).join(' · ');
+    return `<div class="ped-row"><div class="ped-img">${img}</div><div class="ped-info">`+
+      `<div class="ped-name">${escHtml(nombreItem(it))}${it.id?' · #'+it.id:''}</div>`+
+      `<div class="ped-q">${escHtml(sub)}</div></div>`+
+      `<div class="ped-pr">${it.precio!=null?fmt(it.precio):''}</div></div>`;
+  }).join('');
+  const pedido=rows?`<div class="ped-head">Tu pedido · ${pares} ${pares===1?'par':'pares'}</div>${rows}`+
+    `<div class="rec-envio"><span>Envío</span><span>GRATIS ✓</span></div>`+
+    `<div class="ped-total"><span>Total</span><span>${order.total!=null?fmt(order.total):''}</span></div>`:'';
+  const dir=[order.direccion,order.barrio].filter(Boolean).join(' · ');
+  const datos=order.nombre?`<div class="rec-datos"><div class="rec-tit">Enviamos a</div>`+
+    `<div class="rec-l"><b>${escHtml(order.nombre)}</b>${order.cedula?' · CC '+escHtml(String(order.cedula)):''}</div>`+
+    (dir?`<div class="rec-l">${escHtml(dir)}</div>`:'')+
+    `<div class="rec-l">${escHtml(order.ciudad||'')}${order.tel?' · '+escHtml(String(order.tel)):''}</div>`+
+    `<div class="rec-nota">¿Algo mal? Escríbenos y lo corregimos antes de despachar.</div></div>`:'';
+  const ov=document.createElement('div');
+  ov.className='ped-view';
+  ov.innerHTML=`<div class="rec-ok"><div class="rec-check">✅</div>`+
+    `<div class="rec-h1">¡${esCredito?'Crédito aprobado':'Pago confirmado'}!</div>`+
+    `<div class="rec-ref">${escHtml(String(order.reference||order.id||''))} · ${escHtml(pasarela)}</div></div>`+
+    `<div class="ped-body">${pedido}${datos}`+
+    `<a class="rec-wa" href="${wa}" target="_blank" rel="noopener">💬 Confirmar por WhatsApp</a>`+
+    `<div class="rec-extra"><a href="/?regalo=cuidado">🎁 Tu guía de cuidado de sneakers</a>`+
+    `<span>📦 Llega en 2 a 5 días hábiles</span>`+
+    `<a href="#" class="rec-cerrar">Seguir viendo el catálogo →</a></div></div>`;
+  document.body.appendChild(ov);
+  document.body.style.overflow='hidden';
+  const cerrar=ov.querySelector('.rec-cerrar');
+  if(cerrar)cerrar.addEventListener('click',e=>{e.preventDefault();ov.remove();document.body.style.overflow='';});
+}
+
 async function checkWompiReturn(){
   const params=new URLSearchParams(location.search);
   if(!params.get('wompi'))return;
@@ -645,15 +728,9 @@ async function checkWompiReturn(){
       px('Purchase',{content_ids:_wIds,content_type:'product',value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',num_items:order.pares||1,...getUTM()},(order.reference||order.id)+'_purchase');
       gadsUserData(order); gads('purchase',{value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',transaction_id:String(order.reference||order.id)}); ga4('purchase',{transaction_id:String(order.reference||order.id),value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',items:(order.items||[]).map(it=>({item_id:(it.type==='liq'?'liq_':'cat_')+it.id,item_name:it.label,price:it.precio,quantity:it.qty}))});
       trackEvent('purchase',{price:order.subtotal!=null?order.subtotal:order.total});
-      let items='';
-      order.items.forEach(it=>{const mk=it.brand?(BRAND_LABELS[it.brand]||it.brand)+' · ':'';const ref=it.id?` · #${it.id}`:'';const ln=it.id?`\n     👉 https://strangesneakers.com/p/${it.type==='liq'?'L':''}${it.id}`:'';items+=`  • ${mk}${it.label}${ref}${it.talla?` · Talla ${it.talla}`:''} x${it.qty} — ${fmt(it.precio)}${ln}\n`;});
-      const msg=`✅ *PAGO CONFIRMADO — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n📦 *Envío: GRATIS ✓*\n💰 *TOTAL: ${fmt(order.total)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${order.nombre}\n• Cédula: ${order.cedula||'-'}\n• Celular: ${order.tel}\n• Dirección: ${order.direccion||'-'}\n• Barrio: ${order.barrio}\n• Ciudad: ${order.ciudad}\n• Ref: ${reference}\n━━━━━━━━━━━━━━━━━━━━\n💜 *Pago Wompi:* Confirmado ✓\n━━━━━━━━━━━━━━━━━━━━\n¡Gracias por tu compra! Tu pedido está siendo procesado 🙏\n\n🎁 *Tu regalo — Guía de cuidado de tus sneakers:*\nhttps://strangesneakers.com/?regalo=cuidado`;
-      setTimeout(()=>{
-        alert('✅ ¡Pago confirmado!\nEn un momento recibirás confirmación por WhatsApp.');
-        window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,'_blank');
-      },300);
+      mostrarRecibo(order,'Wompi',false);
     }else{
-      setTimeout(()=>alert('✅ ¡Pago confirmado con Wompi!\nTu pedido está en camino. Pronto te contactamos.'),300);
+      mostrarRecibo({reference},'Wompi',false);   // sin el pedido en localStorage: recibo mínimo con la ref
     }
   }else if(status==='APPROVED'){
     // Wompi (vía URL) dice aprobado pero no pudimos verificarlo server-side.
@@ -734,10 +811,8 @@ async function checkBoldReturn(){
       px('Purchase',{content_ids:_bIds,content_type:'product',value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',num_items:order.pares||1,...getUTM()},(order.reference||order.id)+'_purchase');
       gadsUserData(order); gads('purchase',{value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',transaction_id:String(order.reference||order.id)}); ga4('purchase',{transaction_id:String(order.reference||order.id),value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',items:(order.items||[]).map(it=>({item_id:(it.type==='liq'?'liq_':'cat_')+it.id,item_name:it.label,price:it.precio,quantity:it.qty}))});
       trackEvent('purchase',{price:order.subtotal!=null?order.subtotal:order.total});
-      let items='';order.items.forEach(it=>{const mk=it.brand?(BRAND_LABELS[it.brand]||it.brand)+' · ':'';const ref=it.id?` · #${it.id}`:'';const ln=it.id?`\n     👉 https://strangesneakers.com/p/${it.type==='liq'?'L':''}${it.id}`:'';items+=`  • ${mk}${it.label}${ref}${it.talla?` · Talla ${it.talla}`:''} x${it.qty} — ${fmt(it.precio)}${ln}\n`;});
-      const msg=`✅ *PAGO CONFIRMADO — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n📦 *Envío: GRATIS ✓*\n💰 *TOTAL: ${fmt(order.total)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${order.nombre}\n• Celular: ${order.tel}\n• Dirección: ${order.direccion||'-'}\n• Ciudad: ${order.ciudad}\n• Ref: ${reference}\n━━━━━━━━━━━━━━━━━━━━\n💳 *Pago Bold:* Confirmado ✓\n━━━━━━━━━━━━━━━━━━━━\n¡Gracias por tu compra! 🙏\n\n🎁 *Tu regalo — Guía de cuidado:*\nhttps://strangesneakers.com/?regalo=cuidado`;
-      setTimeout(()=>{alert('✅ ¡Pago confirmado!\nEn un momento recibirás confirmación por WhatsApp.');window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,'_blank');},300);
-    }else{setTimeout(()=>alert('✅ ¡Pago confirmado con Bold!\nTu pedido está en camino. Pronto te contactamos.'),300);}
+      mostrarRecibo(order,'Bold',false);
+    }else{mostrarRecibo({reference},'Bold',false);}
   }else{
     setTimeout(()=>alert('⏳ Estamos confirmando tu pago con Bold.\nApenas se confirme te contactamos por WhatsApp.'),300);
   }
@@ -821,10 +896,8 @@ async function checkAddiReturn(){
       px('Purchase',{content_ids:_aIds,content_type:'product',value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',num_items:order.pares||1,...getUTM()},(order.reference||order.id)+'_purchase');
       gadsUserData(order); gads('purchase',{value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',transaction_id:String(order.reference||order.id)}); ga4('purchase',{transaction_id:String(order.reference||order.id),value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',items:(order.items||[]).map(it=>({item_id:(it.type==='liq'?'liq_':'cat_')+it.id,item_name:it.label,price:it.precio,quantity:it.qty}))});
       trackEvent('purchase',{price:order.subtotal!=null?order.subtotal:order.total});
-      let items='';order.items.forEach(it=>{const mk=it.brand?(BRAND_LABELS[it.brand]||it.brand)+' · ':'';const ref=it.id?` · #${it.id}`:'';const ln=it.id?`\n     👉 https://strangesneakers.com/p/${it.type==='liq'?'L':''}${it.id}`:'';items+=`  • ${mk}${it.label}${ref}${it.talla?` · Talla ${it.talla}`:''} x${it.qty} — ${fmt(it.precio)}${ln}\n`;});
-      const msg=`✅ *CRÉDITO APROBADO (Addi) — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n📦 *Envío: GRATIS ✓*\n💰 *TOTAL: ${fmt(order.total)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${order.nombre}\n• Celular: ${order.tel}\n• Dirección: ${order.direccion||'-'}\n• Ciudad: ${order.ciudad}\n• Ref: ${reference}\n━━━━━━━━━━━━━━━━━━━━\n💳 *Pago Addi:* Aprobado ✓\n━━━━━━━━━━━━━━━━━━━━\n¡Gracias por tu compra! 🙏\n\n🎁 *Tu regalo — Guía de cuidado:*\nhttps://strangesneakers.com/?regalo=cuidado`;
-      setTimeout(()=>{alert('✅ ¡Crédito aprobado con Addi!\nEn un momento recibirás confirmación por WhatsApp.');window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,'_blank');},300);
-    }else{setTimeout(()=>alert('✅ ¡Crédito aprobado con Addi!\nTu pedido está en camino. Pronto te contactamos.'),300);}
+      mostrarRecibo(order,'Addi',true);
+    }else{mostrarRecibo({reference},'Addi',true);}
   }else{
     setTimeout(()=>alert('⏳ Estamos confirmando tu crédito con Addi.\nApenas Addi lo apruebe te contactamos por WhatsApp.'),300);
   }
@@ -906,10 +979,8 @@ async function checkSistecreditoReturn(){
       px('Purchase',{content_ids:_sIds,content_type:'product',value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',num_items:order.pares||1,...getUTM()},(order.reference||order.id)+'_purchase');
       gadsUserData(order); gads('purchase',{value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',transaction_id:String(order.reference||order.id)}); ga4('purchase',{transaction_id:String(order.reference||order.id),value:order.subtotal!=null?order.subtotal:order.total,currency:'COP',items:(order.items||[]).map(it=>({item_id:(it.type==='liq'?'liq_':'cat_')+it.id,item_name:it.label,price:it.precio,quantity:it.qty}))});
       trackEvent('purchase',{price:order.subtotal!=null?order.subtotal:order.total});
-      let items='';order.items.forEach(it=>{const mk=it.brand?(BRAND_LABELS[it.brand]||it.brand)+' · ':'';const ref=it.id?` · #${it.id}`:'';const ln=it.id?`\n     👉 https://strangesneakers.com/p/${it.type==='liq'?'L':''}${it.id}`:'';items+=`  • ${mk}${it.label}${ref}${it.talla?` · Talla ${it.talla}`:''} x${it.qty} — ${fmt(it.precio)}${ln}\n`;});
-      const msg=`✅ *CRÉDITO APROBADO (Sistecrédito) — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n📦 *Envío: GRATIS ✓*\n💰 *TOTAL: ${fmt(order.total)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${order.nombre}\n• Celular: ${order.tel}\n• Dirección: ${order.direccion||'-'}\n• Ciudad: ${order.ciudad}\n• Ref: ${reference}\n━━━━━━━━━━━━━━━━━━━━\n💳 *Pago Sistecrédito:* Aprobado ✓\n━━━━━━━━━━━━━━━━━━━━\n¡Gracias por tu compra! 🙏\n\n🎁 *Tu regalo — Guía de cuidado:*\nhttps://strangesneakers.com/?regalo=cuidado`;
-      setTimeout(()=>{alert('✅ ¡Crédito aprobado con Sistecrédito!\nEn un momento recibirás confirmación por WhatsApp.');window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,'_blank');},300);
-    }else{setTimeout(()=>alert('✅ ¡Crédito aprobado con Sistecrédito!\nTu pedido está en camino. Pronto te contactamos.'),300);}
+      mostrarRecibo(order,'Sistecrédito',true);
+    }else{mostrarRecibo({reference},'Sistecrédito',true);}
   }else{
     setTimeout(()=>alert('⏳ Estamos confirmando tu crédito con Sistecrédito.\nApenas lo aprueben te contactamos por WhatsApp.'),300);
   }
