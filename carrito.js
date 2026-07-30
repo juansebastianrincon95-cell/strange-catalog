@@ -521,7 +521,11 @@ async function enviarWA(tipo){
   let items='';
   rows.forEach(({p,qty,type,talla})=>{const s=p.price*qty;const lbl=p.modelo||(type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer'));const mk=p.brand?(BRAND_LABELS[p.brand]||p.brand)+' · ':'';items+=`  • ${mk}${lbl} · #${p.id}${talla?` · Talla ${talla}`:''} x${qty} — ${fmt(s)}\n`;});
   // UN solo link que abre TODO el pedido con fotos (más fácil para el vendedor que link por link).
-  const pedidoCode=rows.map(({p,qty,type})=>(type==='liq'?'L':'')+p.id+'x'+qty).join(',');
+  // Formato 29x1t40: la talla viaja en el link para saber qué alistar sin abrir el panel.
+  const pedidoCode=rows.map(({p,qty,type,talla})=>{
+    const t=String(talla==null?'':talla).replace(/[^\w.]/g,'').slice(0,6);
+    return (type==='liq'?'L':'')+p.id+'x'+qty+(t?'t'+t:'');
+  }).join(',');
   const pedidoLink=`https://strangesneakers.com/?pedido=${pedidoCode}`;
   const envioLinea=tipo==='contra_entrega'?`🚚 *Envío (se paga primero):* ${fmt(flete)}\n👟 *Zapatos (pagas al recibir en casa):* ${fmt(sub)}`:`📦 *Envío: GRATIS ✓*`;
   // Ahorro REAL del combo: contra el precio original (antes→ahora + combo), igual que el carrito.

@@ -256,8 +256,13 @@ async function notifyVentaTelegram(order) {
   // Link a la vista ?pedido= — el MISMO que recibe el vendedor por WhatsApp: abre el pedido
   // completo con las fotos de cada par. Sin esto el aviso era solo texto y había que entrar al
   // panel para saber qué par se vendió. Formato del código: 29x1,L5x2 (L = liquidación).
+  // Formato: 29x1t40 (L = liquidación, t = talla). La talla va en el link para que la vista
+  // muestre QUÉ TALLA alistar; el sufijo es opcional, los links viejos siguen funcionando.
   const code = lista.filter(it => it && it.id != null)
-    .map(it => (it.type === 'liq' ? 'L' : '') + parseInt(it.id) + 'x' + (parseInt(it.qty) || 1))
+    .map(it => {
+      const t = String(it.talla == null ? '' : it.talla).replace(/[^\w.]/g, '').slice(0, 6);
+      return (it.type === 'liq' ? 'L' : '') + parseInt(it.id) + 'x' + (parseInt(it.qty) || 1) + (t ? 't' + t : '');
+    })
     .join(',');
   const linkFotos = code ? `\n📸 Ver el pedido con fotos:\nhttps://strangesneakers.com/?pedido=${code}` : '';
   const dir = [order.direccion, order.barrio, order.ciudad].filter(Boolean).join(', ');

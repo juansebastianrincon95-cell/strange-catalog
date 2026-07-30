@@ -64,21 +64,27 @@ function descargarGuia(){
   setTimeout(()=>{ window.print(); document.body.classList.remove('printing-guia'); },80);
 }
 
-/* ── VER PEDIDO (un solo link con fotos para el vendedor): ?pedido=29x1,30x2,L5x1 ── */
+/* ── VER PEDIDO (un solo link con fotos para el vendedor): ?pedido=29x1t40,30x2,L5x1 ──
+   El sufijo `t<talla>` es OPCIONAL: los links viejos (29x1) siguen abriendo igual, solo que
+   sin talla. Sin esto la vista mostraba las fotos pero no QUÉ TALLA se vendió, que es justo
+   lo que hay que alistar para despachar. */
 function _pedidoViewReal(code){
   let list=[],total=0,tot=0;
   code.split(',').map(s=>s.trim()).filter(Boolean).forEach(seg=>{
-    const m=/^(L?)(\d+)x(\d+)$/i.exec(seg);if(!m)return;
+    const m=/^(L?)(\d+)x(\d+)(?:t([\w.]{1,6}))?$/i.exec(seg);if(!m)return;
     const isLiq=!!m[1],id=parseInt(m[2]),qty=Math.min(parseInt(m[3])||1,50);
     const p=(isLiq?liqs:prods).find(x=>x.id===id);if(!p)return;
-    list.push({p,qty,isLiq});total+=p.price*qty;tot+=qty;
+    list.push({p,qty,isLiq,talla:m[4]||''});total+=p.price*qty;tot+=qty;
   });
   if(!list.length)return;
-  const rowsHtml=list.map(({p,qty,isLiq})=>{
-    const mk=p.brand?(BRAND_LABELS[p.brand]||p.brand)+' · ':'';
-    const lbl=isLiq?'Liquidación':(p.g==='h'?'Hombre':'Mujer');
+  const rowsHtml=list.map(({p,qty,isLiq,talla})=>{
+    // Preferir el modelo real; "Mujer"/"Hombre" solo cuando el producto no tiene nombre.
+    const lbl=p.modelo||(isLiq?'Liquidación':(p.g==='h'?'Hombre':p.g==='m'?'Mujer':'Unisex'));
+    const marca=p.brand?(BRAND_LABELS[p.brand]||p.brand):'';
+    const nom=(marca&&!lbl.toLowerCase().includes(marca.toLowerCase()))?marca+' · '+lbl:lbl;
     const img=p.img?`<img src="${escHtml(p.img)}" alt="${altProd(p)}">`:'👟';
-    return `<div class="ped-row"><div class="ped-img">${img}</div><div class="ped-info"><div class="ped-name">${escHtml(mk+lbl)} · #${p.id}</div><div class="ped-q">Cantidad: ${qty} · ${fmt(p.price)} c/u</div></div><div class="ped-pr">${fmt(p.price*qty)}</div></div>`;
+    const sub=(talla?`<b>Talla ${escHtml(talla)}</b> · `:'')+`Cantidad: ${qty} · ${fmt(p.price)} c/u`;
+    return `<div class="ped-row"><div class="ped-img">${img}</div><div class="ped-info"><div class="ped-name">${escHtml(nom)} · #${p.id}</div><div class="ped-q">${sub}</div></div><div class="ped-pr">${fmt(p.price*qty)}</div></div>`;
   }).join('');
   const ov=document.createElement('div');
   ov.className='ped-view';

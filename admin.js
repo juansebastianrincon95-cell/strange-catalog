@@ -875,8 +875,11 @@ function fotosPedido(o){
       <div style="font-size:9px;color:var(--ink3)">#${p.id}${it.talla?' · T'+escHtml(String(it.talla)):''}</div>
     </div>`;
   }).join('');
-  // Mismo formato que arma el carrito para WhatsApp: 29x1,L5x2
-  const code=items.filter(it=>it.id!=null).map(it=>(it.type==='liq'?'L':'')+parseInt(it.id)+'x'+(parseInt(it.qty)||1)).join(',');
+  // Mismo formato que arma el carrito para WhatsApp: 29x1t40,L5x2 (t = talla, opcional)
+  const code=items.filter(it=>it.id!=null).map(it=>{
+    const t=String(it.talla==null?'':it.talla).replace(/[^\w.]/g,'').slice(0,6);
+    return (it.type==='liq'?'L':'')+parseInt(it.id)+'x'+(parseInt(it.qty)||1)+(t?'t'+t:'');
+  }).join(',');
   return `<div style="margin-bottom:10px">
     <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch">${cards}</div>
     ${code?`<a href="https://strangesneakers.com/?pedido=${code}" target="_blank" rel="noopener" style="display:inline-block;margin-top:4px;font-size:10.5px;font-weight:700;color:var(--blue);text-decoration:none">📸 Abrir el pedido con fotos ↗</a>`:''}
