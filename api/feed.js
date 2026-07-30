@@ -125,6 +125,28 @@ module.exports = async (req, res) => {
     }))
   ];
 
+  // ── DESEMPATE DE TÍTULOS REPETIDOS ──
+  // Meta marca "contenido duplicado" cuando varios productos comparten título, y eso castiga
+  // los anuncios de catálogo. Aquí pasa de verdad: hay 8 "ADIDAS SAMBA", 6 "ADIDAS SUPERSTAR"…
+  // porque el mismo modelo se subió en varios colores con un solo nombre.
+  // Shopify lo resuelve agrupando variantes con item_group_id + atributo color; sin columna de
+  // color en la BD, se desempata con la referencia SOLO en los repetidos: los títulos ya únicos
+  // ("NIKE DUNK PANDA", "ADIDAS SUPERSTAR NEGRO") quedan limpios, sin número encima.
+  // Va después del array para que aplique igual al JSON y al CSV programado de Meta.
+  // Cuando se llene el color por producto, la mayoría dejará de chocar y esto se apagará solo.
+  const vecesTitulo = {};
+  all.forEach(p => { vecesTitulo[p.title] = (vecesTitulo[p.title] || 0) + 1; });
+  all.forEach(p => {
+    if (vecesTitulo[p.title] > 1 && !/ Ref\. /.test(p.title)) {
+      // La Ref. va SIEMPRE al final: si el título es tan largo que no cabe, se recorta el
+      // título, no la referencia. Cortando al final, dos títulos largos casi iguales volverían
+      // a quedar idénticos justo después de desempatarlos.
+      const ref = ' Ref. ' + String(p.id).replace(/^(cat|liq)_/, '');
+      const base = p.title.length + ref.length > 200 ? p.title.slice(0, 200 - ref.length) : p.title;
+      p.title = base + ref;
+    }
+  });
+
   // ?format=csv → formato que Meta Commerce acepta como feed PROGRAMADO (JSON no es válido
   // para data sources con schedule; CSV sí). El JSON se mantiene como default (lo usan
   // el agente y otras integraciones).
