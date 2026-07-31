@@ -1,6 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const { sendEvent } = require('./_capi');
-const { contentIdsDe, cartSig, decrementStock, marcarCuponBienvenidaUsado, notifyVentaTelegram } = require('./_orders');
+const { contentIdsDe, cartSig, decrementStock, marcarCuponBienvenidaUsado, notifyVentaTelegram, cleanText } = require('./_orders');
 const { generarGuia } = require('./_coordinadora');
 const { requireAdmin, renewIfActive } = require('./_admin_auth');
 const crypto = require('crypto');
@@ -238,6 +238,23 @@ module.exports = async (req, res) => {
     return res.json({ ok: true });
   }
 
+  /* Historial de avisos enviados (tabla notificaciones, migración 005). Sirve para responder
+     "¿qué avisos llegaron?" y "¿este salió o falló?" sin depender del historial de Telegram,
+     que la API del bot no permite leer. Filtros opcionales: reference, tipo, solo_fallidos. */
+  if (action === 'list_notificaciones') {
+    const d = data || {};
+    let q = sb.from('notificaciones')
+      .select('id,created_at,canal,tipo,order_id,reference,texto,ok,error')
+      .order('created_at', { ascending: false })
+      .limit(Math.min(Number(d.limit) || 100, 500));
+    if (d.reference) q = q.eq('reference', cleanText(d.reference, 100));
+    if (d.tipo) q = q.eq('tipo', cleanText(d.tipo, 40));
+    if (d.solo_fallidos) q = q.eq('ok', false);
+    const { data: rows, error } = await q;
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json({ ok: true, notificaciones: rows || [] });
+  }
+
   /* Reenviar A MANO el aviso de una venta a Telegram. Esto NO contradice la regla del canal
      (el bot avisa solo las ventas de pasarela, automáticamente): esto es un botón que aprieta
      el vendedor cuando quiere revisar el formato o recuperar un aviso que se perdió. Por eso
@@ -250,7 +267,7 @@ module.exports = async (req, res) => {
       .eq('id', id).maybeSingle();
     if (error) return res.status(500).json({ error: error.message });
     if (!order) return res.status(404).json({ error: 'order_not_found' });
-    const enviado = await notifyVentaTelegram(order).catch(() => false);
+    const enviado = await notifyVentaTelegram(order, 'reenvio_manual').catch(() => false);
     return res.json({ ok: true, enviado: !!enviado });
   }
 

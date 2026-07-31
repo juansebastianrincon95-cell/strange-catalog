@@ -231,12 +231,32 @@ function cartSig(items) {
    Nunca bloquea a quien lo llama: timeout corto y errores silenciados (devuelve false).
    parseMode ('HTML') sirve para mensajes con enlaces tocables (el parte de rescate);
    en ese caso se apaga el preview para que un wa.me no infle el chat con tarjetas. */
-async function sendTelegram(text, { parseMode, timeoutMs = 2500 } = {}) {
+/* Deja constancia de CADA aviso en la tabla `notificaciones` (migración 005). Antes los mensajes
+   se enviaban y se perdían: no había forma de responder "¿qué avisos llegaron?" ni "¿este salió?".
+   Nunca rompe el envío — si el registro falla, se loguea y ya. */
+async function logNotificacion(row) {
+  try {
+    const { error } = await serviceClient().from('notificaciones').insert(row);
+    if (error) console.error('[NOTIF] no se pudo registrar el aviso:', error.message);
+  } catch (e) { console.error('[NOTIF] no se pudo registrar el aviso:', e && e.message); }
+}
+
+async function sendTelegram(text, { parseMode, timeoutMs = 2500, tipo = null, order = null } = {}) {
+  const meta = {
+    canal: 'telegram', tipo, texto: text,
+    order_id: (order && order.id) || null,
+    reference: (order && order.reference) || null
+  };
   const token = (process.env.TELEGRAM_BOT_TOKEN || '').trim();
   const chat = (process.env.TELEGRAM_CHAT_ID || '').trim();
-  if (!token || !chat) { console.error('[TELEGRAM] sin TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID: no se envió nada'); return false; }
+  if (!token || !chat) {
+    console.error('[TELEGRAM] sin TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID: no se envió nada');
+    await logNotificacion({ ...meta, ok: false, error: 'sin token o chat_id' });
+    return false;
+  }
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
+  let ok = false, err = null;
   try {
     const body = { chat_id: chat, text };
     if (parseMode) { body.parse_mode = parseMode; body.disable_web_page_preview = true; }
@@ -244,17 +264,23 @@ async function sendTelegram(text, { parseMode, timeoutMs = 2500 } = {}) {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body), signal: ctrl.signal
     });
+    ok = r.ok;
     // Un 4xx/5xx (bot bloqueado, chat_id malo, rate limit) devolvía false sin dejar rastro.
-    if (!r.ok) console.error('[TELEGRAM] rechazado por la API:', r.status, (await r.text().catch(() => '')).slice(0, 200));
-    return r.ok;
+    if (!ok) {
+      err = 'HTTP ' + r.status + ' ' + (await r.text().catch(() => '')).slice(0, 300);
+      console.error('[TELEGRAM] rechazado por la API:', err);
+    }
   } catch (e) {
-    console.error('[TELEGRAM] fallo de red o timeout de', timeoutMs + 'ms:', e && e.name);
-    return false;
+    err = (e && e.name === 'AbortError') ? ('timeout de ' + timeoutMs + 'ms') : ('red: ' + (e && e.message));
+    console.error('[TELEGRAM] no se pudo enviar —', err);
   } finally { clearTimeout(t); }
+  await logNotificacion({ ...meta, ok, error: err });
+  return ok;
 }
 
 // Aviso de venta al vendedor: arma el texto y lo manda por el bot (nunca bloquea la confirmación).
-async function notifyVentaTelegram(order) {
+// `tipo` distingue el aviso automático de la pasarela del reenvío que aprieta el vendedor.
+async function notifyVentaTelegram(order, tipo = 'venta') {
   const fmtCop = n => '$' + Number(n || 0).toLocaleString('es-CO');
   const lista = Array.isArray(order.items) ? order.items : [];
   const items = lista.map(it => `• ${it.label || 'Producto'} #${it.id} x${it.qty}${it.talla ? ' · T' + it.talla : ''}`).join('\n');
@@ -277,7 +303,7 @@ async function notifyVentaTelegram(order) {
     (dir ? `📍 ${dir}\n` : '') +
     (order.cedula ? `🪪 ${order.cedula}\n` : '') +
     `${items}${linkFotos}\nRef: ${order.reference || order.id}`;
-  return sendTelegram(text);   // true/false: lo usa el botón de reenvío del panel para poder decir si salió
+  return sendTelegram(text, { tipo, order });   // true/false: lo usa el botón de reenvío del panel para poder decir si salió
 }
 
 // Marca el cupón de bienvenida como USADO al confirmarse la venta (un solo uso). Se llama con
