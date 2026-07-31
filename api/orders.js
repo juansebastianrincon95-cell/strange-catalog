@@ -224,7 +224,7 @@ async function handleBoldStatus(req, res) {
     const bound = ord.utm && ord.utm.bold_link ? String(ord.utm.bold_link).replace(/[^\w-]/g, '').slice(0, 80) : '';
     if (!bound || bound !== link) return res.status(403).json({ error: 'link_mismatch' });
     if (amount == null) amount = Number(ord.subtotal != null ? ord.subtotal : ord.total); // link CLOSE creado server-side con el monto de BD
-    const out = await confirmPaidOrder({ reference: d.reference, amount, currency: 'COP', req }).catch(() => null);
+    const out = await confirmPaidOrder({ reference: d.reference, amount, currency: 'COP', req, origen: 'webhook_bold' }).catch(() => null);
     confirmed = !!(out && out.ok);
   }
   return res.status(200).json({ status, confirmed });
@@ -265,7 +265,7 @@ async function handleBoldWebhook(req, res) {
     const ord = await getOrderByReference(reference);
     if (ord) amount = Number(ord.subtotal != null ? ord.subtotal : ord.total);
   }
-  const out = await confirmPaidOrder({ reference, amount, currency: 'COP', req });
+  const out = await confirmPaidOrder({ reference, amount, currency: 'COP', req, origen: 'webhook_bold_link' });
   return res.json(out);
 }
 
@@ -320,12 +320,20 @@ async function handleAddiWebhook(req, res) {
     const got = req.headers['x-webhook-secret'] || req.headers['x-addi-signature'] || req.query.secret;
     if (safeEq(got, sec)) authed = true;
   }
-  if (!authed) return res.status(401).json({ ok: false, error: 'unauthorized' });
+  if (!authed) { console.error('[ADDI] webhook RECHAZADO (401): credenciales no coinciden'); return res.status(401).json({ ok: false, error: 'unauthorized' }); }
   const d = req.body || {};
   const data = d.data || d.payload || d;
   const reference = String(data.orderId || data.order_id || d.orderId || '');
   const status = String(data.status || d.status || '').toUpperCase();
-  if (!reference) return res.json({ ok: true, ignored: true, no_ref: true });
+  const aprobado = Number(data.approvedAmount != null ? data.approvedAmount : d.approvedAmount);
+  // Addi documenta que reintenta cada 30 min durante 24h si no le respondemos como espera. Este log
+  // es la única forma de ver desde afuera si está llegando, con qué referencia y en qué estado.
+  console.log('[ADDI] webhook recibido · ref=' + (reference || '(sin)') + ' status=' + (status || '(sin)') +
+              ' approvedAmount=' + (Number.isFinite(aprobado) ? aprobado : '(sin)'));
+  // Addi exige responder 200 con EL MISMO objeto JSON que envió; cualquier otra cosa la cuenta
+  // como fallo y reintenta. Antes devolvíamos {ok:true,...}, así que reintentaba indefinidamente.
+  const eco = (extra) => res.status(200).json(Object.assign({}, d, extra || {}));
+  if (!reference) return eco();
   if (status !== 'APPROVED') {
     // RECHAZO de crédito (sin cupo, etc.): antes se ignoraba y el pedido quedaba pending sin rastro.
     // Ahora se etiqueta (queda pending para recuperar por contra entrega; NO se marca venta).
@@ -339,15 +347,40 @@ async function handleAddiWebhook(req, res) {
         }
       } catch (e) { /* nunca romper el webhook */ }
     }
-    return res.json({ ok: true, ignored: true, status });
+    return eco();
   }
   const order = await getOrderByReference(reference);
-  if (!order) return res.json({ ok: true, ignored: true, order_not_found: true });
-  const amount = Number(order.subtotal != null ? order.subtotal : order.total);
+  if (!order) { console.error('[ADDI] APPROVED de una referencia que no existe en BD:', reference); return eco(); }
+  const esperado = Number(order.subtotal != null ? order.subtotal : order.total);
+  /* VALIDACIÓN REAL DEL MONTO. Antes se pasaba a confirmPaidOrder el monto del PROPIO pedido, así
+     que la comparación era una tautología: siempre pasaba. Ahora, si Addi manda approvedAmount y
+     NO coincide con lo que se cobró, no se marca venta y queda señalado para revisión manual.
+     Si Addi no manda el campo, se sigue como antes (no se puede ser más estricto sin arriesgar
+     tumbar ventas buenas), pero queda constancia de que no vino. */
+  if (Number.isFinite(aprobado) && aprobado > 0 && Math.round(aprobado) !== Math.round(esperado)) {
+    console.error('[ADDI] MONTO NO COINCIDE ref=' + reference + ' aprobado=' + aprobado + ' esperado=' + esperado + ' → NO se marca venta');
+    try {
+      const sb = serviceClient();
+      const utm = Object.assign({}, order.utm || {}, {
+        gateway_result: 'amount_mismatch', gateway: 'addi', gateway_status: status,
+        approved_amount: aprobado, needs_manual_review: true
+      });
+      await sb.from('orders').update({ utm }).eq('id', order.id);
+    } catch (e) { /* nunca romper el webhook */ }
+    return eco();
+  }
   const appId = data.applicationId || d.applicationId;
-  if (appId) { try { const sb = serviceClient(); const utm = Object.assign({}, order.utm || {}, { addi_app: appId }); await sb.from('orders').update({ utm }).eq('id', order.id); } catch {} }
-  const out = await confirmPaidOrder({ reference, amount, currency: 'COP', req });
-  return res.json(out);
+  const out = await confirmPaidOrder({
+    reference, amount: esperado, currency: 'COP', req,
+    origen: 'webhook_addi',
+    extra: {
+      gateway: 'addi', gateway_status: status,
+      approved_amount: Number.isFinite(aprobado) ? aprobado : null,
+      addi_app: appId || (order.utm && order.utm.addi_app) || null
+    }
+  });
+  if (!out.ok) console.error('[ADDI] confirmPaidOrder falló ref=' + reference + ':', out.error);
+  return eco();
 }
 
 /* ── SISTECRÉDITO (crédito BNPL) ── espejo de Addi. Helpers en _sistecredito.js. Tiene endpoint
@@ -386,7 +419,7 @@ async function handleScStatus(req, res) {
   let paid = false;
   try { paid = (await getScInfo(txn)).paid; } catch {}
   if (paid) {
-    const out = await confirmPaidOrder({ reference, amount: Number(order.subtotal != null ? order.subtotal : order.total), currency: 'COP', req });
+    const out = await confirmPaidOrder({ reference, amount: Number(order.subtotal != null ? order.subtotal : order.total), currency: 'COP', req, origen: 'webhook_sistecredito' });
     return res.status(200).json({ confirmed: !!out.ok, status: out.ok ? 'venta' : order.status });
   }
   return res.status(200).json({ confirmed: false, status: order.status });
@@ -406,7 +439,7 @@ async function handleScWebhook(req, res) {
   let paid = false;
   try { paid = (await getScInfo(txn)).paid; } catch {}
   if (!paid) return res.json({ ok: true, ignored: true, not_paid: true });
-  const out = await confirmPaidOrder({ reference: order.reference, amount: Number(order.subtotal != null ? order.subtotal : order.total), currency: 'COP', req });
+  const out = await confirmPaidOrder({ reference: order.reference, amount: Number(order.subtotal != null ? order.subtotal : order.total), currency: 'COP', req, origen: 'retorno_sistecredito' });
   return res.json(out);
 }
 
@@ -443,7 +476,7 @@ async function reconciliarPendientes(req, res) {
           // es CLOSE (monto fijo) y lo creamos NOSOTROS server-side leyendo ese mismo monto de BD.
           let amt = boldAmount(p);
           if (amt == null) amt = Number(o.subtotal != null ? o.subtotal : o.total);
-          const c = await confirmPaidOrder({ reference: o.reference, amount: amt, currency: 'COP', req });
+          const c = await confirmPaidOrder({ reference: o.reference, amount: amt, currency: 'COP', req, origen: 'cron_bold' });
           out.push(o.reference + ':' + (c.ok ? 'VENTA' : c.error + (c.paid != null ? '(paid=' + c.paid + ',exp=' + c.expected + ')' : '')));
         } else out.push(o.reference + ':' + (p.status || 'sin_estado'));
       } else if (o.pago === 'sistecredito') {
@@ -453,7 +486,7 @@ async function reconciliarPendientes(req, res) {
         let paid = false;
         try { paid = (await getScInfo(txn)).paid; } catch {}
         if (paid) {
-          const c = await confirmPaidOrder({ reference: o.reference, amount: Number(o.subtotal != null ? o.subtotal : o.total), currency: 'COP', req });
+          const c = await confirmPaidOrder({ reference: o.reference, amount: Number(o.subtotal != null ? o.subtotal : o.total), currency: 'COP', req, origen: 'cron_sistecredito' });
           out.push(o.reference + ':' + (c.ok ? 'VENTA' : c.error));
         } else out.push(o.reference + ':pendiente');
       } else if (o.pago === 'addi') {
@@ -473,7 +506,7 @@ async function reconciliarPendientes(req, res) {
         const j = await r.json().catch(() => ({}));
         const tx = (Array.isArray(j.data) ? j.data : []).find(t => t.status === 'APPROVED');
         if (tx) {
-          const c = await confirmPaidOrder({ reference: o.reference, amountInCents: tx.amount_in_cents, currency: tx.currency, req });
+          const c = await confirmPaidOrder({ reference: o.reference, amountInCents: tx.amount_in_cents, currency: tx.currency, req, origen: 'cron_wompi' });
           out.push(o.reference + ':' + (c.ok ? 'VENTA' : c.error));
         } else out.push(o.reference + ':' + ((j.data && j.data[0] && j.data[0].status) || 'sin_tx'));
       }

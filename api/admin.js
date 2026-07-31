@@ -181,8 +181,14 @@ module.exports = async (req, res) => {
 
     // Update CONDICIONAL (solo si el estado cambia) que DEVUELVE la fila → atómico: sin race,
     // sin re-disparo, y si la BD falla NO marcamos venta a ciegas (chequeamos el error).
+    // Se deja constancia de que ESTA venta la marcó una persona en el panel, no la pasarela.
+    // Sin esto era imposible saber después si una venta la confirmó el webhook o alguien a mano.
+    const { data: prevRow } = await sb.from('orders').select('utm').eq('id', id).maybeSingle();
+    const utmManual = status === 'venta'
+      ? Object.assign({}, (prevRow && prevRow.utm) || {}, { confirmado_por: 'panel_manual', confirmado_at: new Date().toISOString() })
+      : undefined;
     const { data: updated, error } = await sb.from('orders')
-      .update({ status })
+      .update(utmManual ? { status, utm: utmManual } : { status })
       .eq('id', id).neq('status', status)
       // pago/direccion/barrio/cedula/id: los pide el aviso de Telegram para llegar completo
       .select('id,subtotal,total,tel,ciudad,barrio,direccion,cedula,pago,nombre,reference,status,utm,items,session_id,cupon');

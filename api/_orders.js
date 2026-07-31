@@ -234,7 +234,7 @@ function cartSig(items) {
 async function sendTelegram(text, { parseMode, timeoutMs = 2500 } = {}) {
   const token = (process.env.TELEGRAM_BOT_TOKEN || '').trim();
   const chat = (process.env.TELEGRAM_CHAT_ID || '').trim();
-  if (!token || !chat) return false;
+  if (!token || !chat) { console.error('[TELEGRAM] sin TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID: no se envió nada'); return false; }
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
@@ -244,8 +244,13 @@ async function sendTelegram(text, { parseMode, timeoutMs = 2500 } = {}) {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body), signal: ctrl.signal
     });
+    // Un 4xx/5xx (bot bloqueado, chat_id malo, rate limit) devolvía false sin dejar rastro.
+    if (!r.ok) console.error('[TELEGRAM] rechazado por la API:', r.status, (await r.text().catch(() => '')).slice(0, 200));
     return r.ok;
-  } catch { return false; } finally { clearTimeout(t); }
+  } catch (e) {
+    console.error('[TELEGRAM] fallo de red o timeout de', timeoutMs + 'ms:', e && e.name);
+    return false;
+  } finally { clearTimeout(t); }
 }
 
 // Aviso de venta al vendedor: arma el texto y lo manda por el bot (nunca bloquea la confirmación).
@@ -323,7 +328,10 @@ async function decrementStock(sb, items) {
   }
 }
 
-async function confirmPaidOrder({ reference, amount, amountInCents, currency = 'COP', eventSourceUrl, req }) {
+/* `origen` deja por escrito CÓMO se confirmó la venta (webhook_addi, wompi_verify, cron…).
+   Antes solo se escribía status='venta' y era imposible saber a posteriori si una venta la
+   confirmó la pasarela o la marcó alguien a mano — el punto ciego que reportó el dueño. */
+async function confirmPaidOrder({ reference, amount, amountInCents, currency = 'COP', eventSourceUrl, req, origen = 'desconocido', extra = null }) {
   const sb = serviceClient();
   const order = await getOrderByReference(reference);
   if (!order) return { ok: false, error: 'order_not_found' };
@@ -348,8 +356,15 @@ async function confirmPaidOrder({ reference, amount, amountInCents, currency = '
         }
       } catch (e) { /* fail-open */ }
     }
-    const { error } = await sb.from('orders').update({ status: 'venta' }).eq('id', order.id);
+    // La procedencia se escribe EN EL MISMO update que el status: si se marca la venta, queda
+    // registrado quién la marcó. utm es jsonb, así que no hace falta migración.
+    const utmConf = Object.assign({}, order.utm || {}, {
+      confirmado_por: origen,
+      confirmado_at: new Date().toISOString()
+    }, extra || {});
+    const { error } = await sb.from('orders').update({ status: 'venta', utm: utmConf }).eq('id', order.id);
     if (error) return { ok: false, error: error.message };
+    order.utm = utmConf;
     // LIMPIEZA DE HERMANOS: los intentos pendientes del MISMO carrito/sesión pasan a no_venta
     // (salen de "por hacer" y NO disparan rescate/remarketing). No bloquea la venta si falla.
     if (order.session_id) {
@@ -380,7 +395,14 @@ async function confirmPaidOrder({ reference, amount, amountInCents, currency = '
       actionSource: 'website',
       eventSourceUrl: eventSourceUrl || 'https://strangesneakers.com/'
     }).catch(() => {});
-    await notifyVentaTelegram(order).catch(() => {});
+    // El aviso de Telegram YA NO muere en silencio: se guarda si salió o no y se loguea el fallo.
+    // Antes, un timeout de 2.5s o un chat_id malo dejaban al dueño sin enterarse de una venta y
+    // sin ninguna forma de saberlo después.
+    const tgOk = await notifyVentaTelegram(order).catch(() => false);
+    if (!tgOk) console.error('[TELEGRAM] aviso de venta NO enviado', order.reference || order.id, '· origen:', origen);
+    try {
+      await sb.from('orders').update({ utm: Object.assign({}, order.utm || {}, { telegram_ok: !!tgOk }) }).eq('id', order.id);
+    } catch (e) { /* el registro del aviso nunca bloquea la venta */ }
   }
   return { ok: true, order: { ...order, status: 'venta' } };
 }

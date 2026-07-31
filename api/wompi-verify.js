@@ -34,7 +34,8 @@ async function handleWebhook(req, res) {
       amountInCents: tx.amount_in_cents,
       currency: tx.currency || 'COP',
       req,
-      eventSourceUrl: 'https://strangesneakers.com/'
+      eventSourceUrl: 'https://strangesneakers.com/',
+      origen: 'webhook_wompi'
     });
     return res.json(out);
   }
@@ -67,7 +68,8 @@ module.exports = async (req, res) => {
       amountInCents: t.amount_in_cents,
       currency: t.currency || 'COP',
       req,
-      eventSourceUrl: 'https://strangesneakers.com/'
+      eventSourceUrl: 'https://strangesneakers.com/',
+      origen: 'retorno_wompi'
     }).catch(() => null);
     confirmed = !!(out && out.ok);
   }
