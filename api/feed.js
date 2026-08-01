@@ -8,7 +8,45 @@ const ANON_KEY = String(process.env.SUPABASE_ANON_KEY || '').startsWith('sb_')
   ? process.env.SUPABASE_ANON_KEY
   : 'sb_publishable_ZjVLucKCxH2RM2CycRhkhQ_Gw95sl7s';
 
+/* ── PROXY DE FOTOS (/img/… lo reescribe aquí) ────────────────────────────────
+   Sirve las fotos de producto desde Supabase Storage pero A TRAVÉS de Vercel, para que su CDN
+   las cachee: la organización se pasó de cuota por "Cached Egress" y los proyectos quedaban
+   restringidos (402 = tienda caída).
+   ¿Por qué una función y no una reescritura directa a Supabase? Porque Vercel NO cachea las
+   reescrituras hacia un origen externo — medido: 5 peticiones seguidas, 5 MISS. La respuesta de
+   una función SÍ entra a su CDN cuando lleva s-maxage. Así Supabase se toca una vez por foto y
+   no una vez por visitante.
+   Vive dentro de feed.js (que ya es público) para no crear un archivo en api/: Vercel está en
+   12 de 12 funciones y una más rompe el deploy. */
+const SB_BUCKET = '/storage/v1/object/public/product-images/';
+
+async function servirFoto(req, res, archivo) {
+  // Solo nombres de archivo: sin rutas ni '..' → no se puede salir del bucket de fotos.
+  if (!/^[\w.-]{1,120}$/.test(archivo) || archivo.includes('..')) {
+    return res.status(400).json({ error: 'nombre inválido' });
+  }
+  const base = (process.env.SUPABASE_URL || '').trim().replace(/\/+$/, '');
+  if (!base) return res.status(500).json({ error: 'sin SUPABASE_URL' });
+  try {
+    const r = await fetch(base + SB_BUCKET + encodeURIComponent(archivo));
+    if (!r.ok) return res.status(r.status === 404 ? 404 : 502).json({ error: 'foto no disponible' });
+    const buf = Buffer.from(await r.arrayBuffer());
+    res.setHeader('Content-Type', r.headers.get('content-type') || 'image/webp');
+    res.setHeader('Content-Length', String(buf.length));
+    // s-maxage = lo que hace que el CDN de Vercel la guarde. Los nombres llevan marca de tiempo
+    // (1780374474306_1.webp), así que el contenido nunca cambia: cachear un año es seguro.
+    res.setHeader('Cache-Control', 'public, max-age=31536000, s-maxage=31536000, immutable');
+    res.setHeader('CDN-Cache-Control', 'public, s-maxage=31536000, immutable');
+    return res.status(200).end(buf);
+  } catch (e) {
+    return res.status(502).json({ error: 'no se pudo traer la foto' });
+  }
+}
+
 module.exports = async (req, res) => {
+ // El proxy va ANTES de armar el feed: es otra cosa que comparte archivo, no parte del feed.
+ const foto = req.query && req.query.img;
+ if (foto) return servirFoto(req, res, String(foto));
  try {
   const sb = createClient(process.env.SUPABASE_URL, ANON_KEY);
 
