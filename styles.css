@@ -286,8 +286,16 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .qsize-chip:active{transform:scale(.94)}
 .qsize-chip:hover{border-color:var(--ink)}
 .qsize-x{position:absolute;top:6px;right:6px;width:24px;height:24px;border:none;background:none;font-size:15px;color:var(--ink2);cursor:pointer;line-height:1}
-.qsize-guia{margin-top:2px;border:none;background:none;font-family:var(--font);font-size:11px;font-weight:600;color:var(--ink2);text-decoration:underline;cursor:pointer;padding:2px 4px}
-.qsize-guia:hover{color:var(--ink)}
+/* La miniatura de la marquilla se ve de una en el selector rápido (antes era solo un enlace) */
+.qsize-guia{margin-top:2px;display:flex;align-items:center;gap:6px;max-width:100%;border:1px solid var(--line);background:var(--white);border-radius:9px;font-family:var(--font);font-size:10px;font-weight:600;color:var(--ink2);cursor:pointer;padding:4px 7px 4px 4px;text-align:left;line-height:1.25}
+.qsize-guia img{width:26px;height:26px;object-fit:cover;border-radius:6px;flex-shrink:0;background:var(--bg)}
+.qsize-guia:hover{border-color:var(--ink);color:var(--ink)}
+
+/* Aviso al escoger talla en la ficha del producto */
+.pm-talla-check{display:flex;align-items:center;gap:10px;margin-top:10px;padding:9px;background:#fff8e1;border:1px solid #ffd97a;border-radius:11px}
+.pm-talla-check-img{width:52px;height:52px;object-fit:cover;border-radius:8px;flex-shrink:0;cursor:zoom-in;background:var(--white)}
+.pm-talla-check-tx{font-size:11.5px;line-height:1.45;color:#6b4e00}
+.pm-talla-check-a{display:inline-block;font-weight:700;color:#8a5a00;text-decoration:underline;cursor:pointer}
 
 /* ── FAVORITOS ❤️ ── corazón en la esquina LIBRE (abajo-izquierda) de cada tarjeta */
 .fav-btn{

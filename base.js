@@ -184,7 +184,8 @@ async function loadState(){
     try{bannerHombre=cfg.banner_hombre?JSON.parse(cfg.banner_hombre):null;}catch(e){bannerHombre=null;}
     try{bannerUnisex=cfg.banner_unisex?JSON.parse(cfg.banner_unisex):null;}catch(e){bannerUnisex=null;}
     try{socials=cfg.socials?JSON.parse(cfg.socials):{ig:'',tiktok:'',fb:''};}catch(e){socials={ig:'',tiktok:'',fb:''};}
-    try{sizeGuide=cfg.size_guide?JSON.parse(cfg.size_guide):null;}catch(e){sizeGuide=null;}
+    // La marquilla se ve en cada ficha y en cada selector rápido: por el CDN, no directo a Supabase.
+    try{sizeGuide=cfg.size_guide?JSON.parse(cfg.size_guide):null;if(sizeGuide){sizeGuide.img1=imgCdn(sizeGuide.img1);sizeGuide.img2=imgCdn(sizeGuide.img2);}}catch(e){sizeGuide=null;}
     reviewsCount=parseInt(cfg.reviews_count)||0;
     {const r=$('cfgReviews');if(r)r.value=reviewsCount||'';}
     try{testimonios=JSON.parse(cfg.testimonios||'[]');}catch(e){testimonios=[];}

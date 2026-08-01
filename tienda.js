@@ -727,8 +727,14 @@ function openQuickSize(card,id,tallas){
   closeQuickSize();
   const photo=card.querySelector('.cphoto'); if(!photo)return;
   const ov=document.createElement('div'); ov.className='qsize'; ov.onclick=e=>e.stopPropagation();
-  // Mini guía de tallas: enlace que abre la foto de la marquilla en el zoom (solo si el admin la subió).
-  const guia=(sizeGuide&&sizeGuide.img1)?`<button class="qsize-guia" onclick="event.stopPropagation();zoomImg('${escHtml(sizeGuide.img1)}')">📏 ¿Cuál es mi talla?</button>`:'';
+  /* Guía de tallas VISIBLE: la miniatura de la marquilla se ve de una, no detrás de un enlace.
+     Antes era un botón subrayado que casi nadie tocaba —quien cree saber su talla no lo abre—
+     y de ahí salían los cambios por talla. Sigue ampliándose al tocarla. */
+  const guia=(sizeGuide&&sizeGuide.img1)
+    ? `<button class="qsize-guia" onclick="event.stopPropagation();zoomImg('${escHtml(sizeGuide.img1)}')">
+         <img src="${escHtml(sizeGuide.img1)}" alt="Ejemplo de marquilla" loading="lazy">
+         <span>Compárala con la marquilla de tus tenis</span>
+       </button>` : '';
   ov.innerHTML=`<button class="qsize-x" onclick="event.stopPropagation();closeQuickSize()" aria-label="Cerrar">✕</button>
     <div class="qsize-t">Elige tu talla</div>
     <div class="qsize-row">${tallas.map(t=>`<button class="qsize-chip" onclick="event.stopPropagation();quickPick(${id},'${escHtml(String(t))}')">${escHtml(String(t))}</button>`).join('')}</div>
@@ -983,6 +989,7 @@ function tallaDisponible(p,t){const{stock}=tallasInfo(p);return !stock||((Number
 function renderPmSizes(p){
   const box=$('pmSizes'),row=$('pmSizesRow');if(!box||!row)return;
   pmTalla=null;box.classList.remove('err');
+  pmAvisoTalla(null);   // limpiar el aviso al abrir OTRO producto (si no, queda el de la talla anterior)
   const {tallas,stock}=tallasInfo(p);
   if(!tallas.length){box.style.display='none';row.innerHTML='';return;}
   box.style.display='';
@@ -1006,11 +1013,24 @@ function renderPmGuia(){
 function toggleGuiaTallas(){const b=$('pmGuiaBox');if(b)b.style.display=b.style.display==='none'?'block':'none';}
 function zoomImg(src){const z=$('imgZoom'),im=$('imgZoomImg');if(!z||!im)return;im.src=src;z.classList.add('on');}
 function closeZoom(){const z=$('imgZoom');if(z)z.classList.remove('on');}
+/* Aviso de verificación de talla: aparece AL ESCOGER, con la foto de la marquilla A LA VISTA.
+   El ejemplo ya existía, pero escondido tras el botón "¿Cómo sé mi talla?" — y quien cree saber
+   su talla nunca lo abre. No bloquea ni agrega pasos: solo pone el ejemplo donde se decide. */
+function pmAvisoTalla(t){
+  const box=$('pmTallaCheck'); if(!box)return;
+  const foto=sizeGuide&&sizeGuide.img1;
+  if(!t||!foto){box.style.display='none';box.innerHTML='';return;}
+  box.innerHTML=`<img class="pm-talla-check-img" src="${escHtml(foto)}" alt="Ejemplo de marquilla" loading="lazy" onclick="zoomImg('${escHtml(foto)}')">`+
+    `<div class="pm-talla-check-tx"><b>Elegiste la talla ${escHtml(String(t))}.</b> Compárala con la marquilla dentro de un zapato tuyo antes de seguir. <span class="pm-talla-check-a" onclick="zoomImg('${escHtml(foto)}')">Ver el ejemplo ampliado</span></div>`;
+  box.style.display='';
+}
+
 function pmPickSize(t,btn){
   pmTalla=t;
   document.querySelectorAll('#pmSizesRow .pm-size').forEach(b=>b.classList.remove('on'));
   if(btn)btn.classList.add('on');
   const box=$('pmSizes');if(box)box.classList.remove('err');
+  pmAvisoTalla(t);
   syncPmBtn();   // si esa talla ya está en el carrito, el botón muestra "✓ Agregado"
 }
 function syncPmBtn(){
