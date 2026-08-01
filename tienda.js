@@ -732,7 +732,7 @@ function openQuickSize(card,id,tallas){
      y de ahí salían los cambios por talla. Sigue ampliándose al tocarla. */
   const guia=(sizeGuide&&sizeGuide.img1)
     ? `<button class="qsize-guia" onclick="event.stopPropagation();zoomImg('${escHtml(sizeGuide.img1)}')">
-         <img src="${escHtml(sizeGuide.img1)}" alt="Ejemplo de marquilla" loading="lazy">
+         <img src="${escHtml(sizeGuide.img1)}" alt="Ejemplo de marquilla">
          <span>Compárala con la marquilla de tus tenis</span>
        </button>` : '';
   ov.innerHTML=`<button class="qsize-x" onclick="event.stopPropagation();closeQuickSize()" aria-label="Cerrar">✕</button>
@@ -1020,7 +1020,10 @@ function pmAvisoTalla(t){
   const box=$('pmTallaCheck'); if(!box)return;
   const foto=sizeGuide&&sizeGuide.img1;
   if(!t||!foto){box.style.display='none';box.innerHTML='';return;}
-  box.innerHTML=`<img class="pm-talla-check-img" src="${escHtml(foto)}" alt="Ejemplo de marquilla" loading="lazy" onclick="zoomImg('${escHtml(foto)}')">`+
+  // SIN loading="lazy": el HTML se inserta con la caja todavía en display:none y el observador de
+  // carga diferida nunca se activa para ese <img> — quedaba en blanco para siempre. Y no hace
+  // falta: esta foto solo se pinta cuando el cliente toca una talla, ya es diferida de por sí.
+  box.innerHTML=`<img class="pm-talla-check-img" src="${escHtml(foto)}" alt="Ejemplo de marquilla" onclick="zoomImg('${escHtml(foto)}')">`+
     `<div class="pm-talla-check-tx"><b>Elegiste la talla ${escHtml(String(t))}.</b> Compárala con la marquilla dentro de un zapato tuyo antes de seguir. <span class="pm-talla-check-a" onclick="zoomImg('${escHtml(foto)}')">Ver el ejemplo ampliado</span></div>`;
   box.style.display='';
 }
