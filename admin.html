@@ -159,6 +159,21 @@
   </div>
   <div data-sec="ajustes">
     <div id="storageWarn" style="display:none;margin:8px 14px;padding:8px 12px;background:#fff8e1;border:1px solid #ffc107;border-radius:8px;font-size:11px;color:#7a5800;font-weight:600"></div>
+    <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#f0f4ff">
+      <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:4px">💳 Crear link de pago Addi</div>
+      <div style="font-size:10.5px;color:var(--ink3);margin-bottom:9px">Úsalo en vez del portal de Addi. Creado aquí, el pedido <b>queda en el sistema</b>: sale en Pedidos, cuenta en tus métricas y Meta recibe la compra. Addi confirma solo cuando el cliente aprueba.</div>
+      <input id="alNombre" type="text" placeholder="Nombre completo" class="al-i">
+      <input id="alCedula" type="tel" placeholder="Cédula (solo números)" class="al-i">
+      <input id="alTel" type="tel" placeholder="Celular" class="al-i">
+      <input id="alEmail" type="email" placeholder="Correo (Addi lo exige)" class="al-i">
+      <input id="alDir" type="text" placeholder="Dirección" class="al-i">
+      <input id="alBarrio" type="text" placeholder="Barrio" class="al-i">
+      <input id="alCiudad" type="text" placeholder="Ciudad" class="al-i">
+      <input id="alItems" type="text" placeholder="Productos: 29x1t40, 77x1t41" class="al-i">
+      <div style="font-size:9.5px;color:var(--ink3);margin:-2px 0 8px">Formato <b>id</b>x<b>cantidad</b>t<b>talla</b>. La <b>L</b> adelante es liquidación (ej. <code>L5x2t39</code>). Los precios los pone el servidor.</div>
+      <button onclick="crearLinkAddi(this)" style="width:100%;border:none;cursor:pointer;background:#1f3bb3;color:#fff;padding:10px;border-radius:9px;font-size:12px;font-weight:800">Generar link de pago</button>
+      <div id="alOut" style="margin-top:9px;font-size:11.5px"></div>
+    </div>
     <div class="trow" style="background:#fff0f0">
       <div><div class="trow-lbl">🧪 Este equipo es de pruebas</div><div class="trow-sub">Solo en un equipo marcado el panel enciende el modo prueba solo. <b>Déjalo apagado en el celular con el que atiendes ventas reales</b>, o lo que hagas ahí no cuenta. La marca es de este dispositivo: no se comparte con tus otros equipos.</div></div>
       <label class="sw"><input type="checkbox" id="swTestEquipo" onchange="setEquipoPruebas(this.checked)"><div class="sw-tr"></div><div class="sw-th"></div></label>

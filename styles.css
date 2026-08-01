@@ -539,6 +539,9 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .astl{font-size:9px;color:var(--ink3);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
 .trow{display:flex;align-items:center;justify-content:space-between;padding:11px 18px;border-bottom:1px solid var(--line);flex-shrink:0;background:var(--bg)}
 .trow-lbl{font-size:13px;font-weight:700;letter-spacing:-.02em}
+/* Campos del formulario de link de pago Addi (panel → Ajustes) */
+.al-i{width:100%;margin-bottom:6px;padding:8px 10px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:500;color:var(--ink);outline:none;box-sizing:border-box}
+.al-i:focus{border-color:var(--ink)}
 .trow-sub{font-size:11px;color:var(--ink3);margin-top:1px}
 .sw{position:relative;width:44px;height:26px;cursor:pointer;flex-shrink:0}
 .sw input{opacity:0;width:0;height:0;position:absolute}

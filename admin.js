@@ -918,6 +918,58 @@ function togPedDetail(id){
   if(chev)chev.textContent='Ocultar ▴';
 }
 
+/* Link de pago Addi desde el panel, en vez del portal (Cobrar → Paylink). Allá la venta nace
+   fuera del sistema: no queda en la base, no sale en el panel y Meta nunca recibe la compra.
+   Aquí el pedido nace con referencia STR- y el webhook de Addi lo confirma solo.
+   El formato de productos es el MISMO del link ?pedido= (29x1t40): id x cantidad t talla. */
+function parseItemsAddi(txt){
+  const out=[];
+  String(txt||'').split(',').map(s=>s.trim()).filter(Boolean).forEach(seg=>{
+    const m=/^(L?)(\d+)x(\d+)(?:t([\w.]{1,6}))?$/i.exec(seg);
+    if(!m)throw new Error('No entiendo "'+seg+'". Usa por ejemplo 29x1t40');
+    const qty=parseInt(m[3]);
+    // El servidor convertiría un 0 en 1 sin avisar (normalizeItems); mejor fallar de frente.
+    if(!(qty>=1))throw new Error('La cantidad de "'+seg+'" debe ser al menos 1');
+    out.push({type:m[1]?'liq':'cat',id:parseInt(m[2]),qty,talla:m[4]||null});
+  });
+  if(!out.length)throw new Error('Agrega al menos un producto');
+  return out;
+}
+
+async function crearLinkAddi(btn){
+  const out=$('alOut'); const v=id=>($(id)?$(id).value.trim():'');
+  const pinta=(html,color)=>{if(out){out.innerHTML=html;out.style.color=color||'var(--ink2)';}};
+  let items;
+  try{ items=parseItemsAddi(v('alItems')); }catch(e){ pinta('⚠️ '+e.message,'#b91c1c'); return; }
+  const faltan=[['alNombre','nombre'],['alCedula','cédula'],['alTel','celular'],['alEmail','correo'],['alDir','dirección'],['alCiudad','ciudad']]
+    .filter(([id])=>!v(id)).map(([,n])=>n);
+  if(faltan.length){ pinta('⚠️ Falta: '+faltan.join(', '),'#b91c1c'); return; }
+  if(btn){btn.disabled=true;btn.textContent='Generando…';}
+  pinta('Creando el pedido y pidiéndole el link a Addi…');
+  try{
+    const r=await adminWrite('crear_link_addi',{data:{
+      nombre:v('alNombre'),cedula:v('alCedula'),tel:v('alTel'),email:v('alEmail'),
+      direccion:v('alDir'),barrio:v('alBarrio'),ciudad:v('alCiudad'),items,
+      test:!!window.__TEST__   // desde un equipo de pruebas NO ensucia métricas ni Meta
+    }});
+    const nombre=(v('alNombre').split(/\s+/)[0])||'';
+    const msg=`¡Hola ${nombre}! 👋 Aquí está tu link para pagar a cuotas con Addi 💳\n\n${r.url}\n\nApenas Addi te apruebe, despachamos tu pedido 📦`;
+    const wa=String(v('alTel')).replace(/\D/g,'').slice(-10);
+    pinta(`<div style="padding:9px;background:#eaf6ee;border:1px solid #bfe3cc;border-radius:9px">
+      <b style="color:#137a3a">✅ Link creado</b> · Pedido <b>${escHtml(r.reference)}</b> · Total <b>${fmt(r.total||0)}</b>
+      <div style="margin-top:6px;word-break:break-all;font-size:10.5px"><a href="${escHtml(r.url)}" target="_blank" rel="noopener">${escHtml(r.url)}</a></div>
+      ${wa.length===10?`<a href="https://wa.me/57${wa}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;background:var(--wa);color:#fff;text-decoration:none;padding:8px 13px;border-radius:8px;font-size:11.5px;font-weight:700">💬 Enviárselo por WhatsApp</a>`:''}
+      <div style="margin-top:7px;font-size:10px;color:var(--ink3)">Ya aparece en Pedidos como <b>pendiente</b>. Cuando Addi apruebe, se marca venta solo y te llega el aviso.</div>
+    </div>`);
+    ['alNombre','alCedula','alTel','alEmail','alDir','alBarrio','alCiudad','alItems'].forEach(id=>{if($(id))$(id).value='';});
+    if(typeof loadOrders==='function')loadOrders();
+  }catch(e){
+    pinta('⚠️ '+(e.message||'No se pudo crear el link'),'#b91c1c');
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='Generar link de pago';}
+  }
+}
+
 /* Reenviar A MANO el aviso de esta venta a Telegram. El bot sigue avisando SOLO las ventas de
    pasarela de forma automática; este botón es para revisar el formato o recuperar un aviso que
    se perdió. Dice la verdad: si el bot no está configurado o Telegram rechaza, avisa que no salió. */

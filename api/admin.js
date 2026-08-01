@@ -1,6 +1,7 @@
 const { createClient } = require('@supabase/supabase-js');
 const { sendEvent } = require('./_capi');
-const { contentIdsDe, cartSig, decrementStock, marcarCuponBienvenidaUsado, notifyVentaTelegram, cleanText } = require('./_orders');
+const { contentIdsDe, cartSig, decrementStock, marcarCuponBienvenidaUsado, notifyVentaTelegram, cleanText, createOrder } = require('./_orders');
+const { createAddiApplication } = require('./_addi');
 const { generarGuia } = require('./_coordinadora');
 const { requireAdmin, renewIfActive } = require('./_admin_auth');
 const crypto = require('crypto');
@@ -236,6 +237,50 @@ module.exports = async (req, res) => {
       // vendedor marca a mano ya la conoce, y avisarla convierte el canal en ruido.
     }
     return res.json({ ok: true });
+  }
+
+  /* CREAR UN LINK DE PAGO ADDI DESDE EL PANEL.
+     Antes esto se hacía en el portal de Addi (Cobrar → Paylink, que solo pide la cédula) y esas
+     ventas nacían FUERA del sistema: no quedaban en la base, no salían en el panel, y Meta nunca
+     recibía su Purchase — el 71% de la plata de Addi entraba así, invisible.
+     Creado aquí, el pedido nace con referencia STR-, con sus productos y la dirección de envío, y
+     el webhook que ya existe lo confirma solo (marca la venta, avisa por Telegram, manda el
+     Purchase a Meta). Los precios los pone el SERVIDOR vía createOrder → calculateOrder: el panel
+     manda ids y cantidades, nunca importes. */
+  if (action === 'crear_link_addi') {
+    const d = data || {};
+    if (!process.env.ADDI_CLIENT_ID || !process.env.ADDI_CLIENT_SECRET) return res.status(400).json({ error: 'Addi no está configurado' });
+    const email = cleanText(d.email, 120) || '';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Addi exige un correo válido' });
+    const cedula = String(d.cedula || '').replace(/\D/g, '');
+    if (cedula.length < 5) return res.status(400).json({ error: 'Cédula requerida' });
+    if (!Array.isArray(d.items) || !d.items.length) return res.status(400).json({ error: 'Agrega al menos un producto' });
+    let order;
+    try {
+      order = await createOrder({
+        items: d.items,
+        pago: 'addi',
+        nombre: cleanText(d.nombre, 200),
+        cedula,
+        tel: String(d.tel || '').replace(/\D/g, ''),
+        ciudad: cleanText(d.ciudad, 100),
+        barrio: cleanText(d.barrio, 100),
+        direccion: cleanText(d.direccion, 300),
+        utm: { origen: 'panel_link_addi', email },
+        test: d.test === true
+      });
+    } catch (e) { return res.status(400).json({ error: e.message || 'No se pudo crear el pedido' }); }
+    try {
+      const { redirectUrl, applicationId } = await createAddiApplication(order, email);
+      try {
+        const utm = Object.assign({}, order.utm || {}, { addi_app: applicationId || null });
+        await sb.from('orders').update({ utm }).eq('id', order.id);
+      } catch (e) { /* la traza no bloquea el link */ }
+      return res.json({ ok: true, url: redirectUrl, reference: order.reference, id: order.id, total: order.subtotal });
+    } catch (e) {
+      // El pedido queda 'pending' en la base a propósito: sirve de rastro de que se intentó.
+      return res.status(502).json({ error: 'Addi rechazó la solicitud', detalle: String(e && e.message || e).slice(0, 120), reference: order.reference });
+    }
   }
 
   /* Historial de avisos enviados (tabla notificaciones, migración 005). Sirve para responder
