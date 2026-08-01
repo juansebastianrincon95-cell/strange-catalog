@@ -46,6 +46,22 @@ const fmt=n=>'$'+n.toLocaleString('es-CO');
 
 const dsc=p=>p.was&&p.was>p.price?Math.round((1-p.price/p.was)*100):0;
 
+/* ── FOTOS POR EL CDN DE VERCEL ──────────────────────────────────────────────
+   Las fotos viven en Supabase Storage, y servirlas desde ahí a cada visitante que llega de los
+   anuncios agotó la cuota: la organización se pasó por "Cached Egress" y los proyectos quedaban
+   restringidos (402 = tienda caída). Ahora se piden a /img/…, que vercel.json reescribe hacia
+   Supabase y el CDN de Vercel cachea un año (los nombres llevan marca de tiempo, son inmutables).
+   Supabase solo se toca la PRIMERA vez que alguien pide cada foto.
+   La base NO cambia: las URLs siguen guardadas completas y esto traduce al leer. Si algo sale
+   mal, se quita esta función y todo vuelve a como estaba. */
+const SB_FOTOS='/storage/v1/object/public/product-images/';
+function imgCdn(u){
+  const s=String(u||'');
+  if(!s)return s;
+  const i=s.indexOf(SB_FOTOS);
+  return i===-1 ? s : '/img/'+s.slice(i+SB_FOTOS.length);
+}
+
 /* ── CUPONES ── */
 // Cada cupón aplica SOBRE el subtotal de producto (nunca sobre el flete).
 // 'pct' = porcentaje (val=0.05 → 5%); 'fijo' = monto en pesos (val=20000 → -$20.000).
@@ -144,14 +160,14 @@ async function loadState(){
       sb.from('settings').select('*')
     ]);
     prods=(pRows||[]).map(r=>({
-      id:r.id, g:r.gender, brand:r.brand||'', modelo:r.modelo||'', img:r.img_url,
-      imgs:r.imgs?JSON.parse(r.imgs):[],
+      id:r.id, g:r.gender, brand:r.brand||'', modelo:r.modelo||'', img:imgCdn(r.img_url),
+      imgs:r.imgs?JSON.parse(r.imgs).map(imgCdn):[],
       tallas:r.tallas||null,   // jsonb {talla:stock} | null = sin rastreo (deriva por género)
       price:r.price, was:r.price_before, promo:r.promo, sold:r.sold
     }));
     liqs=(lRows||[]).map(r=>({
-      id:r.id, modelo:r.modelo||'', img:r.img_url,
-      imgs:r.imgs?JSON.parse(r.imgs):[],
+      id:r.id, modelo:r.modelo||'', img:imgCdn(r.img_url),
+      imgs:r.imgs?JSON.parse(r.imgs).map(imgCdn):[],
       tallas:r.tallas||null,
       price:r.price, was:r.price_before, sold:r.sold
     }));

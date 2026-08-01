@@ -74,9 +74,19 @@ module.exports = async (req, res) => {
       brand + ' · Ref. ' + ref
     ].filter(Boolean).join('. ') + '.';
   };
+  /* Las fotos se sirven por el CDN de Vercel, no directo desde Supabase Storage: servirlas desde
+     allá agotó la cuota de "Cached Egress" de la organización. Meta necesita la URL ABSOLUTA.
+     Espejo de imgCdn() en base.js — si se cambia una, cambiar la otra. */
+  const SB_FOTOS = '/storage/v1/object/public/product-images/';
+  const imgCdn = u => {
+    const s = String(u || '');
+    if (!s) return s;
+    const i = s.indexOf(SB_FOTOS);
+    return i === -1 ? s : 'https://strangesneakers.com/img/' + s.slice(i + SB_FOTOS.length);
+  };
   // Galería: fotos secundarias (columna imgs = JSON array) → additional_image_link (máx 10)
   const extraImgs = p => {
-    try { const a = JSON.parse(p.imgs || '[]'); return Array.isArray(a) && a.length ? { additional_image_link: a.slice(0, 10) } : {}; }
+    try { const a = JSON.parse(p.imgs || '[]'); return Array.isArray(a) && a.length ? { additional_image_link: a.slice(0, 10).map(imgCdn) } : {}; }
     catch { return {}; }
   };
 
@@ -95,7 +105,7 @@ module.exports = async (req, res) => {
       price:        ((p.price_before && p.price_before > p.price) ? p.price_before : p.price) + ' COP',
       ...(p.price_before && p.price_before > p.price ? { sale_price: p.price + ' COP' } : {}),
       link:         storeUrl + '/?type=cat&id=' + p.id,
-      image_link:   p.img_url || '',
+      image_link:   imgCdn(p.img_url),
       ...extraImgs(p),
       brand:        bl || brand,                       // marca real si existe; si no, la tienda
       google_product_category: '187',                  // Google taxonomy: 187 = Apparel & Accessories > Shoes
@@ -116,7 +126,7 @@ module.exports = async (req, res) => {
       price:        ((p.price_before && p.price_before > p.price) ? p.price_before : p.price) + ' COP',
       ...(p.price_before && p.price_before > p.price ? { sale_price: p.price + ' COP' } : {}),
       link:         storeUrl + '/?type=liq&id=' + p.id,
-      image_link:   p.img_url || '',
+      image_link:   imgCdn(p.img_url),
       ...extraImgs(p),
       brand:        brand,
       google_product_category: '187',

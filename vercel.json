@@ -45,6 +45,12 @@
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=300, stale-while-revalidate=600" }
       ]
+    },
+    {
+      "source": "/img/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, s-maxage=31536000, immutable" }
+      ]
     }
   ],
   "redirects": [
@@ -56,6 +62,10 @@
     }
   ],
   "rewrites": [
+    {
+      "source": "/img/:archivo",
+      "destination": "https://ayogbrpqezutzfdktsok.supabase.co/storage/v1/object/public/product-images/:archivo"
+    },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "crons": [

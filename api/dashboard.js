@@ -106,11 +106,14 @@ module.exports = async (req, res) => {
     if (sbSvc) {
       const [v, c] = await Promise.all([
         sbSvc.from('orders')
-          .select('id,subtotal,total,envio,created_at,pago,utm,items,tel,cedula')
+          .select('id,subtotal,total,envio,created_at,pago,utm,items,tel,cedula,estado_envio')
           .eq('status', 'venta').order('created_at', { ascending: true }).limit(5000),
         sbSvc.from('product_costs').select('ptype,pid,costo')
       ]);
-      todas = (v.data || []).filter(o => !(o.utm && o.utm.test));   // excluir ventas de prueba del dashboard
+      // Fuera del dashboard: las pruebas del admin y las DEVOLUCIONES. Un paquete devuelto se
+      // marcaba 'venta' igual, así que inflaba la facturación y el ROAS con plata que nunca
+      // entró — crítico en contra entrega, donde el rechazo en puerta es del 10-25%.
+      todas = (v.data || []).filter(o => !(o.utm && o.utm.test) && o.estado_envio !== 'devuelto');
       truncadoVentas = todas.length === 5000;
       (c.data || []).forEach(r => { costos[`${r.ptype}:${r.pid}`] = r.costo; });
     }

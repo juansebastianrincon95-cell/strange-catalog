@@ -1,7 +1,7 @@
 const { createClient } = require('@supabase/supabase-js');
 const { sendEvent } = require('./_capi');
 const { contentIdsDe, cartSig, decrementStock, marcarCuponBienvenidaUsado, notifyVentaTelegram, cleanText, createOrder } = require('./_orders');
-const { createAddiApplication } = require('./_addi');
+const { createAddiApplication, getAddiToken } = require('./_addi');
 const { generarGuia } = require('./_coordinadora');
 const { requireAdmin, renewIfActive } = require('./_admin_auth');
 const crypto = require('crypto');
@@ -237,6 +237,29 @@ module.exports = async (req, res) => {
       // vendedor marca a mano ya la conoce, y avisarla convierte el canal en ruido.
     }
     return res.json({ ok: true });
+  }
+
+  /* SONDA DE SOLO LECTURA a la API de Paylink de Addi (la que usa el portal en Cobrar).
+     El 71% de la plata de Addi entra por ahí y queda fuera del sistema. Si nuestras credenciales
+     sirven en esa API, podríamos crear esos links desde el panel con solo cédula + valor —como en
+     el portal— pero naciendo de nuestro lado, y detectar la aprobación desde el cron.
+     NO crea solicitudes ni cobra a nadie: solo consulta un orderId que ya existe. */
+  if (action === 'probar_paylink') {
+    const orderId = cleanText((data || {}).orderId, 80);
+    if (!orderId) return res.status(400).json({ error: 'orderId requerido' });
+    let token;
+    try { token = await getAddiToken(); }
+    catch (e) { return res.json({ ok: false, paso: 'token', error: String(e && e.message || e) }); }
+    const bases = ['https://pay-link-custom.addi.com', 'https://api.addi.com'];
+    const out = [];
+    for (const b of bases) {
+      const url = b + '/v1/custom/pay-link?orderId=' + encodeURIComponent(orderId);
+      try {
+        const r = await fetch(url, { headers: { 'Accept': 'application/json', 'Authorization': 'Bearer ' + token } });
+        out.push({ base: b, http: r.status, cuerpo: (await r.text().catch(() => '')).slice(0, 400) });
+      } catch (e) { out.push({ base: b, error: String(e && e.message || e).slice(0, 120) }); }
+    }
+    return res.json({ ok: true, token: 'obtenido', resultados: out });
   }
 
   /* CREAR UN LINK DE PAGO ADDI DESDE EL PANEL.
