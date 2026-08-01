@@ -29,7 +29,10 @@ async function servirFoto(req, res, archivo) {
   if (!base) return res.status(500).json({ error: 'sin SUPABASE_URL' });
   try {
     const r = await fetch(base + SB_BUCKET + encodeURIComponent(archivo));
-    if (!r.ok) return res.status(r.status === 404 ? 404 : 502).json({ error: 'foto no disponible' });
+    // Supabase Storage responde 400 (no 404) cuando el objeto no existe — comprobado. Traducirlo
+    // a 404 importa: un 502 le dice a Meta y a los buscadores "el servidor está roto, reintenta",
+    // cuando en realidad esa foto simplemente no está.
+    if (!r.ok) return res.status(r.status === 400 || r.status === 404 ? 404 : 502).json({ error: 'foto no disponible' });
     const buf = Buffer.from(await r.arrayBuffer());
     res.setHeader('Content-Type', r.headers.get('content-type') || 'image/webp');
     res.setHeader('Content-Length', String(buf.length));
