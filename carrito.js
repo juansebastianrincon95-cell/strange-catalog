@@ -822,6 +822,42 @@ async function checkBoldReturn(){
   }
 }
 
+/* ── ESPERA DE LA APROBACIÓN DE ADDI ──────────────────────────────────────────
+   A diferencia de Wompi, Bold y Sistecrédito —donde el servidor le PREGUNTA a la pasarela y
+   la respuesta es inmediata— Addi no tiene consulta de estado: hay que esperar a que ELLA
+   llame al webhook. Por eso aquí se sondea la BD hasta que aparezca la venta. ── */
+function pintarEsperaAddi(){
+  if(document.getElementById('addiWait'))return;
+  const d=document.createElement('div');
+  d.id='addiWait';
+  d.style.cssText='position:fixed;inset:0;z-index:800;background:rgba(15,15,15,.92);color:#fff;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;font-family:var(--font,system-ui)';
+  d.innerHTML='<div style="max-width:340px">'+
+    '<div style="font-size:38px;line-height:1">⏳</div>'+
+    '<div style="font-size:19px;font-weight:800;margin-top:10px">Confirmando tu crédito con Addi…</div>'+
+    '<div style="font-size:13px;opacity:.85;margin-top:8px;line-height:1.5">Addi está aprobando tu compra. Puede tardar un par de minutos.<br><b>No cierres esta página.</b></div>'+
+    '</div>';
+  document.body.appendChild(d);
+}
+function cerrarEsperaAddi(){ const d=document.getElementById('addiWait'); if(d)d.remove(); }
+
+/* Devuelve true apenas el pedido queda marcado 'venta'. La PRIMERA consulta va sin esperar
+   (por si el webhook ya había llegado antes que el cliente).
+   El tope son 2 MINUTOS y no menos: el único caso real medido (#150) tardó 63 segundos, así que
+   un tope de 50s —el primero que puse— habría fallado justo en el caso que estamos arreglando. */
+async function esperarConfirmacionAddi(reference,maxMs=120000){
+  const t0=Date.now();
+  let primera=true;
+  while(Date.now()-t0<maxMs){
+    try{
+      const vr=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'addi_status',reference})});
+      if(vr.ok){ const t=await vr.json(); if(t.confirmed)return true; }
+    }catch(e){}
+    if(primera){ primera=false; pintarEsperaAddi(); }   // solo se muestra si de verdad hay que esperar
+    await new Promise(r=>setTimeout(r,2500));
+  }
+  return false;
+}
+
 /* ── ADDI (pago a crédito BNPL) — espejo de pagarBold/checkBoldReturn ── */
 async function pagarAddi(){
   if(window._payBusy)return;                 // mismo guard anti doble-toque que Bold
@@ -880,15 +916,12 @@ async function checkAddiReturn(){
   localStorage.removeItem('addi_ref');
   history.replaceState({},'',location.pathname);
   if(cancel){setTimeout(()=>alert('Cancelaste el pago con Addi. Tu carrito sigue disponible 🛒'),300);return;}
-  let verified=false;
-  if(reference){
-    try{
-      // El server NO llama a Addi: la aprobación llega por webhook. Solo reporta si el pedido
-      // ya quedó marcado 'venta' en BD (por si el webhook llegó antes que el redirect del cliente).
-      const vr=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'addi_status',reference})});
-      if(vr.ok){const t=await vr.json();verified=!!t.confirmed;}
-    }catch(e){}
-  }
+  // Addi confirma por webhook server-to-server, y eso TARDA: en la venta real #150 tardó 63
+  // segundos. El cliente vuelve a la tienda en 10-20, así que una sola consulta lo dejaba casi
+  // siempre en "estamos confirmando" y NUNCA veía su recibo con los productos. Ahora se espera
+  // hasta ~50s preguntando cada 2.5s, con un cartel en pantalla (no un alert, que bloquea).
+  const verified = reference ? await esperarConfirmacionAddi(reference) : false;
+  cerrarEsperaAddi();
   if(verified){
     comboActivo=null;
     for(const k in cart)delete cart[k];syncDot();

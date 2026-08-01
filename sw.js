@@ -10,7 +10,7 @@
    - cross-origin      → passthrough sin tocar (supabase, GA, fbq, etc.).
 
    Sube el numero de version (v1 → v2 …) en cada deploy que cambie el app-shell. */
-const CACHE = 'strange-admin-v8';   // v8: link de pago Addi desde el panel + registro de avisos
+const CACHE = 'strange-admin-v9';   // v9: esperar la aprobacion de Addi para mostrarle el recibo al cliente
 
 const SHELL = [
   '/',
