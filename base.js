@@ -61,6 +61,16 @@ function imgCdn(u){
   const i=s.indexOf(SB_FOTOS);
   return i===-1 ? s : '/img/'+s.slice(i+SB_FOTOS.length);
 }
+/* Reescribe TODAS las URLs de Supabase dentro de un objeto/arreglo, sin importar cómo se llame
+   el campo (img, img_desktop, foto, urls sueltas…). Los ajustes traen fotos con nombres de campo
+   distintos en cada bloque —testimonios, lanzamientos, banners— y la portada pesaba 3,2 MB por
+   visitante nuevo saliendo directo de Supabase. Esto los cubre todos sin ir campo por campo. */
+function imgCdnDeep(v){
+  if(typeof v==='string')return imgCdn(v);
+  if(Array.isArray(v))return v.map(imgCdnDeep);
+  if(v&&typeof v==='object'){const o={};for(const k in v)o[k]=imgCdnDeep(v[k]);return o;}
+  return v;
+}
 
 /* ── CUPONES ── */
 // Cada cupón aplica SOBRE el subtotal de producto (nunca sobre el flete).
@@ -176,19 +186,19 @@ async function loadState(){
     bannerOn=cfg.banner_on==='true';
     WELCOME_ON=cfg.welcome_popup!=='false';   // activo por defecto; admin puede apagarlo
     {const sw=$('swWelcome');if(sw)sw.checked=WELCOME_ON;}
-    try{heroSlides=JSON.parse(cfg.hero_slides||'[]');}catch(e){heroSlides=[];}
+    try{heroSlides=imgCdnDeep(JSON.parse(cfg.hero_slides||'[]'));}catch(e){heroSlides=[];}
     try{const cb=cfg.combos?JSON.parse(cfg.combos):null;if(Array.isArray(cb)&&cb.length)combos=cb;}catch(e){}
     restaurarCombo();
     try{featuredIds=JSON.parse(cfg.featured_ids||'[]');}catch(e){featuredIds=[];}
-    try{bannerMujer=cfg.banner_mujer?JSON.parse(cfg.banner_mujer):null;}catch(e){bannerMujer=null;}
-    try{bannerHombre=cfg.banner_hombre?JSON.parse(cfg.banner_hombre):null;}catch(e){bannerHombre=null;}
-    try{bannerUnisex=cfg.banner_unisex?JSON.parse(cfg.banner_unisex):null;}catch(e){bannerUnisex=null;}
+    try{bannerMujer=cfg.banner_mujer?imgCdnDeep(JSON.parse(cfg.banner_mujer)):null;}catch(e){bannerMujer=null;}
+    try{bannerHombre=cfg.banner_hombre?imgCdnDeep(JSON.parse(cfg.banner_hombre)):null;}catch(e){bannerHombre=null;}
+    try{bannerUnisex=cfg.banner_unisex?imgCdnDeep(JSON.parse(cfg.banner_unisex)):null;}catch(e){bannerUnisex=null;}
     try{socials=cfg.socials?JSON.parse(cfg.socials):{ig:'',tiktok:'',fb:''};}catch(e){socials={ig:'',tiktok:'',fb:''};}
     // La marquilla se ve en cada ficha y en cada selector rápido: por el CDN, no directo a Supabase.
-    try{sizeGuide=cfg.size_guide?JSON.parse(cfg.size_guide):null;if(sizeGuide){sizeGuide.img1=imgCdn(sizeGuide.img1);sizeGuide.img2=imgCdn(sizeGuide.img2);}}catch(e){sizeGuide=null;}
+    try{sizeGuide=cfg.size_guide?imgCdnDeep(JSON.parse(cfg.size_guide)):null;}catch(e){sizeGuide=null;}
     reviewsCount=parseInt(cfg.reviews_count)||0;
     {const r=$('cfgReviews');if(r)r.value=reviewsCount||'';}
-    try{testimonios=JSON.parse(cfg.testimonios||'[]');}catch(e){testimonios=[];}
+    try{testimonios=imgCdnDeep(JSON.parse(cfg.testimonios||'[]'));}catch(e){testimonios=[];}
     {const a=$('cfgIg');if(a)a.value=socials.ig||'';const b=$('cfgTiktok');if(b)b.value=socials.tiktok||'';const c=$('cfgFb');if(c)c.value=socials.fb||'';}
     if(cfg.store_name)STORE_NAME=cfg.store_name;
     if(cfg.wa)WA=cfg.wa;
