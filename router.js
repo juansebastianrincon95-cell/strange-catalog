@@ -80,7 +80,15 @@ if(!history.state||typeof history.state.d!=='number')history.replaceState({d:0},
 
 function _slug(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40);}
 
-function navProdUrl(id,type,p){const sl=_slug(p&&p.modelo);return '/p/'+(type==='liq'?'L':'')+id+(sl?'-'+sl:'');}
+function navProdUrl(id,type,p){
+  // Handle SEO (meta.seo.handle, estilo Shopify) manda sobre el modelo. El ID va SIEMPRE en la
+  // URL y la ruta resuelve por él (checkDeepLink) → el slug es cosmético: cambiar el handle o no
+  // tenerlo NO rompe links viejos de anuncios/WhatsApp. meta roto o con otra forma → se ignora.
+  let h=null;
+  try{const s=p&&p.meta&&typeof p.meta==='object'&&!Array.isArray(p.meta)?p.meta.seo:null;if(s&&typeof s==='object'&&!Array.isArray(s)&&typeof s.handle==='string')h=s.handle;}catch(_){h=null;}
+  const sl=_slug(h||(p&&p.modelo));
+  return '/p/'+(type==='liq'?'L':'')+id+(sl?'-'+sl:'');
+}
 
 function navCatUrl(){
   const g=gSel==='h'?'/hombre':gSel==='m'?'/mujer':gSel==='liq'?'/ofertas':'';

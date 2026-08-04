@@ -1,7 +1,7 @@
 const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
 const { rateLimit } = require('./_rate_limit');
-const { anonClient, serviceClient, cleanText, createOrder, getOrderByReference, confirmPaidOrder, contentIdsDe, genWelcomeCode } = require('./_orders');
+const { anonClient, serviceClient, cleanText, createOrder, getOrderByReference, confirmPaidOrder, contentIdsDe, genWelcomeCode, validarDescuentoPublico } = require('./_orders');
 const { sendEvent } = require('./_capi');
 const { createAddiApplication } = require('./_addi');
 const { createScTransaction, getScInfo } = require('./_sistecredito');
@@ -538,6 +538,22 @@ module.exports = async (req, res) => {
     if (kind === 'addi_status') return handleAddiStatus(req, res);
     if (kind === 'sistecredito_link') return handleScLink(req, res);
     if (kind === 'sistecredito_status') return handleScStatus(req, res);
+    /* Validar un código del motor de descuentos desde el carrito (y traer los automáticos que
+       aplican). SOLO CONSULTA: el front pinta con esto, pero el cobro lo decide calculateOrder
+       al crear el pedido. Pasa por el mismo rate limit del endpoint (40/min) — probar códigos
+       al azar en masa se corta ahí. Cualquier fallo responde 'error' sin regalar nada. */
+    if (kind === 'validar_descuento') {
+      try {
+        const out = await validarDescuentoPublico({
+          codigo: cleanText(req.body.codigo, 40),
+          items: req.body.items,
+          tel: cleanText(req.body.tel, 30)
+        });
+        return res.status(200).json(out);
+      } catch (e) {
+        return res.status(200).json({ ok: false, valido: false, motivo: 'error', monto: 0, envio_gratis: false, codigo: null, autos: [] });
+      }
+    }
     if (kind === 'create_order') {
       const order = await createOrder(req.body, req.body.status || 'pending');
       await capiLead(order, req);

@@ -1,6 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const { sendEvent } = require('./_capi');
-const { contentIdsDe, cartSig, decrementStock, marcarCuponBienvenidaUsado, notifyVentaTelegram, cleanText, createOrder } = require('./_orders');
+const { contentIdsDe, cartSig, decrementStock, marcarCuponBienvenidaUsado, notifyVentaTelegram, cleanText, createOrder, consumirDescuentos } = require('./_orders');
 const { createAddiApplication, getAddiToken } = require('./_addi');
 const { generarGuia } = require('./_coordinadora');
 const { requireAdmin, renewIfActive } = require('./_admin_auth');
@@ -17,8 +17,10 @@ const ALLOWED_ESTADO_ENVIO = ['por_despachar', 'guia_generada', 'enviado', 'entr
 // Whitelist de columnas escribibles por tabla — evita mass-assignment (que el cliente
 // inyecte columnas internas como id/created_at o campos arbitrarios en insert/update).
 const ALLOWED_COLS = {
-  products: ['gender', 'brand', 'price', 'price_before', 'promo', 'sold', 'img_url', 'imgs_360', 'imgs', 'modelo', 'tallas'],
-  liq_products: ['price', 'price_before', 'sold', 'img_url', 'imgs_360', 'imgs', 'modelo', 'tallas'],
+  // 'meta' (jsonb, migración 007): metacampos públicos + SEO por producto. ⚠️ products lo lee
+  // cualquier visitante con la anon key → SOLO datos públicos (limpiarMeta lo sanea abajo).
+  products: ['gender', 'brand', 'price', 'price_before', 'promo', 'sold', 'img_url', 'imgs_360', 'imgs', 'modelo', 'tallas', 'meta'],
+  liq_products: ['price', 'price_before', 'sold', 'img_url', 'imgs_360', 'imgs', 'modelo', 'tallas', 'meta'],
   settings: ['key', 'value'],
 };
 function pickCols(table, data) {
@@ -27,6 +29,82 @@ function pickCols(table, data) {
   for (const k of allow) if (Object.prototype.hasOwnProperty.call(data, k)) out[k] = data[k];
   return out;
 }
+
+/* ── Saneo de la columna meta (jsonb público, migración 007) ──
+   El panel ya recorta, pero el server NO confía en el cliente: aquí se reimponen la forma
+   (objeto plano de clave→texto) y los límites estilo Shopify de meta.seo (título ≤70,
+   descripción ≤160, handle como slug limpio) — así la BD nunca guarda un SEO fuera de norma
+   ni estructuras anidadas arbitrarias que la ficha no sabe mostrar.
+   Devuelve el objeto limpio o null (todo vacío = mejor null que un {} que "parece" tener datos).
+   Lanza si la forma es inválida (el caller lo traduce a 400). */
+function limpiarMeta(meta) {
+  if (meta == null) return null;
+  if (typeof meta !== 'object' || Array.isArray(meta)) throw new Error('meta debe ser un objeto {clave: valor}');
+  const out = {};
+  for (const [k, v] of Object.entries(meta)) {
+    const key = String(k).trim().slice(0, 40);
+    if (!key) continue;
+    // La columna meta es PÚBLICA: products la lee cualquiera con la anon key (select *) — es el
+    // mismo motivo por el que el costo tuvo que irse a product_costs. El aviso naranja del panel
+    // protege contra el descuido de hoy; esto protege contra el de dentro de tres meses. Se
+    // RECHAZA (no se ignora en silencio): quien lo teclee tiene que enterarse de por qué.
+    if (/^(costo|coste|cost|margen|utilidad|ganancia|proveedor|supplier|interno|internal|nota|privado|cedula|c[eé]dula|tel|tel[eé]fono|whatsapp|email|correo)/i.test(key)) {
+      throw new Error(`meta: la clave "${key}" parece un dato privado y meta es PÚBLICO (lo ve cualquier visitante)`);
+    }
+    if (key === 'seo') {
+      if (!v || typeof v !== 'object' || Array.isArray(v)) continue;   // seo con forma rara → se ignora, no rompe
+      const seo = {};
+      if (typeof v.title === 'string' && v.title.trim()) seo.title = v.title.trim().slice(0, 70);
+      if (typeof v.description === 'string' && v.description.trim()) seo.description = v.description.trim().slice(0, 160);
+      if (typeof v.handle === 'string') {
+        // Mismo slug que usa el front (router.js _slug): minúsculas sin tildes, solo a-z0-9 y guiones.
+        const h = v.handle.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+          .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+        if (h) seo.handle = h;
+      }
+      if (Object.keys(seo).length) out.seo = seo;
+      continue;
+    }
+    // Solo valores planos (texto/número/booleano): la ficha pinta pares clave→valor, y un
+    // objeto anidado libre sería basura pública imposible de auditar.
+    if (v == null || typeof v === 'object') continue;
+    const val = String(v).trim().slice(0, 300);
+    if (val) out[key] = val;
+  }
+  if (JSON.stringify(out).length > 6000) throw new Error('meta demasiado grande (máx ~6KB)');
+  return Object.keys(out).length ? out : null;
+}
+
+/* ── Normalización al formato de Custom Audience de Meta (export_audiencia) ──
+   Meta hashea al subir el archivo, pero solo matchea si el dato ya viene normalizado:
+   todo en minúsculas y sin tildes, teléfono en internacional SIN '+' ni espacios
+   (Colombia: 57 + 10 dígitos), ciudad sin espacios ni puntuación, país en ISO-2.
+   Campo sin dato = se deja VACÍO (nunca la palabra "null"). */
+const sinTildes = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+function metaPhone(t) {
+  let d = String(t || '').replace(/\D/g, '');
+  if (d.length === 12 && d.startsWith('57')) return d;   // ya venía con indicativo
+  d = d.slice(-10);
+  return d.length === 10 ? '57' + d : '';                // sin 10 dígitos no hay match posible
+}
+function metaNombre(n) {
+  // SOLO letras y espacios: Meta ignora la puntuación al matchear, y sanear aquí también
+  // neutraliza la inyección CSV (un nombre guardado como "=cmd|..." sería una fórmula viva
+  // al abrir el archivo en Excel — el nombre lo escribe el CLIENTE, es dato hostil).
+  const partes = sinTildes(n).toLowerCase().replace(/[^a-z\s]+/g, ' ').trim().split(/\s+/).filter(Boolean);
+  return { fn: partes[0] || '', ln: partes.slice(1).join(' ') };   // fn = primer nombre, ln = el resto
+}
+const metaCiudad = c => sinTildes(c).toLowerCase().replace(/[^a-z0-9]/g, '');
+
+// Marcas válidas del catálogo (mismo listado que sugerir_modelo y api/feed.js). Vive aquí arriba
+// porque save_discount lo necesita para validar "Se aplica a → marcas".
+const BRAND_LABELS_DTO = { adidas: 'Adidas', nike: 'Nike', reebok: 'Reebok', new_balance: 'New Balance', on_cloud: 'On Cloud', puma: 'Puma', lecoq_sportif: 'Le Coq Sportif', jordan: 'Jordan', lacoste: 'Lacoste', asics: 'Asics', onitsuka_tiger: 'Onitsuka Tiger', luxury: 'Luxury' };
+// Email utilizable por Meta: forma básica de correo y primer carácter alfanumérico — un
+// "email" que empiece por = + - @ no matchea nada en Meta y sí es inyección CSV en Excel.
+const metaEmail = e => {
+  const v = String(e || '').trim().toLowerCase();
+  return /^[a-z0-9][a-z0-9._%+-]*@[a-z0-9.-]+\.[a-z]{2,}$/.test(v) ? v : '';
+};
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -151,6 +229,10 @@ module.exports = async (req, res) => {
     if (!data || typeof data !== 'object') return res.status(400).json({ error: 'data required' });
     const clean = pickCols(table, data);
     if (!Object.keys(clean).length) return res.status(400).json({ error: 'no valid fields' });
+    if ('meta' in clean) {   // meta es PÚBLICO por RLS → sanear siempre server-side
+      try { clean.meta = limpiarMeta(clean.meta); }
+      catch (e) { return res.status(400).json({ error: String(e.message || e) }); }
+    }
     const { data: row, error } = await sb.from(table).insert(clean).select('id').single();
     if (error) return res.status(500).json({ error: error.message });
     return res.json({ ok: true, id: row.id });
@@ -162,6 +244,10 @@ module.exports = async (req, res) => {
     if (!data || typeof data !== 'object') return res.status(400).json({ error: 'data required' });
     const clean = pickCols(table, data);
     if (!Object.keys(clean).length) return res.status(400).json({ error: 'no valid fields' });
+    if ('meta' in clean) {   // meta es PÚBLICO por RLS → sanear siempre server-side
+      try { clean.meta = limpiarMeta(clean.meta); }
+      catch (e) { return res.status(400).json({ error: String(e.message || e) }); }
+    }
     const { error } = await sb.from(table).update(clean).eq('id', id);
     if (error) return res.status(500).json({ error: error.message });
     return res.json({ ok: true });
@@ -218,6 +304,7 @@ module.exports = async (req, res) => {
     if (status === 'venta' && order && !(order.utm && order.utm.test)) {
       await decrementStock(sb, order.items).catch(() => {});   // descontar inventario por talla
       await marcarCuponBienvenidaUsado(sb, order).catch(() => {});   // venta manual (WhatsApp/contra entrega) también quema el cupón de bienvenida
+      await consumirDescuentos(sb, order).catch(() => {});   // la venta manual también sube usos del motor (idempotente por pedido)
       const utm = order.utm || {};
       const value = Number(order.subtotal != null ? order.subtotal : order.total);
       if (Number.isFinite(value) && value > 0) {
@@ -465,6 +552,209 @@ module.exports = async (req, res) => {
     return res.json({ ok: true });
   }
 
+  /* ── MOTOR DE DESCUENTOS (tabla discounts, migración 006) — CRUD del panel ──
+     El panel solo administra las FILAS; quién descuenta cuánto lo decide siempre
+     api/_orders.js server-side. Todo pasa por el requireAdmin de arriba. */
+  if (action === 'list_discounts') {
+    const { data: rows, error } = await sb.from('discounts').select('*')
+      .order('created_at', { ascending: false }).limit(200);
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json({ ok: true, discounts: rows || [] });
+  }
+
+  if (action === 'save_discount') {
+    const d = data || {};
+    const upd = {};   // solo columnas whitelisted y validadas — jamás usos/created_at desde el cliente
+    const err = m => res.status(400).json({ error: m });
+
+    if ('codigo' in d) {
+      // null/'' = automático. Con valor: 3-40 caracteres A-Z 0-9 _ - (el charset que el motor
+      // acepta al consultar — un código fuera de esto sería imposible de canjear).
+      const raw = d.codigo == null ? '' : String(d.codigo).trim().toUpperCase();
+      if (!raw) upd.codigo = null;
+      else {
+        if (!/^[A-Z0-9_-]{3,40}$/.test(raw)) return err('Código: 3-40 caracteres, solo letras, números, guion y guion bajo');
+        // Los códigos del sistema viejo NO se pueden pisar: BIENVENIDO20* y GRACIAS5 tienen su
+        // propio camino (suscriptores) y una fila aquí los taparía o duplicaría el descuento.
+        if (/^BIENVENIDO20(-|$)/.test(raw) || raw === 'GRACIAS5') return err('Ese código está reservado por el sistema de bienvenida');
+        upd.codigo = raw;
+      }
+    }
+    if ('nombre' in d) upd.nombre = cleanText(d.nombre, 80) || '';
+    if ('tipo' in d) {
+      if (!['pedido', 'producto', 'bogo', 'envio'].includes(d.tipo)) return err('tipo inválido');
+      upd.tipo = d.tipo;
+    }
+    if ('valor_tipo' in d) {
+      if (!['pct', 'fijo'].includes(d.valor_tipo)) return err('valor_tipo inválido');
+      upd.valor_tipo = d.valor_tipo;
+    }
+    if ('valor' in d) {
+      const v = parseInt(d.valor, 10);
+      if (!Number.isFinite(v) || v < 0 || v > 100_000_000) return err('valor inválido');
+      // Un % fuera de 1-100 descontaría más que el producto (el motor igual capea, pero
+      // guardarlo sería un dato falso esperando hacer daño).
+      if ((d.valor_tipo || upd.valor_tipo) === 'pct' && (v < 0 || v > 100)) return err('porcentaje: 0 a 100');
+      upd.valor = v;
+    }
+    if ('aplica' in d) {
+      // {ids:['cat_29','liq_5'], marcas:['nike']} — null = todos los productos
+      if (d.aplica == null) upd.aplica = null;
+      else {
+        const ids = Array.isArray(d.aplica.ids) ? d.aplica.ids.map(s => String(s).trim().toLowerCase()).filter(s => /^(cat|liq)_\d+$/.test(s)).slice(0, 300) : [];
+        // products.brand SIEMPRE es un slug de lista fija ('new_balance', 'on_cloud'…). Si aquí
+        // se guardara el texto tal cual, escribir "New Balance" crearía un descuento que se ve
+        // bien en el panel y NUNCA descuenta nada: falla en silencio, que es lo peor que puede
+        // hacer un descuento. Se acepta el slug o el nombre visible, y una marca inexistente se
+        // RECHAZA con el listado — mejor un error al crearlo que un cupón muerto en producción.
+        const SLUGS = Object.keys(BRAND_LABELS_DTO);
+        const porNombre = {};
+        SLUGS.forEach(s => { porNombre[BRAND_LABELS_DTO[s].toLowerCase().replace(/\s+/g, ' ')] = s; });
+        const marcas = [];
+        if (Array.isArray(d.aplica.marcas)) {
+          for (const raw of d.aplica.marcas.slice(0, 50)) {
+            const t = String(raw).trim().toLowerCase().replace(/\s+/g, ' ');
+            if (!t) continue;
+            const slug = SLUGS.includes(t) ? t : (porNombre[t] || porNombre[t.replace(/_/g, ' ')] || null);
+            if (!slug) return res.status(400).json({ error: `marca desconocida: "${raw}". Válidas: ${SLUGS.join(', ')}` });
+            if (!marcas.includes(slug)) marcas.push(slug);
+          }
+        }
+        upd.aplica = (ids.length || marcas.length) ? { ids, marcas } : null;
+      }
+    }
+    if ('bogo' in d) {
+      if (d.bogo == null) upd.bogo = null;
+      else {
+        const compra = parseInt(d.bogo.compra, 10), lleva = parseInt(d.bogo.lleva, 10);
+        const pct = parseInt(d.bogo.pct, 10) || 100;
+        if (!Number.isFinite(compra) || compra < 1 || compra > 20) return err('BOGO: "compra" debe ser 1 a 20');
+        if (!Number.isFinite(lleva) || lleva < 1 || lleva > 20) return err('BOGO: "lleva" debe ser 1 a 20');
+        if (pct < 1 || pct > 100) return err('BOGO: % de 1 a 100');
+        upd.bogo = { compra, lleva, pct };
+      }
+    }
+    const intONull = (v, campo, max) => {
+      if (v == null || v === '') return null;
+      const n = parseInt(v, 10);
+      if (!Number.isFinite(n) || n < 0 || n > max) throw new Error(campo + ' inválido');
+      return n || null;   // 0 = sin límite/mínimo → null
+    };
+    try {
+      if ('min_monto' in d) upd.min_monto = intONull(d.min_monto, 'min_monto', 100_000_000);
+      if ('min_items' in d) upd.min_items = intONull(d.min_items, 'min_items', 100);
+      if ('usos_max' in d) upd.usos_max = intONull(d.usos_max, 'usos_max', 1_000_000);
+    } catch (e) { return err(e.message); }
+    if ('uno_por_cliente' in d) upd.uno_por_cliente = !!d.uno_por_cliente;
+    if ('combinable' in d) upd.combinable = !!d.combinable;
+    const fechaONull = v => {
+      if (v == null || v === '') return null;
+      const t = Date.parse(v);
+      return Number.isFinite(t) ? new Date(t).toISOString() : undefined;   // undefined = inválida
+    };
+    if ('desde' in d) { upd.desde = fechaONull(d.desde); if (upd.desde === undefined) return err('fecha "desde" inválida'); }
+    if ('hasta' in d) { upd.hasta = fechaONull(d.hasta); if (upd.hasta === undefined) return err('fecha "hasta" inválida'); }
+    if (upd.desde && upd.hasta && upd.hasta <= upd.desde) return err('"hasta" debe ser posterior a "desde"');
+    if ('activo' in d) upd.activo = !!d.activo;
+    if (!Object.keys(upd).length) return err('nothing to save');
+
+    if (id) {
+      const { error } = await sb.from('discounts').update(upd).eq('id', id);
+      if (error) return res.status(500).json({ error: /duplicate|unique/i.test(error.message) ? 'Ya existe un descuento con ese código' : error.message });
+      return res.json({ ok: true, id });
+    }
+    // Alta: exigir lo esencial para que la fila nazca coherente (el motor igual falla cerrado,
+    // pero un descuento a medias en el panel solo confunde).
+    if (!upd.tipo) return err('tipo requerido');
+    if (upd.tipo !== 'envio' && !(parseInt(upd.valor, 10) > 0) && upd.tipo !== 'bogo') return err('valor requerido');
+    if (upd.tipo === 'bogo' && !upd.bogo) return err('configura el BOGO (compra X, lleva Y)');
+    const { data: row, error } = await sb.from('discounts').insert(upd).select('id').single();
+    if (error) return res.status(500).json({ error: /duplicate|unique/i.test(error.message) ? 'Ya existe un descuento con ese código' : error.message });
+    return res.json({ ok: true, id: row.id });
+  }
+
+  if (action === 'delete_discount') {
+    if (!id) return res.status(400).json({ error: 'id required' });
+    // Primero el registro de usos (sin FK): no dejar filas huérfanas que confundan auditorías.
+    const { error: e1 } = await sb.from('discount_usos').delete().eq('discount_id', id);
+    if (e1) return res.status(500).json({ error: e1.message });
+    const { error } = await sb.from('discounts').delete().eq('id', id);
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json({ ok: true });
+  }
+
+  /* EXPORTAR AUDIENCIA PARA META (Custom Audience → Lista de clientes).
+     Devuelve un CSV con cabeceras email,phone,fn,ln,ct,country listo para subir en
+     Audiencias → Crear audiencia personalizada → Lista de clientes.
+     Filtros (data.tipo):
+       'todos'            → todos los compradores (ventas reales)
+       'rfm' + etiqueta   → un segmento RFM (Campeones, Leales, Perdidos, …)
+       'dias' + min/max   → última compra hace entre min y max días
+     Los perfiles y el RFM se REUSAN de api/dashboard.js (_clientes): el CSV contiene
+     exactamente los mismos clientes que el panel cuenta en cada segmento — dos
+     construcciones en paralelo darían audiencias que no cuadran con lo que se ve.
+     Son datos personales: pasa por el MISMO requireAdmin que todas las acciones (arriba). */
+  if (action === 'export_audiencia') {
+    const d = data || {};
+    const { perfilesDe, rfmDe, RFM_ETIQUETAS } = require('./dashboard')._clientes;
+    const { data: vRows, error: vErr } = await sb.from('orders')
+      .select('tel,cedula,nombre,ciudad,subtotal,total,created_at,utm,estado_envio')
+      .eq('status', 'venta').order('created_at', { ascending: true }).limit(5000);
+    if (vErr) return res.status(500).json({ error: vErr.message });
+    // Mismas exclusiones que el dashboard: pruebas del admin (utm.test) y devoluciones fuera.
+    const dia10 = t => new Date(t).toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
+    const ventas = (vRows || []).filter(o => !(o.utm && o.utm.test) && o.estado_envio !== 'devuelto');
+    ventas.forEach(o => { o._dia = dia10(o.created_at); });
+    const cli = rfmDe(perfilesDe(ventas, () => false), dia10(Date.now()));   // el rango del dashboard no aplica al export
+
+    let sel = cli;
+    if (d.tipo === 'rfm') {
+      if (!RFM_ETIQUETAS.includes(d.etiqueta)) return res.status(400).json({ error: 'etiqueta RFM invalida' });
+      sel = cli.filter(c => c.etiqueta === d.etiqueta);
+    } else if (d.tipo === 'dias') {
+      const min = Math.max(0, parseInt(d.min, 10) || 0);
+      const max = parseInt(d.max, 10);
+      if (!Number.isFinite(max) || max < min) return res.status(400).json({ error: 'rango de dias invalido (min/max)' });
+      sel = cli.filter(c => c.r_dias >= min && c.r_dias <= max);
+    }   // 'todos' u omitido → todos los compradores
+
+    // Email: orders no guarda correo (solo utm.email de los links Addi creados en el panel) →
+    // se rescata cruzando con subscribers por los últimos 10 dígitos del WhatsApp.
+    const emailPorTel = {};
+    ventas.forEach(o => {
+      const e = o.utm && typeof o.utm.email === 'string' ? metaEmail(o.utm.email) : '';
+      const t = String(o.tel || '').replace(/\D/g, '').slice(-10);
+      if (t && e && !emailPorTel[t]) emailPorTel[t] = e;
+    });
+    const { data: subs } = await sb.from('subscribers').select('whatsapp,email').limit(5000);
+    (subs || []).forEach(s => {
+      const t = String(s.whatsapp || '').replace(/\D/g, '').slice(-10);
+      const e = metaEmail(s.email);
+      if (t && e && !emailPorTel[t]) emailPorTel[t] = e;
+    });
+
+    const filas = [], vistos = new Set();
+    sel.forEach(c => {
+      // Un cliente puede tener varios teléfonos (merge por cédula): una fila por teléfono
+      // válido = más identificadores = mejor match rate en Meta. El email va con el principal.
+      (c.tels && c.tels.length ? c.tels : [c.tel]).forEach((tel, i) => {
+        const phone = metaPhone(tel);
+        const email = i === 0 ? (emailPorTel[c.tel] || '') : '';
+        if (!phone && !email) return;   // sin ningún identificador Meta no matchea nada
+        const key = phone || 'e:' + email;
+        if (vistos.has(key)) return;    // dedupe
+        vistos.add(key);
+        const { fn, ln } = metaNombre(c.nombre);
+        filas.push([email, phone, fn, ln, metaCiudad(c.ciudad), 'co']);
+      });
+    });
+    const esc = v => (/[",\n]/.test(v) ? '"' + String(v).replace(/"/g, '""') + '"' : String(v));
+    const csv = ['email,phone,fn,ln,ct,country'].concat(filas.map(f => f.map(esc).join(','))).join('\n');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('X-Clientes', String(filas.length));   // el front avisa si salió vacío
+    return res.send(csv);
+  }
+
   if (action === 'list_orders') {
     const { data: rows, error } = await sb
       .from('orders')
@@ -494,3 +784,8 @@ module.exports = async (req, res) => {
 
   return res.status(400).json({ error: 'unknown action' });
 };
+
+// Normalización Meta expuesta para pruebas locales (Vercel no lo usa; mismo patrón que _atrib).
+module.exports._audiencia = { sinTildes, metaPhone, metaNombre, metaCiudad, metaEmail };
+// Saneo de metacampos expuesto para pruebas locales (mismo patrón).
+module.exports._metacampos = { limpiarMeta };

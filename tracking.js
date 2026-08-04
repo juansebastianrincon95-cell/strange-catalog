@@ -129,7 +129,12 @@ function captureUTM(){
   // fbclid: clic desde un anuncio de Meta. Se persiste para atribución (cookie _fbc la deriva el Pixel).
   const fbclid=p.get('fbclid');
   if(fbclid)localStorage.setItem('ss_fbclid',fbclid);
-  if(Object.keys(utm).length)localStorage.setItem('ss_utm',JSON.stringify(utm));
+  if(Object.keys(utm).length){
+    localStorage.setItem('ss_utm',JSON.stringify(utm));
+    // Primer UTM (una sola vez, mismo patrón que ss_landing): ss_utm se PISA en cada visita con
+    // campaña → sin esto se pierde el primer toque y no existe atribución "primer clic".
+    if(!localStorage.getItem('ss_utm_first'))localStorage.setItem('ss_utm_first',JSON.stringify(utm));
+  }
   // Landing inicial: primera URL con la que llegó el visitante (una sola vez por visitante).
   if(!localStorage.getItem('ss_landing'))localStorage.setItem('ss_landing',(location.pathname+location.search).slice(0,300));
 }
@@ -137,11 +142,16 @@ function captureUTM(){
 // Contexto de visita para el admin: landing inicial + tipo de dispositivo + app de origen.
 // Viaja dentro de order.utm (jsonb) — sin migración.
 function getVisitCtx(){
-  return {
+  const ctx={
     landing: localStorage.getItem('ss_landing')||null,
     device: (navigator.maxTouchPoints>0&&matchMedia('(max-width:820px)').matches)?'movil':'escritorio',
     src_app: detectSrcApp()
   };
+  // Primer clic del visitante: viaja dentro de order.utm → el dashboard puede atribuir
+  // "primer clic" aunque los events de la sesión ya se hayan podado de la tabla.
+  const uf=getUTMFirst();
+  if(Object.keys(uf).length)ctx.utm_first=uf;
+  return ctx;
 }
 
 /* App de origen del visitante. Señal 1 (la más confiable): el navegador interno de cada app se
@@ -171,6 +181,11 @@ function srcAppLabel(v){return v?(SRC_APP_LABELS[v]||v):'';}
 
 function getUTM(){
   try{return JSON.parse(localStorage.getItem('ss_utm')||'{}');}catch(e){return {};}
+}
+
+// Primer UTM capturado (no se pisa nunca) — el "primer clic" de la atribución.
+function getUTMFirst(){
+  try{return JSON.parse(localStorage.getItem('ss_utm_first')||'{}');}catch(e){return {};}
 }
 
 // Lee una cookie por nombre (para _fbp/_fbc que setea el Meta Pixel)

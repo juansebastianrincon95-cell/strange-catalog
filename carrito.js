@@ -28,6 +28,71 @@ function restaurarCombo(){
 
 function comboPares(){return Object.values(cart).reduce((s,{qty})=>s+qty,0);}
 
+/* ── MOTOR DE DESCUENTOS (espejo del server) ──────────────────────────────────
+   Aquí solo se PINTA (mismo patrón que calcFlete): el monto real lo decide SIEMPRE
+   api/_orders.js con la tabla discounts. `descuentoAplicado` es la definición SANEADA que
+   devolvió el server al validar el código; `descuentosAuto` son los automáticos que el server
+   dijo que aplican a este carrito (se refrescan al abrir el carrito, syncDescuentosAuto). */
+let descuentoAplicado=null;      // def del código validado por el server (o null)
+let descuentosAuto=[];           // defs de los automáticos aplicables (según el server)
+let _descEnvioGratis=false;      // el plan vigente incluye envío gratis (lo consume calcFlete)
+
+// ¿El ítem del carrito está cubierto por el descuento? Espejo de descuentoAplicaItem del server.
+function _descAplicaItem(aplica,row){
+  if(!aplica||typeof aplica!=='object')return true;
+  const ids=Array.isArray(aplica.ids)?aplica.ids:[],marcas=Array.isArray(aplica.marcas)?aplica.marcas:[];
+  if(!ids.length&&!marcas.length)return true;
+  const key=(row.type==='liq'?'liq_':'cat_')+row.p.id;
+  return ids.includes(key)||(!!row.p.brand&&marcas.includes(String(row.p.brand)));
+}
+
+// Monto que descuenta `d` sobre las filas del carrito. Espejo de montoDescuento del server.
+function _descMonto(d,rows,subBruto){
+  const valor=Math.max(0,parseInt(d.valor)||0),pct=Math.min(valor,100);
+  if(d.tipo==='pedido')return d.valor_tipo==='pct'?Math.round(subBruto*pct/100):Math.min(valor,subBruto);
+  if(d.tipo==='producto'){
+    const base=rows.filter(r=>_descAplicaItem(d.aplica,r)).reduce((s,r)=>s+r.p.price*r.qty,0);
+    if(base<=0)return 0;
+    return d.valor_tipo==='pct'?Math.round(base*pct/100):Math.min(valor,base);
+  }
+  if(d.tipo==='bogo'){
+    const b=d.bogo||{},compra=parseInt(b.compra),lleva=parseInt(b.lleva),bp=Math.min(Math.max(parseInt(b.pct)||100,1),100);
+    if(!(compra>0)||!(lleva>0))return 0;
+    const u=[];rows.forEach(r=>{if(_descAplicaItem(d.aplica,r))for(let i=0;i<r.qty;i++)u.push(r.p.price);});
+    const g=Math.floor(u.length/(compra+lleva));if(g<=0)return 0;
+    u.sort((a,c)=>a-c);
+    return Math.round(u.slice(0,g*lleva).reduce((s,x)=>s+x,0)*bp/100);
+  }
+  return 0;   // 'envio' no toca producto (apaga el flete)
+}
+
+/* Plan de descuentos para pintar: misma regla de combinación del server (todos los combinables
+   juntos VS el mejor no-combinable solo; envío gratis en pista aparte). Los mínimos se
+   re-chequean aquí para que el descuento aparezca/desaparezca en vivo al cambiar cantidades. */
+function calcDescuentosFront(rows,subBruto,pares){
+  const defs=[];
+  if(descuentoAplicado)defs.push(descuentoAplicado);
+  (descuentosAuto||[]).forEach(d=>{if(!defs.some(x=>x.id===d.id))defs.push(d);});
+  const ok=defs.filter(d=>{
+    if(parseInt(d.min_monto)>0&&subBruto<parseInt(d.min_monto))return false;
+    if(parseInt(d.min_items)>0&&pares<parseInt(d.min_items))return false;
+    return true;
+  });
+  const precio=[],envios=[];
+  ok.forEach(d=>{
+    if(d.tipo==='envio'){envios.push(d);return;}
+    const m=Math.min(_descMonto(d,rows,subBruto),subBruto);
+    if(m>0)precio.push({d,m});
+  });
+  const combi=precio.filter(c=>c.d.combinable),solos=precio.filter(c=>!c.d.combinable).sort((a,b)=>b.m-a.m);
+  const sumCombi=Math.min(combi.reduce((s,c)=>s+c.m,0),subBruto);
+  let plan=!solos.length?combi:(!combi.length?[solos[0]]:(sumCombi>=solos[0].m?combi:[solos[0]]));
+  const envioOk=envios.find(d=>d.combinable||(!plan.length&&envios.length===1));
+  const monto=Math.min(plan.reduce((s,c)=>s+c.m,0),subBruto);   // NUNCA subtotal negativo
+  const tag=plan.map(c=>c.d.codigo||c.d.nombre||'Promo').concat(envioOk?[envioOk.codigo||envioOk.nombre||'Envío gratis']:[]).join(' + ');
+  return {monto,envioGratis:!!envioOk,tag:tag||null};
+}
+
 // PRECIOS DEL CARRITO centralizados: combo (precio fijo, sin cupón) o flujo normal con cupón.
 // Único lugar donde se decide el subtotal — lo usan carrito, paso 3, WhatsApp, Wompi y Bold.
 function cartPricing(rows){
@@ -35,9 +100,20 @@ function cartPricing(rows){
   const subBruto=rows.reduce((s,{p,qty})=>s+p.price*qty,0);
   const pares=rows.reduce((s,{qty})=>s+qty,0);
   const combo=(comboActivo&&comboActivo.activo!==false&&pares===parseInt(comboActivo.pares))?comboActivo:null;
-  const desc=combo?0:cuponDesc(subBruto);
+  let desc=combo?0:cuponDesc(subBruto);
+  // Etiqueta de lo que descuenta (para el resumen y el mensaje de WhatsApp)
+  let descTag=desc>0?cuponAplicado:null;
+  _descEnvioGratis=false;
+  // Motor nuevo: solo sin combo y sin cupón legacy efectivo (los legacy nunca se combinan).
+  // Igual que el server: si hay combo o legacy, el motor ni se mira.
+  if(!combo&&desc===0){
+    const e=calcDescuentosFront(rows,subBruto,pares);
+    desc=Math.min(e.monto,subBruto);
+    _descEnvioGratis=e.envioGratis;
+    if(desc>0||e.envioGratis)descTag=e.tag;
+  }
   const sub=combo?parseInt(combo.precio):(subBruto-desc);
-  return {subBruto,pares,combo,desc,sub,camiseta:!!(combo&&combo.camiseta)};
+  return {subBruto,pares,combo,desc,descTag,sub,camiseta:!!(combo&&combo.camiseta)};
 }
 
 // Tarjetas de combos en la sección Ofertas
@@ -186,17 +262,86 @@ function renderComboBar(){
   if(n!==N)_comboCamisetaCelebrada=false;
 }
 
-function aplicarCupon(){
+// Motivos del server (validar_descuento) en palabras que el cliente entiende.
+const DESC_MOTIVOS={
+  no_existe:'Código no válido',
+  inactivo:'Código no válido',
+  vencido:'Este código ya venció 😢',
+  aun_no_empieza:'Este código aún no está activo',
+  agotado:'Este código ya alcanzó su límite de usos 😢',
+  ya_usado:'Ya usaste este código en una compra anterior',
+  minimo_monto:'Tu pedido aún no llega al mínimo de compra de este código',
+  minimo_items:'Te faltan pares en el carrito para usar este código',
+  no_aplica_productos:'Este código no aplica a los productos de tu carrito',
+  no_combinable:'Este código no se puede combinar con la promoción ya aplicada',
+  error:'No pudimos validar el código. Intenta de nuevo.'
+};
+
+// Ítems del carrito en el formato que valida el server (ids/cantidades — jamás precios).
+function _descItemsPayload(){
+  return Object.values(cart).map(({p,qty,type,talla})=>({id:p.id,type,qty,talla:talla||null}));
+}
+
+async function aplicarCupon(){
   const inp=$('cupInput');if(!inp)return;
   let code=inp.value.trim().toUpperCase();
-  const cupFail=msg=>{const e=$('cupErr');if(e){e.textContent=msg||'Código no válido';e.style.display='block';setTimeout(()=>{e.style.display='none';e.textContent='Código no válido';},3000);}};
+  const cupFail=msg=>{const e=$('cupErr');if(e){e.textContent=msg||'Código no válido';e.style.display='block';setTimeout(()=>{e.style.display='none';e.textContent='Código no válido';},3500);}};
   // El suscriptor nuevo tiene código propio (BIENVENIDO20-XXXXX, lo guarda el popup). Si teclea
   // el genérico de memoria, se sube en silencio al suyo — el server ya no acepta el genérico
   // de quien no es suscriptor identificable, y el propio siempre valida.
   if(code==='BIENVENIDO20'&&localStorage.getItem('ss_wm_code'))code=localStorage.getItem('ss_wm_code');
   if(esCodigoBienvenida(code)&&welcomeVencido())return cupFail('Tu código de bienvenida venció (era válido por 7 días) 😢');
-  if(CUPONES[code]||esCodigoBienvenida(code)){cuponAplicado=code;localStorage.setItem('ss_cupon',code);trackEvent('apply_coupon',{product_id:code});rCart();}
-  else cupFail();
+  // Cupones legacy (bienvenida / GRACIAS5): mismo camino de siempre, sin tocar el motor.
+  if(CUPONES[code]||esCodigoBienvenida(code)){descuentoAplicado=null;cuponAplicado=code;localStorage.setItem('ss_cupon',code);trackEvent('apply_coupon',{product_id:code});rCart();return;}
+  if(!code)return cupFail();
+  // Motor nuevo: el SERVER decide si el código vale y cuánto descuenta — el front nunca
+  // inventa un monto. Si no vale, el server dice el motivo exacto (vencido, mínimo, usado…).
+  const btn=document.querySelector('.cup-btn');
+  if(btn){btn.disabled=true;btn.textContent='…';}
+  try{
+    const r=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({kind:'validar_descuento',codigo:code,items:_descItemsPayload(),session_id:SESSION_ID,tel:(cData&&cData.celular)||null})});
+    const j=r.ok?await r.json():null;
+    if(j&&j.ok&&j.valido&&j.codigo){
+      descuentoAplicado=j.codigo;
+      descuentosAuto=Array.isArray(j.autos)?j.autos:descuentosAuto;
+      cuponAplicado=code;
+      localStorage.setItem('ss_cupon',code);
+      trackEvent('apply_coupon',{product_id:code});
+      rCart();
+    }else{
+      cupFail(DESC_MOTIVOS[(j&&j.motivo)||'error']||'Código no válido');
+    }
+  }catch(e){cupFail(DESC_MOTIVOS.error);}
+  finally{if(btn){btn.disabled=false;btn.textContent='Aplicar';}}
+}
+
+/* Trae del server los descuentos AUTOMÁTICOS que aplican a este carrito (y revalida el código
+   guardado si lo hay). Se llama al abrir el carrito; con la misma firma de carrito+código no
+   repite el viaje. Si el server no responde, no pasa nada: el cobro real igual lo decide él. */
+let _descSyncSig='';
+function syncDescuentosAuto(){
+  const items=_descItemsPayload();
+  if(!items.length){descuentosAuto=[];_descSyncSig='';return;}
+  // El código guardado que aún no tiene definición (restaurado de otra visita) se revalida aquí.
+  const codePend=cuponAplicado&&!CUPONES[cuponAplicado]&&!esCodigoBienvenida(cuponAplicado)?cuponAplicado:null;
+  const sig=JSON.stringify(items)+'|'+(codePend||'');
+  if(sig===_descSyncSig)return;
+  _descSyncSig=sig;
+  fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({kind:'validar_descuento',codigo:codePend,items,session_id:SESSION_ID,tel:(cData&&cData.celular)||null})})
+    .then(r=>r.ok?r.json():null)
+    .then(j=>{
+      if(!j||!j.ok)return;
+      descuentosAuto=Array.isArray(j.autos)?j.autos:[];
+      if(codePend){
+        if(j.valido&&j.codigo)descuentoAplicado=j.codigo;
+        else{descuentoAplicado=null;cuponAplicado=null;localStorage.removeItem('ss_cupon');}   // el código guardado ya no vale
+      }
+      // Re-pintar si el cliente está mirando el carrito (paso 0) — el descuento aparece en vivo.
+      if($('csheet')&&$('csheet').classList.contains('on')&&step===0)rCart();
+    })
+    .catch(()=>{});
 }
 
 // Despliega/oculta el campo de código promocional (colapsado por defecto, estilo Adidas).
@@ -287,6 +432,10 @@ function restoreCupon(){
     if(!code)return;
     const vencido=esCodigoBienvenida(code)&&typeof welcomeVencido==='function'&&welcomeVencido();
     if((CUPONES[code]||esCodigoBienvenida(code))&&!vencido)cuponAplicado=code;
+    // Código del motor nuevo: se restaura PROVISIONAL (sin definición no descuenta nada en
+    // pantalla) y syncDescuentosAuto lo revalida contra el server al abrir el carrito —
+    // si ya no vale (vencido, agotado, usado), ahí mismo se limpia.
+    else if(/^[A-Z0-9_-]{3,40}$/.test(code))cuponAplicado=code;
     else localStorage.removeItem('ss_cupon');
   }catch(e){}
 }
@@ -298,7 +447,9 @@ function restoreCupon(){
 let _icFired=false;
 
 function openCart(){
-  step=0;_icFired=false;_comboSugDismiss=false;renderStep();
+  step=0;_icFired=false;_comboSugDismiss=false;
+  syncDescuentosAuto();   // pedirle al server los descuentos automáticos de ESTE carrito (async, solo pinta)
+  renderStep();
   $('cscrim').classList.add('on');$('csheet').classList.add('on');lockScroll();
   navPush('carrito','/carrito','Tu carrito — '+STORE_NAME,closeCart);
 }
@@ -388,19 +539,32 @@ function rCart(){
     if(orig>pricing.sub)sumRows+=`<div class="csum-row disc" style="font-weight:800;font-size:13px"><span>🎉 Ahorras en total</span><span class="v">${fmt(orig-pricing.sub)}</span></div>`;
   }else{
     if(ahorro>0) sumRows+=`<div class="csum-row disc"><span>Descuento</span><span class="v">−${fmt(ahorro)}</span></div>`;
-    if(desc>0)   sumRows+=`<div class="csum-row disc"><span>Cupón ${cuponAplicado}</span><span class="v">−${fmt(desc)}</span></div>`;
+    // Etiqueta: cupón tecleado → "Cupón X"; descuento automático del motor → su nombre/etiqueta
+    if(desc>0)   sumRows+=`<div class="csum-row disc"><span>${pricing.descTag===cuponAplicado&&cuponAplicado?'Cupón '+escHtml(cuponAplicado):'🎉 '+escHtml(pricing.descTag||'Descuento')}</span><span class="v">−${fmt(desc)}</span></div>`;
   }
   // Envío: GRATIS es cierto en 5 de los 6 métodos de pago, pero contra entrega cobra flete
   // (calcFlete). Decirlo aquí — con el monto real — evita el costo sorpresa en el paso de pago,
   // que es la causa #1 de abandono. El "Gratis" se conserva: es verdad pagando por adelantado.
   sumRows+=`<div class="csum-row"><span>Envío <span style="color:var(--ink3);font-size:11px">pagando en línea</span></span><span class="free">Gratis</span></div>`;
-  const notaCOD=`<div style="font-size:10.5px;color:var(--ink3);line-height:1.45;margin-top:9px">📦 ¿Prefieres <b>contra entrega</b>? El envío cuesta ${fmt(calcFlete(tot))} y se paga por adelantado; los zapatos los pagas al recibir en casa.</div>`;
+  // Flete contra entrega con la ciudad que se conozca (si aún no ha llenado datos → zona por defecto)
+  const fleteCOD=calcFlete(tot,(cData&&cData.ciudad)||'',pricing.sub);
+  // Palanca de AOV: si el envío gratis por monto está activo y aún no lo alcanza, decirle
+  // cuánto le falta (sobrio, dentro del resumen — no un banner).
+  if(envioGratisDesde>0){
+    const falta=envioGratisDesde-pricing.sub;
+    sumRows+=falta>0
+      ?`<div class="csum-row" style="font-size:11px;color:var(--ink2)"><span>🚚 Te faltan <b>${fmt(falta)}</b> para envío GRATIS también contra entrega</span></div>`
+      :`<div class="csum-row disc" style="font-size:11px;font-weight:700"><span>🚚 ¡Envío GRATIS en todos los métodos de pago!</span><span class="v">✓</span></div>`;
+  }
+  const notaCOD=fleteCOD>0
+    ?`<div style="font-size:10.5px;color:var(--ink3);line-height:1.45;margin-top:9px">📦 ¿Prefieres <b>contra entrega</b>? El envío cuesta ${fmt(fleteCOD)} según tu ciudad y se paga por adelantado; los zapatos los pagas al recibir en casa.</div>`
+    :`<div style="font-size:10.5px;color:var(--ink3);line-height:1.45;margin-top:9px">📦 <b>Contra entrega también con envío GRATIS</b> — los zapatos los pagas al recibir en casa.</div>`;
   const summary=`<div class="csum"><div class="csum-t">Resumen del pedido</div>${sumRows}<div class="csum-total"><span class="l">Total</span><span class="v">${fmt(totalFinal)}</span></div>${notaCOD}</div>`;
   // Código promocional: NO acumulable con combo (si el combo aplica, el cupón se oculta/ignora)
   const cupHtml=pricing.combo
     ? (cuponAplicado?`<div class="cart-line" style="background:var(--bg);color:var(--ink3);border-color:var(--line);margin-top:14px"><span class="cl-ic">🏷️</span><span>El cupón no es acumulable con el combo — se aplicó el precio del combo.</span></div>`:'')
-    : (cuponAplicado
-      ? `<div class="cart-line cart-cupon" style="margin-top:14px"><span class="cl-ic">🏷️</span><span>Cupón <b>${cuponAplicado}</b> aplicado: −${fmt(desc)}</span></div>`
+    : (cuponAplicado&&(desc>0||_descEnvioGratis)
+      ? `<div class="cart-line cart-cupon" style="margin-top:14px"><span class="cl-ic">🏷️</span><span>Cupón <b>${escHtml(cuponAplicado)}</b> aplicado${desc>0?`: −${fmt(desc)}`:' (envío gratis)'}</span></div>`
       : `<div class="cpromo"><button class="cpromo-toggle" onclick="toggleCupon()">🏷️ ¿Tienes un código promocional?</button><div class="cpromo-box" id="cpromoBox" style="display:none"><div class="cup-box"><input id="cupInput" placeholder="Código promocional" autocomplete="off"><button class="cup-btn" onclick="aplicarCupon()">Aplicar</button></div><div class="cup-err" id="cupErr" style="display:none">Código no válido</div></div></div>`);
   // 🎉 REGALO GRATIS: combo con regalo COMPLETO
   const camisetaHtml=pricing.camiseta
@@ -419,13 +583,27 @@ function rForm(){
     <div class="frow"><div class="fld"><label>Cédula</label><input id="fc" type="text" inputmode="numeric" autocomplete="off" placeholder="1000000000" value="${escHtml(cData.cedula||'')}"></div><div class="fld"><label>Celular</label><input id="ft" type="tel" inputmode="tel" autocomplete="tel" placeholder="300 000 0000" value="${escHtml(cData.celular||'')}"></div></div>
     <div class="fld"><label>Correo electrónico <span style="font-weight:400;color:var(--ink2)">(para pagar a crédito con Addi)</span></label><input id="fem" type="email" inputmode="email" autocomplete="email" placeholder="tucorreo@email.com" value="${escHtml(cData.email||'')}"></div>
     <div class="fld"><label>Dirección</label><input id="fd" type="text" autocomplete="street-address" placeholder="Calle 10 # 25-30" value="${escHtml(cData.direccion||'')}"></div>
-    <div class="frow"><div class="fld"><label>Barrio</label><input id="fb" type="text" autocomplete="address-level3" placeholder="El Poblado" value="${escHtml(cData.barrio||'')}"></div><div class="fld"><label>Ciudad</label><input id="fci" type="text" autocomplete="address-level2" autocapitalize="words" placeholder="Medellín" value="${escHtml(cData.ciudad||'')}"></div></div>
+    <div class="frow"><div class="fld"><label>Barrio</label><input id="fb" type="text" autocomplete="address-level3" placeholder="El Poblado" value="${escHtml(cData.barrio||'')}"></div><div class="fld"><label>Ciudad</label><input id="fci" type="text" autocomplete="address-level2" autocapitalize="words" placeholder="Medellín" value="${escHtml(cData.ciudad||'')}" oninput="updFleteHint()"></div></div>
+    <div id="fleteHint" style="font-size:11px;color:var(--ink2);line-height:1.45;margin-top:2px"></div>
     <label for="fconsent" style="display:flex;gap:9px;align-items:flex-start;margin-top:6px;font-size:12px;line-height:1.45;color:var(--ink2);cursor:pointer">
       <input id="fconsent" type="checkbox" ${cData.consent?'checked':''} style="margin-top:2px;width:16px;height:16px;flex:0 0 auto;accent-color:var(--ink)">
       <span>Autorizo el tratamiento de mis datos personales según la <a href="#" onclick="openLegal('privacidad');return false" style="color:var(--ink);font-weight:700">Política de Privacidad</a> (Ley 1581 de 2012).</span>
     </label>
     <div class="ferr" id="ferr">Completa todos los campos y acepta la política de datos</div></div>`;
   $('cfoot').innerHTML=`<button class="btnmain" onclick="saveFormAndNext()">Continuar &nbsp;→</button><button class="btnback" onclick="goStep(0)">← Volver</button>`;
+  updFleteHint();
+}
+
+// Recalcula EN VIVO el flete contra entrega mientras el cliente escribe su ciudad (zona de
+// envío). Solo informa: el cobro real lo pinta el paso de pago y lo decide siempre el server.
+function updFleteHint(){
+  const el=$('fleteHint');if(!el)return;
+  const pricing=cartPricing();
+  const ciudad=(($('fci')||{}).value||'').trim();
+  const flete=calcFlete(pricing.pares,ciudad,pricing.sub);
+  el.innerHTML=flete>0
+    ?`📦 Contra entrega${ciudad?` en <b>${escHtml(ciudad)}</b>`:''}: envío ${fmt(flete)} · Pagando en línea: envío <b>GRATIS</b>`
+    :`📦 Envío <b>GRATIS</b>${ciudad?` a <b>${escHtml(ciudad)}</b>`:''} en todos los métodos de pago ✓`;
 }
 
 function saveFormAndNext(){
@@ -461,14 +639,55 @@ function captureLead(d){
     .then(()=>sessionStorage.setItem('ss_lead_saved',SESSION_ID)).catch(()=>{});
 }
 
-function calcFlete(pares){return 25000+Math.max(0,pares-1)*15000;}
+/* ── FLETE POR ZONAS ── espejo del cálculo server-side de api/_orders.js. Aquí solo se PINTA
+   el número que verá el cliente; el cobro real lo recalcula siempre el servidor (createOrder
+   ignora el envio del navegador). envioZonas/envioGratisDesde llegan de settings (loadState). */
+let envioZonas=null,envioGratisDesde=0;
+
+// Ciudad comparable: sin tildes, sin mayúsculas, sin espacios ni puntuación
+// ("BOGOTÁ D.C." = "bogota dc" = "Bogotá").
+function normCiudad(s){return String(s==null?'':s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');}
+
+// Zonas utilizables: array con tarifas base numéricas y una zona default. Si no, null → fórmula vieja.
+function zonasEnvio(){
+  if(!Array.isArray(envioZonas))return null;
+  const zs=envioZonas.filter(z=>z&&Number.isFinite(parseInt(z.base))&&parseInt(z.base)>=0);
+  return zs.some(z=>z.default)?zs:null;
+}
+
+// Ciudad por PALABRAS (conserva los límites entre ellas): "Cali - Valle" → "cali valle".
+function normCiudadFrase(s){return String(s==null?'':s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();}
+
+function zonaDeCiudad(ciudad){
+  const zonas=zonasEnvio();if(!zonas)return null;
+  const n=normCiudad(ciudad);
+  const frase=' '+normCiudadFrase(ciudad)+' ';
+  if(n)for(const z of zonas){
+    const cs=Array.isArray(z.ciudades)?z.ciudades:[];
+    // Igualdad compacta o PALABRA COMPLETA (mismo criterio del server): "Cali - Valle" y
+    // "Bogotá D.C." caen en su zona, pero "Calima" NO cae en "cali" (substring cobraba mal).
+    if(cs.some(c=>{const nc=normCiudad(c);return nc&&nc.length>=3&&(n===nc||frase.includes(' '+normCiudadFrase(c)+' '));}))return z;
+  }
+  return zonas.find(z=>z.default);   // ciudad vacía o sin match → zona por defecto, NUNCA flete 0
+}
+
+function calcFlete(pares,ciudad,subtotal){
+  // Descuento tipo 'envío gratis' del motor activo (espejo: el server lo revalida al cobrar)
+  if(_descEnvioGratis)return 0;
+  // Envío gratis desde X: sobre el mismo subtotal (post-descuento) que cobra el server
+  if(envioGratisDesde>0&&Number(subtotal||0)>=envioGratisDesde)return 0;
+  const z=zonaDeCiudad(ciudad);
+  if(!z)return 25000+Math.max(0,pares-1)*15000;   // sin zonas configuradas → fórmula nacional histórica
+  return Math.max(0,parseInt(z.base)||0)+Math.max(0,pares-1)*Math.max(0,parseInt(z.extra)||0);
+}
 
 function rPayChoice(){
   const rows=Object.values(cart);
   const pricing=cartPricing(rows);          // combo (precio fijo) o normal con cupón
   const sub=pricing.sub;
   const pares=pricing.pares;
-  const flete=calcFlete(pares);
+  // Flete por zona con la ciudad del formulario (paso 2 siempre viene después de "Tus datos")
+  const flete=calcFlete(pares,(cData&&cData.ciudad)||'',sub);
   const SV='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">';
   const icTruck=SV+'<path d="M2.5 6.5h11v9h-11z"/><path d="M13.5 9.5h4l3 3v3h-7z"/><circle cx="6" cy="17.5" r="1.6"/><circle cx="17" cy="17.5" r="1.6"/></svg>';
   const icBank=SV+'<path d="M3 9.5l9-5 9 5"/><path d="M5 10v7M9.5 10v7M14.5 10v7M19 10v7"/><path d="M3.5 20h17"/></svg>';
@@ -484,7 +703,10 @@ function rPayChoice(){
   // en móvil al tocar el marcador ⓘ (no dispara el pago: stopPropagation + preventDefault).
   const card=(fn,acc,tint,ico,tit,desc,tot,tip)=>`<button class="paychoice" onclick="${fn}" style="--acc:${acc}"><span class="pc-ic" style="background:${tint}">${ico}</span><span class="pc-main"><span class="pc-tit">${tit}</span><span class="pc-desc">${desc}</span><span class="pc-tot">${tot}</span></span><span class="pc-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>${tip?`<span class="pc-info" onclick="event.stopPropagation();event.preventDefault();this.parentElement.classList.toggle('tipon')" aria-label="Más información">i</span><span class="pc-tip">${tip}</span>`:''}</button>`;
   $('cbody').innerHTML=`<div class="paysec"><div class="paytit">¿Cómo quieres pagar?</div><div class="paychoice-list">`
-    +card(`enviarWA('contra_entrega')`,'#1E1E1C','#f1f1ef',icDelivery,'Contra entrega',`Pagas el envío ahora y los zapatos al recibir en casa`,`Hoy: envío ${fmt(flete)} · Al recibir: ${fmt(sub)}`,`📦 El envío se paga primero para <b>asegurar tu despacho</b>. Así garantizamos que tu pedido salga y llegue — evitamos los pedidos que se piden y no se reciben.`)
+    +(flete>0
+      ?card(`enviarWA('contra_entrega')`,'#1E1E1C','#f1f1ef',icDelivery,'Contra entrega',`Pagas el envío ahora y los zapatos al recibir en casa`,`Hoy: envío ${fmt(flete)} · Al recibir: ${fmt(sub)}`,`📦 El envío se paga primero para <b>asegurar tu despacho</b>. Así garantizamos que tu pedido salga y llegue — evitamos los pedidos que se piden y no se reciben.`)
+      // Envío gratis alcanzado (umbral por monto): contra entrega sin flete → todo se paga al recibir
+      :card(`enviarWA('contra_entrega')`,'#1E1E1C','#f1f1ef',icDelivery,'Contra entrega','¡Envío GRATIS! Pagas todo al recibir en casa ✓',`Al recibir: ${fmt(sub)}`,`🎉 Tu pedido alcanzó el <b>envío GRATIS</b> también contra entrega: no pagas nada hoy.`))
     +card(`enviarWA('pago_anticipado')`,'#25D366','#e9fbf1',icWa,'Pago por WhatsApp','Coordina tu pago por WhatsApp · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
     +card(`pagarWompi()`,'#5D2D91','#fff',icLogo('/logos/wompi.png','Wompi',icCard),'Pagar en línea — Wompi','Tarjeta · PSE · Nequi · Bancolombia · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
     +card(`pagarBold()`,'#2541B2','#fff',icLogo('/logos/bold.png','Bold',icCard),'Pagar en línea — Bold','Tarjeta · PSE · Botón Bancolombia · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
@@ -516,7 +738,7 @@ async function enviarWA(tipo){
   const desc=pricing.desc;
   const sub=pricing.sub;
   const totalPares=pricing.pares;
-  const flete=tipo==='contra_entrega'?calcFlete(totalPares):0;
+  const flete=tipo==='contra_entrega'?calcFlete(totalPares,d.ciudad,sub):0;   // por zona (el server revalida)
   const tot=sub+flete;
   let items='';
   rows.forEach(({p,qty,type,talla})=>{const s=p.price*qty;const lbl=p.modelo||(type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer'));const mk=p.brand?(BRAND_LABELS[p.brand]||p.brand)+' · ':'';items+=`  • ${mk}${lbl} · #${p.id}${talla?` · Talla ${talla}`:''} x${qty} — ${fmt(s)}\n`;});
@@ -527,14 +749,17 @@ async function enviarWA(tipo){
     return (type==='liq'?'L':'')+p.id+'x'+qty+(t?'t'+t:'');
   }).join(',');
   const pedidoLink=`https://strangesneakers.com/?pedido=${pedidoCode}`;
-  const envioLinea=tipo==='contra_entrega'?`🚚 *Envío (se paga primero):* ${fmt(flete)}\n👟 *Zapatos (pagas al recibir en casa):* ${fmt(sub)}`:`📦 *Envío: GRATIS ✓*`;
+  // Contra entrega con envío gratis (umbral por monto): no hay nada que pagar por adelantado
+  const envioLinea=tipo==='contra_entrega'
+    ?(flete>0?`🚚 *Envío (se paga primero):* ${fmt(flete)}\n👟 *Zapatos (pagas al recibir en casa):* ${fmt(sub)}`:`📦 *Envío: GRATIS ✓* — todo se paga al recibir`)
+    :`📦 *Envío: GRATIS ✓*`;
   // Ahorro REAL del combo: contra el precio original (antes→ahora + combo), igual que el carrito.
   const origWA=rows.reduce((s,{p,qty})=>{const act=(p.promo||promoG)&&p.was&&p.was>p.price;return s+(act?p.was:p.price)*qty;},0);
   const descLinea=pricing.combo
     ?`🏆 *${pricing.combo.nombre}: ${pricing.combo.pares} pares por ${fmt(pricing.sub)}* (ahorra en total ${fmt(Math.max(origWA,subBruto)-pricing.sub)})\n${pricing.camiseta?`🎁 *REGALO GRATIS* — coordinar con el cliente\n`:''}`
-    :(desc>0?`🏷️ *Descuento ${cuponAplicado}:* -${fmt(desc)}\n`:'');
+    :(desc>0?`🏷️ *Descuento ${pricing.descTag||cuponAplicado||'promoción'}:* -${fmt(desc)}\n`:'');
   const pagoLbl=tipo==='contra_entrega'?'Contra entrega 📦':tipo==='credito'?'Crédito (Addi / Sistecrédito) 🧾':'Pago anticipado 💸';
-  const instruccion=tipo==='contra_entrega'?`El cliente paga primero el *ENVÍO* (${fmt(flete)}) y los *zapatos al recibir* en casa. Coordinemos el pago del envío 🙏`:tipo==='credito'?'El cliente quiere pagar a *CRÉDITO*. Indícale si aplica por *Addi* o *Sistecrédito* y el paso a paso 🙏':'Enviar comprobante de pago para procesar el envío 🙏';
+  const instruccion=tipo==='contra_entrega'?(flete>0?`El cliente paga primero el *ENVÍO* (${fmt(flete)}) y los *zapatos al recibir* en casa. Coordinemos el pago del envío 🙏`:`Pedido contra entrega con *ENVÍO GRATIS* (superó el mínimo de compra). Coordinar el despacho 🙏`):tipo==='credito'?'El cliente quiere pagar a *CRÉDITO*. Indícale si aplica por *Addi* o *Sistecrédito* y el paso a paso 🙏':'Enviar comprobante de pago para procesar el envío 🙏';
   const msg=`🛍️ *NUEVO PEDIDO — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *PRODUCTOS*\n${items}\n📸 *Ver el pedido con fotos:*\n${pedidoLink}\n━━━━━━━━━━━━━━━━━━━━\n💰 *Subtotal: ${fmt(subBruto)}*\n${descLinea}${envioLinea}\n💰 *TOTAL: ${fmt(tot)}*\n━━━━━━━━━━━━━━━━━━━━\n👤 *DATOS*\n• Nombre: ${d.nombre}\n• Cédula: ${d.cedula}\n• Celular: ${d.celular}\n• Dirección: ${d.direccion}\n• Barrio: ${d.barrio}\n• Ciudad: ${d.ciudad}\n━━━━━━━━━━━━━━━━━━━━\n💳 *Pago:* ${pagoLbl}\n━━━━━━━━━━━━━━━━━━━━\n${instruccion}\n\n🎁 *Tu regalo — Guía de cuidado de tus sneakers:*\nhttps://strangesneakers.com/?regalo=cuidado`;
   const orderObj={
     id:Date.now(),fecha:new Date().toISOString(),

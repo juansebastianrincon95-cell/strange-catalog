@@ -49,6 +49,53 @@
       <div id="combosAdminList" style="display:flex;flex-direction:column;gap:8px"></div>
       <button onclick="guardarCombos()" style="margin-top:10px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">💾 Guardar combos</button>
     </div>
+    <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#eef9f3">
+      <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:4px">🎟 Descuentos</div>
+      <div style="font-size:10.5px;color:var(--ink3);margin-bottom:10px">Como en Shopify: <b>% o monto</b> sobre el pedido o sobre productos concretos, <b>compra X y lleva Y</b>, o <b>envío gratis</b>. Con <b>código</b> (el cliente lo escribe en el carrito) o <b>automático</b> (aplica solo). El servidor valida TODO al cobrar: vigencia, mínimos, límite de usos y 1 por cliente (por teléfono). Los usos cuentan solo en ventas confirmadas.</div>
+      <div id="descAdminList" style="display:flex;flex-direction:column;gap:8px"></div>
+      <button id="descNuevoBtn" onclick="descNuevo()" style="margin-top:8px;width:100%;padding:9px;background:var(--white);color:var(--ink);border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">➕ Crear descuento</button>
+      <div id="descForm" style="display:none;margin-top:10px;background:var(--white);border:1.5px solid var(--ink);border-radius:10px;padding:10px">
+        <div id="descFormTit" style="font-size:11.5px;font-weight:800;color:var(--ink);margin-bottom:8px">Nuevo descuento</div>
+        <input id="dsNombre" type="text" placeholder="Nombre (ej. Promo agosto)" class="al-i">
+        <input id="dsCodigo" type="text" placeholder="Código (vacío = automático, aplica solo)" class="al-i" style="text-transform:uppercase">
+        <select id="dsTipo" onchange="descTipoUI()" class="al-i" style="cursor:pointer">
+          <option value="pedido">💰 Monto o % sobre el pedido</option>
+          <option value="producto">👟 Monto o % sobre productos concretos</option>
+          <option value="bogo">🎁 Compra X y lleva Y (BOGO)</option>
+          <option value="envio">🚚 Envío gratis</option>
+        </select>
+        <div id="dsRowValor" style="display:flex;gap:6px">
+          <select id="dsValorTipo" class="al-i" style="flex:0 0 110px;cursor:pointer"><option value="pct">% por ciento</option><option value="fijo">$ monto fijo</option></select>
+          <input id="dsValor" type="number" min="0" step="1" placeholder="Valor (ej. 10 ó 20000)" class="al-i" style="flex:1">
+        </div>
+        <div id="dsRowBogo" style="display:none;gap:6px;align-items:center">
+          <span style="font-size:10px;color:var(--ink3)">Compra</span><input id="dsBogoX" type="number" min="1" max="20" value="2" class="al-i" style="flex:0 0 52px;text-align:center">
+          <span style="font-size:10px;color:var(--ink3)">lleva</span><input id="dsBogoY" type="number" min="1" max="20" value="1" class="al-i" style="flex:0 0 52px;text-align:center">
+          <span style="font-size:10px;color:var(--ink3)">con</span><input id="dsBogoPct" type="number" min="1" max="100" value="100" class="al-i" style="flex:0 0 58px;text-align:center">
+          <span style="font-size:10px;color:var(--ink3)">% off (100 = gratis)</span>
+        </div>
+        <div id="dsRowAplica" style="display:none">
+          <input id="dsIds" type="text" placeholder="Productos: 29, 77, L5 (vacío = todos)" class="al-i">
+          <input id="dsMarcas" type="text" placeholder="Marcas: nike, adidas (opcional)" class="al-i">
+        </div>
+        <div style="display:flex;gap:6px">
+          <input id="dsMinMonto" type="number" min="0" step="1000" placeholder="Compra mínima $" class="al-i" style="flex:1">
+          <input id="dsMinItems" type="number" min="0" max="100" placeholder="Mín. pares" class="al-i" style="flex:0 0 90px">
+          <input id="dsUsosMax" type="number" min="0" placeholder="Tope usos" class="al-i" style="flex:0 0 90px" title="Límite total de ventas con este descuento (vacío = sin límite)">
+        </div>
+        <div style="display:flex;gap:6px">
+          <label style="flex:1;font-size:10px;font-weight:600;color:var(--ink2)">Desde<input id="dsDesde" type="datetime-local" class="al-i" style="margin-top:3px"></label>
+          <label style="flex:1;font-size:10px;font-weight:600;color:var(--ink2)">Hasta<input id="dsHasta" type="datetime-local" class="al-i" style="margin-top:3px"></label>
+        </div>
+        <div style="display:flex;gap:14px;margin:2px 0 8px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;color:var(--ink2);cursor:pointer"><input id="dsUno" type="checkbox" checked>1 uso por cliente</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;color:var(--ink2);cursor:pointer" title="Por defecto los descuentos NO se combinan entre sí: se aplica solo el que más descuente. Marcado, se suma con los otros que también estén marcados. (Shopify separa producto/pedido/envío en tres reglas; aquí es una sola, a propósito)"><input id="dsCombinable" type="checkbox">Se puede combinar</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;color:var(--ink2);cursor:pointer"><input id="dsActivo" type="checkbox" checked>Activo</label>
+        </div>
+        <button onclick="guardarDescuento(this)" style="width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">💾 Guardar descuento</button>
+        <button onclick="descCancelar()" style="margin-top:6px;width:100%;padding:8px;background:var(--white);color:var(--ink2);border:1.5px solid var(--line);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">✕ Cancelar</button>
+      </div>
+    </div>
   </div>
   <div data-sec="ajustes">
     <div class="trow" style="background:#fff0f0">
@@ -173,6 +220,17 @@
       <div style="font-size:9.5px;color:var(--ink3);margin:-2px 0 8px">Formato <b>id</b>x<b>cantidad</b>t<b>talla</b>. La <b>L</b> adelante es liquidación (ej. <code>L5x2t39</code>). Los precios los pone el servidor.</div>
       <button onclick="crearLinkAddi(this)" style="width:100%;border:none;cursor:pointer;background:#1f3bb3;color:#fff;padding:10px;border-radius:9px;font-size:12px;font-weight:800">Generar link de pago</button>
       <div id="alOut" style="margin-top:9px;font-size:11.5px"></div>
+    </div>
+    <div style="border-bottom:1px solid var(--line);padding:12px 14px;background:#eef6fd">
+      <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:4px">🚚 Zonas de envío (contra entrega)</div>
+      <div style="font-size:10.5px;color:var(--ink3);margin-bottom:10px">Tarifas por ciudad, como los perfiles de envío de Shopify. La zona <b>por defecto</b> cobra cuando la ciudad del cliente no está en ninguna lista (nunca sale gratis por error). El servidor recalcula siempre el flete (anti-manipulación). Sin zonas guardadas rige la tarifa nacional de siempre: $25.000 el primer par + $15.000 por par adicional.</div>
+      <div id="envioZonasList" style="display:flex;flex-direction:column;gap:8px"></div>
+      <button onclick="zonaAdd()" style="margin-top:8px;width:100%;padding:9px;background:var(--white);color:var(--ink);border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">➕ Agregar zona</button>
+      <div style="margin-top:10px">
+        <label style="font-size:11px;font-weight:700;color:var(--ink2)">🎁 Envío gratis desde (subtotal del pedido en $) — 0 o vacío = desactivado</label>
+        <input id="cfgEnvioGratis" type="number" inputmode="numeric" min="0" step="1000" placeholder="ej. 300000" style="margin-top:4px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);outline:none">
+      </div>
+      <button onclick="guardarEnvio()" style="margin-top:10px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">💾 Guardar zonas de envío</button>
     </div>
     <div class="trow" style="background:#fff0f0">
       <div><div class="trow-lbl">🧪 Este equipo es de pruebas</div><div class="trow-sub">Solo en un equipo marcado el panel enciende el modo prueba solo. <b>Déjalo apagado en el celular con el que atiendes ventas reales</b>, o lo que hagas ahí no cuenta. La marca es de este dispositivo: no se comparte con tus otros equipos.</div></div>

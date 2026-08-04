@@ -98,6 +98,254 @@ async function guardarCombos(msg){
   alert(msg||'✓ Combos guardados y publicados');
 }
 
+/* ── DESCUENTOS (Admin → Ofertas · tabla discounts, migración 006) ──
+   El panel solo administra filas vía api/admin.js (list/save/delete_discount); la validación
+   del cobro vive entera en api/_orders.js. Los usos que se ven aquí son VENTAS CONFIRMADAS
+   (el contador sube al confirmar, no al crear pendings). */
+let _descuentos=[],_descEditId=null;
+
+async function loadDescuentos(){
+  if(!ADMIN_OK)return;
+  try{const r=await adminWrite('list_discounts');_descuentos=r.discounts||[];}catch(e){_descuentos=[];}
+  renderDescuentosAdmin();
+}
+
+// Estado operativo de la fila (para el chip de la tarjeta)
+function descEstado(d){
+  if(d.activo===false)return['⏸ Inactivo','#8a8a86'];
+  const now=Date.now();
+  if(d.desde&&now<Date.parse(d.desde))return['🕐 Programado','#b3791e'];
+  if(d.hasta&&now>Date.parse(d.hasta))return['✕ Vencido','#E8200A'];
+  if(d.usos_max&&(d.usos||0)>=d.usos_max)return['✕ Agotado','#E8200A'];
+  return['● Vigente','#1BA94C'];
+}
+
+// Resumen humano de qué hace el descuento
+function descResumen(d){
+  if(d.tipo==='envio')return '🚚 Envío gratis';
+  if(d.tipo==='bogo'){const b=d.bogo||{};return `🎁 Compra ${b.compra||'?'} y lleva ${b.lleva||'?'} con ${b.pct||100}% off`;}
+  const v=d.valor_tipo==='pct'?`${d.valor}%`:fmt(d.valor);
+  return d.tipo==='producto'?`👟 ${v} off en productos elegidos`:`💰 ${v} off en el pedido`;
+}
+
+// 'cat_29'/'liq_5' → '29'/'L5' (formato que ya usa el panel en el link Addi) y de vuelta
+function _descIdsATexto(aplica){
+  const ids=(aplica&&Array.isArray(aplica.ids))?aplica.ids:[];
+  return ids.map(s=>s.startsWith('liq_')?'L'+s.slice(4):s.replace('cat_','')).join(', ');
+}
+function _descTextoAIds(txt){
+  return String(txt||'').split(',').map(s=>s.trim()).filter(Boolean)
+    .map(s=>/^L\d+$/i.test(s)?'liq_'+s.slice(1):(/^\d+$/.test(s)?'cat_'+s:null))
+    .filter(Boolean);
+}
+
+function renderDescuentosAdmin(){
+  const box=$('descAdminList');if(!box)return;
+  if(!_descuentos.length){box.innerHTML='<div style="font-size:11px;color:var(--ink3)">Aún no hay descuentos. Crea el primero abajo 👇</div>';return;}
+  const fF=v=>v?new Date(v).toLocaleDateString('es-CO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):null;
+  box.innerHTML=_descuentos.map(d=>{
+    const [est,col]=descEstado(d);
+    const rango=(d.desde||d.hasta)?`<div style="font-size:9.5px;color:var(--ink3);margin-top:2px">📅 ${fF(d.desde)||'desde ya'} → ${fF(d.hasta)||'sin vencimiento'}</div>`:'';
+    const flags=[d.uno_por_cliente?'1 por cliente':null,d.combinable?'combinable':'no combina',d.min_monto?`mín. ${fmt(d.min_monto)}`:null,d.min_items?`mín. ${d.min_items} pares`:null].filter(Boolean).join(' · ');
+    return `<div style="background:var(--white);border:1px solid var(--line);border-radius:10px;padding:9px">
+      <div style="display:flex;align-items:center;gap:7px">
+        <div style="flex:1;min-width:0">
+          <span style="font-size:12.5px;font-weight:800;color:var(--ink)">${d.codigo?escHtml(d.codigo):'⚙️ AUTOMÁTICO'}</span>
+          ${d.nombre?`<span style="font-size:10.5px;color:var(--ink3)"> · ${escHtml(d.nombre)}</span>`:''}
+        </div>
+        <span style="flex:0 0 auto;font-size:10px;font-weight:800;color:${col}">${est}</span>
+      </div>
+      <div style="font-size:11px;color:var(--ink2);font-weight:600;margin-top:3px">${descResumen(d)}</div>
+      <div style="font-size:9.5px;color:var(--ink3);margin-top:2px">Usos: <b>${d.usos||0}</b>${d.usos_max?` / ${d.usos_max}`:' (sin límite)'}${flags?` · ${flags}`:''}</div>
+      ${rango}
+      <div style="display:flex;gap:6px;margin-top:7px">
+        <button onclick="descToggle(${d.id},${d.activo===false})" style="flex:1;border:1px solid var(--line);background:var(--bg);border-radius:7px;padding:6px;cursor:pointer;font-family:var(--font);font-size:10.5px;font-weight:700;color:var(--ink2)">${d.activo===false?'▶ Activar':'⏸ Desactivar'}</button>
+        <button onclick="descEdit(${d.id})" style="flex:1;border:1px solid var(--line);background:#eef4ff;border-radius:7px;padding:6px;cursor:pointer;font-family:var(--font);font-size:10.5px;font-weight:700;color:var(--ink)">✏️ Editar</button>
+        <button onclick="descBorrar(${d.id})" style="flex:0 0 34px;border:none;background:#ffe9e6;color:var(--red);border-radius:7px;cursor:pointer;font-size:11px">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Mostrar/ocultar campos según el tipo elegido en el formulario
+function descTipoUI(){
+  const t=($('dsTipo')||{}).value;
+  const rv=$('dsRowValor');if(rv)rv.style.display=(t==='pedido'||t==='producto')?'flex':'none';
+  const rb=$('dsRowBogo');if(rb)rb.style.display=t==='bogo'?'flex':'none';
+  const ra=$('dsRowAplica');if(ra)ra.style.display=(t==='producto'||t==='bogo')?'block':'none';
+}
+
+// ISO → valor de <input type=datetime-local> (hora LOCAL del admin, que es la del negocio)
+function _descISOaLocal(v){
+  if(!v)return '';
+  const t=new Date(v);if(isNaN(t))return '';
+  const p=n=>String(n).padStart(2,'0');
+  return `${t.getFullYear()}-${p(t.getMonth()+1)}-${p(t.getDate())}T${p(t.getHours())}:${p(t.getMinutes())}`;
+}
+
+function descNuevo(){
+  _descEditId=null;
+  const f=$('descForm');if(!f)return;
+  $('descFormTit').textContent='Nuevo descuento';
+  ['dsNombre','dsCodigo','dsValor','dsIds','dsMarcas','dsMinMonto','dsMinItems','dsUsosMax','dsDesde','dsHasta'].forEach(id=>{const el=$(id);if(el)el.value='';});
+  $('dsTipo').value='pedido';$('dsValorTipo').value='pct';
+  $('dsBogoX').value=2;$('dsBogoY').value=1;$('dsBogoPct').value=100;
+  $('dsUno').checked=true;$('dsCombinable').checked=false;$('dsActivo').checked=true;
+  descTipoUI();
+  f.style.display='block';
+  const b=$('descNuevoBtn');if(b)b.style.display='none';
+  f.scrollIntoView({block:'center',behavior:'smooth'});
+}
+
+function descEdit(id){
+  const d=_descuentos.find(x=>x.id===id);if(!d)return;
+  descNuevo();                        // resetea y abre el form
+  _descEditId=id;
+  $('descFormTit').textContent=`Editar ${d.codigo||'descuento automático'}`;
+  $('dsNombre').value=d.nombre||'';$('dsCodigo').value=d.codigo||'';
+  $('dsTipo').value=d.tipo||'pedido';$('dsValorTipo').value=d.valor_tipo||'pct';$('dsValor').value=d.valor||'';
+  const b=d.bogo||{};$('dsBogoX').value=b.compra||2;$('dsBogoY').value=b.lleva||1;$('dsBogoPct').value=b.pct||100;
+  $('dsIds').value=_descIdsATexto(d.aplica);
+  $('dsMarcas').value=(d.aplica&&Array.isArray(d.aplica.marcas))?d.aplica.marcas.join(', '):'';
+  $('dsMinMonto').value=d.min_monto||'';$('dsMinItems').value=d.min_items||'';$('dsUsosMax').value=d.usos_max||'';
+  $('dsDesde').value=_descISOaLocal(d.desde);$('dsHasta').value=_descISOaLocal(d.hasta);
+  $('dsUno').checked=d.uno_por_cliente!==false;$('dsCombinable').checked=!!d.combinable;$('dsActivo').checked=d.activo!==false;
+  descTipoUI();
+}
+
+function descCancelar(){
+  _descEditId=null;
+  const f=$('descForm');if(f)f.style.display='none';
+  const b=$('descNuevoBtn');if(b)b.style.display='block';
+}
+
+async function guardarDescuento(btn){
+  const tipo=($('dsTipo')||{}).value;
+  const data={
+    nombre:($('dsNombre')||{}).value||'',
+    codigo:(($('dsCodigo')||{}).value||'').trim()||null,
+    tipo,
+    valor_tipo:($('dsValorTipo')||{}).value||'pct',
+    valor:parseInt(($('dsValor')||{}).value)||0,
+    bogo:tipo==='bogo'?{compra:parseInt($('dsBogoX').value)||0,lleva:parseInt($('dsBogoY').value)||0,pct:parseInt($('dsBogoPct').value)||100}:null,
+    aplica:(tipo==='producto'||tipo==='bogo')?{ids:_descTextoAIds(($('dsIds')||{}).value),marcas:String(($('dsMarcas')||{}).value||'').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean)}:null,
+    min_monto:($('dsMinMonto')||{}).value||null,
+    min_items:($('dsMinItems')||{}).value||null,
+    usos_max:($('dsUsosMax')||{}).value||null,
+    uno_por_cliente:!!($('dsUno')||{}).checked,
+    combinable:!!($('dsCombinable')||{}).checked,
+    // datetime-local es hora local del admin → toISOString la vuelve UTC (lo que compara el server)
+    desde:($('dsDesde')||{}).value?new Date($('dsDesde').value).toISOString():null,
+    hasta:($('dsHasta')||{}).value?new Date($('dsHasta').value).toISOString():null,
+    activo:!!($('dsActivo')||{}).checked
+  };
+  // Chequeos rápidos en el panel (el server revalida TODO igual)
+  if((tipo==='pedido'||tipo==='producto')&&!(data.valor>0))return alert('Pon el valor del descuento (% o monto).');
+  if(tipo==='bogo'&&(!(data.bogo.compra>0)||!(data.bogo.lleva>0)))return alert('Configura el BOGO: cuántos compra y cuántos lleva.');
+  if(data.valor_tipo==='pct'&&(tipo==='pedido'||tipo==='producto')&&data.valor>100)return alert('Un porcentaje no puede ser mayor a 100.');
+  if(data.desde&&data.hasta&&data.hasta<=data.desde)return alert('La fecha "hasta" debe ser posterior a "desde".');
+  if(btn){btn.disabled=true;btn.textContent='Guardando…';}
+  try{
+    await adminWrite('save_discount',_descEditId?{id:_descEditId,data}:{data});
+    descCancelar();
+    await loadDescuentos();
+    alert('✓ Descuento guardado'+(data.codigo?`\n🎟 Código: ${data.codigo.toUpperCase()}`:'\n⚙️ Automático: aplica solo en el carrito'));
+  }catch(e){alert('❌ No se pudo guardar:\n'+(e.message||e));}
+  finally{if(btn){btn.disabled=false;btn.textContent='💾 Guardar descuento';}}
+}
+
+async function descToggle(id,on){
+  try{await adminWrite('save_discount',{id,data:{activo:!!on}});await loadDescuentos();}
+  catch(e){alert('❌ '+(e.message||e));}
+}
+
+async function descBorrar(id){
+  const d=_descuentos.find(x=>x.id===id);
+  if(!confirm(`¿Borrar el descuento ${d&&d.codigo?d.codigo:'automático'}?\n\nSe borra también su registro de usos. Los pedidos ya cobrados no cambian.`))return;
+  try{await adminWrite('delete_discount',{id});await loadDescuentos();}
+  catch(e){alert('❌ '+(e.message||e));}
+}
+
+/* ── ZONAS DE ENVÍO (Ajustes → settings.envio_zonas + envio_gratis_desde) ──
+   Réplica de los perfiles de envío de Shopify: cada zona tiene ciudades, tarifa del 1er par y
+   tarifa por par adicional; la zona por defecto cobra cuando la ciudad no matchea ninguna.
+   El editor trabaja sobre una COPIA (draft) y solo publica con "Guardar" — igual que los combos.
+   El cobro real lo recalcula SIEMPRE el server (api/_orders.js) con lo guardado aquí. */
+let _zonasDraft=null;
+
+function _zonasBase(){
+  // Arranque del editor: lo guardado en settings o, si no hay nada, la fórmula nacional de hoy
+  // como única zona por defecto (guardarla tal cual no cambia ningún precio).
+  if(Array.isArray(envioZonas)&&envioZonas.length)
+    return envioZonas.map(z=>({nombre:z.nombre||'',ciudades:Array.isArray(z.ciudades)?z.ciudades.slice():[],base:parseInt(z.base)||0,extra:parseInt(z.extra)||0,default:!!z.default}));
+  return [{nombre:'Resto del país',ciudades:[],base:25000,extra:15000,default:true}];
+}
+
+function renderEnvioAdmin(){
+  const box=$('envioZonasList');if(!box)return;
+  if(!_zonasDraft)_zonasDraft=_zonasBase();
+  box.innerHTML=_zonasDraft.map((z,i)=>`<div style="background:var(--white);border:1px solid var(--line);border-radius:10px;padding:9px">
+    <div style="display:flex;gap:6px;align-items:center">
+      <input type="text" value="${escHtml(z.nombre||'')}" placeholder="Nombre (ej. Cali y área)" oninput="_zonasDraft[${i}].nombre=this.value" style="flex:1;min-width:0;padding:7px 9px;background:var(--bg);border:1px solid var(--line);border-radius:7px;font-family:var(--font);font-size:12px;font-weight:700">
+      <label title="La zona que cobra cuando la ciudad no coincide con ninguna lista" style="display:flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:var(--ink2);cursor:pointer;flex:0 0 auto"><input type="radio" name="znDef" ${z.default?'checked':''} onchange="zonaSetDef(${i})">Por defecto</label>
+      ${_zonasDraft.length>1?`<button onclick="zonaDel(${i})" title="Quitar zona" style="border:none;background:#ffe9e6;color:var(--red);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:11px;flex:0 0 auto">🗑</button>`:''}
+    </div>
+    <input type="text" value="${escHtml((z.ciudades||[]).join(', '))}" placeholder="Ciudades separadas por coma (ej. cali, palmira, jamundi)" oninput="_zonasDraft[${i}].ciudades=this.value.split(',').map(s=>s.trim()).filter(Boolean)" ${z.default?'disabled':''} style="margin-top:6px;width:100%;padding:7px 9px;background:var(--bg);border:1px solid var(--line);border-radius:7px;font-family:var(--font);font-size:11.5px;font-weight:500;color:var(--ink);${z.default?'opacity:.5':''}">
+    ${z.default?`<div style="font-size:9.5px;color:var(--ink3);margin-top:3px">Aplica a TODA ciudad que no esté en otra zona — no necesita lista.</div>`:''}
+    <div style="display:flex;gap:6px;align-items:center;margin-top:6px">
+      <span style="font-size:10px;color:var(--ink3);flex:0 0 auto">1er par $</span>
+      <input type="number" value="${parseInt(z.base)||0}" step="1000" min="0" oninput="_zonasDraft[${i}].base=parseInt(this.value)||0" style="flex:1;min-width:0;padding:7px 9px;background:var(--bg);border:1px solid var(--line);border-radius:7px;font-family:var(--font);font-size:12px;font-weight:700">
+      <span style="font-size:10px;color:var(--ink3);flex:0 0 auto">par adicional +$</span>
+      <input type="number" value="${parseInt(z.extra)||0}" step="1000" min="0" oninput="_zonasDraft[${i}].extra=parseInt(this.value)||0" style="flex:1;min-width:0;padding:7px 9px;background:var(--bg);border:1px solid var(--line);border-radius:7px;font-family:var(--font);font-size:12px;font-weight:700">
+    </div>
+  </div>`).join('');
+  // El umbral de envío gratis solo se repuebla si el admin no lo está editando en este momento
+  const g=$('cfgEnvioGratis');if(g&&document.activeElement!==g)g.value=envioGratisDesde>0?envioGratisDesde:'';
+}
+
+function zonaAdd(){if(!_zonasDraft)_zonasDraft=_zonasBase();_zonasDraft.push({nombre:'',ciudades:[],base:20000,extra:10000,default:false});renderEnvioAdmin();}
+
+function zonaDel(i){
+  if(!_zonasDraft||!_zonasDraft[i])return;
+  if(!confirm('¿Quitar esta zona?'))return;
+  _zonasDraft.splice(i,1);
+  // Nunca dejar el draft sin zona por defecto (la validación de guardar la exige)
+  if(_zonasDraft.length&&!_zonasDraft.some(z=>z.default))_zonasDraft[0].default=true;
+  renderEnvioAdmin();
+}
+
+function zonaSetDef(i){if(!_zonasDraft)return;_zonasDraft.forEach((z,j)=>z.default=j===i);renderEnvioAdmin();}
+
+async function guardarEnvio(){
+  const zonas=_zonasDraft||_zonasBase();
+  if(!zonas.length){alert('Debe existir al menos la zona por defecto.');return;}
+  // EXACTAMENTE una zona por defecto: es la que respalda toda ciudad no listada
+  const defs=zonas.filter(z=>z.default).length;
+  if(defs!==1){alert(`Debe existir exactamente UNA zona "por defecto" (hay ${defs}). Márcala con el círculo.`);return;}
+  for(const z of zonas){
+    const nom=z.nombre||'(sin nombre)';
+    if(!Number.isFinite(parseInt(z.base))||parseInt(z.base)<0){alert(`Tarifa del 1er par inválida en la zona "${nom}".`);return;}
+    if(!z.default&&!(z.ciudades||[]).length){alert(`La zona "${nom}" no tiene ciudades: nunca aplicaría.\nAgrégale ciudades o quítala.`);return;}
+    // base 0 = flete gratis en esa zona: legal, pero es margen directo → confirmar que es a propósito
+    if(parseInt(z.base)===0&&!confirm(`La zona "${nom}" tiene tarifa $0: el envío contra entrega saldría GRATIS ahí.\n¿Seguro?`))return;
+  }
+  const limpias=zonas.map(z=>({
+    nombre:String(z.nombre||'').trim()||'Zona',
+    ciudades:z.default?undefined:(z.ciudades||[]).map(c=>String(c).trim()).filter(Boolean),
+    base:Math.max(0,parseInt(z.base)||0),
+    extra:Math.max(0,parseInt(z.extra)||0),
+    default:z.default||undefined   // undefined → la clave no se serializa (JSON compacto)
+  }));
+  const gratis=Math.max(0,parseInt(($('cfgEnvioGratis')||{}).value)||0);
+  await adminWrite('upsert_settings',{data:[
+    {key:'envio_zonas',value:JSON.stringify(limpias)},
+    {key:'envio_gratis_desde',value:String(gratis)}
+  ]});
+  envioZonas=limpias;envioGratisDesde=gratis;   // la tienda abierta pinta ya los fletes nuevos
+  _zonasDraft=null;renderEnvioAdmin();
+  alert('✓ Zonas de envío guardadas y publicadas'+(gratis>0?`\n🎁 Envío gratis desde ${fmt(gratis)}`:''));
+}
+
 // navegación manual reinicia el timer
 /* ── HERO: admin (gestionar banners) ──
    Nota: el destino del CTA es fijo (Ofertas, estrategia de combos). El selector de destino
@@ -468,6 +716,7 @@ function _showAdmin(){
   const cfgPx=$('cfgPixel');if(cfgPx)cfgPx.value=PIXEL_ID;
   const cfgWo=$('cfgWompi');if(cfgWo)cfgWo.value=WOMPI_PK;
   const cfgCl=$('cfgClarity');if(cfgCl)cfgCl.value=CLARITY_ID;
+  _zonasDraft=null;renderEnvioAdmin();   // re-abrir el panel muestra las zonas GUARDADAS (no un draft viejo)
   checkStorageQuota();
   $('apanel').classList.add('on');lockScroll();
   setAdminSection('inicio');
@@ -529,7 +778,7 @@ function setAdminSection(name){
   const m=$('avMain');if(m)m.scrollTop=0;
   if(name==='inicio'){renderStatsTab();loadOrders().then(()=>{if(avSec==='inicio')renderStatsTab();});}
   if(name==='productos')renderAdmin();
-  if(name==='ofertas')renderLiqAdmin();
+  if(name==='ofertas'){renderLiqAdmin();loadDescuentos();}   // descuentos: se cargan al entrar a Ofertas (requiere sesión admin)
   if(name==='banners'){renderHeroAdmin();renderFeaturedAdmin();renderColAdmin();}
   if(name==='testimonios')renderTestiAdmin();
   if(name==='pedidos'){renderPedidos();loadOrders().then(()=>{if(avSec==='pedidos')renderPedidos();});}
@@ -1118,12 +1367,13 @@ function renderAdmin(){
     return `<div class="arow">
       <div class="arow-img">${m}${p.sold?`<div class="arow-sov">Agot.</div>`:''}</div>
       <div><div class="arow-gen">${p.modelo?escHtml(p.modelo):(genLabel(p.g))}</div><div class="arow-st">${p.modelo?(genLabel(p.g)+' · '):''}${p.sold?'🔴 Agotado':'🟢 Disponible'}</div>${costBadge('cat',p.id)}</div>
-      <div><div class="arow-price ${sp?'sale':''}">${fmt(p.price)}</div><button class="epbtn" onclick="startEP(${p.id},'cat')">Editar</button> <button class="epbtn" id="galbtncat${p.id}" onclick="togGal(${p.id},'cat')">📷 ${(p.imgs||[]).length}</button> <button class="epbtn" onclick="togTallas(${p.id},'cat')" title="Stock por talla">📏 ${tallasBadge(p)}</button>${p.modelo?'':` <button class="epbtn" onclick="sugerirModelo(${p.id},'cat',this)" title="La IA propone el modelo mirando la foto (tú apruebas antes de guardar)">✨ Modelo</button>`}</div>
+      <div><div class="arow-price ${sp?'sale':''}">${fmt(p.price)}</div><button class="epbtn" onclick="startEP(${p.id},'cat')">Editar</button> <button class="epbtn" id="galbtncat${p.id}" onclick="togGal(${p.id},'cat')">📷 ${(p.imgs||[]).length}</button> <button class="epbtn" onclick="togTallas(${p.id},'cat')" title="Stock por talla">📏 ${tallasBadge(p)}</button> <button class="epbtn" onclick="togMeta(${p.id},'cat')" title="SEO y metacampos (público)">🏷 ${metaBadge(p)}</button>${p.modelo?'':` <button class="epbtn" onclick="sugerirModelo(${p.id},'cat',this)" title="La IA propone el modelo mirando la foto (tú apruebas antes de guardar)">✨ Modelo</button>`}</div>
       <button class="sold-btn ${p.sold?'on':''}" onclick="togSold(${p.id},'cat')">${p.sold?'✓ Agot.':'Agotado'}</button>
       <button class="adel" onclick="delProd(${p.id},'cat')">✕</button>
       <div class="ep-row" id="ep${p.id}" style="display:none"><input id="epi${p.id}" type="number" value="${p.price}" title="Precio de venta"><select id="epb${p.id}" class="ep-brand"><option value=""${!p.brand?' selected':''}>Sin marca</option>${Object.keys(BRAND_LABELS).map(b=>`<option value="${b}"${p.brand===b?' selected':''}>${BRAND_LABELS[b]}</option>`).join('')}</select><input id="epm${p.id}" type="text" placeholder="Modelo (ej. Nike Air Max 90)" value="${escHtml(p.modelo||'')}" style="flex-basis:100%"><input id="epc${p.id}" type="number" placeholder="Costo (privado, para margen)" value="${costos['cat:'+p.id]??''}" style="flex-basis:48%"><button class="ep-save" onclick="saveEP(${p.id},'cat')">Guardar</button><button class="ep-cancel" onclick="cancelEP()">✕</button></div>
       <div id="galcat${p.id}" style="display:none;grid-column:1/-1;padding:8px 0 4px"></div>
       <div id="tallascat${p.id}" style="display:none;grid-column:1/-1;padding:8px 0 4px"></div>
+      <div id="metacat${p.id}" style="display:none;grid-column:1/-1;padding:8px 0 4px"></div>
       ${sugStrip('cat',p)}
     </div>`;
   }).join('');
@@ -1186,12 +1436,13 @@ function renderLiqAdmin(){
     return `<div class="arow">
       <div class="arow-img">${m}${p.sold?`<div class="arow-sov">Agot.</div>`:''}</div>
       <div><div class="arow-gen" style="color:var(--red)">Liquidación</div><div class="arow-st">${p.sold?'🔴 Agotado':'🟢 Disponible'}</div>${costBadge('liq',p.id)}</div>
-      <div><div class="arow-price sale">${fmt(p.price)}</div><button class="epbtn" onclick="startEP(${p.id},'liq')">Editar</button> <button class="epbtn" id="galbtnliq${p.id}" onclick="togGal(${p.id},'liq')">📷 ${(p.imgs||[]).length}</button> <button class="epbtn" onclick="togTallas(${p.id},'liq')" title="Stock por talla">📏 ${tallasBadge(p)}</button>${p.modelo?'':` <button class="epbtn" onclick="sugerirModelo(${p.id},'liq',this)" title="La IA propone el modelo mirando la foto (tú apruebas antes de guardar)">✨ Modelo</button>`}</div>
+      <div><div class="arow-price sale">${fmt(p.price)}</div><button class="epbtn" onclick="startEP(${p.id},'liq')">Editar</button> <button class="epbtn" id="galbtnliq${p.id}" onclick="togGal(${p.id},'liq')">📷 ${(p.imgs||[]).length}</button> <button class="epbtn" onclick="togTallas(${p.id},'liq')" title="Stock por talla">📏 ${tallasBadge(p)}</button> <button class="epbtn" onclick="togMeta(${p.id},'liq')" title="SEO y metacampos (público)">🏷 ${metaBadge(p)}</button>${p.modelo?'':` <button class="epbtn" onclick="sugerirModelo(${p.id},'liq',this)" title="La IA propone el modelo mirando la foto (tú apruebas antes de guardar)">✨ Modelo</button>`}</div>
       <button class="sold-btn ${p.sold?'on':''}" onclick="togSold(${p.id},'liq')">${p.sold?'✓ Agot.':'Agotado'}</button>
       <button class="adel" onclick="delProd(${p.id},'liq')">✕</button>
       <div class="ep-row" id="epl${p.id}" style="display:none"><input id="epli${p.id}" type="number" value="${p.price}" title="Precio de venta"><input id="eplm${p.id}" type="text" placeholder="Modelo" value="${escHtml(p.modelo||'')}"><input id="eplc${p.id}" type="number" placeholder="Costo" value="${costos['liq:'+p.id]??''}"><button class="ep-save" onclick="saveEP(${p.id},'liq')">Guardar</button><button class="ep-cancel" onclick="cancelEP()">✕</button></div>
       <div id="galliq${p.id}" style="display:none;grid-column:1/-1;padding:8px 0 4px"></div>
       <div id="tallasliq${p.id}" style="display:none;grid-column:1/-1;padding:8px 0 4px"></div>
+      <div id="metaliq${p.id}" style="display:none;grid-column:1/-1;padding:8px 0 4px"></div>
       ${sugStrip('liq',p)}
     </div>`;
   }).join('');
@@ -1328,11 +1579,14 @@ function exportOrders(){
 /* ══ ANALYTICS (FASE K): panel tipo Shopify servido por /api/dashboard ══
    Rango + 6 tarjetas con Δ% vs periodo anterior + gráfica SVG + desglose contable +
    embudo + clientes nuevos/recurrentes + productos ganadores + campañas con ROAS/CTR/CPC. */
-let anaRango='30d',anaGroup='day';
+let anaRango='30d',anaGroup='day',anaModelo='ultimo_clic_no_directo';   // default = el de Shopify
 
 function setAnaRango(r){anaRango=r;renderAnalytics();}
 
 function setAnaGroup(g){anaGroup=g;renderAnalytics();}
+
+// Cambiar de modelo solo repinta (el JSON ya trae los 5 calculados; el cache evita refetch).
+function setAnaModelo(m){anaModelo=m;renderAnalytics();}
 
 function _anaParams(){
   const hoy=_hoyKey(0);
@@ -1526,8 +1780,96 @@ async function renderAnalytics(){
     </table></div>`
     +(j.meta_error?`<div style="font-size:10px;color:var(--ink3);margin-top:7px">⚠ Sin datos de inversión de Meta: ${escHtml(String(j.meta_error).slice(0,90))}</div>`:''))
     :(j.meta_error?_anaBloque('📣 Campañas',`<div style="font-size:11.5px;color:var(--ink3)">⚠ Sin conexión con Meta (${escHtml(String(j.meta_error).slice(0,90))}). Las ventas por campaña aparecerán cuando lleguen pedidos con utm_campaign.</div>`):'');
+  // ── Atribución multi-toque (5 modelos Shopify, ventana 30 días) ──
+  const A=j.atribucion||null;
+  const MODELOS_ATR=[
+    ['ultimo_clic_no_directo','Último clic no directo','Se ignora el tráfico directo; 100% del crédito al último canal en el que se hizo clic (default de Shopify)'],
+    ['ultimo_clic','Último clic','100% del crédito al último canal en el que se hizo clic'],
+    ['primer_clic','Primer clic','100% del crédito al primer canal en el que se hizo clic'],
+    ['cualquier_clic','Cualquier clic','100% del crédito a CADA canal tocado — los % suman más de 100 a propósito'],
+    ['lineal','Lineal','El crédito se reparte equitativamente entre todos los clics de la ruta']
+  ];
+  const filasAtr=(A&&A.modelos&&A.modelos[anaModelo])||[];
+  const defAtr=(MODELOS_ATR.find(m=>m[0]===anaModelo)||[])[2]||'';
+  const atrBloque=A?_anaBloque('🧭 Atribución por canal · ventana 30 días',
+    `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">${MODELOS_ATR.map(([v,t,def])=>`<button onclick="setAnaModelo('${v}')" title="${escHtml(def)}" style="padding:5px 11px;border:1px solid ${anaModelo===v?'var(--ink)':'var(--line)'};border-radius:14px;background:${anaModelo===v?'var(--ink)':'var(--white)'};color:${anaModelo===v?'#fff':'var(--ink2)'};font-family:var(--font);font-size:10px;font-weight:700;cursor:pointer">${t}</button>`).join('')}</div>`
+    +(filasAtr.length?`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px;min-width:400px">
+      <tr style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em;text-align:right"><th style="text-align:left;padding:4px 6px 4px 0">Canal</th><th>Ventas</th><th title="Pedidos atribuidos (en Lineal se reparten en fracciones)">Pedidos</th><th title="% de la facturación del rango atribuida al canal">%</th></tr>
+      ${filasAtr.slice(0,12).map(c=>`<tr style="border-top:1px solid var(--line);text-align:right">
+        <td style="text-align:left;padding:6px 6px 6px 0;font-weight:600;max-width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" ${c.campaign_id?`title="campaign_id ${escHtml(c.campaign_id)}"`:''}>${escHtml(c.canal)}</td>
+        <td style="font-weight:700;color:var(--green)">${_abrev(c.facturacion)}</td>
+        <td>${c.compras}</td>
+        <td style="font-weight:700">${c.pct!=null?c.pct+'%':'—'}</td>
+      </tr>`).join('')}
+    </table></div>`:`<div style="font-size:11.5px;color:var(--ink3)">Sin ventas en este rango — la atribución aparece cuando hay pedidos marcados como venta.</div>`)
+    +`<div style="font-size:9.5px;color:var(--ink3);margin-top:7px;line-height:1.4">${escHtml(defAtr)}. Ruta reconstruida por sesión: ${A.con_ruta||0} venta${A.con_ruta===1?'':'s'} con recorrido completo · ${A.sin_ruta||0} solo con el UTM del pedido.${A.parcial?' <b>⚠ Rutas posiblemente incompletas (límite de datos): usa un rango más corto.</b>':''}</div>`)
+    :'';
+  // ── RFM (segmentos Shopify) + export de audiencia · SIEMPRE histórico completo ──
+  // El server los calcula fuera del rango a propósito: la "vida" de un cliente no cabe en 7 días.
+  const RFM_COLS={'Campeones':'#1BA94C','Leales':'#2E7D32','Potenciales':'#0288D1','Nuevos':'#5D2D91','En riesgo':'#F2A900','Dormidos':'#b3541e','Perdidos':'#E8200A'};
+  const RFM_DEFS={'Campeones':'Compran mucho y hace poco (R≥4 y F≥4)','Leales':'Compran seguido y siguen activos (R≥3 y F≥3)','Potenciales':'Recientes con pocas compras: candidatos a la 2ª (R≥3 y F≤2)','Nuevos':'Primera compra, muy reciente (R≥4 y F=1)','En riesgo':'Eran buenos clientes y se están enfriando (R=2 y F≥3)','Dormidos':'Compraron poco y hace rato (R=2 y F≤2)','Perdidos':'El quintil más viejo de recencia (R=1)'};
+  const RF=j.rfm||null;
+  const rfmBloque=(RF&&RF.clientes)?_anaBloque('🎯 Segmentos RFM · histórico completo',
+    `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px;min-width:420px">
+      <tr style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em;text-align:right"><th style="text-align:left;padding:4px 6px 4px 0">Segmento</th><th>Clientes</th><th>%</th><th>Facturación</th><th>%</th></tr>
+      ${RF.segmentos.map(s=>`<tr style="border-top:1px solid var(--line);text-align:right${s.clientes?'':';opacity:.45'}">
+        <td style="text-align:left;padding:6px 6px 6px 0" title="${escHtml(RFM_DEFS[s.etiqueta]||'')}"><span style="display:inline-block;width:8px;height:8px;border-radius:4px;background:${RFM_COLS[s.etiqueta]||'#999'};margin-right:6px"></span><b>${escHtml(s.etiqueta)}</b></td>
+        <td style="font-weight:700">${s.clientes}</td><td style="color:var(--ink3)">${s.pct_clientes}%</td>
+        <td style="font-weight:700;color:var(--green)">${_abrev(s.facturacion)}</td><td style="color:var(--ink3)">${s.pct_facturacion}%</td>
+      </tr>`).join('')}
+    </table></div>
+    <div style="display:flex;gap:6px;margin-top:10px;align-items:center;flex-wrap:wrap">
+      <select id="rfmExpSel" style="flex:1;min-width:150px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--white);font-family:var(--font);font-size:11.5px;color:var(--ink)">
+        <option value="todos">Todos los compradores (${RF.clientes})</option>
+        ${RF.segmentos.filter(s=>s.clientes).map(s=>`<option value="${escHtml(s.etiqueta)}">${escHtml(s.etiqueta)} (${s.clientes})</option>`).join('')}
+      </select>
+      <button id="rfmExpBtn" onclick="exportAudienciaMeta()" style="padding:8px 13px;border:none;border-radius:9px;background:var(--ink);color:#fff;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">⬇ Exportar audiencia para Meta</button>
+    </div>
+    <div style="font-size:9.5px;color:var(--ink3);margin-top:7px;line-height:1.4">R = qué tan reciente compró · F = cuántas veces · M = cuánto ha gastado (puntajes 1-5 por quintiles sobre tu propia base). El CSV sale en el formato de Meta: Audiencias → Crear audiencia personalizada → Lista de clientes.</div>`):'';
+  // ── Cohortes de clientes: % que recompra por mes desde su primera compra ──
+  const CH=Array.isArray(j.cohortes)?j.cohortes:[];
+  const maxM=CH.length?Math.min(12,Math.max(...CH.map(c=>c.retencion.length))):0;   // hasta 12 meses visibles (el JSON trae más)
+  const cohBloque=CH.length?_anaBloque('📅 Cohortes de clientes · histórico completo',
+    `<div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:10.5px;min-width:${190+maxM*46}px">
+      <tr style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em"><th style="text-align:left;padding:4px 8px 4px 0">1ª compra</th><th style="text-align:right;padding:0 8px">Clientes</th><th style="text-align:right;padding:0 8px" title="Ventas netas acumuladas ÷ clientes de la cohorte">LTV/cliente</th>${Array.from({length:maxM},(_,m)=>`<th style="text-align:center;padding:0 4px" title="Mes ${m} desde la primera compra">M${m}</th>`).join('')}</tr>
+      ${CH.map(c=>`<tr style="border-top:1px solid var(--line)">
+        <td style="text-align:left;padding:5px 8px 5px 0;font-weight:700;white-space:nowrap">${escHtml(_kLabel(c.mes))}</td>
+        <td style="text-align:right;padding:0 8px">${c.clientes}</td>
+        <td style="text-align:right;padding:0 8px;font-weight:700;color:var(--green)">${_abrev(c.ltv_acumulado[c.ltv_acumulado.length-1]||0)}</td>
+        ${Array.from({length:maxM},(_,m)=>{
+          const p=c.retencion[m];
+          if(p==null)return `<td style="text-align:center;padding:4px;color:var(--line)">·</td>`;   // mes que aún no llega para esta cohorte
+          return `<td title="${escHtml(_kLabel(c.mes))} +${m} mes${m===1?'':'es'}: ${p}% recompró · LTV acum. ${fmt(c.ltv_acumulado[m]||0)}" style="text-align:center;padding:4px;background:rgba(27,169,76,${(p/100*0.72+(p?0.08:0)).toFixed(2)});border-radius:4px;font-weight:${m?'400':'700'}">${Math.round(p)}%</td>`;
+        }).join('')}
+      </tr>`).join('')}
+    </table></div>
+    <div style="font-size:9.5px;color:var(--ink3);margin-top:7px;line-height:1.4">Cada fila agrupa a los clientes por el MES de su primera compra. M0 = ese mes (siempre 100%); cada celda = % de la cohorte que compró en ese mes. Se muestran hasta 12 meses.</div>`):'';
   const aviso=j.truncado?`<div style="font-size:10px;color:var(--ink3);text-align:center;padding:4px 0 10px">⚠ Datos al límite (${j.truncado.ventas?'5.000 ventas':''}${j.truncado.ventas&&j.truncado.events?' · ':''}${j.truncado.events?'20.000 eventos':''}) — usa un rango más corto para cifras completas.</div>`:'';
-  box.innerHTML=chips+aviso+cards+serieBloque+desglose+embudoBloque+visitantesBloque+clientesBloque+prodBloque+campBloque;
+  box.innerHTML=chips+aviso+cards+serieBloque+desglose+embudoBloque+visitantesBloque+clientesBloque+rfmBloque+cohBloque+prodBloque+campBloque+atrBloque;
+}
+
+// Descarga el CSV de audiencia (formato Custom Audience de Meta) desde /api/admin.
+// El SERVER arma y filtra la lista (action export_audiencia, misma sesión admin que todo lo
+// demás); aquí solo se pide y se guarda. No usa adminWrite porque la respuesta es CSV, no JSON.
+async function exportAudienciaMeta(){
+  const sel=$('rfmExpSel'),btn=$('rfmExpBtn');
+  const v=sel?sel.value:'todos';
+  const data=v==='todos'?{tipo:'todos'}:{tipo:'rfm',etiqueta:v};
+  if(btn){btn.disabled=true;btn.textContent='Generando…';}
+  try{
+    const r=await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'export_audiencia',data})});
+    if(r.status===401){ADMIN_OK=false;alert('Tu sesión admin expiró. Vuelve a entrar con el PIN.');return;}
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||'HTTP '+r.status);}
+    const csv=await r.text();
+    const n=Math.max(0,csv.split('\n').length-1);
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+    const slug=v==='todos'?'compradores':v.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_');
+    a.download='audiencia_meta_'+slug+'_'+new Date().toISOString().slice(0,10)+'.csv';
+    document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(a.href);
+    if(!n)alert('El filtro no devolvió clientes con teléfono o email: el CSV salió vacío.');
+  }catch(e){alert('No se pudo exportar: '+e.message);}
+  finally{if(btn){btn.disabled=false;btn.textContent='⬇ Exportar audiencia para Meta';}}
 }
 
 /* ── LEADS (Venta / No venta) ── */
@@ -2092,6 +2434,118 @@ async function clearTallas(id,dest){
   togTallas(id,dest);dest==='liq'?renderLiqAdmin():renderAdmin();renderGrid();
 }
 
+/* ── METACAMPOS + SEO por producto (columna meta jsonb, migración 007) ──
+   El hueco "metafields" de Shopify: datos propios por producto sin tocar el esquema nunca más.
+   Pares clave→valor libres (se ven en la ficha como "Detalles del producto") + bloque SEO
+   estilo Shopify: título de página (≤70), metadescripción (≤160) e identificador de URL
+   (handle). El server (limpiarMeta en api/admin.js) re-impone forma y límites por si acaso.
+   ⚠️ TODO lo que se guarda aquí es PÚBLICO: la tabla products la lee cualquier visitante con
+   la anon key (select *) — mismo motivo por el que el costo vive aparte en product_costs.
+   Nada privado. El editor muestra el aviso a la vista. */
+function _metaDe(p){return (p&&p.meta&&typeof p.meta==='object'&&!Array.isArray(p.meta))?p.meta:{};}
+
+function metaBadge(p){   // nº de datos guardados (metacampos + 1 si hay SEO) para el botón 🏷
+  const m=_metaDe(p);
+  const seo=(m.seo&&typeof m.seo==='object'&&!Array.isArray(m.seo))?m.seo:null;
+  const n=Object.keys(m).filter(k=>k!=='seo').length+((seo&&(seo.title||seo.description||seo.handle))?1:0);
+  return n||'';
+}
+
+// Mismo slug que el front (router.js _slug) y el server (limpiarMeta): lo que se previsualiza
+// aquí es EXACTAMENTE lo que quedará en la URL.
+function slugSeo(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60);}
+
+function togMeta(id,dest){
+  const el=$('meta'+dest+id);if(!el)return;
+  const open=el.style.display!=='none';
+  el.style.display=open?'none':'block';
+  if(!open)renderMetaEditor(id,dest);
+}
+
+// Contador estilo Shopify: "12 de 70 caracteres usados" (se pasa de rojo si excede, aunque
+// maxlength ya lo impide al teclear — pegar texto largo sí puede exceder y ahí se recorta al guardar).
+function cntSeo(el,cid,max){
+  const c=$(cid);if(!c)return;
+  const n=el.value.length;
+  c.textContent=n+' de '+max+' caracteres usados';
+  c.style.color=n>max?'#E8200A':'var(--ink3)';
+}
+
+function previewHandle(el,id,dest){
+  const pv=$('mshp'+dest+id);if(!pv)return;
+  pv.innerHTML='URL: strangesneakers.com/p/'+(dest==='liq'?'L':'')+id+'-<b>'+(slugSeo(el.value)||'…')+'</b>';
+}
+
+function metaParRow(k,v){
+  const inp='padding:7px 9px;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;color:var(--ink)';
+  return `<div class="meta-par" style="display:flex;gap:6px;margin-bottom:6px">
+    <input class="mk" type="text" maxlength="40" placeholder="clave (ej. material)" value="${escHtml(k)}" style="${inp};flex:0 0 36%;min-width:0">
+    <input class="mv" type="text" maxlength="300" placeholder="valor (ej. cuero sintético)" value="${escHtml(String(v==null?'':v))}" style="${inp};flex:1;min-width:0">
+    <button onclick="this.parentElement.remove()" title="Quitar este campo (se borra al Guardar)" style="border:none;background:none;color:#E8200A;font-weight:700;cursor:pointer;flex:0 0 auto">✕</button>
+  </div>`;
+}
+
+function metaAddPar(id,dest){
+  const box=$('mrows'+dest+id);if(!box)return;
+  box.insertAdjacentHTML('beforeend',metaParRow('',''));
+  const rows=box.querySelectorAll('.meta-par .mk');
+  if(rows.length)rows[rows.length-1].focus();
+}
+
+function renderMetaEditor(id,dest){
+  const list=dest==='liq'?liqs:prods;const p=list.find(x=>x.id===id);
+  const el=$('meta'+dest+id);if(!p||!el)return;
+  const m=_metaDe(p);
+  const seo=(m.seo&&typeof m.seo==='object'&&!Array.isArray(m.seo))?m.seo:{};
+  const pares=Object.entries(m).filter(([k,v])=>k!=='seo'&&v!=null&&typeof v!=='object');
+  const t=typeof seo.title==='string'?seo.title:'',d=typeof seo.description==='string'?seo.description:'',h=typeof seo.handle==='string'?seo.handle:'';
+  const inp='width:100%;padding:7px 9px;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;color:var(--ink);box-sizing:border-box';
+  const cnt='font-size:10px;color:var(--ink3);text-align:right;margin-top:2px';
+  el.innerHTML=`
+    <div style="font-size:11px;color:#b3541e;background:#fdf3ec;border-radius:8px;padding:7px 10px;margin-bottom:8px;line-height:1.5">⚠️ <b>Todo lo de aquí es PÚBLICO</b>: cualquier visitante de la tienda puede leerlo (la tabla de productos es de lectura abierta). Solo datos de catálogo: material, temporada, cuidado, medidas, SEO. <b>Nunca</b> costos, proveedores ni notas internas — para eso están Costo y las notas del pedido.</div>
+    <div style="font-size:10.5px;font-weight:800;color:var(--ink);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">🔎 SEO de este producto</div>
+    <div style="display:grid;gap:7px;margin-bottom:10px">
+      <div><input id="mst${dest}${id}" type="text" maxlength="70" placeholder="Título de página (pestaña y resultado en Google)" value="${escHtml(t)}" style="${inp}" oninput="cntSeo(this,'msct${dest}${id}',70)"><div id="msct${dest}${id}" style="${cnt}">${t.length} de 70 caracteres usados</div></div>
+      <div><textarea id="msd${dest}${id}" maxlength="160" rows="2" placeholder="Metadescripción (el texto gris bajo el título en Google)" style="${inp};resize:vertical" oninput="cntSeo(this,'mscd${dest}${id}',160)">${escHtml(d)}</textarea><div id="mscd${dest}${id}" style="${cnt}">${d.length} de 160 caracteres usados</div></div>
+      <div><input id="msh${dest}${id}" type="text" maxlength="60" placeholder="Identificador de URL (handle) — ej. nike-air-max-90" value="${escHtml(h)}" style="${inp}" oninput="previewHandle(this,${id},'${dest}')"><div id="mshp${dest}${id}" style="font-size:10px;color:var(--ink3);margin-top:2px">URL: strangesneakers.com/p/${dest==='liq'?'L':''}${id}-<b>${slugSeo(h)||'…'}</b></div></div>
+    </div>
+    <div style="font-size:10.5px;font-weight:800;color:var(--ink);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">🏷 Metacampos (salen en la ficha como "Detalles del producto")</div>
+    <div id="mrows${dest}${id}">${pares.map(([k,v])=>metaParRow(k,v)).join('')||metaParRow('','')}</div>
+    <button class="epbtn" onclick="metaAddPar(${id},'${dest}')">＋ Añadir campo</button>
+    <div style="display:flex;gap:6px;margin-top:9px">
+      <button class="ep-save" onclick="saveMeta(${id},'${dest}')">Guardar</button>
+      <button class="ep-cancel" onclick="togMeta(${id},'${dest}')">✕</button>
+    </div>`;
+}
+
+async function saveMeta(id,dest){
+  const list=dest==='liq'?liqs:prods;const p=list.find(x=>x.id===id);if(!p)return;
+  const box=$('meta'+dest+id);if(!box)return;
+  const meta={};
+  box.querySelectorAll('.meta-par').forEach(row=>{
+    const kEl=row.querySelector('.mk'),vEl=row.querySelector('.mv');
+    const k=kEl?kEl.value.trim().slice(0,40):'',v=vEl?vEl.value.trim().slice(0,300):'';
+    if(k&&v&&k!=='seo')meta[k]=v;   // 'seo' como clave libre chocaría con el bloque SEO
+  });
+  const t=($('mst'+dest+id)||{value:''}).value.trim().slice(0,70);
+  const d=($('msd'+dest+id)||{value:''}).value.trim().slice(0,160);
+  const h=slugSeo(($('msh'+dest+id)||{value:''}).value);
+  const seo={};
+  if(t)seo.title=t;if(d)seo.description=d;if(h)seo.handle=h;
+  if(Object.keys(seo).length)meta.seo=seo;
+  // Todo vacío → null (no un {} que "parece" tener datos). Mismo criterio que el server.
+  const val=Object.keys(meta).length?meta:null;
+  const prev=('meta' in p)?p.meta:null;
+  p.meta=val;
+  try{
+    await adminWrite('update_product',{table:dest==='liq'?'liq_products':'products',id,data:{meta:val}});
+    togMeta(id,dest);dest==='liq'?renderLiqAdmin():renderAdmin();
+  }catch(e){
+    p.meta=prev;
+    alert('No se pudo guardar: '+e.message+(String(e.message||'').includes('meta')?'\n\n¿Ya corriste la migración 007 (columna meta) en Supabase?':''));
+  }
+}
+
 /* ── IA: SUGERIR MODELO ── Los productos sin modelo salen al feed de Meta con títulos genéricos
    duplicados (Meta los agrupa y castiga los anuncios dinámicos). Gemini mira la FOTO real y
    propone un nombre vía la action sugerir_modelo de /api/admin (sesión admin obligatoria).
@@ -2494,7 +2948,7 @@ window._adminInit=(async()=>{
   const r=await fetch('/admin.html');
   if(!r.ok)throw new Error('admin.html '+r.status);
   document.body.insertAdjacentHTML('beforeend',await r.text());
-  renderHeroAdmin();renderCombosAdmin();renderFeaturedAdmin();renderColAdmin();renderTestiAdmin();renderSizeGuideAdmin();checkPixelHealth();
+  renderHeroAdmin();renderCombosAdmin();renderFeaturedAdmin();renderColAdmin();renderTestiAdmin();renderSizeGuideAdmin();renderEnvioAdmin();checkPixelHealth();
 (function(){ /* drag & drop de las zonas de subida */
   const uzEl=$('uzCat');
   if(uzEl){

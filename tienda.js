@@ -356,7 +356,7 @@ const INFO_ENVIOS=`<div class="info-pad">
   <p class="info-lead" style="margin-top:0">Enviamos a toda Colombia. Así funciona el costo del envío 👇</p>
   <div class="info-grid">
   <div class="info-sec"><h3>✅ Envío GRATIS pagando por adelantado</h3><p>Si pagas en línea (Wompi, Bold, Addi o Sistecrédito) o coordinas el pago por WhatsApp, el envío no te cuesta nada: el precio que ves es el precio final.</p></div>
-  <div class="info-sec"><h3>📦 Contra entrega: el envío se paga primero</h3><p>Si prefieres pagar los zapatos al recibirlos, el envío sí tiene costo y se paga por adelantado: <b>$25.000</b> por el primer par y <b>$15.000</b> por cada par adicional. Los zapatos los pagas cuando lleguen a tu casa.</p></div>
+  <div class="info-sec"><h3>📦 Contra entrega: el envío se paga primero</h3><p>Si prefieres pagar los zapatos al recibirlos, el envío sí tiene costo y se paga por adelantado. El valor depende de <b>tu ciudad y el número de pares</b> — lo ves exacto en el checkout antes de confirmar tu pedido. Los zapatos los pagas cuando lleguen a tu casa.</p></div>
   <div class="info-sec"><h3>💡 ¿Por qué cobramos el envío contra entrega?</h3><p>Para asegurar que tu pedido salga y llegue. Así evitamos los pedidos que se piden y nadie recibe, que encarecen los precios para todos.</p></div>
   <div class="info-sec"><h3>🕐 Tiempos de entrega</h3><p>Entre 2 y 5 días hábiles según la ciudad. Te avisamos por WhatsApp cuando tu pedido salga, con el número de guía para que lo rastrees.</p></div>
   <div class="info-sec"><h3>🏠 Hasta la puerta de tu casa</h3><p>La transportadora entrega en la dirección que nos indiques. Asegúrate de que haya alguien para recibir el pedido.</p></div>
@@ -905,6 +905,51 @@ function setBrand(v,btn){
 
 /* ── VISTOS RECIENTEMENTE ── últimos productos cuya ficha abrió el cliente (localStorage).
    Se registra al abrir la ficha; se re-hidrata desde `prods` al renderizar (descarta agotados). */
+/* ── SEO POR PRODUCTO (meta.seo, estilo Shopify) ──
+   Devuelve {title,desc} saneados o nulls. TODO defensivo: meta puede venir null, roto o con
+   una forma inesperada (lo escribe el panel, pero la tabla es pública) — la ficha JAMÁS se
+   rompe por un meta malo: sin datos válidos cae a los textos de siempre. */
+function seoFicha(p){
+  try{
+    const s=p&&p.meta&&typeof p.meta==='object'&&!Array.isArray(p.meta)?p.meta.seo:null;
+    if(!s||typeof s!=='object'||Array.isArray(s))return {title:null,desc:null};
+    const title=(typeof s.title==='string'&&s.title.trim())?s.title.trim().slice(0,70):null;      // límite Shopify: 70
+    const desc=(typeof s.description==='string'&&s.description.trim())?s.description.trim().slice(0,160):null; // límite Shopify: 160
+    return {title,desc};
+  }catch(_){return {title:null,desc:null};}
+}
+/* Metadescripción del documento: por producto si existe, y al cerrar la ficha se RESTAURA la
+   global (guardada la primera vez). Toca <meta name="description"> y el og:description. */
+let _descGlobal=null,_ogDescGlobal=null;
+function setMetaDesc(txt){
+  const el=document.querySelector('meta[name="description"]');
+  if(el){
+    if(_descGlobal===null)_descGlobal=el.content;
+    el.content=txt||_descGlobal;
+  }
+  const og=$('ogDesc');
+  if(og){
+    if(_ogDescGlobal===null)_ogDescGlobal=og.content;
+    og.content=txt||_ogDescGlobal;
+  }
+}
+/* ── METACAMPOS PÚBLICOS en la ficha ── pares clave→valor de la columna meta (material,
+   temporada, cuidado, medidas…). 'seo' se excluye: es para las etiquetas <meta>, no para
+   mostrar. Sin metacampos válidos el bloque se oculta y la ficha queda como siempre. */
+function renderPmSpecs(p){
+  const box=$('pmSpecs');if(!box)return;
+  let entradas=[];
+  try{
+    const m=p&&p.meta;
+    if(m&&typeof m==='object'&&!Array.isArray(m)){
+      entradas=Object.entries(m).filter(([k,v])=>k!=='seo'&&v!=null&&typeof v!=='object'&&String(v).trim()!=='');
+    }
+  }catch(_){entradas=[];}
+  if(!entradas.length){box.style.display='none';box.innerHTML='';return;}
+  box.style.display='';
+  box.innerHTML='<div class="pm-specs-t">Detalles del producto</div>'
+    +entradas.slice(0,12).map(([k,v])=>`<div class="pm-spec"><span class="pm-spec-k">${escHtml(k)}</span><span class="pm-spec-v">${escHtml(String(v))}</span></div>`).join('');
+}
 /* ── MODAL FOTO ── */
 function openPhoto(id,type){
   const list=type==='liq'?liqs:prods;
@@ -920,6 +965,7 @@ function openPhoto(id,type){
   pmReviewN=reviewsCount;   // nº de reseñas = el de marketing del admin (settings.reviews_count)
   {const rv=$('pmReviews');if(rv)rv.textContent=pmReviewN>0?`(${pmReviewN.toLocaleString('es-CO')} reseñas)`:'';}
   {const dd=$('pmDesc');if(dd)dd.textContent=genDescripcion(p,type);}
+  renderPmSpecs(p);   // metacampos públicos (meta jsonb): material, temporada, cuidado…
   {const wa=$('pmWas');if(wa){if(p.was&&p.was>p.price){wa.textContent=fmt(p.was);wa.style.display='';}else wa.style.display='none';}}
   $('pmPrice').textContent=fmt(p.price);
   {const ff=$('pmFootPrice');if(ff)ff.textContent=fmt(p.price);}
@@ -953,7 +999,11 @@ function openPhoto(id,type){
   trackEvent('view_product',{product_id:(type==='liq'?'L':'')+id,price:p.price,gender:type==='liq'?null:p.g||null});
   $('photoModal').classList.add('on');
   lockScroll();
-  navPush('ficha',navProdUrl(id,type,p),$('pmTitle').textContent+' — '+STORE_NAME,closePhotoBtn);
+  // SEO por producto: título de página y metadescripción propios cuando existen (meta.seo);
+  // sin ellos, el título de siempre y la descripción global (setMetaDesc(null) restaura).
+  const _seo=seoFicha(p);
+  setMetaDesc(_seo.desc);
+  navPush('ficha',navProdUrl(id,type,p),_seo.title||($('pmTitle').textContent+' — '+STORE_NAME),closePhotoBtn);
   // Resetear el scroll de la ficha al ABRIR (si no, reabre donde quedó el anterior → en iOS el
   // header sticky no se ancla y toca subir para ver "CATALOGO SNEAKERS").
   const _ps=document.querySelector('.pm-scroll'), _pb=document.querySelector('.pm-body');
@@ -1135,6 +1185,7 @@ function addFromModal(){
 
 function closePhotoBtn(){
   if(!_navPopping)navRemove('ficha');
+  setMetaDesc(null);   // al salir de la ficha vuelve la metadescripción global
   $('photoModal').classList.remove('on');
   unlockScroll();
   setTimeout(()=>{const tr=$('pmGalTrack');if(tr)tr.innerHTML='';pmId=null;pmType=null;pmTalla=null;},300);

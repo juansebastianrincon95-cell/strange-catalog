@@ -169,16 +169,22 @@ async function loadState(){
       sb.from('liq_products').select('*').order('id'),
       sb.from('settings').select('*')
     ]);
+    // meta (jsonb, migración 007): metacampos públicos + meta.seo {title,description,handle}.
+    // Defensivo: solo entra si es un objeto plano — cualquier otra forma queda en null y todo
+    // el front cae a su comportamiento de siempre (títulos por modelo, URL por modelo, etc.).
+    const metaDe=r=>(r.meta&&typeof r.meta==='object'&&!Array.isArray(r.meta))?r.meta:null;
     prods=(pRows||[]).map(r=>({
       id:r.id, g:r.gender, brand:r.brand||'', modelo:r.modelo||'', img:imgCdn(r.img_url),
       imgs:r.imgs?JSON.parse(r.imgs).map(imgCdn):[],
       tallas:r.tallas||null,   // jsonb {talla:stock} | null = sin rastreo (deriva por género)
+      meta:metaDe(r),
       price:r.price, was:r.price_before, promo:r.promo, sold:r.sold
     }));
     liqs=(lRows||[]).map(r=>({
       id:r.id, modelo:r.modelo||'', img:imgCdn(r.img_url),
       imgs:r.imgs?JSON.parse(r.imgs).map(imgCdn):[],
       tallas:r.tallas||null,
+      meta:metaDe(r),
       price:r.price, was:r.price_before, sold:r.sold
     }));
     const cfg=Object.fromEntries((sRows||[]).map(r=>[r.key,r.value]));
@@ -189,6 +195,10 @@ async function loadState(){
     try{heroSlides=imgCdnDeep(JSON.parse(cfg.hero_slides||'[]'));}catch(e){heroSlides=[];}
     try{const cb=cfg.combos?JSON.parse(cfg.combos):null;if(Array.isArray(cb)&&cb.length)combos=cb;}catch(e){}
     restaurarCombo();
+    // Zonas de envío + envío gratis (perfiles estilo Shopify). Inválido o ausente → null/0 y
+    // calcFlete cae a la fórmula nacional — mismo fallback que aplica el servidor.
+    try{envioZonas=cfg.envio_zonas?JSON.parse(cfg.envio_zonas):null;}catch(e){envioZonas=null;}
+    envioGratisDesde=parseInt(cfg.envio_gratis_desde,10)||0;
     try{featuredIds=JSON.parse(cfg.featured_ids||'[]');}catch(e){featuredIds=[];}
     try{bannerMujer=cfg.banner_mujer?imgCdnDeep(JSON.parse(cfg.banner_mujer)):null;}catch(e){bannerMujer=null;}
     try{bannerHombre=cfg.banner_hombre?imgCdnDeep(JSON.parse(cfg.banner_hombre)):null;}catch(e){bannerHombre=null;}

@@ -146,7 +146,11 @@ module.exports = async (req, res) => {
       promo_global: cfg.promo_global === 'true',
       banner_on:    cfg.banner_on === 'true',
       pixel_id:     cfg.pixel_id || null,
-      wompi_pk:     cfg.wompi_pk || null
+      wompi_pk:     cfg.wompi_pk || null,
+      // Perfiles de envío (zonas + envío gratis desde). JSON roto → null (el cálculo cae a la
+      // fórmula nacional, igual que en el server) — nunca romper la respuesta por un setting malo.
+      envio_zonas:  (() => { try { return cfg.envio_zonas ? JSON.parse(cfg.envio_zonas) : null; } catch (e) { return null; } })(),
+      envio_gratis_desde: parseInt(cfg.envio_gratis_desde, 10) || 0
     },
     inventory: {
       total_products:    (prods || []).length,
