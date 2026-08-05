@@ -85,20 +85,95 @@ function resumenDe(ventas, costos) {
 
 // Canal de un toque: campaign_id manda (estable aunque renombren la campaña, mismo criterio
 // que la sección CAMPAÑAS); utm como fallback; sin nada = tráfico directo.
-function canalDe(o) {
+// `resolver` (opcional) = Map norm(nombre de campaña) → campaign_id, armado con la respuesta de
+// Meta. Sin él, la MISMA campaña salía en DOS filas según si ese anuncio llevaba {{campaign.id}}
+// en la URL — y en Meta los parámetros se configuran por anuncio, así que pasa a diario.
+function canalDe(o, resolver) {
   o = o || {};
   const cid = o.campaign_id && !/\{\{/.test(String(o.campaign_id)) ? String(o.campaign_id) : null;
   const src = String(o.utm_source || '').trim(), camp = String(o.utm_campaign || '').trim();
   if (cid) return { key: 'id:' + cid, canal: camp || ('campaña ' + cid), campaign_id: cid, directo: false };
-  if (src || camp) return { key: 'src:' + src.toLowerCase() + '|' + camp.toLowerCase(), canal: camp || src, campaign_id: null, directo: false };
+  if (src || camp) {
+    // Promoción a clave por id: si el nombre coincide con una campaña real de Meta, se unifica.
+    const prom = resolver && camp ? resolver.get(camp.trim().toLowerCase()) : null;
+    if (prom) return { key: 'id:' + prom, canal: camp, campaign_id: prom, directo: false };
+    return { key: 'src:' + src.toLowerCase() + '|' + camp.toLowerCase(), canal: camp || src, campaign_id: null, directo: false };
+  }
   return { key: 'directo', canal: 'Directo', campaign_id: null, directo: true };
+}
+
+/* ── RUTA DE TOQUES ── Tres estados de utm_fresh (migración 008), no dos:
+     true  → CLIC REAL (la URL traía UTM/fbclid/gclid)
+     false → revisita / tráfico directo
+     null  → evento anterior a la migración: NO SE SABE
+   ⚠️ El estado null es innegociable: tratarlo como false pondría TODO el histórico en "Directo"
+   y el panel de atribución se iría a cero de un día para otro.
+   · Modo MEDIDO (la sesión tiene algún utm_fresh no-null): un toque es un clic real, y un
+     page_view sin señal cuenta como toque directo. El dedupe pasa a ser por cubeta de 30 min +
+     canal, así dos clics reales a la misma campaña con horas de diferencia cuentan DOS veces
+     (hoy se colapsan en uno y el modelo lineal reparte mal).
+   · Modo LEGACY (todo null): exactamente el comportamiento de siempre. */
+function rutaDeToques(evs, tVenta, ventanaMs, resolver) {
+  const dentro = (evs || [])
+    .map(e => ({ t: new Date(e.created_at).getTime(), e }))
+    .filter(x => !isNaN(x.t) && x.t <= tVenta && x.t >= tVenta - ventanaMs)
+    .sort((a, b) => a.t - b.t);
+  if (!dentro.length) return { toques: [], medida: false };
+  const medida = dentro.some(x => x.e.utm_fresh === true || x.e.utm_fresh === false);
+  const toques = [];
+  if (!medida) {
+    // LEGACY: dedupe de consecutivos (el utm se arrastra desde localStorage, así que una
+    // revisita repite el canal anterior y no es un toque nuevo).
+    dentro.forEach(x => {
+      const c = canalDe(x.e, resolver); c.t = x.t;
+      if (!toques.length || toques[toques.length - 1].key !== c.key) toques.push(c);
+    });
+    return { toques, medida: false };
+  }
+  let ultima = null;
+  dentro.forEach(x => {
+    const fresh = x.e.utm_fresh;
+    let c;
+    if (fresh === true) c = canalDe(x.e, resolver);                       // clic real
+    else if (fresh === false) { if (x.e.type !== 'page_view') return; c = canalDe(null); }  // directo
+    else return;                                                          // null en sesión medida: se ignora
+    c.t = x.t;
+    // Cubeta de 30 min: dos eventos del mismo canal muy pegados son la misma visita, no dos clics.
+    const cubeta = Math.floor(x.t / 1800000);
+    if (ultima && ultima.key === c.key && ultima.cubeta === cubeta) return;
+    ultima = { key: c.key, cubeta };
+    toques.push(c);
+  });
+  return { toques, medida: true };
+}
+
+/* ── PUENTE DE IDENTIDAD (utm.attr, escrito por createOrder) ───────────────
+   Los pedidos de Paylink/WhatsApp nacen en el panel sin session_id. api/_orders.js les hereda
+   la sesión del mismo cliente (por teléfono/cédula/email) y la guarda en utm.attr. Aquí se
+   consume: sin esto, el 71% de la facturación seguiría cayendo entero en "Directo". */
+const sesionDe = o => o.session_id || (o.utm && o.utm.attr && o.utm.attr.session) || null;
+
+// UTM efectivo del pedido. El propio SIEMPRE manda; el heredado es solo respaldo — nunca al revés,
+// o un pedido con campaña propia quedaría atribuido a la campaña de una visita anterior.
+function utmEfectivo(o) {
+  const u = (o.utm && typeof o.utm === 'object' && !Array.isArray(o.utm)) ? o.utm : {};
+  if (u.campaign_id || u.utm_campaign || u.utm_source) return u;
+  const a = u.attr || {};
+  if (a.utm && (a.utm.campaign_id || a.utm.utm_campaign || a.utm.utm_source)) {
+    return Object.assign({}, a.utm, a.utm_first ? { utm_first: a.utm_first } : {});
+  }
+  return u;
 }
 
 // rutas = [{valor, toques:[canalDe(...)]}] → los 5 modelos de Shopify, mismas definiciones:
 // el pct es sobre la facturación total atribuida; en cualquier_clic suma >100% a propósito
 // (cada canal tocado recibe el 100% de la venta).
-function aplicarModelos(rutas) {
-  const acum = { ultimo_clic_no_directo: {}, ultimo_clic: {}, primer_clic: {}, cualquier_clic: {}, lineal: {} };
+// `gastoPorId` (opcional) = Map campaign_id → inversión: añade inversion/roas/cpa a cada fila.
+// Shopify muestra ventas atribuidas pero NO conoce tu gasto publicitario, así que no puede dar
+// ROAS por modelo. Si Meta falla o da timeout, se pasa null y la salida es la de siempre.
+function aplicarModelos(rutas, gastoPorId) {
+  const acum = { ultimo_clic_no_directo: {}, ultimo_clic: {}, primer_clic: {}, cualquier_clic: {},
+                 lineal: {}, decaimiento: {}, posicion: {} };
   const add = (m, t, fac, cmp) => {
     const b = m[t.key] = m[t.key] || { canal: t.canal, campaign_id: t.campaign_id, facturacion: 0, compras: 0 };
     b.facturacion += fac; b.compras += cmp;
@@ -118,15 +193,45 @@ function aplicarModelos(rutas) {
     t.forEach(x => { if (!vistos.has(x.key)) { vistos.add(x.key); add(acum.cualquier_clic, x, r.valor, 1); } });
     // lineal: reparto equitativo entre todos los clics (un canal repetido no consecutivo suma doble)
     t.forEach(x => add(acum.lineal, x, r.valor / t.length, 1 / t.length));
+
+    /* ── DECAIMIENTO TEMPORAL (semivida 7 días) — Shopify NO lo tiene ──
+       Reparte según lo CERCA que estuvo cada toque de la compra: quién CERRÓ la venta. En un
+       ciclo de compra corto (impulso, móvil, contra entrega) 7 días es la semivida correcta. */
+    const tv = r.tv || (t[t.length - 1] && t[t.length - 1].t) || 0;
+    const pesos = t.map(x => Math.pow(0.5, Math.max(0, tv - (x.t || tv)) / (7 * 86400000)));
+    const sumaP = pesos.reduce((s, p) => s + p, 0) || 1;
+    t.forEach((x, i) => add(acum.decaimiento, x, r.valor * pesos[i] / sumaP, pesos[i] / sumaP));
+
+    /* ── BASADO EN POSICIÓN 40/20/40 — Shopify NO lo tiene ──
+       El más valioso aquí: con prospección + remarketing, el último clic hace que el remarketing
+       parezca infinitamente rentable y la prospección muerta. El trafficker apaga la prospección
+       y a las dos semanas el remarketing se seca por falta de audiencia. Este modelo rescata al
+       toque que ABRIÓ la venta, y es lo que hace que roas_min sea una señal honesta. */
+    if (t.length === 1) add(acum.posicion, t[0], r.valor, 1);
+    else if (t.length === 2) { add(acum.posicion, t[0], r.valor * 0.5, 0.5); add(acum.posicion, t[1], r.valor * 0.5, 0.5); }
+    else {
+      add(acum.posicion, t[0], r.valor * 0.4, 0.4);
+      add(acum.posicion, t[t.length - 1], r.valor * 0.4, 0.4);
+      const medios = t.slice(1, -1);
+      medios.forEach(x => add(acum.posicion, x, r.valor * 0.2 / medios.length, 0.2 / medios.length));
+    }
   });
   const out = {};
   Object.keys(acum).forEach(m => {
-    out[m] = Object.values(acum[m]).map(b => ({
-      canal: b.canal, campaign_id: b.campaign_id,
-      facturacion: Math.round(b.facturacion),
-      compras: +b.compras.toFixed(2),
-      pct: total ? +(b.facturacion / total * 100).toFixed(1) : 0
-    })).sort((a, b) => b.facturacion - a.facturacion);
+    out[m] = Object.values(acum[m]).map(b => {
+      const fac = Math.round(b.facturacion);
+      const inv = (gastoPorId && b.campaign_id) ? (gastoPorId.get(String(b.campaign_id)) || 0) : 0;
+      return {
+        canal: b.canal, campaign_id: b.campaign_id,
+        facturacion: fac,
+        compras: +b.compras.toFixed(2),
+        pct: total ? +(b.facturacion / total * 100).toFixed(1) : 0,
+        // Solo se declara ROAS cuando de verdad hay gasto cruzado: 0 gasto → null, no infinito.
+        inversion: inv || null,
+        roas: inv > 0 ? +(fac / inv).toFixed(2) : null,
+        cpa: (inv > 0 && b.compras > 0) ? Math.round(inv / b.compras) : null
+      };
+    }).sort((a, b) => b.facturacion - a.facturacion);
   });
   return out;
 }
@@ -427,10 +532,10 @@ module.exports = async (req, res) => {
     let funnel = null;
     let visitantes = null;   // recurrencia de visitantes (incluye anónimos)
     const prodStats = {};   // id numérico → {views, atc}
-    const sesVentas = new Set(ventas.map(o => o.session_id).filter(Boolean));
+    const sesVentas = new Set(ventas.map(sesionDe).filter(Boolean));
     const evVentas = {};     // session_id (de una venta) → events con utm, para la ruta de toques
     if (sbSvc) {
-      let qe = sbSvc.from('events').select('session_id,type,product_id,created_at,utm_source,utm_medium,utm_campaign,utm_content,campaign_id,adset_id,ad_id').limit(20000);
+      let qe = sbSvc.from('events').select('session_id,type,product_id,created_at,utm_source,utm_medium,utm_campaign,utm_content,campaign_id,adset_id,ad_id,utm_fresh').limit(20000);
       if (since) qe = qe.gte('created_at', since + 'T00:00:00');
       if (until) qe = qe.lte('created_at', until + 'T23:59:59');
       const { data: evs } = await qe;
@@ -494,7 +599,7 @@ module.exports = async (req, res) => {
       const lotes = [];
       for (let i = 0; i < ids.length; i += 100) {
         lotes.push(sbSvc.from('events')
-          .select('session_id,created_at,utm_source,utm_campaign,campaign_id')
+          .select('session_id,created_at,type,utm_source,utm_campaign,campaign_id,utm_fresh')
           .in('session_id', ids.slice(i, i + 100))
           .gte('created_at', addDays(since, -30) + 'T00:00:00')
           .lt('created_at', since + 'T00:00:00')
@@ -511,32 +616,6 @@ module.exports = async (req, res) => {
     // Los toques DENTRO del rango salen de la query principal de events: si esa se truncó
     // (truncadoEvents), las rutas también pueden estar incompletas.
     if (truncadoEvents) atribParcial = true;
-    const rutas = [];
-    let conRuta = 0, sinRuta = 0;
-    ventas.forEach(o => {
-      const tv = new Date(o.created_at).getTime();
-      // Ruta real: events de SU sesión en los 30 días previos a la venta, en orden cronológico.
-      // Dedupe de consecutivos: los events arrastran el ss_utm guardado, así que una revisita
-      // directa tras un clic de campaña repite el canal — no es un toque nuevo.
-      const evsS = ((o.session_id && evVentas[o.session_id]) || [])
-        .map(e => ({ t: new Date(e.created_at).getTime(), c: canalDe(e) }))
-        .filter(e => !isNaN(e.t) && e.t <= tv && e.t >= tv - 30 * 86400000)
-        .sort((a, b) => a.t - b.t);
-      const toques = [];
-      evsS.forEach(e => { if (!toques.length || toques[toques.length - 1].key !== e.c.key) toques.push(e.c); });
-      if (toques.length) conRuta++;
-      else {
-        // Fallback (events podados, pedidos viejos): el utm del propio pedido — utm_first =
-        // primer clic, el resto del utm = último. Solo canales reales: la ausencia de utm no
-        // prueba que el primer toque fuera directo, solo que no hay dato.
-        sinRuta++;
-        [canalDe((o.utm || {}).utm_first), canalDe(o.utm)].filter(c => !c.directo)
-          .forEach(c => { if (!toques.length || toques[toques.length - 1].key !== c.key) toques.push(c); });
-        if (!toques.length) toques.push(canalDe(null));   // sin ningún dato = venta directa
-      }
-      rutas.push({ valor: o.subtotal != null ? o.subtotal : (o.total || 0), toques });
-    });
-    const atribucion = { ventana_dias: 30, con_ruta: conRuta, sin_ruta: sinRuta, parcial: atribParcial, modelos: aplicarModelos(rutas) };
 
     // Ranking de productos: ventas del rango (items) × comportamiento (events)
     const prodMap = {};
@@ -563,7 +642,9 @@ module.exports = async (req, res) => {
     const ventasPorId = {};      // campaign_id → {facturacion, compras, label}
     const ventasPorNombre = {};  // norm(utm_campaign) → idem
     ventas.forEach(o => {
-      const u = o.utm || {};
+      // utmEfectivo, no o.utm: así las ventas de Paylink que heredaron sesión dejan de caer
+      // todas en '(sin_campaña)' con inversión 0 y por fin cruzan con el gasto de Meta.
+      const u = utmEfectivo(o);
       const val = o.subtotal != null ? o.subtotal : (o.total || 0);
       const cid = u.campaign_id && !/\{\{/.test(String(u.campaign_id)) ? String(u.campaign_id) : null;
       const label = u.utm_campaign || '(sin_campaña)';
@@ -650,6 +731,81 @@ module.exports = async (req, res) => {
     const facAtr = conCruce.reduce((s, c) => s + c.facturacion, 0);
     const roas_atribuido = invAtr > 0 ? +(facAtr / invAtr).toFixed(2) : null;
 
+    /* ── 5b. ATRIBUCIÓN (7 modelos, ventana 30 días) ───────────────────────
+       Va DESPUÉS del bloque de campañas a propósito: necesita el catálogo de campañas de Meta
+       para (a) unificar el canal —la misma campaña salía en dos filas según si el anuncio
+       llevaba {{campaign.id}}— y (b) cruzar el gasto para dar ROAS por modelo, que es lo que
+       Shopify no puede hacer (muestra ventas atribuidas pero no conoce tu inversión).
+       Si Meta falla o da timeout, ambos mapas quedan vacíos y la salida es la de siempre. */
+    const resolverCampana = new Map();
+    const gastoPorId = new Map();
+    campanas.forEach(c => {
+      if (!c.campaign_id) return;
+      if (c.campana) resolverCampana.set(String(c.campana).trim().toLowerCase(), String(c.campaign_id));
+      if (c.inversion > 0) gastoPorId.set(String(c.campaign_id), c.inversion);
+    });
+    const rutas = [];
+    let conRuta = 0, sinRuta = 0, rutasMedidas = 0;
+    ventas.forEach(o => {
+      const tv = new Date(o.created_at).getTime();
+      const ses = sesionDe(o);            // propia, o la heredada por el puente de identidad
+      // rutaDeToques decide solo entre modo MEDIDO (hay utm_fresh) y LEGACY (todo null).
+      const rt = rutaDeToques((ses && evVentas[ses]) || [], tv, 30 * 86400000, resolverCampana);
+      let toques = rt.toques;
+      if (toques.length) { conRuta++; if (rt.medida) rutasMedidas++; }
+      else {
+        // Fallback (events podados, pedidos viejos): el utm del propio pedido — utm_first =
+        // primer clic, el resto del utm = último. Solo canales reales: la ausencia de utm no
+        // prueba que el primer toque fuera directo, solo que no hay dato.
+        sinRuta++;
+        toques = [];
+        const ue = utmEfectivo(o);        // el utm propio, o el heredado del puente
+        [canalDe(ue.utm_first, resolverCampana), canalDe(ue, resolverCampana)].filter(c => !c.directo)
+          .forEach(c => { if (!toques.length || toques[toques.length - 1].key !== c.key) toques.push(c); });
+        if (!toques.length) toques.push(canalDe(null));   // sin ningún dato = venta directa
+        toques.forEach(c => { if (c.t == null) c.t = tv; });   // sin fecha real: se ancla a la venta
+      }
+      rutas.push({ valor: o.subtotal != null ? o.subtotal : (o.total || 0), tv, toques });
+    });
+    /* Cuántas ventas SIN session_id propio (las de Paylink/panel) lograron heredar una sesión.
+       Se DECLARA en el JSON a propósito: "8 ventas de Paylink sin puente de identidad" es
+       información accionable; un agujero silencioso no lo es. */
+    const puente = { resueltos: 0, sin_puente: 0, por_via: {} };
+    ventas.forEach(o => {
+      if (o.session_id) return;                       // vino del checkout web: no aplica
+      const a = (o.utm && o.utm.attr) || null;
+      if (a && a.session) { puente.resueltos++; puente.por_via[a.via || 'otro'] = (puente.por_via[a.via || 'otro'] || 0) + 1; }
+      else puente.sin_puente++;
+    });
+    const atribucion = { ventana_dias: 30, con_ruta: conRuta, sin_ruta: sinRuta, parcial: atribParcial, puente, calidad: { rutas_medidas: rutasMedidas, rutas_legacy: conRuta - rutasMedidas }, modelos: aplicarModelos(rutas, gastoPorId) };
+
+    /* ROAS DE EQUILIBRIO desde TU margen real, no un número inventado: por debajo de este ROAS
+       la campaña pierde plata. Solo se declara con cobertura de costos >= 30%; si no, null y el
+       panel dice "registra costos para saberlo". Shopify enseña ROAS sin idea de tu margen. */
+    const margenPct = resumen.ventas_netas ? resumen.margen_estimado / resumen.ventas_netas : 0;
+    const breakeven = (resumen.margen_cobertura >= 0.3 && margenPct > 0) ? +(1 / margenPct).toFixed(2) : null;
+    /* BANDA DE ROAS + VEREDICTO: qué dice CADA modelo sobre esta campaña.
+       cualquier_clic se EXCLUYE: sus % suman >100% por diseño, así que agregarlo sería doble conteo. */
+    const MODELOS_BANDA = ['ultimo_clic_no_directo', 'ultimo_clic', 'primer_clic', 'lineal', 'decaimiento', 'posicion'];
+    campanas.forEach(c => {
+      if (!c.campaign_id || !(c.inversion > 0)) return;
+      const porModelo = {};
+      MODELOS_BANDA.forEach(m => {
+        const fila = (atribucion.modelos[m] || []).find(x => String(x.campaign_id) === String(c.campaign_id));
+        if (fila) porModelo[m] = +(fila.facturacion / c.inversion).toFixed(2);
+      });
+      const vals = Object.values(porModelo);
+      if (!vals.length) return;
+      c.roas_por_modelo = porModelo;
+      c.roas_min = Math.min(...vals);
+      c.roas_max = Math.max(...vals);
+      // Escalar solo si es rentable bajo TODOS los modelos; apagar solo si no lo es bajo NINGUNO.
+      c.veredicto = breakeven == null ? 'observar'
+        : c.roas_min > breakeven ? 'escalar'
+        : c.roas_max < breakeven ? 'apagar' : 'observar';
+    });
+
+
     return res.json({
       periodo: since && until ? { since, until } : 'lifetime',
       periodo_prev: prevSince ? { since: prevSince, until: prevUntil } : null,
@@ -674,7 +830,8 @@ module.exports = async (req, res) => {
       funnel,             // sessions/view_product/add_to_cart/initiate_checkout/leads/ventas
       visitantes,         // total/recurrentes/recurrentes_pct/volvieron_hoy (incluye anónimos)
       productos,          // top 10 por ingresos con views/ATC/conversiones
-      atribucion,         // 5 modelos Shopify sobre la ruta de toques por sesión (ventana 30 días)
+      atribucion,         // 7 modelos sobre la ruta de toques por sesión (ventana 30 días) + puente + calidad
+      breakeven,          // ROAS de equilibrio derivado del margen real (null si la cobertura de costos < 30%)
       rfm,                // segmentos RFM + lista por cliente (tope declarado) — histórico completo
       cohortes,           // [{mes, clientes, retencion[], ltv_acumulado[]}] por mes de 1ª compra — histórico completo
       nota: 'Ventas netas (subtotal, post-descuento) es la base de ROAS. total_cobrado = caja (con envío). margen_estimado solo cubre ítems con costo registrado (ver margen_cobertura). Solo pedidos status=venta cuentan. El embudo es encadenado: cada paso cuenta sesiones que completaron todos los pasos anteriores. roas_atribuido cruza solo campañas con gasto Y ventas atribuidas (las de gasto sin ventas se ven en por_campana pero no entran); roas_promedio usa el gasto de TODA la cuenta Meta. atribucion aplica los 5 modelos de Shopify (ventana 30 días) sobre la ruta de toques reconstruida por session_id, repartiendo ventas netas; en cualquier_clic cada canal tocado recibe el 100% de la venta, por eso sus % suman más de 100 a propósito. rfm y cohortes se calculan SIEMPRE sobre el histórico completo (no el rango): puntajes 1-5 por quintiles sobre la base real de clientes, etiquetas derivadas del par (R,F); rfm.lista se corta en lista_max (ver lista_truncada). En cohortes, retencion[0] siempre es 100 y ltv_acumulado es por cliente.',
@@ -687,7 +844,7 @@ module.exports = async (req, res) => {
 };
 
 // Núcleo puro de la atribución expuesto para pruebas locales (Vercel no lo usa).
-module.exports._atrib = { canalDe, aplicarModelos };
+module.exports._atrib = { canalDe, aplicarModelos, sesionDe, utmEfectivo, rutaDeToques };
 
 // Núcleo puro de clientes (perfiles/RFM/cohortes): lo reusa api/admin.js (export_audiencia)
 // para que el CSV contenga EXACTAMENTE los mismos clientes que cuenta el panel, y las pruebas.

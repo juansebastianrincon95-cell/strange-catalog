@@ -114,6 +114,12 @@ function trackEvent(type,extra={}){
     utm_content:utm.utm_content||null,utm_term:utm.utm_term||null,
     campaign_id:utm.campaign_id||null,adset_id:utm.adset_id||null,ad_id:utm.ad_id||null,
     landing:ctx.landing||null,device:ctx.device||null,
+    // utm_fresh: true = esta vista fue un clic real (la URL traía UTM/fbclid/gclid); false =
+    // revisita/directo. Es lo que separa el clic de la revisita, porque el utm de arriba viene
+    // de localStorage y se arrastra. Si captureUTM no corrió aún, se manda null ("no se sabe")
+    // en vez de false — decir "directo" sin haber mirado la URL sería inventar un dato.
+    utm_fresh:typeof window.__UTM_FRESH__==='boolean'?window.__UTM_FRESH__:null,
+    src_app:ctx.src_app||null,          // ya se calculaba y nunca se enviaba
     referrer:getReferrer()||null,...extra})}).catch(()=>{});
 }
 
@@ -129,6 +135,13 @@ function captureUTM(){
   // fbclid: clic desde un anuncio de Meta. Se persiste para atribución (cookie _fbc la deriva el Pixel).
   const fbclid=p.get('fbclid');
   if(fbclid)localStorage.setItem('ss_fbclid',fbclid);
+  /* ── ¿ESTA carga fue un CLIC? ── Marca de sesión (no se persiste: es de ESTA vista de página).
+     trackEvent manda getUTM(), que lee ss_utm de localStorage y NO se borra nunca: una revisita
+     directa dos días después repite íntegro el UTM del anuncio anterior. Sin esta marca, el
+     tráfico directo es inobservable, "último clic no directo" es un espejo de "último clic" y
+     dos clics reales seguidos a la misma campaña se colapsan en uno. Con ella, el dashboard
+     distingue clic (true) de revisita (false); los eventos viejos quedan en null = "no se sabe". */
+  window.__UTM_FRESH__ = Object.keys(utm).length>0 || !!fbclid;
   if(Object.keys(utm).length){
     localStorage.setItem('ss_utm',JSON.stringify(utm));
     // Primer UTM (una sola vez, mismo patrón que ss_landing): ss_utm se PISA en cada visita con

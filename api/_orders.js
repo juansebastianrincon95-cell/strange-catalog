@@ -135,6 +135,82 @@ function clienteKey(tel) {
   return String(tel || '').replace(/\D/g, '').slice(-10);
 }
 
+/* ── PUENTE DE IDENTIDAD ── Atribuir los pedidos que NO nacen del checkout web.
+   El problema: un pedido de Paylink/WhatsApp se crea desde el panel (crear_link_addi) SIN
+   session_id, así que la atribución no encuentra su ruta de toques y lo manda entero a "Directo".
+   Como por ahí entra el 71% de la facturación, los 5 modelos nacían ciegos a la mayoría de la plata.
+   (Shopify ni siquiera intenta esto: no atribuye draft orders en absoluto.)
+
+   La idea: ese cliente casi siempre YA navegó la web. Su teléfono/cédula/email aparece pegado a
+   un session_id en dos sitios que ya existen — un pedido web previo (incluidos los abandonados) o
+   la tabla subscribers. Se hereda esa sesión y con ella su ruta de toques.
+
+   ⚠️ NO se escribe en orders.session_id, y no es un detalle de estilo: createOrder BORRA los
+   carritos abandonados que compartan session_id (ver más abajo). Escribir el puente ahí destruiría
+   el carrito abandonado del cliente — que además es una de las fuentes del propio puente. Va en
+   utm.attr (jsonb), la misma escotilla que ya usan utm.test y utm.descuentos, y así queda auditable
+   qué se supo y por qué vía. */
+async function resolverSesionPorIdentidad(sb, { tel, cedula, email }) {
+  const k10 = String(tel || '').replace(/\D/g, '').slice(-10);
+  const ced = String(cedula || '').replace(/\D/g, '');
+  const mail = String(email || '').trim().toLowerCase();
+  if (!k10 && ced.length < 4 && !mail) return null;
+  try {
+    // Las dos consultas van EN PARALELO (una sola ola). Solo corren en el camino del panel:
+    // createOrder ni las llama cuando el pedido trae session_id, así que el checkout web no paga.
+    const ors = [];
+    if (k10) ors.push(`tel.eq.${k10}`, `tel.eq.57${k10}`, `tel.like.*${k10}`);
+    if (ced.length >= 4) ors.push(`cedula.eq.${ced}`);
+    const orsSub = [];
+    if (k10) orsSub.push(`whatsapp.eq.${k10}`, `whatsapp.eq.57${k10}`, `whatsapp.like.*${k10}`);
+    if (mail) orsSub.push(`email.eq.${mail}`);
+    const [ped, sus] = await Promise.all([
+      ors.length ? sb.from('orders').select('session_id,created_at,utm,tel,cedula')
+        .not('session_id', 'is', null).or(ors.join(','))
+        .order('created_at', { ascending: false }).limit(20) : Promise.resolve({ data: [] }),
+      orsSub.length ? sb.from('subscribers').select('session_id,created_at,utm,whatsapp,email')
+        .not('session_id', 'is', null).or(orsSub.join(','))
+        .order('created_at', { ascending: false }).limit(20) : Promise.resolve({ data: [] })
+    ]);
+    const cand = [];
+    (ped.data || []).forEach(o => {
+      const mismoTel = k10 && String(o.tel || '').replace(/\D/g, '').slice(-10) === k10;
+      cand.push({
+        session: o.session_id, t: Date.parse(o.created_at) || 0, utm: o.utm || null,
+        via: mismoTel ? 'orden_web_tel' : 'orden_web_cedula'
+      });
+    });
+    (sus.data || []).forEach(s => {
+      const porTel = k10 && String(s.whatsapp || '').replace(/\D/g, '').slice(-10) === k10;
+      cand.push({
+        session: s.session_id, t: Date.parse(s.created_at) || 0, utm: s.utm || null,
+        via: porTel ? 'subscriber_whatsapp' : 'subscriber_email'
+      });
+    });
+    if (!cand.length) return null;
+    // Gana el MÁS RECIENTE: si el cliente volvió a entrar por otro anuncio, esa es su ruta viva.
+    cand.sort((a, b) => b.t - a.t);
+    const g = cand[0];
+    if (!g.session) return null;
+    const u = g.utm && typeof g.utm === 'object' && !Array.isArray(g.utm) ? g.utm : {};
+    return {
+      session: String(g.session).slice(0, 64),
+      via: g.via,
+      edad_dias: g.t ? Math.round((Date.now() - g.t) / 86400000) : null,
+      // El utm de la fuente viaja como respaldo: si los events de esa sesión ya se podaron, la
+      // atribución todavía puede caer a este utm en vez de irse a "Directo".
+      utm: u.utm_first || u.utm_campaign || u.campaign_id ? {
+        utm_source: u.utm_source || null, utm_campaign: u.utm_campaign || null,
+        campaign_id: u.campaign_id || null
+      } : null,
+      utm_first: u.utm_first || null
+    };
+  } catch (e) {
+    // El puente es una mejora, nunca un bloqueo: si falla, el pedido se crea igual que hoy.
+    return null;
+  }
+}
+
 // ¿El descuento cubre este ítem? aplica = {ids:['cat_29','liq_5'], marcas:['nike']}.
 // Sin filtro (null o listas vacías) cubre TODOS los productos. Con filtro, basta que el ítem
 // esté en ids O que su marca esté en marcas (unión de selectores, como las colecciones de Shopify).
@@ -216,7 +292,7 @@ function motivoNoUtilizable(d, now) {
    gratis corre en pista aparte: combinable acompaña a lo que sea; no-combinable solo si es lo único.
    Salida: { monto, envioGratis, aplicados:[{id,codigo,nombre,tipo,monto}], motivo, def, autos }.
    CUALQUIER error (tabla ausente, BD caída) → cero descuentos, motivo 'error' (fail-closed). */
-async function resolverDescuentos(sb, { codigo, items, subBruto, pares, cliente, modo }) {
+async function resolverDescuentos(sb, { codigo, items, subBruto, pares, cliente, modo, costos, pisoGlobal }) {
   const out = { monto: 0, envioGratis: false, aplicados: [], motivo: null, def: null, autos: [] };
   try {
     // El código entra a un filtro de PostgREST: solo A-Z 0-9 _ - (mismo charset que exige el
@@ -301,6 +377,25 @@ async function resolverDescuentos(sb, { codigo, items, subBruto, pares, cliente,
     if (envioOk) { out.envioGratis = true; plan = plan.concat([envioOk]); }
     // El código tecleado era válido pero quedó fuera del plan (no combina con lo aplicado) → decirlo.
     if (codeIntacto && filaCodigo && !out.motivo && !plan.some(c => c.esElCodigo)) out.motivo = 'no_combinable';
+
+    /* ── PISO DE MARGEN ── Que un descuento NUNCA venda por debajo del costo.
+       Shopify tiene "costo por artículo" pero NO protege el descuento contra él: ahí lo superamos.
+       La config sale del descuento aplicado (columna `piso`) o del default global de settings.
+       ignora_piso = liquidar bajo costo A PROPÓSITO (en liq_products eso es el negocio).
+       ⚠️ modo 'avisar' CALCULA y REGISTRA el recorte pero NO cambia el precio: es el modo de
+       estreno, para que ningún deploy le suba el precio a una promo que ya está corriendo. */
+    if (out.monto > 0 && costos && !plan.some(c => c.d.ignora_piso)) {
+      const conPiso = plan.find(c => c.d.piso && typeof c.d.piso === 'object');
+      const cfgPiso = conPiso ? conPiso.d.piso : pisoGlobal;
+      const p = pisoMargen(cfgPiso, items, subBruto, costos, out.envioGratis ? 0 : 0);
+      if (p && out.monto > p.techo) {
+        out.piso = {
+          modo: cfgPiso.modo, recorte: out.monto - p.techo, techo: p.techo,
+          base_costo: p.base, cobertura: p.cobertura, bloqueado: !!p.bloqueado
+        };
+        if (cfgPiso.modo === 'aplicar') out.monto = p.techo;   // 'avisar' solo deja constancia
+      }
+    }
 
     out.aplicados = plan.map(c => ({
       id: c.d.id, codigo: c.d.codigo || null, nombre: c.d.nombre || null,
@@ -405,6 +500,45 @@ async function priceItems(sb, inputItems) {
   });
 }
 
+/* ── COSTOS PARA EL PISO DE MARGEN ──
+   ⚠️⚠️ Devuelve un Map APARTE y NUNCA toca los items. No es paranoia: priceItems alimenta
+   row.items → se inserta en orders → .select('*') → se devuelve al navegador en la respuesta de
+   createOrder. Un campo `costo` dentro del ítem sería publicarle el margen al cliente. Es
+   exactamente el motivo por el que product_costs es una tabla aparte con RLS (ver setup.sql). */
+async function costosDe(sb, items) {
+  const m = new Map();
+  try {
+    const ids = [...new Set(items.map(i => i.id))];
+    if (!ids.length) return m;
+    const { data } = await sb.from('product_costs').select('ptype,pid,costo').in('pid', ids);
+    (data || []).forEach(r => m.set(`${r.ptype}:${r.pid}`, Number(r.costo) || 0));
+  } catch (e) { /* sin costos el piso simplemente no protege: nunca bloquea una venta */ }
+  return m;
+}
+
+/* Piso de margen: un descuento NUNCA debe vender por debajo del costo.
+   Devuelve { techo, base, cobertura, recorte } — `techo` es el descuento MÁXIMO admisible.
+   sin_costo: 'ignorar' (default) el ítem no aporta al costo base → el piso protege lo que se
+   conoce y mejora solo a medida que se registran costos; 'estimar' usa pct_fallback × precio;
+   'bloquear' exige costo en todos (NO es default: con cobertura parcial mataría casi todas las
+   promos en silencio). */
+function pisoMargen(cfg, items, subBruto, costos, fleteGratis) {
+  if (!cfg || cfg.modo === 'off' || !cfg.modo) return null;
+  const pct = Math.max(0, Number(cfg.pct) || 0);
+  const sinCosto = ['ignorar', 'estimar', 'bloquear'].includes(cfg.sin_costo) ? cfg.sin_costo : 'ignorar';
+  const fb = Math.min(Math.max(Number(cfg.pct_fallback) || 55, 0), 100);
+  let base = 0, conCosto = 0;
+  for (const it of items) {
+    const c = costos.get(`${it.type === 'liq' ? 'liq' : 'cat'}:${it.id}`);
+    if (c != null) { base += c * it.qty; conCosto++; }
+    else if (sinCosto === 'estimar') base += Math.round(it.unit_price * fb / 100) * it.qty;
+    else if (sinCosto === 'bloquear') return { techo: 0, base: null, cobertura: 0, bloqueado: true };
+  }
+  if (cfg.incluir_flete && fleteGratis) base += Number(fleteGratis) || 0;
+  const techo = Math.max(0, subBruto - Math.round(base * (1 + pct / 100)));
+  return { techo, base, cobertura: items.length ? +(conCosto / items.length).toFixed(2) : 0 };
+}
+
 async function calculateOrder(input) {
   const sb = serviceClient();
   const comboId = cleanText(input.combo, 30);
@@ -412,13 +546,17 @@ async function calculateOrder(input) {
   // Settings que afectan el cobro (combos + zonas de envío + envío gratis) en UNA sola consulta
   // y EN PARALELO con los precios de los productos: no suma latencia, y los pagos que no la
   // necesitan (online sin combo → envío 0) siguen sin query extra a settings.
-  const necesitaCfg = !!comboId || pago === 'contra_entrega';
-  const [items, cfgRows] = await Promise.all([
+  // descuento_piso hace falta SIEMPRE (el piso protege cualquier descuento, no solo los de contra
+  // entrega), así que la consulta a settings pasa a ser incondicional. No crece la ola: va en el
+  // mismo Promise.all, en paralelo con priceItems, que es la más lenta.
+  const [items, cfgRows, costos] = await Promise.all([
     priceItems(sb, input.items),
-    necesitaCfg
-      ? Promise.resolve(sb.from('settings').select('key,value').in('key', ['combos', 'envio_zonas', 'envio_gratis_desde']))
-          .then(r => (r && r.data) || [], () => [])
-      : Promise.resolve([])
+    Promise.resolve(sb.from('settings').select('key,value')
+      .in('key', ['combos', 'envio_zonas', 'envio_gratis_desde', 'descuento_piso']))
+      .then(r => (r && r.data) || [], () => []),
+    // Los costos solo se piden si el motor va a correr (un combo lo cortocircuita). Tabla de ~200
+    // filas con PK (ptype,pid): en paralelo, coste real ≈ 0 ms.
+    comboId ? Promise.resolve(new Map()) : costosDe(sb, normalizeItems(input.items))
   ]);
   const cfg = Object.fromEntries(cfgRows.map(r => [r.key, r.value]));
   const subBruto = items.reduce((s, i) => s + i.precio, 0);
@@ -492,7 +630,10 @@ async function calculateOrder(input) {
       codigo: cupon && !esCuponLegacy(cupon) ? cupon : null,   // un legacy inválido no entra al motor
       items, subBruto, pares,
       cliente: clienteKey(d.tel || d.celular),
-      modo: 'orden'
+      modo: 'orden',
+      costos,
+      // Default global del piso. JSON roto o ausente → sin piso (el motor sigue como hoy).
+      pisoGlobal: (() => { try { return JSON.parse(cfg.descuento_piso || 'null'); } catch (e) { return null; } })()
     });
     desc = Math.min(motor.monto, subBruto);   // el motor ya capea, pero el tope se reafirma aquí
     const conCodigo = motor.aplicados.find(a => a.codigo);
@@ -508,7 +649,8 @@ async function calculateOrder(input) {
   return {
     items, subBruto, desc, subtotal, envio, total: subtotal + envio, pares, pago,
     cupon: cuponEfectivo, combo: combo ? combo.id : null,
-    descuentos: motor ? motor.aplicados : []   // [{id,codigo,nombre,tipo,monto}] → utm.descuentos (consumo al confirmar)
+    descuentos: motor ? motor.aplicados : [],  // [{id,codigo,nombre,tipo,monto}] → utm.descuentos (consumo al confirmar)
+    piso: motor ? (motor.piso || null) : null  // recorte del piso de margen → utm.descuentos_piso
   };
 }
 
@@ -552,6 +694,24 @@ async function createOrder(input, defaultStatus = 'pending') {
   // que consumirDescuentos lee al confirmar la venta para subir usos y sellar el 1-por-cliente.
   if (Array.isArray(calc.descuentos) && calc.descuentos.length) {
     row.utm = Object.assign({}, row.utm || {}, { descuentos: calc.descuentos });
+  }
+  // Piso de margen: queda constancia de cuánto se recortó (o se habría recortado, en modo
+  // 'avisar'). Es lo que permite que el panel diga "el piso te salvó $X este mes" — una frase
+  // que en Shopify ni siquiera es formulable, porque su descuento no mira el costo.
+  if (calc.piso) row.utm = Object.assign({}, row.utm || {}, { descuentos_piso: calc.piso });
+  /* Puente de identidad: SOLO para pedidos sin session_id, o sea los que nacen en el panel
+     (crear_link_addi → Paylink/WhatsApp). El checkout web siempre trae session_id y por tanto
+     no ejecuta esto ni paga sus 2 queries. Sin puente no se escribe nada y el pedido cae en
+     "Directo" igual que hasta hoy: cero regresión.
+     ⚠️ El resultado va a utm.attr y NUNCA a row.session_id — el delete de abajo borra los
+     carritos abandonados de esa sesión, así que escribir ahí destruiría el carrito abandonado
+     del cliente (y de paso una de las fuentes del propio puente). */
+  if (!row.session_id) {
+    const attr = await resolverSesionPorIdentidad(sb, {
+      tel: row.tel, cedula: row.cedula,
+      email: (row.utm && typeof row.utm.email === 'string') ? row.utm.email : null
+    });
+    if (attr) row.utm = Object.assign({}, row.utm || {}, { attr });
   }
   if (row.status !== 'abandoned' && row.session_id) {
     await sb.from('orders').delete().eq('session_id', row.session_id).eq('status', 'abandoned');
@@ -799,4 +959,6 @@ module.exports = { anonClient, serviceClient, cleanText, calculateOrder, createO
 
 // Motor de descuentos expuesto para pruebas locales (Vercel no lo usa; mismo patrón que
 // dashboard._clientes y admin._audiencia): permite testear la lógica con un sb falso, sin BD.
-module.exports._descuentos = { resolverDescuentos, montoDescuento, descuentoAplicaItem, motivoNoUtilizable, esCuponLegacy, clienteKey, cuponDesc };
+module.exports._descuentos = { resolverDescuentos, montoDescuento, descuentoAplicaItem, motivoNoUtilizable, esCuponLegacy, clienteKey, cuponDesc, pisoMargen, costosDe };
+// Puente de identidad, expuesto para poder probarlo con un Supabase falso (sin red).
+module.exports._identidad = { resolverSesionPorIdentidad };

@@ -1767,11 +1767,15 @@ async function renderAnalytics(){
         <td>${p.conv_view_cart!=null?p.conv_view_cart+'%':'—'}</td><td>${p.conv_cart_venta!=null?p.conv_cart_venta+'%':'—'}</td>
       </tr>`).join('')}
     </table></div>`):'';
+  // ROAS de equilibrio derivado del margen real (null si la cobertura de costos < 30%). Se declara
+  // ANTES de campBloque porque las dos tablas lo usan para colorear.
+  const bk=(j&&j.breakeven!=null)?j.breakeven:null;
   const campBloque=(j.por_campana&&j.por_campana.length)?_anaBloque('📣 Campañas (Meta × ventas)',
     `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px;min-width:560px">
-      <tr style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em;text-align:right"><th style="text-align:left;padding:4px 6px 4px 0">Campaña</th><th>Gasto</th><th>Ventas</th><th>ROAS</th><th>CPA</th><th>CTR</th><th>CPC</th><th>CPM</th></tr>
+      <tr style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em;text-align:right"><th style="text-align:left;padding:4px 6px 4px 0">Campaña</th><th title="Qué dicen TODOS los modelos de atribución sobre esta campaña. Escalar = rentable bajo todos; apagar = rentable bajo ninguno">Veredicto</th><th>Gasto</th><th>Ventas</th><th>ROAS</th><th>CPA</th><th>CTR</th><th>CPC</th><th>CPM</th></tr>
       ${j.por_campana.slice(0,8).map(c=>`<tr style="border-top:1px solid var(--line);text-align:right">
         <td style="text-align:left;padding:6px 6px 6px 0;font-weight:600;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(c.campana)}</td>
+        <td style="text-align:center">${c.veredicto?`<span title="ROAS entre ${c.roas_min}x y ${c.roas_max}x según el modelo de atribución${bk!=null?` · equilibrio ${bk}x`:''}" style="display:inline-block;padding:2px 7px;border-radius:6px;font-size:9px;font-weight:700;white-space:nowrap;background:${c.veredicto==='escalar'?'#1BA94C':c.veredicto==='apagar'?'#E8200A':'#F2A900'};color:#fff">${c.veredicto==='escalar'?'▲ ESCALAR':c.veredicto==='apagar'?'▼ APAGAR':'● OBSERVAR'}</span>`:'<span style="color:var(--ink3)">—</span>'}</td>
         <td>${c.inversion?_abrev(c.inversion):'—'}</td>
         <td style="font-weight:700;color:var(--green)">${c.facturacion?_abrev(c.facturacion):'—'}<span style="color:var(--ink3);font-weight:400"> (${c.compras})</span></td>
         <td style="font-weight:700;color:${c.roas==null?'var(--ink3)':c.roas>=2?'var(--green)':c.roas>=1?'#F2A900':'var(--red)'}">${c.roas!=null?c.roas:'—'}</td>
@@ -1787,22 +1791,32 @@ async function renderAnalytics(){
     ['ultimo_clic','Último clic','100% del crédito al último canal en el que se hizo clic'],
     ['primer_clic','Primer clic','100% del crédito al primer canal en el que se hizo clic'],
     ['cualquier_clic','Cualquier clic','100% del crédito a CADA canal tocado — los % suman más de 100 a propósito'],
-    ['lineal','Lineal','El crédito se reparte equitativamente entre todos los clics de la ruta']
+    ['lineal','Lineal','El crédito se reparte equitativamente entre todos los clics de la ruta'],
+    // Los dos siguientes NO existen en Shopify.
+    ['decaimiento','Decaimiento 7d','Reparte según lo cerca que estuvo cada toque de la compra (semivida 7 días): mide quién CERRÓ la venta. Shopify no tiene este modelo'],
+    ['posicion','Posición 40/20/40','40% al primer toque, 40% al último y 20% repartido en el medio: rescata al anuncio que ABRIÓ la venta, no solo al que la cerró. Shopify no tiene este modelo']
   ];
   const filasAtr=(A&&A.modelos&&A.modelos[anaModelo])||[];
   const defAtr=(MODELOS_ATR.find(m=>m[0]===anaModelo)||[])[2]||'';
   const atrBloque=A?_anaBloque('🧭 Atribución por canal · ventana 30 días',
     `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">${MODELOS_ATR.map(([v,t,def])=>`<button onclick="setAnaModelo('${v}')" title="${escHtml(def)}" style="padding:5px 11px;border:1px solid ${anaModelo===v?'var(--ink)':'var(--line)'};border-radius:14px;background:${anaModelo===v?'var(--ink)':'var(--white)'};color:${anaModelo===v?'#fff':'var(--ink2)'};font-family:var(--font);font-size:10px;font-weight:700;cursor:pointer">${t}</button>`).join('')}</div>`
     +(filasAtr.length?`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px;min-width:400px">
-      <tr style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em;text-align:right"><th style="text-align:left;padding:4px 6px 4px 0">Canal</th><th>Ventas</th><th title="Pedidos atribuidos (en Lineal se reparten en fracciones)">Pedidos</th><th title="% de la facturación del rango atribuida al canal">%</th></tr>
+      <tr style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em;text-align:right"><th style="text-align:left;padding:4px 6px 4px 0">Canal</th><th>Ventas</th><th title="Pedidos atribuidos (en Lineal, Decaimiento y Posición se reparten en fracciones)">Pedidos</th><th title="% de la facturación del rango atribuida al canal">%</th><th title="Gasto de Meta de esa campaña en el rango">Inv.</th><th title="Facturación atribuida ÷ inversión, SEGÚN ESTE MODELO. Shopify no puede dar esto: no conoce tu gasto publicitario">ROAS</th></tr>
       ${filasAtr.slice(0,12).map(c=>`<tr style="border-top:1px solid var(--line);text-align:right">
         <td style="text-align:left;padding:6px 6px 6px 0;font-weight:600;max-width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" ${c.campaign_id?`title="campaign_id ${escHtml(c.campaign_id)}"`:''}>${escHtml(c.canal)}</td>
         <td style="font-weight:700;color:var(--green)">${_abrev(c.facturacion)}</td>
         <td>${c.compras}</td>
         <td style="font-weight:700">${c.pct!=null?c.pct+'%':'—'}</td>
+        <td style="color:var(--ink3)">${c.inversion?_abrev(c.inversion):'—'}</td>
+        <td style="font-weight:700;color:${c.roas==null?'var(--ink3)':(bk!=null&&c.roas>=bk?'var(--green)':'var(--red)')}">${c.roas!=null?c.roas+'x':'—'}</td>
       </tr>`).join('')}
     </table></div>`:`<div style="font-size:11.5px;color:var(--ink3)">Sin ventas en este rango — la atribución aparece cuando hay pedidos marcados como venta.</div>`)
-    +`<div style="font-size:9.5px;color:var(--ink3);margin-top:7px;line-height:1.4">${escHtml(defAtr)}. Ruta reconstruida por sesión: ${A.con_ruta||0} venta${A.con_ruta===1?'':'s'} con recorrido completo · ${A.sin_ruta||0} solo con el UTM del pedido.${A.parcial?' <b>⚠ Rutas posiblemente incompletas (límite de datos): usa un rango más corto.</b>':''}</div>`)
+    +`<div style="font-size:9.5px;color:var(--ink3);margin-top:7px;line-height:1.5">${escHtml(defAtr)}.
+      <br>Ruta reconstruida por sesión: ${A.con_ruta||0} venta${A.con_ruta===1?'':'s'} con recorrido completo · ${A.sin_ruta||0} solo con el UTM del pedido.
+      ${A.calidad&&A.calidad.rutas_medidas?` De esas, <b>${A.calidad.rutas_medidas} con clic medido</b> (distingue clic de revisita) y ${A.calidad.rutas_legacy} con el método viejo.`:''}
+      ${A.puente&&(A.puente.resueltos||A.puente.sin_puente)?`<br>🔗 Pedidos de Paylink/panel: <b>${A.puente.resueltos} con identidad recuperada</b> (heredan la sesión web del cliente)${A.puente.sin_puente?` · ${A.puente.sin_puente} sin puente → cuentan como Directo`:''}.`:''}
+      ${bk!=null?`<br>⚖️ Tu ROAS de equilibrio es <b>${bk}x</b> (calculado con tu margen real): por debajo de eso la campaña pierde plata.`:'<br>⚖️ Registra costos de producto para saber tu ROAS de equilibrio.'}
+      ${A.parcial?' <b>⚠ Rutas posiblemente incompletas (límite de datos): usa un rango más corto.</b>':''}</div>`)
     :'';
   // ── RFM (segmentos Shopify) + export de audiencia · SIEMPRE histórico completo ──
   // El server los calcula fuera del rango a propósito: la "vida" de un cliente no cabe en 7 días.

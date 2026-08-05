@@ -19,7 +19,8 @@ module.exports = async (req, res) => {
   }
 
   const { session_id, type, product_id, price, gender, utm_source, utm_medium, utm_campaign,
-          utm_content, utm_term, campaign_id, adset_id, ad_id, landing, device, referrer } = req.body || {};
+          utm_content, utm_term, campaign_id, adset_id, ad_id, landing, device, referrer,
+          utm_fresh, src_app } = req.body || {};
   if (!session_id || !ALLOWED_TYPES.includes(type)) return res.status(400).json({ error: 'invalid' });
 
   const t = (v, n) => (v ? String(v).slice(0, n) : null);
@@ -44,6 +45,14 @@ module.exports = async (req, res) => {
     landing:      t(landing, 300),
     device:       ['movil', 'escritorio'].includes(device) ? device : null,
     referrer:     t(referrer, 300),
+    // ¿Esta carga de página traía UTM/fbclid/gclid EN LA URL? (migración 008). Con esto "clic" y
+    // "directo" son hechos observables: sin él, trackEvent arrastra el ss_utm de localStorage y
+    // una revisita directa es indistinguible del clic de anuncio que la precedió.
+    // Un valor que no sea booleano se guarda como NULL = "no se sabe" (el dashboard lo trata con
+    // el comportamiento viejo). NUNCA convertir a false: false significa "fue directo".
+    utm_fresh:    typeof utm_fresh === 'boolean' ? utm_fresh : null,
+    src_app:      ['instagram', 'facebook', 'messenger', 'whatsapp', 'tiktok', 'google', 'web', 'directo']
+                    .includes(src_app) ? src_app : null,
   });
   // No fingir éxito: si el insert falla, registrarlo y devolver 500 (el front dispara estos eventos
   // fire-and-forget, así que un 500 no rompe la UX, pero deja de mentir y queda en los logs).
