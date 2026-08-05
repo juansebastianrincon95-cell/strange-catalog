@@ -1,6 +1,7 @@
 const { createClient } = require('@supabase/supabase-js');
 const { sendEvent } = require('./_capi');
-const { contentIdsDe, cartSig, decrementStock, marcarCuponBienvenidaUsado, notifyVentaTelegram, cleanText, createOrder, consumirDescuentos } = require('./_orders');
+const { contentIdsDe, cartSig, decrementStock, marcarCuponBienvenidaUsado, notifyVentaTelegram, cleanText, createOrder, consumirDescuentos, confirmPaidOrder } = require('./_orders');
+const { getScInfo } = require('./_sistecredito');
 const { createAddiApplication, getAddiToken } = require('./_addi');
 const { generarGuia } = require('./_coordinadora');
 const { requireAdmin, renewIfActive } = require('./_admin_auth');
@@ -453,6 +454,86 @@ module.exports = async (req, res) => {
 
   // Borrar EN BLOQUE todos los pedidos marcados de prueba (utm.test = true). Se filtra en JS
   // (no con el operador jsonb en la query) para evitar sorpresas de sintaxis y ser a prueba de balas.
+  /* ── REVISAR PENDIENTES EN LA PASARELA ──────────────────────────────────────
+     El cron solo mira 30 días atrás; esto NO tiene límite de fecha y lo dispara el dueño cuando
+     quiere. Le pregunta a Sistecrédito/Bold/Wompi el estado REAL de cada pedido colgado.
+     · data.seco = true  → SOLO consulta y reporta. No escribe NADA. Es el modo con el que se
+       responde "¿cuánto de esta plata colgada es venta de verdad?" sin tocar un peso.
+     · Los pagados de MÁS de 7 días se confirman en modo SILENCIOSO: entran a la caja pero no se
+       le manda a Meta un Purchase de hace semanas (le acreditaría la venta a una campaña actual
+       que no la generó) ni un Telegram fuera de tiempo. Los recientes van por el camino normal.
+     Addi NO tiene API de estado (ver api/_addi.js): solo se listan para revisarlos a mano. */
+  if (action === 'revisar_pendientes') {
+    const seco = !!(data && data.seco);
+    const { data: pend, error: ePend } = await sb.from('orders').select('*')
+      .eq('status', 'pending').in('pago', ['wompi', 'bold', 'sistecredito', 'addi'])
+      .order('created_at', { ascending: false }).limit(200);
+    if (ePend) return res.status(500).json({ error: ePend.message });
+    const reales = (pend || []).filter(o => !(o.utm && o.utm.test));
+    const filas = [];
+    let pagados = 0, montoPagado = 0;
+    for (const o of reales) {
+      const dias = Math.round((Date.now() - new Date(o.created_at).getTime()) / 864e5);
+      const monto = Number(o.subtotal != null ? o.subtotal : (o.total || 0));
+      const base = { id: o.id, reference: o.reference, pago: o.pago, dias, monto, nombre: o.nombre, tel: o.tel };
+      let estado = 'sin_id', detalle = null;
+      try {
+        if (o.pago === 'sistecredito') {
+          const txn = o.utm && o.utm.sc_txn;
+          if (!txn) estado = 'sin_id';
+          else if (!process.env.SISTECREDITO_SUBSCRIPTION_KEY) { estado = 'error'; detalle = 'falta SISTECREDITO_SUBSCRIPTION_KEY'; }
+          else estado = (await getScInfo(txn)).paid ? 'pagado' : 'no_pagado';
+        } else if (o.pago === 'bold') {
+          const link = o.utm && o.utm.bold_link;
+          const key = (process.env.BOLD_API_KEY || '').trim();
+          if (!link) estado = 'sin_id';
+          else if (!key) { estado = 'error'; detalle = 'falta BOLD_API_KEY'; }
+          else {
+            const r = await fetch('https://integrations.api.bold.co/online/link/v1/' + encodeURIComponent(link),
+              { headers: { Authorization: 'x-api-key ' + key } });
+            const j = r.ok ? await r.json().catch(() => null) : null;
+            const st = j && (j.payload || j).status;
+            estado = st === 'PAID' ? 'pagado' : 'no_pagado'; detalle = st || null;
+          }
+        } else if (o.pago === 'addi') {
+          // Addi no expone consulta de estado: queda para revisar a mano en su portal.
+          estado = 'revisar_a_mano'; detalle = 'Addi no tiene API de consulta';
+        } else {
+          const key = (process.env.WOMPI_PRIVATE_KEY || '').trim();
+          if (!key) { estado = 'error'; detalle = 'falta WOMPI_PRIVATE_KEY'; }
+          else {
+            const r = await fetch('https://production.wompi.co/v1/transactions?reference=' + encodeURIComponent(o.reference),
+              { headers: { Authorization: 'Bearer ' + key } });
+            const j = r.ok ? await r.json().catch(() => null) : null;
+            estado = (j && Array.isArray(j.data) && j.data.some(t => t.status === 'APPROVED')) ? 'pagado' : 'no_pagado';
+          }
+        }
+      } catch (e) { estado = 'error'; detalle = String(e.message || e).slice(0, 120); }
+
+      if (estado === 'pagado') { pagados++; montoPagado += monto; }
+      if (!seco) {
+        if (estado === 'pagado') {
+          // >7 días = rescate silencioso; reciente = confirmación normal (ahí la conversión sí es actual).
+          const c = await confirmPaidOrder({
+            reference: o.reference, amount: monto, currency: 'COP', req,
+            origen: 'revision_manual', silencioso: dias > 7
+          });
+          base.aplicado = c.ok ? (c.silencioso ? 'venta_silenciosa' : 'venta') : ('error: ' + c.error);
+        } else if (estado === 'no_pagado' || estado === 'error') {
+          await sb.from('orders').update({
+            utm: Object.assign({}, o.utm || {}, { ultima_revision: { at: new Date().toISOString(), resultado: detalle || estado } })
+          }).eq('id', o.id).then(() => {}, () => {});
+        } else if (estado === 'sin_id' || estado === 'revisar_a_mano') {
+          if (!(o.utm && o.utm.needs_manual_review)) {
+            await sb.from('orders').update({ utm: Object.assign({}, o.utm || {}, { needs_manual_review: true }) }).eq('id', o.id).then(() => {}, () => {});
+          }
+        }
+      }
+      filas.push(Object.assign(base, { estado, detalle }));
+    }
+    return res.json({ ok: true, seco, revisados: filas.length, pagados, monto_pagado: montoPagado, filas });
+  }
+
   if (action === 'delete_test_orders') {
     const { data: rows, error: selErr } = await sb.from('orders').select('id,utm');
     if (selErr) return res.status(500).json({ error: selErr.message });

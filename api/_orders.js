@@ -876,7 +876,12 @@ async function decrementStock(sb, items) {
 /* `origen` deja por escrito CÓMO se confirmó la venta (webhook_addi, wompi_verify, cron…).
    Antes solo se escribía status='venta' y era imposible saber a posteriori si una venta la
    confirmó la pasarela o la marcó alguien a mano — el punto ciego que reportó el dueño. */
-async function confirmPaidOrder({ reference, amount, amountInCents, currency = 'COP', eventSourceUrl, req, origen = 'desconocido', extra = null }) {
+/* `silencioso`: la venta entra a la caja (status, stock, cupón, usos de descuento) pero NO se
+   dispara el Purchase al CAPI de Meta ni el aviso de Telegram. Es para RESCATAR pedidos viejos que
+   la pasarela confirma tarde: mandarle hoy a Meta una conversión de hace un mes le acreditaría esa
+   venta a una campaña activa que no la generó, y le ensucia el aprendizaje. El aviso de Telegram
+   tampoco tiene sentido semanas después. Queda sellado en utm.rescatado_at para poder auditarlo. */
+async function confirmPaidOrder({ reference, amount, amountInCents, currency = 'COP', eventSourceUrl, req, origen = 'desconocido', extra = null, silencioso = false }) {
   const sb = serviceClient();
   const order = await getOrderByReference(reference);
   if (!order) return { ok: false, error: 'order_not_found' };
@@ -930,6 +935,16 @@ async function confirmPaidOrder({ reference, amount, amountInCents, currency = '
     // Usos del motor de descuentos: suben SOLO aquí (venta confirmada), atómico e idempotente
     // por pedido — un 'pending' que nunca paga jamás gasta usos ni quema el 1-por-cliente.
     await consumirDescuentos(sb, order).catch(() => {});
+    /* RESCATE SILENCIOSO: se corta AQUÍ, después del estado interno (stock, cupón, usos) y antes de
+       los avisos externos. La venta cuenta en facturación, ROAS y margen; Meta y Telegram no se
+       enteran. El sello queda en utm para saber después que esta venta se rescató y no llegó por
+       su camino normal. */
+    if (silencioso) {
+      try {
+        await sb.from('orders').update({ utm: Object.assign({}, order.utm || {}, { rescatado_at: new Date().toISOString(), rescatado_por: origen }) }).eq('id', order.id);
+      } catch (e) { /* el sello nunca bloquea la venta */ }
+      return { ok: true, silencioso: true, order: { ...order, status: 'venta' } };
+    }
     const clientIp = req ? String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || undefined : undefined;
     // await (Codex #8): en serverless el fire-and-forget puede morir al responder.
     await sendEvent({

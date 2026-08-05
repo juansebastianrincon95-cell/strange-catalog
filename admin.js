@@ -2213,7 +2213,19 @@ function renderLeadsTab(){
     if(o.status==='venta'){pre=gw?'💳 Pagado · ':'✓ Confirmado · ';bg='background:#E7F6EC;color:#1BA94C';}
     else if(gw){pre='⚠️ Sin completar · ';bg='background:#FDEAE8;color:#E8200A';}
     else if(manual){pre='⏳ Por confirmar · ';bg='background:#FFF4E0;color:#B3791E';}
-    return `<br><span style="display:inline-block;margin-top:4px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;${bg}">${pre}${escHtml(pagoLabels[o.pago]||o.pago)}</span>`;
+    // Un pendiente mudo se vuelve uno que se explica: needs_manual_review lo escribe el cron
+    // cuando la pasarela no se puede consultar (Addi no tiene API, o falta el id de transacción),
+    // y ultima_revision guarda qué contestó la pasarela la última vez. Antes NADA de esto se
+    // pintaba: los 2 pedidos de Addi marcados llevaban un mes invisibles en el panel.
+    const u=o.utm||{};
+    let extra='';
+    if(u.needs_manual_review)extra+=`<br><span style="display:inline-block;margin-top:3px;font-size:9.5px;font-weight:700;padding:3px 8px;border-radius:6px;background:#FFF4E0;color:#B3791E" title="La pasarela no se puede consultar automáticamente: hay que mirarlo a mano en su portal">🔎 Revisar a mano</span>`;
+    if(u.ultima_revision&&u.ultima_revision.at){
+      const h=Math.round((Date.now()-new Date(u.ultima_revision.at).getTime())/36e5);
+      extra+=`<br><span style="font-size:9.5px;color:var(--ink3)">revisado hace ${h<1?'menos de 1h':h<24?h+'h':Math.round(h/24)+'d'} · la pasarela dice <b>${escHtml(String(u.ultima_revision.resultado||'').slice(0,40))}</b></span>`;
+    }
+    if(u.rescatado_at)extra+=`<br><span style="font-size:9.5px;color:var(--green)">✓ rescatada de la pasarela (sin avisar a Meta)</span>`;
+    return `<br><span style="display:inline-block;margin-top:4px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;${bg}">${pre}${escHtml(pagoLabels[o.pago]||o.pago)}</span>${extra}`;
   };
   const cardLead=o=>`
       <div style="background:var(--bg);border-radius:12px;padding:12px 14px;margin-bottom:8px">
@@ -2250,6 +2262,7 @@ function renderLeadsTab(){
       ${chip('pending','⏳ Por hacer',nPend,'#F2A900')}${chip('venta','✓ Ventas',nVta,'#1BA94C')}${chip('no_venta','✕',nNo,'#E8200A')}${chip('abandoned','🛒',nAban,'#8A6D00')}${chip('all','Todos',reales.length,'#0E0E0C')}${nTest?chip('test','🧪',nTest,'#b91c1c'):''}
     </div>
     ${(leadFilter==='test'&&nTest)?`<div style="padding:0 14px 8px"><button onclick="deleteAllTests()" style="width:100%;padding:10px;border:none;border-radius:10px;background:#b91c1c;color:#fff;font-family:var(--font);font-size:12.5px;font-weight:700;cursor:pointer">🗑 Borrar todas las pruebas (${nTest})</button></div>`:''}
+    ${(leadFilter==='pending'&&nPend)?`<div style="padding:0 14px 8px"><button id="btnRevPend" onclick="revisarPendientes()" style="width:100%;padding:10px;border:1.5px solid var(--line);border-radius:10px;background:var(--white);color:var(--ink);font-family:var(--font);font-size:12.5px;font-weight:700;cursor:pointer" title="Le pregunta a Sistecrédito/Bold/Wompi el estado REAL de cada pedido colgado. Primero solo consulta y te muestra qué encontró; no cambia nada hasta que tú confirmes.">↻ Revisar pendientes en la pasarela (${nPend})</button></div>`:''}
     <div style="padding:0 14px">${_vistaChips(leadVista,'setLeadVista')}</div>
     <div style="overflow-y:auto;flex:1;min-height:0;padding:0 14px 16px">
     ${lista.length?_renderGrupos(lista,leadVista,cardLead,'lead','var(--bg)'):`<div style="padding:24px;text-align:center;color:var(--ink3);font-size:12px">No hay leads en esta categoría.</div>`}
@@ -2288,6 +2301,35 @@ async function deleteOrder(id){
     orders=orders.filter(x=>x.id!==id);
     renderLeadsTab();
   }catch(e){alert('No se pudo borrar: '+e.message);}
+}
+
+/* ── REVISAR PENDIENTES EN LA PASARELA ──
+   Dos pasos a propósito: primero consulta en SECO (no escribe nada) y te enseña qué encontró;
+   solo si tú confirmas, aplica. Marcar una venta a mano sin preguntarle a la pasarela sería
+   inventar facturación — y el ROAS y el margen se construyen encima de eso. */
+async function revisarPendientes(){
+  const b=$('btnRevPend');const txt=b?b.textContent:'';
+  if(b){b.disabled=true;b.textContent='↻ Consultando las pasarelas…';}
+  try{
+    const r=await adminWrite('revisar_pendientes',{data:{seco:true}});
+    const pag=r.pagados||0, rev=r.revisados||0;
+    const porEstado={};(r.filas||[]).forEach(f=>{porEstado[f.estado]=(porEstado[f.estado]||0)+1;});
+    const detalle=Object.entries(porEstado).map(([k,v])=>`  · ${k.replace(/_/g,' ')}: ${v}`).join('\n');
+    if(!pag){
+      alert(`Revisé ${rev} pedidos colgados.\n\n${detalle}\n\nNinguno está pagado en la pasarela: no hay ventas que rescatar.\nLos que no se pueden consultar quedan marcados para revisar a mano.`);
+      await adminWrite('revisar_pendientes',{data:{seco:false}});   // sella el rastro de la revisión
+      await loadOrders();renderLeadsTab();
+      return;
+    }
+    const lista=(r.filas||[]).filter(f=>f.estado==='pagado')
+      .map(f=>`  • #${f.id} · ${f.pago} · ${f.dias}d · ${fmt(f.monto)}${f.dias>7?'  (silenciosa)':''}`).join('\n');
+    if(!confirm(`Revisé ${rev} pedidos colgados.\n\n${detalle}\n\n✅ ${pag} están PAGADOS en la pasarela, por ${fmt(r.monto_pagado)}:\n${lista}\n\nLas de más de 7 días entran como venta SIN avisarle a Meta (no le acreditamos a una campaña actual una venta de hace semanas).\n\n¿Los marco como venta?`))return;
+    if(b)b.textContent='↻ Aplicando…';
+    const ap=await adminWrite('revisar_pendientes',{data:{seco:false}});
+    alert(`Listo: ${ap.pagados} ventas rescatadas por ${fmt(ap.monto_pagado)}.`);
+    await loadOrders();renderLeadsTab();renderAdmin();
+  }catch(e){alert('No se pudo revisar: '+e.message);}
+  finally{if(b){b.disabled=false;b.textContent=txt;}}
 }
 
 async function deleteAllTests(){

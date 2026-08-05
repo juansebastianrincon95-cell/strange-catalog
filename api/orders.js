@@ -448,17 +448,30 @@ async function handleScWebhook(req, res) {
    si el pago está aprobado, confirma la venta (idempotente: confirmPaidOrder valida monto y
    no re-marca). Así una venta pagada nunca queda invisible aunque el webhook falle y el
    cliente no vuelva a la tienda. */
+/* Sella en el pedido que SÍ se le preguntó a la pasarela y qué contestó. Sin esto, un pendiente
+   con "no pagado" es indistinguible de uno que nadie miró nunca — que es justo como se acumularon
+   13 pedidos con $2.5M sin que nadie se enterara. Vive en utm (jsonb): sin migración. */
+async function marcarRevision(sb, o, resultado) {
+  try {
+    await sb.from('orders').update({
+      utm: Object.assign({}, o.utm || {}, { ultima_revision: { at: new Date().toISOString(), resultado } })
+    }).eq('id', o.id);
+  } catch (e) { /* el rastro nunca bloquea la reconciliación */ }
+}
+
 async function reconciliarPendientes(req, res) {
   // Vercel Cron manda "Authorization: Bearer CRON_SECRET" automáticamente si la env existe.
   const cs = (process.env.CRON_SECRET || '').trim();
   if (!cs || String(req.headers.authorization || '') !== 'Bearer ' + cs) return res.status(401).json({ ok: false });   // fail-closed: sin CRON_SECRET, rechazar
   const sb = serviceClient();
-  const desde = new Date(Date.now() - 7 * 864e5).toISOString();   // no mirar más de 7 días atrás
+  // 30 días, no 7: un crédito de Sistecrédito/Addi puede aprobarse semanas después. Con la ventana
+  // de 7 se quedaron 8 pedidos huérfanos (nadie los volvía a mirar NUNCA) y su plata fuera del ROAS.
+  const desde = new Date(Date.now() - 30 * 864e5).toISOString();
   const hasta = new Date(Date.now() - 5 * 60e3).toISOString();    // dejar 5 min al flujo normal
   const { data: pend } = await sb.from('orders').select('*')
     .eq('status', 'pending').in('pago', ['wompi', 'bold', 'sistecredito', 'addi'])
     .gte('created_at', desde).lte('created_at', hasta)
-    .order('created_at', { ascending: false }).limit(20);
+    .order('created_at', { ascending: false }).limit(50);
   const out = [];
   for (const o of (pend || [])) {
     try {
@@ -466,7 +479,8 @@ async function reconciliarPendientes(req, res) {
         const link = o.utm && o.utm.bold_link;
         if (!link) { out.push(o.reference + ':sin_link'); continue; }
         const key = process.env.BOLD_API_KEY;
-        if (!key) break;
+        // continue, NO break: que falte la env de UNA pasarela no puede dejar sin revisar a las otras
+        if (!key) { out.push(o.reference + ':sin_env_bold'); continue; }
         const r = await fetch('https://integrations.api.bold.co/online/link/v1/' + encodeURIComponent(link),
           { headers: { 'Authorization': 'x-api-key ' + key } });
         const j = await r.json().catch(() => ({}));
@@ -481,14 +495,26 @@ async function reconciliarPendientes(req, res) {
         } else out.push(o.reference + ':' + (p.status || 'sin_estado'));
       } else if (o.pago === 'sistecredito') {
         const txn = o.utm && o.utm.sc_txn;
-        if (!txn) { out.push(o.reference + ':sin_txn'); continue; }
-        if (!process.env.SISTECREDITO_SUBSCRIPTION_KEY) break;
-        let paid = false;
-        try { paid = (await getScInfo(txn)).paid; } catch {}
+        // Sin sc_txn no hay a quién preguntarle: antes se saltaba en silencio PARA SIEMPRE. Ahora
+        // se marca para revisión manual, igual que Addi — un pendiente mudo se vuelve uno visible.
+        if (!txn) {
+          if (!(o.utm && o.utm.needs_manual_review)) {
+            await sb.from('orders').update({ utm: Object.assign({}, o.utm || {}, { needs_manual_review: true }) }).eq('id', o.id).then(()=>{}, ()=>{});
+          }
+          out.push(o.reference + ':sin_txn'); continue;
+        }
+        if (!process.env.SISTECREDITO_SUBSCRIPTION_KEY) { out.push(o.reference + ':sin_env_sc'); continue; }
+        let paid = false, errSc = null;
+        try { paid = (await getScInfo(txn)).paid; } catch (e) { errSc = String(e.message || e).slice(0, 80); }
         if (paid) {
           const c = await confirmPaidOrder({ reference: o.reference, amount: Number(o.subtotal != null ? o.subtotal : o.total), currency: 'COP', req, origen: 'cron_sistecredito' });
           out.push(o.reference + ':' + (c.ok ? 'VENTA' : c.error));
-        } else out.push(o.reference + ':pendiente');
+        } else {
+          // Rastro: "no pagado" dejaba de ser distinguible de "no lo miré". Ahora queda la fecha y
+          // el resultado, y el panel puede decir "revisado hace 2h · Sistecrédito dice no pagado".
+          await marcarRevision(sb, o, errSc ? 'error: ' + errSc : 'no_pagado');
+          out.push(o.reference + ':' + (errSc ? 'error_sc' : 'pendiente'));
+        }
       } else if (o.pago === 'addi') {
         // Addi no tiene API de consulta de estado → no se puede auto-confirmar aquí. Tras 30 min sin
         // confirmación por webhook, marcar para revisión MANUAL (el panel lo resalta). NO marca venta.
@@ -500,7 +526,7 @@ async function reconciliarPendientes(req, res) {
         } else out.push(o.reference + ':addi_pendiente');
       } else {
         const key = (process.env.WOMPI_PRIVATE_KEY || '').trim();
-        if (!key) break;
+        if (!key) { out.push(o.reference + ':sin_env_wompi'); continue; }
         const r = await fetch('https://production.wompi.co/v1/transactions?reference=' + encodeURIComponent(o.reference),
           { headers: { 'Authorization': 'Bearer ' + key } });
         const j = await r.json().catch(() => ({}));
