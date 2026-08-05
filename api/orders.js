@@ -570,10 +570,16 @@ module.exports = async (req, res) => {
        al azar en masa se corta ahí. Cualquier fallo responde 'error' sin regalar nada. */
     if (kind === 'validar_descuento') {
       try {
+        // session_id y utm hacen falta para los descuentos condicionados a campaña: sin ellos el
+        // carrito evaluaría con menos información que el pedido y pintaría un precio que el
+        // servidor no honra. El front ya los mandaba en el body; antes se ignoraban.
+        const utmB = req.body.utm;
         const out = await validarDescuentoPublico({
           codigo: cleanText(req.body.codigo, 40),
           items: req.body.items,
-          tel: cleanText(req.body.tel, 30)
+          tel: cleanText(req.body.tel, 30),
+          session_id: cleanText(req.body.session_id, 64),
+          utm: (utmB && typeof utmB === 'object' && !Array.isArray(utmB)) ? utmB : null
         });
         return res.status(200).json(out);
       } catch (e) {

@@ -214,15 +214,27 @@ async function resolverSesionPorIdentidad(sb, { tel, cedula, email }) {
 // ¿El descuento cubre este ítem? aplica = {ids:['cat_29','liq_5'], marcas:['nike']}.
 // Sin filtro (null o listas vacías) cubre TODOS los productos. Con filtro, basta que el ítem
 // esté en ids O que su marca esté en marcas (unión de selectores, como las colecciones de Shopify).
+/* SEMÁNTICA (importa): ids/marcas son una UNIÓN — son "colecciones", como en Shopify: basta con
+   estar en una. generos/tipos/excluir_promo son filtros AND ENCIMA de esa selección.
+   Meterlos en la unión convertiría "Nike de hombre" en "Nike O hombre", que es otra cosa.
+   Sin las claves nuevas el comportamiento es IDÉNTICO al de antes (compatibilidad total). */
 function descuentoAplicaItem(aplica, it) {
   if (!aplica || typeof aplica !== 'object' || Array.isArray(aplica)) return true;
   const ids = Array.isArray(aplica.ids) ? aplica.ids : [];
   const marcas = Array.isArray(aplica.marcas) ? aplica.marcas : [];
-  if (!ids.length && !marcas.length) return true;
-  const key = (it.type === 'liq' ? 'liq_' : 'cat_') + it.id;
-  if (ids.includes(key)) return true;
-  if (it.brand && marcas.includes(String(it.brand))) return true;
-  return false;
+  const generos = Array.isArray(aplica.generos) ? aplica.generos : [];
+  const tipos = Array.isArray(aplica.tipos) ? aplica.tipos : [];
+  // 1) Selección (unión). Sin ids ni marcas = todos los productos.
+  if (ids.length || marcas.length) {
+    const key = (it.type === 'liq' ? 'liq_' : 'cat_') + it.id;
+    const enSeleccion = ids.includes(key) || (it.brand && marcas.includes(String(it.brand)));
+    if (!enSeleccion) return false;
+  }
+  // 2) Filtros (AND). Un ítem de liquidación tiene gender null → nunca pasa un filtro de género.
+  if (generos.length && !generos.includes(it.gender)) return false;
+  if (tipos.length && !tipos.includes(it.type === 'liq' ? 'liq' : 'cat')) return false;
+  if (aplica.excluir_promo && it.promo) return false;
+  return true;
 }
 
 /* Monto en pesos que descuenta `d` sobre estos ítems (precios YA puestos por el server en
@@ -235,9 +247,16 @@ function montoDescuento(d, items, subBruto) {
     return d.valor_tipo === 'pct' ? Math.round(subBruto * pct / 100) : Math.min(valor, subBruto);
   }
   if (d.tipo === 'producto') {
-    const base = items.filter(it => descuentoAplicaItem(d.aplica, it)).reduce((s, it) => s + it.precio, 0);
+    const cubiertos = items.filter(it => descuentoAplicaItem(d.aplica, it));
+    const base = cubiertos.reduce((s, it) => s + it.precio, 0);
     if (base <= 0) return 0;   // ningún producto del carrito está cubierto → no aplica
-    return d.valor_tipo === 'pct' ? Math.round(base * pct / 100) : Math.min(valor, base);
+    if (d.valor_tipo === 'pct') return Math.round(base * pct / 100);
+    // Monto fijo: por PEDIDO (una vez, como venía) o por ARTÍCULO elegible (el default de Shopify).
+    // Se capea contra el precio de cada unidad para que $20.000 off nunca deje una línea negativa.
+    if (d.valor_alcance === 'articulo') {
+      return cubiertos.reduce((s, it) => s + Math.min(valor, it.unit_price) * it.qty, 0);
+    }
+    return Math.min(valor, base);
   }
   if (d.tipo === 'bogo') {
     // Compra X y obtén Y: por cada grupo de (X+Y) unidades cubiertas, las Y MÁS BARATAS llevan
@@ -259,6 +278,58 @@ function montoDescuento(d, items, subBruto) {
     return Math.round(gratis.reduce((s, u) => s + u, 0) * bogoPct / 100);
   }
   return 0;   // 'envio' no descuenta producto: apaga el flete (lo maneja resolverDescuentos)
+}
+
+/* ── ¿VIENE DE LA CAMPAÑA CORRECTA? ── Lo que Shopify NO puede hacer.
+   origen = {campaigns:['120210'], sources:['instagram'], campaign_like:['remarketing']}
+   `evs` son los events REALES de esa sesión (verificación); `utm` es lo que dice el navegador
+   (respaldo). Se confía primero en los events porque el utm lo controla el cliente: un
+   ?utm_campaign=remarketing en la URL no debería desbloquear un código. Falsificarlo exigiría
+   haber escrito antes eventos con esa campaña por /api/event, que tiene control de origen y
+   rate limit. Es SEGMENTACIÓN, no una barrera criptográfica — y sigue acotado por usos_max. */
+function cumpleOrigen(origen, utm, evs) {
+  if (!origen || typeof origen !== 'object' || Array.isArray(origen)) return true;
+  const camps = (origen.campaigns || []).map(String);
+  const srcs = (origen.sources || []).map(s => String(s).toLowerCase());
+  const likes = (origen.campaign_like || []).map(s => String(s).toLowerCase());
+  if (!camps.length && !srcs.length && !likes.length) return true;
+  const cands = [];
+  (evs || []).forEach(e => cands.push({ cid: e.campaign_id, src: e.utm_source, camp: e.utm_campaign }));
+  const u = utm && typeof utm === 'object' ? utm : {};
+  // El utm del navegador solo se usa si NO hay events que verificar (sesión nueva o podada).
+  if (!cands.length) cands.push({ cid: u.campaign_id, src: u.utm_source, camp: u.utm_campaign });
+  return cands.some(c => {
+    const cid = c.cid && !/\{\{/.test(String(c.cid)) ? String(c.cid) : '';
+    const src = String(c.src || '').toLowerCase();
+    const camp = String(c.camp || '').toLowerCase();
+    if (camps.length && cid && camps.includes(cid)) return true;
+    if (srcs.length && src && srcs.includes(src)) return true;
+    if (likes.length && camp && likes.some(l => camp.includes(l))) return true;
+    return false;
+  });
+}
+
+/* ── ¿ES EL CLIENTE CORRECTO? ── Criterios ABSOLUTOS, no etiquetas RFM.
+   cliente = {compras_min, compras_max, dias_desde_ultima_min, dias_desde_ultima_max}
+   `hist` = fechas ISO de sus compras confirmadas, más recientes primero.
+   Se evitan a propósito las etiquetas RFM del dashboard: son relativas a toda la base (quintiles),
+   cambian solas cuando compran OTROS, y ya dieron un fallo real. "2 compras" se explica por
+   WhatsApp y se audita; "Campeón" no. */
+function cumpleHistorial(cli, hist) {
+  if (!cli || typeof cli !== 'object' || Array.isArray(cli)) return true;
+  const n = (hist || []).length;
+  const min = parseInt(cli.compras_min, 10), max = parseInt(cli.compras_max, 10);
+  if (Number.isFinite(min) && n < min) return false;
+  if (Number.isFinite(max) && n > max) return false;
+  const dMin = parseInt(cli.dias_desde_ultima_min, 10), dMax = parseInt(cli.dias_desde_ultima_max, 10);
+  if (Number.isFinite(dMin) || Number.isFinite(dMax)) {
+    if (!n) return false;   // sin compras no hay "días desde la última" → fail-closed
+    const dias = Math.floor((Date.now() - new Date(hist[0]).getTime()) / 86400000);
+    if (!Number.isFinite(dias)) return false;
+    if (Number.isFinite(dMin) && dias < dMin) return false;
+    if (Number.isFinite(dMax) && dias > dMax) return false;
+  }
+  return true;
 }
 
 // Vigencia y estado de una fila. Devuelve null si está utilizable o el MOTIVO exacto si no —
@@ -292,7 +363,7 @@ function motivoNoUtilizable(d, now) {
    gratis corre en pista aparte: combinable acompaña a lo que sea; no-combinable solo si es lo único.
    Salida: { monto, envioGratis, aplicados:[{id,codigo,nombre,tipo,monto}], motivo, def, autos }.
    CUALQUIER error (tabla ausente, BD caída) → cero descuentos, motivo 'error' (fail-closed). */
-async function resolverDescuentos(sb, { codigo, items, subBruto, pares, cliente, modo, costos, pisoGlobal }) {
+async function resolverDescuentos(sb, { codigo, items, subBruto, pares, cliente, modo, costos, pisoGlobal, sesion, utmCliente }) {
   const out = { monto: 0, envioGratis: false, aplicados: [], motivo: null, def: null, autos: [] };
   try {
     // El código entra a un filtro de PostgREST: solo A-Z 0-9 _ - (mismo charset que exige el
@@ -301,15 +372,41 @@ async function resolverDescuentos(sb, { codigo, items, subBruto, pares, cliente,
     const codeIntacto = code && code === String(codigo).trim().toUpperCase();
     let q = sb.from('discounts').select('*').eq('activo', true);
     q = codeIntacto ? q.or(`codigo.is.null,codigo.eq.${code}`) : q.is('codigo', null);
-    const { data: rows, error } = await q.limit(100);
+    // Códigos de LOTE (discount_codes): un solo uso cada uno, atados a un descuento automático.
+    // Va EN PARALELO con la de arriba (misma ola) y solo si el cliente tecleó algo: quien no usa
+    // código no paga por esta consulta.
+    const [{ data: rows, error }, lote] = await Promise.all([
+      q.limit(100),
+      codeIntacto
+        ? sb.from('discount_codes').select('discount_id,usado_at').ilike('codigo', code).limit(1)
+        : Promise.resolve({ data: [] })
+    ]);
     if (error) throw new Error(error.message);
+    // Si el código tecleado es de lote, se trae SU descuento y se marca como "el código".
+    const filaLote = (lote.data || [])[0] || null;
+    let loteQuemado = false, loteDiscountId = null;
+    if (filaLote) {
+      if (filaLote.usado_at) loteQuemado = true;
+      else {
+        loteDiscountId = Number(filaLote.discount_id);
+        if (!(rows || []).some(r => Number(r.id) === loteDiscountId)) {
+          const { data: dl } = await sb.from('discounts').select('*').eq('id', loteDiscountId).eq('activo', true).limit(1);
+          if (dl && dl[0]) rows.push(dl[0]);
+        }
+      }
+    }
     if (codigo && !codeIntacto) out.motivo = 'no_existe';
 
     const now = Date.now();
     const candidatos = [];
     let filaCodigo = null;
     for (const d of rows || []) {
-      const esElCodigo = codeIntacto && d.codigo && String(d.codigo).toUpperCase() === code;
+      // "Es el código" si el cliente tecleó el código fijo del descuento, O si tecleó uno de sus
+      // códigos de lote (discount_codes) que todavía no se ha quemado.
+      const esElCodigo = codeIntacto && (
+        (d.codigo && String(d.codigo).toUpperCase() === code) ||
+        (loteDiscountId != null && Number(d.id) === loteDiscountId)
+      );
       if (esElCodigo) filaCodigo = d;
       if (d.codigo && !esElCodigo) continue;   // otros códigos jamás aplican sin teclearse
       const m = motivoNoUtilizable(d, now);
@@ -320,6 +417,7 @@ async function resolverDescuentos(sb, { codigo, items, subBruto, pares, cliente,
       if (Number.isFinite(minI) && minI > 0 && pares < minI) { if (esElCodigo) out.motivo = 'minimo_items'; continue; }
       candidatos.push({ d, esElCodigo });
     }
+    if (loteQuemado && !out.motivo) out.motivo = 'ya_usado';   // código de lote de un solo uso
     if (codigo && codeIntacto && !filaCodigo && !out.motivo) out.motivo = 'no_existe';
 
     // 1-POR-CLIENTE contra las ventas CONFIRMADAS (discount_usos). Sin teléfono:
@@ -342,6 +440,38 @@ async function resolverDescuentos(sb, { codigo, items, subBruto, pares, cliente,
         for (let i = candidatos.length - 1; i >= 0; i--) {
           if (candidatos[i].d.uno_por_cliente) candidatos.splice(i, 1);
         }
+      }
+    }
+
+    /* ORIGEN e HISTORIAL — las dos condiciones que Shopify no tiene.
+       PUERTA DE COSTE CERO: las queries solo salen si algún candidato las pide. El carrito medio
+       (sin descuentos con origen ni con cliente) no paga ni un round-trip por funciones que no usa.
+       Y van juntas en un solo Promise.all: misma ola, no crece la latencia. */
+    const pideOrigen = candidatos.some(c => c.d.origen);
+    const pideHist = candidatos.some(c => c.d.cliente);
+    if (pideOrigen || pideHist) {
+      const [evsR, histR] = await Promise.all([
+        (pideOrigen && sesion)
+          ? sb.from('events').select('campaign_id,utm_source,utm_campaign').eq('session_id', sesion)
+              .order('created_at', { ascending: false }).limit(100)
+          : Promise.resolve({ data: [] }),
+        (pideHist && cliente)
+          ? sb.from('orders').select('created_at').eq('status', 'venta')
+              .or(`tel.eq.${cliente},tel.eq.57${cliente},tel.like.*${cliente}`)
+              .order('created_at', { ascending: false }).limit(50)
+          : Promise.resolve({ data: [] })
+      ]);
+      const evs = evsR.data || [];
+      const hist = (histR.data || []).map(r => r.created_at);
+      for (let i = candidatos.length - 1; i >= 0; i--) {
+        const d = candidatos[i].d;
+        let fuera = null;
+        if (d.origen && !cumpleOrigen(d.origen, utmCliente, evs)) fuera = 'origen_no_coincide';
+        // Sin teléfono no se puede verificar el historial: en 'orden' se niega (es plata), en
+        // 'consulta' se acepta provisional. Mismo criterio que uno_por_cliente.
+        else if (d.cliente && !cliente && modo === 'orden') fuera = 'sin_telefono';
+        else if (d.cliente && cliente && !cumpleHistorial(d.cliente, hist)) fuera = 'no_elegible';
+        if (fuera) { if (candidatos[i].esElCodigo) out.motivo = fuera; candidatos.splice(i, 1); }
       }
     }
 
@@ -406,7 +536,10 @@ async function resolverDescuentos(sb, { codigo, items, subBruto, pares, cliente,
     const sane = d => ({
       id: d.id, codigo: d.codigo || null, nombre: d.nombre || null, tipo: d.tipo,
       valor_tipo: d.valor_tipo, valor: d.valor, aplica: d.aplica || null, bogo: d.bogo || null,
-      min_monto: d.min_monto || null, min_items: d.min_items || null, combinable: !!d.combinable
+      min_monto: d.min_monto || null, min_items: d.min_items || null, combinable: !!d.combinable,
+      // Necesario para que el espejo del carrito calcule IGUAL. `origen` y `cliente` NO se mandan
+      // a propósito: son reglas de segmentación, no las tiene por qué ver el navegador.
+      valor_alcance: d.valor_alcance || 'pedido'
     });
     if (plan.some(c => c.esElCodigo)) { out.def = sane(filaCodigo); out.motivo = null; }
     out.autos = plan.filter(c => !c.d.codigo).map(c => sane(c.d));
@@ -430,9 +563,13 @@ async function consumirDescuentos(sb, order) {
       const id = parseInt(d && d.id, 10);
       if (!Number.isFinite(id)) continue;
       try {
+        // p_codigo quema además el código de LOTE (discount_codes) si el pedido usó uno: el
+        // `where usado_at is null` del RPC es el candado de un-solo-uso. La sobrecarga de 4
+        // argumentos sigue existiendo, así que esto no rompe nada aunque la 011 no haya corrido.
         const { error } = await sb.rpc('descuento_consumir', {
           p_discount_id: id, p_order_id: order.id,
-          p_reference: order.reference || null, p_cliente: cliente || null
+          p_reference: order.reference || null, p_cliente: cliente || null,
+          p_codigo: (order.cupon && d.codigo == null) ? order.cupon : null
         });
         if (error) console.error('[DESCUENTOS] no se pudo consumir uso', id, order.reference || order.id, error.message);
       } catch (e) { console.error('[DESCUENTOS] no se pudo consumir uso', id, e && e.message); }
@@ -452,7 +589,13 @@ async function validarDescuentoPublico(input) {
   // Los códigos legacy NO pasan por el motor (los valida calculateOrder como siempre).
   const codigo = codigoRaw && !esCuponLegacy(codigoRaw) ? codigoRaw : null;
   const cliente = clienteKey(input.tel);
-  const r = await resolverDescuentos(sb, { codigo, items, subBruto, pares, cliente, modo: 'consulta' });
+  // sesion/utmCliente son OBLIGATORIOS aquí desde que existen los descuentos por campaña: sin
+  // ellos el carrito evaluaría el código con otra información que el pedido y mostraría un precio
+  // que el servidor luego no honra — el cliente vería el número cambiar en el último paso.
+  const r = await resolverDescuentos(sb, {
+    codigo, items, subBruto, pares, cliente, modo: 'consulta',
+    sesion: cleanText(input.session_id, 64), utmCliente: input.utm
+  });
   return {
     ok: true,
     valido: codigo ? !!r.def : null,      // null = no se preguntó por un código (solo automáticos)
@@ -482,8 +625,8 @@ async function priceItems(sb, inputItems) {
   const catIds = items.filter(i => i.type === 'cat').map(i => i.id);
   const liqIds = items.filter(i => i.type === 'liq').map(i => i.id);
   const [catsRes, liqsRes] = await Promise.all([
-    catIds.length ? sb.from('products').select('id,gender,brand,price,sold').in('id', catIds) : Promise.resolve({ data: [] }),
-    liqIds.length ? sb.from('liq_products').select('id,price,sold').in('id', liqIds) : Promise.resolve({ data: [] })
+    catIds.length ? sb.from('products').select('id,gender,brand,price,price_before,promo,sold').in('id', catIds) : Promise.resolve({ data: [] }),
+    liqIds.length ? sb.from('liq_products').select('id,price,price_before,sold').in('id', liqIds) : Promise.resolve({ data: [] })
   ]);
   if (catsRes.error) throw new Error(catsRes.error.message);
   if (liqsRes.error) throw new Error(liqsRes.error.message);
@@ -495,7 +638,14 @@ async function priceItems(sb, inputItems) {
     const label = it.type === 'liq' ? 'Liq' : (p.gender === 'h' ? 'Hombre' : p.gender === 'u' ? 'Unisex' : 'Mujer');
     return {
       label, id: it.id, type: it.type, brand: p.brand || null, qty: it.qty,
-      precio: Number(p.price) * it.qty, unit_price: Number(p.price), talla: it.talla || null
+      precio: Number(p.price) * it.qty, unit_price: Number(p.price), talla: it.talla || null,
+      // gender ya se consultaba y se perdía dentro de `label`: exponerlo permite descuentos
+      // "20% en Mujer" sin enumerar ids a mano. liq_products NO tiene columna gender → null,
+      // así que un ítem de liquidación nunca matchea un filtro de género (correcto, y el panel lo dice).
+      gender: p.gender || null,
+      // ¿ya está rebajado? Sirve para "descuento solo sobre lo que NO está en promo" y así no
+      // apilar dos rebajas sobre el mismo par sin querer.
+      promo: !!(p.promo || (p.price_before != null && Number(p.price_before) > Number(p.price)))
     };
   });
 }
@@ -631,6 +781,8 @@ async function calculateOrder(input) {
       items, subBruto, pares,
       cliente: clienteKey(d.tel || d.celular),
       modo: 'orden',
+      sesion: cleanText(input.session_id, 64),
+      utmCliente: input.utm,
       costos,
       // Default global del piso. JSON roto o ausente → sin piso (el motor sigue como hoy).
       pisoGlobal: (() => { try { return JSON.parse(cfg.descuento_piso || 'null'); } catch (e) { return null; } })()
@@ -974,6 +1126,6 @@ module.exports = { anonClient, serviceClient, cleanText, calculateOrder, createO
 
 // Motor de descuentos expuesto para pruebas locales (Vercel no lo usa; mismo patrón que
 // dashboard._clientes y admin._audiencia): permite testear la lógica con un sb falso, sin BD.
-module.exports._descuentos = { resolverDescuentos, montoDescuento, descuentoAplicaItem, motivoNoUtilizable, esCuponLegacy, clienteKey, cuponDesc, pisoMargen, costosDe };
+module.exports._descuentos = { resolverDescuentos, montoDescuento, descuentoAplicaItem, motivoNoUtilizable, esCuponLegacy, clienteKey, cuponDesc, pisoMargen, costosDe, cumpleOrigen, cumpleHistorial };
 // Puente de identidad, expuesto para poder probarlo con un Supabase falso (sin red).
 module.exports._identidad = { resolverSesionPorIdentidad };

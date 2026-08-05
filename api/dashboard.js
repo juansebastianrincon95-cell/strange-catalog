@@ -394,6 +394,10 @@ module.exports = async (req, res) => {
     const since = req.query && dateRe.test(req.query.since || '') ? req.query.since : null;
     const until = req.query && dateRe.test(req.query.until || '') ? req.query.until : null;
     const group = ['day', 'week', 'month'].includes((req.query || {}).group) ? req.query.group : 'day';
+    /* Ventana de atribución configurable (?ventana=N). Shopify la FIJA en 30 días; aquí el dueño
+       puede comparar 7d contra 30d en dos clics y ver si sus campañas venden rápido o lento.
+       Clamp 1..90: por debajo no mide nada y por encima la query pre-rango se dispara. */
+    const ventanaDias = Math.min(Math.max(parseInt((req.query || {}).ventana, 10) || 30, 1), 90);
 
     const sbSvc = process.env.SUPABASE_SERVICE_KEY
       ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY)
@@ -601,7 +605,7 @@ module.exports = async (req, res) => {
         lotes.push(sbSvc.from('events')
           .select('session_id,created_at,type,utm_source,utm_campaign,campaign_id,utm_fresh')
           .in('session_id', ids.slice(i, i + 100))
-          .gte('created_at', addDays(since, -30) + 'T00:00:00')
+          .gte('created_at', addDays(since, -ventanaDias) + 'T00:00:00')
           .lt('created_at', since + 'T00:00:00')
           // Si el lote pega el tope, conservar los toques MÁS CERCANOS a la venta (no filas al azar)
           .order('created_at', { ascending: false })
@@ -750,7 +754,7 @@ module.exports = async (req, res) => {
       const tv = new Date(o.created_at).getTime();
       const ses = sesionDe(o);            // propia, o la heredada por el puente de identidad
       // rutaDeToques decide solo entre modo MEDIDO (hay utm_fresh) y LEGACY (todo null).
-      const rt = rutaDeToques((ses && evVentas[ses]) || [], tv, 30 * 86400000, resolverCampana);
+      const rt = rutaDeToques((ses && evVentas[ses]) || [], tv, ventanaDias * 86400000, resolverCampana);
       let toques = rt.toques;
       if (toques.length) { conRuta++; if (rt.medida) rutasMedidas++; }
       else {
@@ -777,7 +781,7 @@ module.exports = async (req, res) => {
       if (a && a.session) { puente.resueltos++; puente.por_via[a.via || 'otro'] = (puente.por_via[a.via || 'otro'] || 0) + 1; }
       else puente.sin_puente++;
     });
-    const atribucion = { ventana_dias: 30, con_ruta: conRuta, sin_ruta: sinRuta, parcial: atribParcial, puente, calidad: { rutas_medidas: rutasMedidas, rutas_legacy: conRuta - rutasMedidas }, modelos: aplicarModelos(rutas, gastoPorId) };
+    const atribucion = { ventana_dias: ventanaDias, con_ruta: conRuta, sin_ruta: sinRuta, parcial: atribParcial, puente, calidad: { rutas_medidas: rutasMedidas, rutas_legacy: conRuta - rutasMedidas }, modelos: aplicarModelos(rutas, gastoPorId) };
 
     /* ROAS DE EQUILIBRIO desde TU margen real, no un número inventado: por debajo de este ROAS
        la campaña pierde plata. Solo se declara con cobertura de costos >= 30%; si no, null y el

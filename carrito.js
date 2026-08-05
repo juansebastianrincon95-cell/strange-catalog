@@ -38,12 +38,22 @@ let descuentosAuto=[];           // defs de los automáticos aplicables (según 
 let _descEnvioGratis=false;      // el plan vigente incluye envío gratis (lo consume calcFlete)
 
 // ¿El ítem del carrito está cubierto por el descuento? Espejo de descuentoAplicaItem del server.
+// ids/marcas = UNIÓN (colecciones); generos/tipos/excluir_promo = filtros AND encima. Tiene que
+// ser IDÉNTICO al server o el carrito pinta un precio que el servidor no cobra.
 function _descAplicaItem(aplica,row){
   if(!aplica||typeof aplica!=='object')return true;
   const ids=Array.isArray(aplica.ids)?aplica.ids:[],marcas=Array.isArray(aplica.marcas)?aplica.marcas:[];
-  if(!ids.length&&!marcas.length)return true;
-  const key=(row.type==='liq'?'liq_':'cat_')+row.p.id;
-  return ids.includes(key)||(!!row.p.brand&&marcas.includes(String(row.p.brand)));
+  const generos=Array.isArray(aplica.generos)?aplica.generos:[],tipos=Array.isArray(aplica.tipos)?aplica.tipos:[];
+  if(ids.length||marcas.length){
+    const key=(row.type==='liq'?'liq_':'cat_')+row.p.id;
+    if(!(ids.includes(key)||(!!row.p.brand&&marcas.includes(String(row.p.brand)))))return false;
+  }
+  // liquidación no tiene género en la BD → gender null, nunca matchea un filtro de género
+  const g=row.type==='liq'?null:(row.p.g||null);
+  if(generos.length&&!generos.includes(g))return false;
+  if(tipos.length&&!tipos.includes(row.type==='liq'?'liq':'cat'))return false;
+  if(aplica.excluir_promo&&(row.p.promo||(row.p.price_before!=null&&Number(row.p.price_before)>Number(row.p.price))))return false;
+  return true;
 }
 
 // Monto que descuenta `d` sobre las filas del carrito. Espejo de montoDescuento del server.
@@ -51,9 +61,12 @@ function _descMonto(d,rows,subBruto){
   const valor=Math.max(0,parseInt(d.valor)||0),pct=Math.min(valor,100);
   if(d.tipo==='pedido')return d.valor_tipo==='pct'?Math.round(subBruto*pct/100):Math.min(valor,subBruto);
   if(d.tipo==='producto'){
-    const base=rows.filter(r=>_descAplicaItem(d.aplica,r)).reduce((s,r)=>s+r.p.price*r.qty,0);
+    const cub=rows.filter(r=>_descAplicaItem(d.aplica,r));
+    const base=cub.reduce((s,r)=>s+r.p.price*r.qty,0);
     if(base<=0)return 0;
-    return d.valor_tipo==='pct'?Math.round(base*pct/100):Math.min(valor,base);
+    if(d.valor_tipo==='pct')return Math.round(base*pct/100);
+    if(d.valor_alcance==='articulo')return cub.reduce((s,r)=>s+Math.min(valor,r.p.price)*r.qty,0);
+    return Math.min(valor,base);
   }
   if(d.tipo==='bogo'){
     const b=d.bogo||{},compra=parseInt(b.compra),lleva=parseInt(b.lleva),bp=Math.min(Math.max(parseInt(b.pct)||100,1),100);
@@ -300,7 +313,7 @@ async function aplicarCupon(){
   if(btn){btn.disabled=true;btn.textContent='…';}
   try{
     const r=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({kind:'validar_descuento',codigo:code,items:_descItemsPayload(),session_id:SESSION_ID,tel:(cData&&cData.celular)||null})});
+      body:JSON.stringify({kind:'validar_descuento',codigo:code,items:_descItemsPayload(),session_id:SESSION_ID,utm:getUTM(),tel:(cData&&cData.celular)||null})});
     const j=r.ok?await r.json():null;
     if(j&&j.ok&&j.valido&&j.codigo){
       descuentoAplicado=j.codigo;
@@ -329,7 +342,7 @@ function syncDescuentosAuto(){
   if(sig===_descSyncSig)return;
   _descSyncSig=sig;
   fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({kind:'validar_descuento',codigo:codePend,items,session_id:SESSION_ID,tel:(cData&&cData.celular)||null})})
+    body:JSON.stringify({kind:'validar_descuento',codigo:codePend,items,session_id:SESSION_ID,utm:getUTM(),tel:(cData&&cData.celular)||null})})
     .then(r=>r.ok?r.json():null)
     .then(j=>{
       if(!j||!j.ok)return;

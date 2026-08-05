@@ -57,7 +57,7 @@
       <div id="descForm" style="display:none;margin-top:10px;background:var(--white);border:1.5px solid var(--ink);border-radius:10px;padding:10px">
         <div id="descFormTit" style="font-size:11.5px;font-weight:800;color:var(--ink);margin-bottom:8px">Nuevo descuento</div>
         <input id="dsNombre" type="text" placeholder="Nombre (ej. Promo agosto)" class="al-i">
-        <input id="dsCodigo" type="text" placeholder="Código (vacío = automático, aplica solo)" class="al-i" style="text-transform:uppercase">
+        <div style="display:flex;gap:6px"><input id="dsCodigo" type="text" placeholder="Código (vacío = automático, aplica solo)" class="al-i" style="text-transform:uppercase;flex:1"><button type="button" onclick="dsCodigoAleatorio()" class="epbtn" title="Genera un código al azar sin letras confundibles (sin O/0 ni I/L/1): se dicta por WhatsApp y se teclea en el celular">🎲</button></div>
         <select id="dsTipo" onchange="descTipoUI()" class="al-i" style="cursor:pointer">
           <option value="pedido">💰 Monto o % sobre el pedido</option>
           <option value="producto">👟 Monto o % sobre productos concretos</option>
@@ -65,8 +65,14 @@
           <option value="envio">🚚 Envío gratis</option>
         </select>
         <div id="dsRowValor" style="display:flex;gap:6px">
-          <select id="dsValorTipo" class="al-i" style="flex:0 0 110px;cursor:pointer"><option value="pct">% por ciento</option><option value="fijo">$ monto fijo</option></select>
+          <select id="dsValorTipo" onchange="descTipoUI()" class="al-i" style="flex:0 0 110px;cursor:pointer"><option value="pct">% por ciento</option><option value="fijo">$ monto fijo</option></select>
           <input id="dsValor" type="number" min="0" step="1" placeholder="Valor (ej. 10 ó 20000)" class="al-i" style="flex:1">
+        </div>
+        <div id="dsAlcanceWrap" style="display:none;gap:6px;align-items:center">
+          <select id="dsAlcance" class="al-i" style="flex:1;cursor:pointer" title="Shopify por defecto descuenta el monto fijo por CADA artículo elegible">
+            <option value="pedido">El monto se descuenta una vez por pedido</option>
+            <option value="articulo">El monto se descuenta por cada artículo</option>
+          </select>
         </div>
         <div id="dsRowBogo" style="display:none;gap:6px;align-items:center">
           <span style="font-size:10px;color:var(--ink3)">Compra</span><input id="dsBogoX" type="number" min="1" max="20" value="2" class="al-i" style="flex:0 0 52px;text-align:center">
@@ -77,6 +83,25 @@
         <div id="dsRowAplica" style="display:none">
           <input id="dsIds" type="text" placeholder="Productos: 29, 77, L5 (vacío = todos)" class="al-i">
           <input id="dsMarcas" type="text" placeholder="Marcas: nike, adidas (opcional)" class="al-i">
+          <div style="font-size:10px;color:var(--ink3);margin:6px 0 3px">Filtros extra (se suman a lo de arriba con Y, no con O)</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;font-size:10.5px;font-weight:700;color:var(--ink2)">
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input id="dsGenH" type="checkbox">Hombre</label>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input id="dsGenM" type="checkbox">Mujer</label>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input id="dsGenU" type="checkbox">Unisex</label>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer" title="La liquidación no tiene género: si marcas un género, los productos de liquidación quedan fuera"><input id="dsTipoLiq" type="checkbox">Solo liquidación</label>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer" title="No descontar sobre productos que ya están rebajados (evita apilar dos rebajas)"><input id="dsNoPromo" type="checkbox">Excluir rebajados</label>
+          </div>
+        </div>
+        <div id="dsRowAvanzado" style="display:none;border-top:1px solid var(--line);margin-top:8px;padding-top:8px">
+          <div style="font-size:10px;color:var(--ink3);margin-bottom:4px">Solo para quien viene de… <span style="color:#b3541e">(esto Shopify no lo puede hacer)</span></div>
+          <input id="dsOrigenCamp" type="text" placeholder="Campañas de Meta por id: 120210..., 120333... (opcional)" class="al-i">
+          <input id="dsOrigenLike" type="text" placeholder="…o por nombre que contenga: remarketing, prospeccion" class="al-i">
+          <div style="font-size:10px;color:var(--ink3);margin:8px 0 4px">Solo para clientes que…</div>
+          <div style="display:flex;gap:6px">
+            <input id="dsCliComprasMin" type="number" min="0" placeholder="compras mín." class="al-i" style="flex:1">
+            <input id="dsCliDiasMin" type="number" min="0" placeholder="días desde últ. (mín)" class="al-i" style="flex:1">
+            <input id="dsCliDiasMax" type="number" min="0" placeholder="máx" class="al-i" style="flex:1">
+          </div>
         </div>
         <div style="display:flex;gap:6px">
           <input id="dsMinMonto" type="number" min="0" step="1000" placeholder="Compra mínima $" class="al-i" style="flex:1">

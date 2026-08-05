@@ -454,6 +454,56 @@ module.exports = async (req, res) => {
 
   // Borrar EN BLOQUE todos los pedidos marcados de prueba (utm.test = true). Se filtra en JS
   // (no con el operador jsonb en la query) para evitar sorpresas de sintaxis y ser a prueba de balas.
+  /* ── CÓDIGOS ÚNICOS EN MASA ─────────────────────────────────────────────────
+     N códigos irrepetibles de UN SOLO USO atados a un descuento ("500 para los influencers de
+     agosto"). Shopify lo tiene SOLO en el plan Plus. Las reglas (vigencia, mínimos, piso, origen)
+     siguen viviendo en `discounts`; aquí solo viven los TEXTOS — meter 5.000 filas casi idénticas
+     en `discounts` habría sido el error.
+     Alfabeto sin 0/O ni 1/I/L: el código se dicta por WhatsApp y se teclea en el celular. */
+  if (action === 'generar_codigos') {
+    const d = data || {};
+    const did = parseInt(d.discount_id, 10);
+    const n = Math.min(Math.max(parseInt(d.cantidad, 10) || 0, 1), 2000);
+    const lote = cleanText(d.lote, 40) || null;
+    if (!Number.isFinite(did)) return res.status(400).json({ error: 'discount_id requerido' });
+    const { data: dd } = await sb.from('discounts').select('id,codigo').eq('id', did).single();
+    if (!dd) return res.status(404).json({ error: 'ese descuento no existe' });
+    if (dd.codigo) return res.status(400).json({ error: 'ese descuento ya tiene un código fijo: los lotes son para descuentos SIN código (crea uno automático)' });
+    const ALF = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+    const gen = () => { let s = ''; for (let i = 0; i < 6; i++) s += ALF[crypto.randomInt(ALF.length)]; return (d.prefijo ? String(d.prefijo).toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 12) + '-' : '') + s; };
+    let creados = 0;
+    // Por lotes con ON CONFLICT implícito: el índice único es el candado real anti-colisión
+    // (31^6 ≈ 887M), y se reintenta hasta completar N. Mismo patrón que genWelcomeCode.
+    for (let intento = 0; intento < 6 && creados < n; intento++) {
+      const faltan = n - creados;
+      const filas = Array.from({ length: faltan }, () => ({ discount_id: did, codigo: gen(), lote }));
+      const { data: ins } = await sb.from('discount_codes').insert(filas).select('id');
+      if (ins && ins.length) { creados += ins.length; continue; }
+      // Colisión en el lote entero: reintentar de uno en uno para no perder los buenos
+      for (const f of filas) {
+        const { error } = await sb.from('discount_codes').insert(f);
+        if (!error) creados++;
+        if (creados >= n) break;
+      }
+    }
+    return res.json({ ok: true, creados, lote });
+  }
+
+  if (action === 'list_codigos') {
+    const did = parseInt((data || {}).discount_id, 10);
+    if (!Number.isFinite(did)) return res.status(400).json({ error: 'discount_id requerido' });
+    const { data: cs, error } = await sb.from('discount_codes').select('codigo,lote,usado_at,cliente')
+      .eq('discount_id', did).order('created_at', { ascending: false }).limit(3000);
+    if (error) return res.status(500).json({ error: error.message });
+    const total = (cs || []).length, usados = (cs || []).filter(c => c.usado_at).length;
+    if ((data || {}).csv) {
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename="codigos.csv"');
+      return res.status(200).send('codigo,lote,usado\n' + (cs || []).map(c => `${c.codigo},${c.lote || ''},${c.usado_at ? 'si' : 'no'}`).join('\n'));
+    }
+    return res.json({ ok: true, total, usados, disponibles: total - usados, codigos: (cs || []).slice(0, 200) });
+  }
+
   /* ── REVISAR PENDIENTES EN LA PASARELA ──────────────────────────────────────
      El cron solo mira 30 días atrás; esto NO tiene límite de fecha y lo dispara el dueño cuando
      quiere. Le pregunta a Sistecrédito/Bold/Wompi el estado REAL de cada pedido colgado.
@@ -701,8 +751,64 @@ module.exports = async (req, res) => {
             if (!marcas.includes(slug)) marcas.push(slug);
           }
         }
-        upd.aplica = (ids.length || marcas.length) ? { ids, marcas } : null;
+        // generos/tipos/excluir_promo: filtros AND encima de la selección. ⚠️ Se OMITEN cuando no
+        // hay nada marcado — guardar generos:['h','m','u'] "por defecto" rompería en silencio todo
+        // descuento que cubra liquidación, porque liq_products no tiene género (queda null).
+        const generos = Array.isArray(d.aplica.generos)
+          ? d.aplica.generos.map(s => String(s).trim().toLowerCase()).filter(s => ['h', 'm', 'u'].includes(s)) : [];
+        const tipos = Array.isArray(d.aplica.tipos)
+          ? d.aplica.tipos.map(s => String(s).trim().toLowerCase()).filter(s => ['cat', 'liq'].includes(s)) : [];
+        if (Array.isArray(d.aplica.generos) && d.aplica.generos.length && !generos.length) {
+          return res.status(400).json({ error: 'género inválido: usa h (hombre), m (mujer) o u (unisex)' });
+        }
+        if (Array.isArray(d.aplica.tipos) && d.aplica.tipos.length && !tipos.length) {
+          return res.status(400).json({ error: 'tipo inválido: usa cat (catálogo) o liq (liquidación)' });
+        }
+        const ap = {};
+        if (ids.length) ap.ids = ids;
+        if (marcas.length) ap.marcas = marcas;
+        if (generos.length && generos.length < 3) ap.generos = generos;   // los 3 = sin filtro
+        if (tipos.length && tipos.length < 2) ap.tipos = tipos;
+        if (d.aplica.excluir_promo) ap.excluir_promo = true;
+        upd.aplica = Object.keys(ap).length ? ap : null;
       }
+    }
+    // origen: el descuento solo vale si el cliente viene de cierta campaña de Meta. Shopify no
+    // puede expresar esto. Se sanea a listas de texto corto; el motor lo VERIFICA contra events.
+    if ('origen' in d) {
+      if (d.origen == null) upd.origen = null;
+      else {
+        const lista = (v, n) => Array.isArray(v) ? v.map(s => String(s).trim().slice(0, 60)).filter(Boolean).slice(0, n) : [];
+        const o = {};
+        const c = lista(d.origen.campaigns, 20), s = lista(d.origen.sources, 10), l = lista(d.origen.campaign_like, 10);
+        if (c.length) o.campaigns = c;
+        if (s.length) o.sources = s.map(x => x.toLowerCase());
+        if (l.length) o.campaign_like = l.map(x => x.toLowerCase());
+        upd.origen = Object.keys(o).length ? o : null;
+      }
+    }
+    // cliente: elegibilidad por historial con criterios ABSOLUTOS (no etiquetas RFM, que son
+    // relativas a toda la base, cambian solas y ya dieron un fallo real).
+    if ('cliente' in d) {
+      if (d.cliente == null) upd.cliente = null;
+      else {
+        const num = (v, max) => { const n = parseInt(v, 10); return Number.isFinite(n) && n >= 0 && n <= max ? n : null; };
+        const c = {};
+        const cm = num(d.cliente.compras_min, 999), cM = num(d.cliente.compras_max, 999);
+        const dm = num(d.cliente.dias_desde_ultima_min, 3650), dM = num(d.cliente.dias_desde_ultima_max, 3650);
+        if (cm != null) c.compras_min = cm;
+        if (cM != null) c.compras_max = cM;
+        if (dm != null) c.dias_desde_ultima_min = dm;
+        if (dM != null) c.dias_desde_ultima_max = dM;
+        if (cm != null && cM != null && cM < cm) return res.status(400).json({ error: 'compras_max menor que compras_min' });
+        if (dm != null && dM != null && dM < dm) return res.status(400).json({ error: 'el rango de días está invertido' });
+        upd.cliente = Object.keys(c).length ? c : null;
+      }
+    }
+    if ('valor_alcance' in d) {
+      const va = String(d.valor_alcance || 'pedido');
+      if (!['pedido', 'articulo'].includes(va)) return res.status(400).json({ error: 'valor_alcance inválido' });
+      upd.valor_alcance = va;
     }
     if ('bogo' in d) {
       if (d.bogo == null) upd.bogo = null;

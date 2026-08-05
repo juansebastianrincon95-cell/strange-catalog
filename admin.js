@@ -173,6 +173,11 @@ function descTipoUI(){
   const rv=$('dsRowValor');if(rv)rv.style.display=(t==='pedido'||t==='producto')?'flex':'none';
   const rb=$('dsRowBogo');if(rb)rb.style.display=t==='bogo'?'flex':'none';
   const ra=$('dsRowAplica');if(ra)ra.style.display=(t==='producto'||t==='bogo')?'block':'none';
+  // El bloque avanzado (origen + historial) aplica a CUALQUIER tipo: un envío gratis también
+  // puede ser "solo para quien viene del remarketing".
+  const rav=$('dsRowAvanzado');if(rav)rav.style.display='block';
+  // Monto fijo por artículo solo tiene sentido en descuentos de producto con valor fijo.
+  const al=$('dsAlcanceWrap');if(al)al.style.display=(t==='producto'&&($('dsValorTipo')||{}).value==='fijo')?'flex':'none';
 }
 
 // ISO → valor de <input type=datetime-local> (hora LOCAL del admin, que es la del negocio)
@@ -187,7 +192,9 @@ function descNuevo(){
   _descEditId=null;
   const f=$('descForm');if(!f)return;
   $('descFormTit').textContent='Nuevo descuento';
-  ['dsNombre','dsCodigo','dsValor','dsIds','dsMarcas','dsMinMonto','dsMinItems','dsUsosMax','dsDesde','dsHasta'].forEach(id=>{const el=$(id);if(el)el.value='';});
+  ['dsNombre','dsCodigo','dsValor','dsIds','dsMarcas','dsMinMonto','dsMinItems','dsUsosMax','dsDesde','dsHasta','dsOrigenCamp','dsOrigenLike','dsCliComprasMin','dsCliDiasMin','dsCliDiasMax'].forEach(id=>{const el=$(id);if(el)el.value='';});
+  ['dsGenH','dsGenM','dsGenU','dsTipoLiq','dsNoPromo'].forEach(id=>{const el=$(id);if(el)el.checked=false;});
+  {const el=$('dsAlcance');if(el)el.value='pedido';}
   $('dsTipo').value='pedido';$('dsValorTipo').value='pct';
   $('dsBogoX').value=2;$('dsBogoY').value=1;$('dsBogoPct').value=100;
   $('dsUno').checked=true;$('dsCombinable').checked=false;$('dsActivo').checked=true;
@@ -207,6 +214,19 @@ function descEdit(id){
   const b=d.bogo||{};$('dsBogoX').value=b.compra||2;$('dsBogoY').value=b.lleva||1;$('dsBogoPct').value=b.pct||100;
   $('dsIds').value=_descIdsATexto(d.aplica);
   $('dsMarcas').value=(d.aplica&&Array.isArray(d.aplica.marcas))?d.aplica.marcas.join(', '):'';
+  {const a=d.aplica||{};
+   const g=Array.isArray(a.generos)?a.generos:[];
+   $('dsGenH').checked=g.includes('h');$('dsGenM').checked=g.includes('m');$('dsGenU').checked=g.includes('u');
+   $('dsTipoLiq').checked=Array.isArray(a.tipos)&&a.tipos.length===1&&a.tipos[0]==='liq';
+   $('dsNoPromo').checked=!!a.excluir_promo;}
+  {const o=d.origen||{};
+   $('dsOrigenCamp').value=Array.isArray(o.campaigns)?o.campaigns.join(', '):'';
+   $('dsOrigenLike').value=Array.isArray(o.campaign_like)?o.campaign_like.join(', '):'';}
+  {const c=d.cliente||{};
+   $('dsCliComprasMin').value=c.compras_min!=null?c.compras_min:'';
+   $('dsCliDiasMin').value=c.dias_desde_ultima_min!=null?c.dias_desde_ultima_min:'';
+   $('dsCliDiasMax').value=c.dias_desde_ultima_max!=null?c.dias_desde_ultima_max:'';}
+  {const el=$('dsAlcance');if(el)el.value=d.valor_alcance||'pedido';}
   $('dsMinMonto').value=d.min_monto||'';$('dsMinItems').value=d.min_items||'';$('dsUsosMax').value=d.usos_max||'';
   $('dsDesde').value=_descISOaLocal(d.desde);$('dsHasta').value=_descISOaLocal(d.hasta);
   $('dsUno').checked=d.uno_por_cliente!==false;$('dsCombinable').checked=!!d.combinable;$('dsActivo').checked=d.activo!==false;
@@ -219,6 +239,15 @@ function descCancelar(){
   const b=$('descNuevoBtn');if(b)b.style.display='block';
 }
 
+// Mismo alfabeto que el server (api/_orders.js CODE_ALFABETO): sin 0/O ni 1/I/L, porque el
+// código se dicta por WhatsApp y se teclea en el celular — un carácter confundible es una venta perdida.
+function dsCodigoAleatorio(){
+  const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789';let s='';
+  const r=new Uint32Array(6);(window.crypto||window.msCrypto).getRandomValues(r);
+  for(let i=0;i<6;i++)s+=A[r[i]%A.length];
+  const el=$('dsCodigo');if(el){el.value=s;el.focus();}
+}
+
 async function guardarDescuento(btn){
   const tipo=($('dsTipo')||{}).value;
   const data={
@@ -228,7 +257,30 @@ async function guardarDescuento(btn){
     valor_tipo:($('dsValorTipo')||{}).value||'pct',
     valor:parseInt(($('dsValor')||{}).value)||0,
     bogo:tipo==='bogo'?{compra:parseInt($('dsBogoX').value)||0,lleva:parseInt($('dsBogoY').value)||0,pct:parseInt($('dsBogoPct').value)||100}:null,
-    aplica:(tipo==='producto'||tipo==='bogo')?{ids:_descTextoAIds(($('dsIds')||{}).value),marcas:String(($('dsMarcas')||{}).value||'').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean)}:null,
+    aplica:(tipo==='producto'||tipo==='bogo')?(()=>{
+      // Los géneros solo se mandan si NO están los tres marcados: los tres = "sin filtro", y
+      // guardarlos rompería en silencio los descuentos de liquidación (que no tiene género).
+      const g=[['h','dsGenH'],['m','dsGenM'],['u','dsGenU']].filter(([,id])=>($(id)||{}).checked).map(([v])=>v);
+      const ap={ids:_descTextoAIds(($('dsIds')||{}).value),marcas:String(($('dsMarcas')||{}).value||'').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean)};
+      if(g.length&&g.length<3)ap.generos=g;
+      if(($('dsTipoLiq')||{}).checked)ap.tipos=['liq'];
+      if(($('dsNoPromo')||{}).checked)ap.excluir_promo=true;
+      return ap;
+    })():null,
+    origen:(()=>{
+      const camps=String(($('dsOrigenCamp')||{}).value||'').split(',').map(s=>s.trim()).filter(Boolean);
+      const likes=String(($('dsOrigenLike')||{}).value||'').split(',').map(s=>s.trim()).filter(Boolean);
+      return (camps.length||likes.length)?{campaigns:camps,campaign_like:likes}:null;
+    })(),
+    cliente:(()=>{
+      const n=id=>{const v=($(id)||{}).value;return v===''||v==null?null:(parseInt(v)||0);};
+      const c={},cm=n('dsCliComprasMin'),dm=n('dsCliDiasMin'),dM=n('dsCliDiasMax');
+      if(cm!=null)c.compras_min=cm;
+      if(dm!=null)c.dias_desde_ultima_min=dm;
+      if(dM!=null)c.dias_desde_ultima_max=dM;
+      return Object.keys(c).length?c:null;
+    })(),
+    valor_alcance:($('dsAlcance')||{}).value||'pedido',
     min_monto:($('dsMinMonto')||{}).value||null,
     min_items:($('dsMinItems')||{}).value||null,
     usos_max:($('dsUsosMax')||{}).value||null,
@@ -1580,6 +1632,7 @@ function exportOrders(){
    Rango + 6 tarjetas con Δ% vs periodo anterior + gráfica SVG + desglose contable +
    embudo + clientes nuevos/recurrentes + productos ganadores + campañas con ROAS/CTR/CPC. */
 let anaRango='30d',anaGroup='day',anaModelo='ultimo_clic_no_directo';   // default = el de Shopify
+let anaVentana=30;   // ventana de atribución en días. Shopify la fija en 30; aquí se puede mover.
 
 function setAnaRango(r){anaRango=r;renderAnalytics();}
 
@@ -1587,6 +1640,8 @@ function setAnaGroup(g){anaGroup=g;renderAnalytics();}
 
 // Cambiar de modelo solo repinta (el JSON ya trae los 5 calculados; el cache evita refetch).
 function setAnaModelo(m){anaModelo=m;renderAnalytics();}
+// Cambiar la ventana SÍ obliga a refetch: el servidor recalcula las rutas de toques.
+function setAnaVentana(v){anaVentana=v;window._anaCache={};renderAnalytics();}
 
 function _anaParams(){
   const hoy=_hoyKey(0);
@@ -1692,7 +1747,7 @@ async function renderAnalytics(){
   const box=$('anaWrap');if(!box)return;
   const RANGOS=[['hoy','Hoy'],['ayer','Ayer'],['7d','7 días'],['30d','30 días'],['mes','Este mes'],['mespasado','Mes pasado'],['all','Todo']];
   const chips=`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px">${RANGOS.map(([v,t])=>`<button onclick="setAnaRango('${v}')" style="padding:6px 11px;border:1px solid ${anaRango===v?'var(--ink)':'var(--line)'};border-radius:14px;background:${anaRango===v?'var(--ink)':'var(--white)'};color:${anaRango===v?'#fff':'var(--ink2)'};font-family:var(--font);font-size:10.5px;font-weight:700;cursor:pointer">${t}</button>`).join('')}</div>`;
-  const key=anaRango+'|'+anaGroup;
+  const key=anaRango+'|'+anaGroup+'|v'+anaVentana;
   window._anaCache=window._anaCache||{};
   const hit=window._anaCache[key];
   // Cache: 60s si el rango incluye HOY (datos vivos), 5 min para rangos cerrados (Codex #6)
@@ -1702,7 +1757,7 @@ async function renderAnalytics(){
     box.innerHTML=chips+`<div style="padding:28px;text-align:center;color:var(--ink3);font-size:12px">📊 Cargando analytics…</div>`;
     try{
       const p=_anaParams();
-      const qs=new URLSearchParams();if(p){qs.set('since',p.since);qs.set('until',p.until);}qs.set('group',anaGroup);
+      const qs=new URLSearchParams();if(p){qs.set('since',p.since);qs.set('until',p.until);}qs.set('group',anaGroup);qs.set('ventana',String(anaVentana));
       const r=await fetch('/api/dashboard?'+qs.toString(),{cache:'no-store'});
       if(!r.ok)throw new Error('HTTP '+r.status);
       j=await r.json();
@@ -1798,7 +1853,9 @@ async function renderAnalytics(){
   ];
   const filasAtr=(A&&A.modelos&&A.modelos[anaModelo])||[];
   const defAtr=(MODELOS_ATR.find(m=>m[0]===anaModelo)||[])[2]||'';
-  const atrBloque=A?_anaBloque('🧭 Atribución por canal · ventana 30 días',
+  const VENTANAS=[[7,'7 días'],[14,'14 días'],[30,'30 días'],[60,'60 días'],[90,'90 días']];
+  const ventChips=`<div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin-bottom:8px"><span style="font-size:9.5px;color:var(--ink3);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-right:2px">Ventana</span>${VENTANAS.map(([v,t])=>`<button onclick="setAnaVentana(${v})" title="Cuántos días atrás se buscan los toques que llevaron a cada venta. Shopify la fija en 30 y no se puede mover." style="padding:4px 9px;border:1px solid ${anaVentana===v?'var(--ink)':'var(--line)'};border-radius:12px;background:${anaVentana===v?'var(--ink)':'var(--white)'};color:${anaVentana===v?'#fff':'var(--ink2)'};font-family:var(--font);font-size:9.5px;font-weight:700;cursor:pointer">${t}</button>`).join('')}</div>`;
+  const atrBloque=A?_anaBloque('🧭 Atribución por canal · ventana '+(A.ventana_dias||30)+' días',ventChips+
     `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">${MODELOS_ATR.map(([v,t,def])=>`<button onclick="setAnaModelo('${v}')" title="${escHtml(def)}" style="padding:5px 11px;border:1px solid ${anaModelo===v?'var(--ink)':'var(--line)'};border-radius:14px;background:${anaModelo===v?'var(--ink)':'var(--white)'};color:${anaModelo===v?'#fff':'var(--ink2)'};font-family:var(--font);font-size:10px;font-weight:700;cursor:pointer">${t}</button>`).join('')}</div>`
     +(filasAtr.length?`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px;min-width:400px">
       <tr style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em;text-align:right"><th style="text-align:left;padding:4px 6px 4px 0">Canal</th><th>Ventas</th><th title="Pedidos atribuidos (en Lineal, Decaimiento y Posición se reparten en fracciones)">Pedidos</th><th title="% de la facturación del rango atribuida al canal">%</th><th title="Gasto de Meta de esa campaña en el rango">Inv.</th><th title="Facturación atribuida ÷ inversión, SEGÚN ESTE MODELO. Shopify no puede dar esto: no conoce tu gasto publicitario">ROAS</th></tr>
