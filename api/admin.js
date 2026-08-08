@@ -703,31 +703,53 @@ module.exports = async (req, res) => {
     const telKey = t => String(t || '').replace(/\D/g, '').slice(-10);
     const compraron = new Set((ords || []).filter(o => !(o.utm && o.utm.test)).map(o => telKey(o.tel)).filter(Boolean));
     const AHORA = Date.now(), DIA = 86400000;
+    //    Tope de 10 y solo los más recientes: reactivar un cupón que nadie va a usar no sirve de
+    //    nada, y cada uno se reactiva PARA escribirle a esa persona (va a la cola de abajo).
+    //    Reactivar 40 en silencio sería un no-op: el cupón vuelve a valer y nadie se entera.
     const vencidos = (subs || []).filter(s => {
       if (!s.welcome_issued_at || s.welcome_used_at) return false;
       if (compraron.has(telKey(s.whatsapp))) return false;         // ya compró: no se le regala otro
+      if (!telKey(s.whatsapp)) return false;                        // sin WhatsApp no hay a quién escribirle
       return (AHORA - new Date(s.welcome_issued_at).getTime()) > 7 * DIA;
-    }).slice(0, 40);
+    }).slice(0, 10);
     if (vencidos.length && !seco) {
       const iso = new Date().toISOString();
       for (const s of vencidos) {
         await sb.from('subscribers').update({ welcome_issued_at: iso, welcome_used_at: null }).eq('id', s.id);
       }
     }
-    if (vencidos.length) hechas.push({ tarea: 'Cupones de bienvenida reactivados', n: vencidos.length, detalle: vencidos.slice(0, 5).map(s => s.nombre || s.whatsapp) });
+    if (vencidos.length) hechas.push({ tarea: 'Cupones de bienvenida reactivados (7 días nuevos)', n: vencidos.length, detalle: vencidos.slice(0, 5).map(s => s.nombre || s.whatsapp) });
 
     // 2) PREPARAR: leads pendientes sin contactar → mensaje redactado, listo para enviar.
     const pendientes = (ords || []).filter(o =>
       !(o.utm && o.utm.test) && o.status !== 'venta' && o.status !== 'no_venta' && o.status !== 'abandoned'
     ).slice(0, 15);
     const nombreCorto = n => String(n || '').trim().split(/\s+/)[0] || '';
-    const productosDe = o => (Array.isArray(o.items) ? o.items : []).map(i => i.label).filter(Boolean).slice(0, 2).join(' y ');
+    // OJO: en items, `label` es el GÉNERO ("Mujer"/"Hombre"), no el nombre del producto. Lo que
+    // sirve para hablarle al cliente es la MARCA y la TALLA. Decir "te interesaron los Hombre"
+    // es exactamente el tipo de mensaje que quema una venta.
+    const MARCAS = { adidas:'Adidas', nike:'Nike', reebok:'Reebok', new_balance:'New Balance', on_cloud:'On Cloud',
+                     puma:'Puma', lecoq_sportif:'Le Coq Sportif', jordan:'Jordan', lacoste:'Lacoste',
+                     asics:'Asics', onitsuka_tiger:'Onitsuka Tiger', luxury:'Luxury' };
+    const productosDe = o => {
+      const its = (Array.isArray(o.items) ? o.items : []).slice(0, 2);
+      const partes = its.map(i => {
+        const marca = MARCAS[i.brand] || (i.brand ? String(i.brand).replace(/_/g, ' ') : '');
+        const talla = i.talla ? ` talla ${i.talla}` : '';
+        return marca ? `${marca}${talla}` : '';
+      }).filter(Boolean);
+      return partes.join(' y ');
+    };
     const plantilla = o => {
       const n = nombreCorto(o.nombre), p = productosDe(o);
-      return `${n ? '¡Hola ' + n + '! 👋' : '¡Hola! 👋'} Te escribo de Strange Sneakers.${p ? ` Vi que te interesaron los ${p}.` : ''}\n\n¿Te ayudo a completar tu pedido? 🙌 Pagando en línea el *envío es GRATIS*, o contra entrega pagas solo el envío hoy y los zapatos al recibir. ¿Te lo aparto?`;
+      return `${n ? '¡Hola ' + n + '! 👋' : '¡Hola! 👋'} Te escribo de Strange Sneakers.${p ? ` Vi que te interesaron unos ${p}.` : ''}\n\n¿Te ayudo a completar tu pedido? 🙌 Pagando en línea el *envío es GRATIS*, o contra entrega pagas solo el envío hoy y los zapatos al recibir. ¿Te lo aparto?`;
+    };
+    const plantillaCupon = s => {
+      const n = nombreCorto(s.nombre);
+      return `${n ? '¡Hola ' + n + '! 👋' : '¡Hola! 👋'} Te escribo de Strange Sneakers. Te reactivé tu cupón de *$20.000 OFF*${s.welcome_code ? ` (${s.welcome_code})` : ''} y vuelve a estar vigente por 7 días 🎁\n\n¿Te muestro lo que acaba de entrar? Pagando en línea el envío es GRATIS.`;
     };
 
-    let redactados = null;
+    let redactados = null, modeloUsado = null, ultimoErrorIA = null;
     const GKEY = (process.env.GEMINI_API_KEY || '').trim();
     if (GKEY && pendientes.length) {
       // Un solo viaje para todos: más barato, más rápido y más consistente en el tono.
@@ -738,27 +760,35 @@ Devuelve SOLO un JSON array de strings, un mensaje por cliente, en el mismo orde
 
 Clientes:
 ${fichas}`;
-      try {
-        const gr = await new Promise((resolve) => {
-          const body = Buffer.from(JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }));
-          const rq = require('https').request({
-            hostname: 'generativelanguage.googleapis.com',
-            path: '/v1beta/models/gemini-2.0-flash:generateContent',
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Content-Length': body.length, 'x-goog-api-key': GKEY }
-          }, r => { let d = ''; r.on('data', c => d += c); r.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve(null); } }); });
-          rq.on('error', () => resolve(null));
-          rq.setTimeout(20000, () => { rq.destroy(); resolve(null); });
-          rq.end(body);
-        });
-        const txt = gr && gr.candidates && gr.candidates[0] && gr.candidates[0].content
-          && gr.candidates[0].content.parts && gr.candidates[0].content.parts[0]
-          && gr.candidates[0].content.parts[0].text;
-        if (txt) {
-          const m = String(txt).match(/\[[\s\S]*\]/);
-          if (m) { const arr = JSON.parse(m[0]); if (Array.isArray(arr) && arr.length) redactados = arr; }
-        }
-      } catch { redactados = null; }
+      // Se prueban varios modelos en orden: los nombres del catálogo de Gemini cambian con el
+      // tiempo y no queremos que el agente se quede mudo porque uno se renombró. El primero que
+      // conteste manda; si ninguno lo hace, caen las plantillas y el agente igual funciona.
+      const MODELOS = ['gemini-2.0-flash', 'gemini-flash-latest', 'gemini-2.5-flash', 'gemini-1.5-flash'];
+      const pedir = (modelo) => new Promise((resolve) => {
+        const body = Buffer.from(JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }));
+        const rq = require('https').request({
+          hostname: 'generativelanguage.googleapis.com',
+          path: `/v1beta/models/${modelo}:generateContent`,
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Content-Length': body.length, 'x-goog-api-key': GKEY }
+        }, r => { let d = ''; r.on('data', c => d += c); r.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve(null); } }); });
+        rq.on('error', () => resolve(null));
+        rq.setTimeout(20000, () => { rq.destroy(); resolve(null); });
+        rq.end(body);
+      });
+      for (const modelo of MODELOS) {
+        try {
+          const gr = await pedir(modelo);
+          const txt = gr && gr.candidates && gr.candidates[0] && gr.candidates[0].content
+            && gr.candidates[0].content.parts && gr.candidates[0].content.parts[0]
+            && gr.candidates[0].content.parts[0].text;
+          if (txt) {
+            const m = String(txt).match(/\[[\s\S]*\]/);
+            if (m) { const arr = JSON.parse(m[0]); if (Array.isArray(arr) && arr.length) { redactados = arr; modeloUsado = modelo; break; } }
+          }
+          if (gr && gr.error) ultimoErrorIA = String(gr.error.message || '').slice(0, 120);
+        } catch (e) { ultimoErrorIA = String(e.message || '').slice(0, 120); }
+      }
     }
 
     pendientes.forEach((o, i) => {
@@ -768,12 +798,19 @@ ${fichas}`;
         motivo: 'Pedido sin terminar', ia: !!(redactados && redactados[i])
       });
     });
+    // Cada cupón reactivado arriba entra aquí: sin mensaje, reactivarlo no le sirve a nadie.
+    vencidos.forEach(sub => {
+      cola.push({
+        tel: telKey(sub.whatsapp), nombre: sub.nombre || '', mensaje: plantillaCupon(sub),
+        motivo: 'Cupón reactivado', ia: false
+      });
+    });
 
     return res.json({
       ok: true, seco,
       hechas,
       cola,
-      ia: redactados ? 'gemini' : (GKEY ? 'plantilla (la IA no respondió)' : 'plantilla (sin GEMINI_API_KEY)')
+      ia: redactados ? ('IA ' + modeloUsado) : (GKEY ? ('plantilla — la IA no respondió' + (ultimoErrorIA ? ': ' + ultimoErrorIA : '')) : 'plantilla (sin GEMINI_API_KEY)')
     });
   }
 
