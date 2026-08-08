@@ -1641,6 +1641,12 @@ function renderLiqAdmin(){
 }
 
 /* ── STATS ── */
+/* El resultado del agente vive en una variable, NO en el DOM. Antes se restauraba metiendo el
+   innerHTML de vuelta después de repintar, y cualquier re-render pendiente (loadOrders().then de
+   setAdminSection) lo borraba: corrías el agente y la pantalla quedaba en blanco. Ahora
+   renderStatsTab lo vuelve a pintar solo, cuantas veces haga falta. */
+let _agenteResultado=null, _agenteVencidos=0;
+
 function renderStatsTab(){
   const el=$('panStats');if(!el)return;
   if(!orders.length){
@@ -1662,7 +1668,7 @@ function renderStatsTab(){
   const tareas=[];
   if(pendientes.length)tareas.push({txt:`Clasificar <b>${pendientes.length} pedido${pendientes.length===1?'':'s'} pendiente${pendientes.length===1?'':'s'}</b> como venta / no venta`,go:`avGo('leads','pending')`,ic:'⏳'});
   const sinContactar=pendientes.filter(o=>!o.wa_status||o.wa_status==='sin_contactar').length;
-  if(sinContactar)tareas.push({txt:`Escribir a <b>${sinContactar} lead${sinContactar===1?'':'s'} sin contactar</b> por WhatsApp`,go:`avGo('leads','pending')`,ic:'📱'});
+  if(sinContactar)tareas.push({txt:`Escribir a <b>${sinContactar} lead${sinContactar===1?'':'s'} sin contactar</b> por WhatsApp <span style="font-size:9.5px;color:var(--green);font-weight:700">· el agente te los redacta</span>`,go:`avGo('leads','pending')`,ic:'📱'});
   const calientes=orders.filter(o=>o.temperatura==='caliente'&&o.status!=='venta'&&o.status!=='no_venta').length;
   if(calientes)tareas.push({txt:`Cerrar <b>${calientes} lead${calientes===1?'':'s'} caliente${calientes===1?'':'s'}</b> 🔥 — están listos para comprar`,go:`avGo('leads','pending')`,ic:'🔥'});
   const hoyISO=new Date().toISOString().slice(0,10);
@@ -1710,21 +1716,22 @@ function renderStatsTab(){
     porVencer.forEach(s=>{
       const v=cuponVigencia(s.welcome_issued_at||s.created_at);
       const names=interesadoEn(s.session_id);
-      tareas.push({txt:`Escribir a <b>${escHtml(s.nombre||s.whatsapp)}</b>${names.length?` — miró <b>${escHtml(names[0])}</b>`:''}, su cupón vence en <b>${v.dias} día${v.dias===1?'':'s'}</b>`,go:`avGo('suscriptores')`,ic:'🎟'});
+      tareas.push({txt:`Escribir a <b>${escHtml(s.nombre||s.whatsapp)}</b>${names.length?` — miró <b>${escHtml(names[0])}</b>`:''}, su cupón vence en <b>${v.dias} día${v.dias===1?'':'s'}</b> <span style="font-size:9.5px;color:var(--green);font-weight:700">· redactado</span>`,go:`avGo('suscriptores')`,ic:'🎟'});
     });
-    // Cupones YA vencidos sin compra → recuperar (reactivar el cupón + escribir).
-    const vencidos=subsData.filter(s=>{
+    // Cupones YA vencidos sin compra → los reactiva el AGENTE, no tú.
+    const vencidosTodos=subsData.filter(s=>{
       if(s.source!=='popup_bienvenida')return false;
       if(s.welcome_used_at)return false;   // gastado ≠ vencido: si compró con él, no hay que recuperarlo
       const v=cuponVigencia(s.welcome_issued_at||s.created_at);
       if(!v||!v.vencido)return false;
       const tel=String(s.whatsapp||'').replace(/\D/g,'').slice(-10);
       return tel&&!telsPedidos.has(tel);
-    }).slice(0,3);
-    vencidos.forEach(s=>{
-      const names=interesadoEn(s.session_id);
-      tareas.push({txt:`Recuperar a <b>${escHtml(s.nombre||s.whatsapp)}</b>${names.length?` — miró <b>${escHtml(names[0])}</b>`:''}, su cupón <b>venció</b> → reactívalo`,go:`avGo('suscriptores')`,ic:'🔄'});
     });
+    const vencidos=vencidosTodos.slice(0,3);
+    // Los cupones vencidos NO se listan como tarea tuya: reactivarlos es exactamente lo que el
+    // agente hace solo. Poner una tarea que otro ya resuelve entrena a ignorar la lista.
+    // Se cuentan aparte y el bloque del agente los muestra como trabajo suyo pendiente.
+    _agenteVencidos=vencidosTodos.length;
     loadActivity([...porVencer,...vencidos].map(s=>s.session_id)).then(ok=>{if(ok&&avSec==='inicio')renderStatsTab();});
   }
   // ── SALUD DEL CONTRA ENTREGA (últimos 30 días): entregado vs devuelto. Cada devolución paga
@@ -1764,7 +1771,11 @@ function renderStatsTab(){
    WhatsApp REDACTADOS EN COLA para que el dueño los suelte uno a uno. Nada sale a un cliente
    sin su clic: un mensaje mal redactado no se puede deshacer. */
 function _agenteBloque(nTareas){
-  if(!nTareas)return '';
+  // Se muestra aunque no haya tareas tuyas: el agente puede tener trabajo propio (cupones vencidos).
+  if(!nTareas && !_agenteVencidos && !_agenteResultado)return '';
+  const suyo=_agenteVencidos
+    ? `<div style="margin-top:7px;font-size:10.5px;color:var(--ink2);background:var(--bg);border-radius:8px;padding:7px 9px">🔄 Tiene <b>${_agenteVencidos}</b> cupón${_agenteVencidos===1?'':'es'} vencido${_agenteVencidos===1?'':'s'} por reactivar — eso lo hace él, no tú.</div>`
+    : '';
   return `<div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)">
     <div style="display:flex;align-items:center;gap:9px">
       <div style="flex:0 0 auto;width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#1BA94C,#0d7a35);display:flex;align-items:center;justify-content:center;font-size:15px">🤖</div>
@@ -1773,8 +1784,9 @@ function _agenteBloque(nTareas){
         <div style="font-size:10px;color:var(--ink3);line-height:1.35">Hace lo seguro solo y te deja los WhatsApp escritos para que tú los envíes</div>
       </div>
     </div>
+    ${suyo}
     <button id="btnAgente" onclick="correrAgente()" style="margin-top:9px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:10px;font-family:var(--font);font-size:12.5px;font-weight:700;cursor:pointer">⚡ Haz las tareas de hoy</button>
-    <div id="agenteOut" style="display:none;margin-top:9px"></div>
+    <div id="agenteOut" style="${_agenteResultado?'':'display:none;'}margin-top:9px">${_agenteResultado||''}</div>
   </div>`;
 }
 
@@ -1825,20 +1837,16 @@ async function correrAgente(){
     }else{
       html+=`<div style="font-size:11.5px;color:var(--green);font-weight:600;margin-top:8px">✅ No hay nadie a quien escribirle ahora mismo.</div>`;
     }
-    out.innerHTML=html;
-    // Recargar TAMBIÉN los suscriptores: las tareas de cupones se calculan con subsData, así que
-    // sin esto el agente reactivaba los cupones de verdad pero la pantalla seguía pidiéndotelo.
-    // Se vuelve a pintar conservando el resultado del agente (renderStatsTab lo borraría).
-    const guardado=out.innerHTML;
+    _agenteResultado=html;          // se guarda FUERA del DOM: ningún repintado lo borra
+    out.innerHTML=html; out.style.display='block';
+    // Recargar también los suscriptores: las tareas de cupones se calculan con subsData, y sin
+    // esto el agente reactivaba los cupones de verdad pero la pantalla seguía pidiéndotelo.
     await loadOrders();
     if(typeof loadSubscribers==='function'){ try{ subsData=null; await loadSubscribers(); }catch(e){} }
-    if(avSec==='inicio'){
-      renderStatsTab();
-      const o2=$('agenteOut');
-      if(o2){ o2.style.display='block'; o2.innerHTML=guardado; }
-    }
+    if(avSec==='inicio')renderStatsTab();   // vuelve a pintar el resultado desde _agenteResultado
   }catch(e){
-    out.innerHTML=`<div style="font-size:11.5px;color:var(--red)">No se pudo: ${escHtml(e.message)}</div>`;
+    _agenteResultado=`<div style="font-size:11.5px;color:var(--red)">No se pudo: ${escHtml(e.message)}</div>`;
+    out.innerHTML=_agenteResultado; out.style.display='block';
   }finally{ const bb=$('btnAgente'); if(bb){bb.disabled=false;bb.textContent='⚡ Haz las tareas de hoy';} }
 }
 
