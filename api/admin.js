@@ -751,9 +751,14 @@ module.exports = async (req, res) => {
     reales.filter(o => o.seguimiento && o.seguimiento <= hoyISO && o.status !== 'venta' && o.status !== 'no_venta')
       .forEach(o => push(2, 'Seguimiento agendado', o.tel, o.nombre, productosDe(o)));
 
-    // (c) Carrito abandonado de las últimas 24h — dejó datos y se fue sin confirmar
-    reales.filter(o => o.status === 'abandoned' && (AHORA - new Date(o.fecha || o.created_at).getTime()) < DIA)
-      .forEach(o => push(3, 'Carrito abandonado hoy', o.tel, o.nombre, productosDe(o)));
+    // (c) Carrito abandonado — dejó datos y se fue sin confirmar.
+    //     Ventana de 7 días, no de 24h: con este volumen (5 abandonados en total, el más reciente
+    //     de hace semanas) una ventana de un día deja la lista vacía siempre y no automatiza nada.
+    reales.filter(o => o.status === 'abandoned' && (AHORA - new Date(o.fecha || o.created_at).getTime()) < 7 * DIA)
+      .forEach(o => {
+        const d = Math.floor((AHORA - new Date(o.fecha || o.created_at).getTime()) / DIA);
+        push(3, d <= 1 ? 'Carrito abandonado hoy' : 'Carrito abandonado hace ' + d + ' días', o.tel, o.nombre, productosDe(o));
+      });
 
     // (d) Cupón que vence en 1-3 días y nunca compró — la urgencia es real, no inventada
     (subs || []).forEach(s => {
