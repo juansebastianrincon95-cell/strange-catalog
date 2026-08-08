@@ -16,6 +16,12 @@ const P_DEF=180000, P_ANT=240000;
 
 let prods=[],liqs=[];
 
+/* Colecciones curadas a mano (estilo Shopify, versión barata): viven en settings.colecciones como
+   [{slug,nombre,descripcion,ids:[..],activo}]. NO son reglas automáticas a propósito — con precios
+   entre $195.000 y $220.000 una regla por precio devuelve el catálogo entero o nada; lo que aporta
+   valor es la curaduría (elegir 6 pares) + una URL propia por ángulo de anuncio. */
+let colecciones=[];
+
 let cart={};
 
 let gSel='all',promoG=false,bannerOn=false;
@@ -200,6 +206,12 @@ async function loadState(){
     try{envioZonas=cfg.envio_zonas?JSON.parse(cfg.envio_zonas):null;}catch(e){envioZonas=null;}
     envioGratisDesde=parseInt(cfg.envio_gratis_desde,10)||0;
     try{featuredIds=JSON.parse(cfg.featured_ids||'[]');}catch(e){featuredIds=[];}
+    // Colecciones: solo entran las bien formadas (slug + al menos 1 id). Un setting roto o a medio
+    // guardar deja la lista vacía y la tienda se comporta exactamente como antes.
+    try{
+      const cl=cfg.colecciones?JSON.parse(cfg.colecciones):null;
+      colecciones=Array.isArray(cl)?cl.filter(c=>c&&typeof c.slug==='string'&&c.slug&&Array.isArray(c.ids)&&c.ids.length):[];
+    }catch(e){colecciones=[];}
     try{bannerMujer=cfg.banner_mujer?imgCdnDeep(JSON.parse(cfg.banner_mujer)):null;}catch(e){bannerMujer=null;}
     try{bannerHombre=cfg.banner_hombre?imgCdnDeep(JSON.parse(cfg.banner_hombre)):null;}catch(e){bannerHombre=null;}
     try{bannerUnisex=cfg.banner_unisex?imgCdnDeep(JSON.parse(cfg.banner_unisex)):null;}catch(e){bannerUnisex=null;}

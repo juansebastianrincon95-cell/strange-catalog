@@ -54,7 +54,7 @@ function openGuia(){
   // WhatsApp clickeable con el número de la tienda
   const wa=$('guiaWa');
   if(wa)wa.href=`https://wa.me/${WA}?text=${encodeURIComponent('¡Hola '+STORE_NAME+'! Tengo una duda sobre el cuidado de mis sneakers 👟')}`;
-  $('guiaModal').classList.add('on');lockScroll();
+  {const _gm=$('guiaModal');const _ya=_gm.classList.contains('on');_gm.classList.add('on');if(!_ya)lockScroll();}   // un bloqueo por capa
   navPush('guia',null,null,closeGuia);
 }
 function closeGuia(){if(!_navPopping)navRemove('guia');$('guiaModal').classList.remove('on');unlockScroll();}

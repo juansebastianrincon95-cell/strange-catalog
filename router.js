@@ -91,6 +91,8 @@ function navProdUrl(id,type,p){
 }
 
 function navCatUrl(){
+  // Colección curada → URL propia /c/<slug>, para poder mandarle un anuncio a un ángulo concreto.
+  if(typeof colSel!=='undefined'&&colSel)return '/c/'+encodeURIComponent(colSel);
   const g=gSel==='h'?'/hombre':gSel==='m'?'/mujer':gSel==='liq'?'/ofertas':'';
   return '/catalogo'+g+(brandSel&&brandSel!=='all'?'?marca='+encodeURIComponent(brandSel):'');
 }
@@ -131,6 +133,13 @@ function checkDeepLink(){
       return;
     }
     if(seg[0]==='carrito'){enter(()=>openCart());return;}
+    // /c/<slug> — colección curada. Si el slug no existe o está desactivada, cae al catálogo
+    // completo en vez de al home: un anuncio con un link viejo sigue aterrizando en producto.
+    if(seg[0]==='c'&&seg[1]){
+      const slug=decodeURIComponent(seg[1]);
+      enter(()=>openCatalog(coleccionDe(slug)?{coleccion:slug}:{gender:'all'}));
+      return;
+    }
     if(seg[0]==='catalogo'){
       const g={hombre:'h',mujer:'m',ofertas:'liq'}[seg[1]]||'all';
       const marca=params.get('marca');

@@ -318,6 +318,31 @@
       <div class="uopt"><label>Antes</label><input id="qAnt" type="number" value="240000"></div>
     </div>
     <button class="uadd" id="btnCat" style="display:none" onclick="addQueue('cat')">➕ Añadir al catálogo</button>
+    <div style="border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:12px 14px;background:#f5f2ff">
+      <div style="font-size:12px;font-weight:800;color:var(--ink);margin-bottom:4px">🗂 Colecciones</div>
+      <div style="font-size:10.5px;color:var(--ink3);margin-bottom:10px">Selecciones hechas <b>a mano</b>, cada una con su URL propia <b>/c/slug</b> → una landing por ángulo de anuncio. El <b>orden en que elijas los productos es el que verá el cliente</b>. Si borras un producto del catálogo, desaparece de la colección sin romperla.</div>
+      <div id="colAdminList" style="display:flex;flex-direction:column;gap:8px"></div>
+      <button id="colNuevoBtn" onclick="colNuevo()" style="margin-top:8px;width:100%;padding:9px;background:var(--white);color:var(--ink);border:1.5px dashed var(--ink3);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">➕ Crear colección</button>
+      <div id="colForm" style="display:none;margin-top:10px;background:var(--white);border:1.5px solid var(--ink);border-radius:10px;padding:10px">
+        <div id="colFormTit" style="font-size:11.5px;font-weight:800;color:var(--ink);margin-bottom:8px">Nueva colección</div>
+        <input id="colNombre" type="text" placeholder="Nombre — ej. Adidas Samba" oninput="colSlugAuto()" style="width:100%;padding:8px 9px;margin-bottom:6px;background:var(--bg);border:1px solid var(--line);border-radius:7px;font-family:var(--font);font-size:12px;font-weight:700;box-sizing:border-box">
+        <div style="display:flex;align-items:center;gap:5px;margin-bottom:6px">
+          <span style="font-size:10.5px;color:var(--ink3);white-space:nowrap">strangesneakers.com/c/</span>
+          <input id="colSlug" type="text" placeholder="adidas-samba" style="flex:1;min-width:0;padding:8px 9px;background:var(--bg);border:1px solid var(--line);border-radius:7px;font-family:var(--font);font-size:12px;font-weight:700">
+        </div>
+        <input id="colDesc" type="text" placeholder="Descripción corta (opcional)" style="width:100%;padding:8px 9px;margin-bottom:8px;background:var(--bg);border:1px solid var(--line);border-radius:7px;font-family:var(--font);font-size:12px;box-sizing:border-box">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <input id="colBuscar" type="text" placeholder="🔎 Buscar por modelo o marca…" oninput="colPickerRender()" style="flex:1;min-width:0;padding:8px 9px;background:var(--bg);border:1px solid var(--line);border-radius:7px;font-family:var(--font);font-size:12px">
+          <span id="colCount" style="flex:0 0 auto;font-size:10.5px;font-weight:800;color:var(--ink2)">0 elegidos</span>
+        </div>
+        <div id="colPicker" style="max-height:230px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;background:var(--bg)"></div>
+        <label style="display:flex;align-items:center;gap:7px;margin-top:9px;font-size:11.5px;font-weight:700;color:var(--ink2);cursor:pointer"><input type="checkbox" id="colActivo" checked> Colección activa (visible para el cliente)</label>
+        <div style="display:flex;gap:6px;margin-top:9px">
+          <button onclick="colCancelar()" style="flex:1;padding:9px;background:var(--bg);color:var(--ink2);border:1px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">Cancelar</button>
+          <button onclick="guardarColeccion(this)" style="flex:2;padding:9px;background:var(--ink);color:#fff;border:none;border-radius:8px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">💾 Guardar colección</button>
+        </div>
+      </div>
+    </div>
     <div class="alist-hdr"><span>Foto</span><span>Género</span><span>Precio</span><span>Agotado</span><span></span></div>
     <div class="alist" id="listCat"></div>
   </div>

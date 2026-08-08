@@ -261,13 +261,19 @@ function openCatalog(opts){
   _searchQ='';{const _si=$('catSearchInput');if(_si)_si.value='';const _sx=$('catSearchX');if(_sx)_sx.style.display='none';}
   _sortBy='';{const _so=$('catSort');if(_so)_so.value='';}
   const v=$('catView');if(!v)return;
-  v.classList.add('on');lockScroll();
+  // Mismo motivo que en la ficha: navPush('cat') deduplica, así que un bloqueo por capa.
+  {const _ya=v.classList.contains('on');v.classList.add('on');if(!_ya)lockScroll();}
   const tabs=document.querySelectorAll('#catView .tabs .tab');
-  if(opts.brand){
-    gSel='all';brandSel=opts.brand;
+  if(opts.coleccion&&coleccionDe(opts.coleccion)){
+    gSel='all';brandSel='all';colSel=opts.coleccion;
+    tabs.forEach((t,i)=>t.classList.toggle('on',i===0));
+    renderGrid();
+  }else if(opts.brand){
+    gSel='all';brandSel=opts.brand;colSel=null;
     tabs.forEach((t,i)=>t.classList.toggle('on',i===0));
     renderGrid();
   }else{
+    colSel=null;
     const g=opts.gender||'all';
     const idx=g==='h'?1:g==='m'?2:g==='u'?3:g==='liq'?4:0;
     setG(g, tabs[idx]);   // setG hace renderGrid
@@ -277,7 +283,10 @@ function openCatalog(opts){
   let _ct='Catálogo';
   if(tt){
     const map={h:'Hombre',m:'Mujer',u:'Unisex',liq:'Ofertas',all:'Productos'};
-    tt.textContent = opts.brand ? (typeof BRAND_LABELS!=='undefined' && BRAND_LABELS[opts.brand] ? BRAND_LABELS[opts.brand] : 'Productos') : (map[opts.gender||'all']||'Catálogo');
+    const _c=colSel?coleccionDe(colSel):null;
+    tt.textContent = _c ? (_c.nombre||_c.slug)
+                    : opts.brand ? (typeof BRAND_LABELS!=='undefined' && BRAND_LABELS[opts.brand] ? BRAND_LABELS[opts.brand] : 'Productos')
+                    : (map[opts.gender||'all']||'Catálogo');
     _ct=tt.textContent;
   }
   v.scrollTop=0;
@@ -391,7 +400,7 @@ function openInfo(which){
   const cfg=INFO[which]||INFO.cambios;
   b.innerHTML=cfg[0];
   const t=$('infoTitle');if(t)t.textContent=cfg[1];
-  const m=$('infoModal');m.classList.add('on');lockScroll();
+  const m=$('infoModal');{const _ya=m.classList.contains('on');m.classList.add('on');if(!_ya)lockScroll();}   // un bloqueo por capa (navPush deduplica)
   const sc=m.querySelector('.info-scroll');if(sc)sc.scrollTop=0;
   navPush('info',cfg[2],cfg[1]+' — '+STORE_NAME,closeInfo);
 }
@@ -547,7 +556,7 @@ function openTesti(i){
   const cp=$('tmCap');if(cp){if(t.captura){cp.src=t.captura;cp.style.display='';}else cp.style.display='none';}
   _tmProdId=(t.productId&&prods.find(x=>x.id===t.productId))?t.productId:null;
   const pb=$('tmProd');if(pb)pb.style.display=_tmProdId?'':'none';
-  $('testiModal').classList.add('on');lockScroll();
+  {const _tm=$('testiModal');const _ya=_tm.classList.contains('on');_tm.classList.add('on');if(!_ya)lockScroll();}   // un bloqueo por capa
   navPush('testi',null,null,closeTesti);
 }
 
@@ -811,6 +820,14 @@ function renderGrid(){
   $('grid').style.display='';
   renderBrandBar();
   let items=gSel==='all'?prods:gSel==='u'?prods.filter(p=>p.g==='u'):prods.filter(p=>p.g===gSel||p.g==='u');   // Hombre/Mujer incluyen Unisex; pestaña Unisex solo 'u'
+  // Colección curada: manda sobre todo y respeta el ORDEN en que el admin eligió los productos
+  // (por eso se recorre la lista de ids, no la de productos). Un id borrado del catálogo
+  // simplemente no aparece: la colección nunca muestra un hueco ni rompe.
+  const _col=colSel?coleccionDe(colSel):null;
+  if(_col){
+    const byId=new Map(prods.map(p=>[p.id,p]));
+    items=_col.ids.map(id=>byId.get(id)).filter(Boolean);
+  }
   if(brandSel!=='all')items=items.filter(p=>p.brand===brandSel);
   if(_searchQ)items=items.filter(p=>((p.modelo||'')+' '+brandLabel(p.brand)).toLowerCase().includes(_searchQ));
   // Ordenar sobre una COPIA (cuando gSel==='all', items === prods por referencia: nunca ordenar in-place).
@@ -822,7 +839,7 @@ function renderGrid(){
     else if(_sortBy==='views')items.sort((a,b)=>(_views[String(b.id)]||0)-(_views[String(a.id)]||0));
   }
   $('statN').textContent=prods.length;
-  $('secName').textContent=(gSel==='all'?'Todos':genLabel(gSel))+(brandSel!=='all'?' · '+brandLabel(brandSel):'');
+  $('secName').textContent=_col?(_col.nombre||_col.slug):((gSel==='all'?'Todos':genLabel(gSel))+(brandSel!=='all'?' · '+brandLabel(brandSel):''));
   $('secCt').textContent=items.length+' modelos';
   $('grid').innerHTML=items.length?items.map((p,i)=>cardHTML(p,i,'k')).join(''):`<div class="grid-empty">No encontramos "<b>${escHtml(_searchQ)}</b>" 😕<br>Prueba con otra marca o modelo.</div>`;
   if(liqs.length&&gSel==='all'){
@@ -868,6 +885,7 @@ function cardClick(e,id,type){
 function setG(v,btn){
   gSel=v;
   brandSel='all';   // al cambiar de sección, resetear el filtro de marca
+  colSel=null;      // ...y salir de la colección: el cliente pidió ver una sección completa
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
   btn.classList.add('on');
   renderGrid();
@@ -878,6 +896,12 @@ function setG(v,btn){
 const BRAND_LABELS={adidas:'Adidas',nike:'Nike',reebok:'Reebok',new_balance:'New Balance',on_cloud:'On Cloud',puma:'Puma',lecoq_sportif:'Le Coq Sportif',jordan:'Jordan',lacoste:'Lacoste',asics:'Asics',onitsuka_tiger:'Onitsuka Tiger',luxury:'Luxury'};
 
 let brandSel='all';
+
+/* Colección activa (slug) o null. Manda sobre género y marca: si el cliente entró por /c/xxx,
+   está viendo una selección hecha a mano y no debe mezclarse con los filtros. */
+let colSel=null;
+
+function coleccionDe(slug){return (colecciones||[]).find(c=>c.slug===slug&&c.activo!==false)||null;}
 
 function brandLabel(b){return BRAND_LABELS[b]||b;}
 
@@ -897,6 +921,7 @@ function renderBrandBar(){
 
 function setBrand(v,btn){
   brandSel=v;
+  colSel=null;      // elegir una marca es salir de la colección curada
   document.querySelectorAll('.bchip').forEach(c=>c.classList.remove('on'));
   if(btn)btn.classList.add('on');
   renderGrid();
@@ -997,8 +1022,11 @@ function openPhoto(id,type){
   px('ViewContent',{content_ids:[pxId(type,id)],content_type:'product',content_category:_vcat,content_name:_vnm,value:p.price,currency:'COP',...getUTM()});
   ga4('view_item',{currency:'COP',value:p.price,items:[{item_id:pxId(type,id),item_name:_vnm,price:p.price}]});   // GA4 / Google Ads
   trackEvent('view_product',{product_id:(type==='liq'?'L':'')+id,price:p.price,gender:type==='liq'?null:p.g||null});
-  $('photoModal').classList.add('on');
-  lockScroll();
+  // Un bloqueo POR CAPA, no por llamada. navPush('ficha') deduplica por clave: abrir una ficha
+  // estando ya en otra (cross-sell / "también te puede gustar") NO crea una capa nueva, así que
+  // un solo atrás la cierra y solo desbloquea una vez. Sin esta guarda el contador quedaba en 1
+  // y el body se quedaba en position:fixed → la página se congelaba y solo salía recargando.
+  {const _pm=$('photoModal');const _yaAbierta=_pm.classList.contains('on');_pm.classList.add('on');if(!_yaAbierta)lockScroll();}
   // SEO por producto: título de página y metadescripción propios cuando existen (meta.seo);
   // sin ellos, el título de siempre y la descripción global (setMetaDesc(null) restaura).
   const _seo=seoFicha(p);

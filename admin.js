@@ -98,6 +98,145 @@ async function guardarCombos(msg){
   alert(msg||'✓ Combos guardados y publicados');
 }
 
+/* ── COLECCIONES (Admin → Productos · settings.colecciones) ──
+   Curadas a mano, NO por reglas: con los precios entre $195.000 y $220.000 una condición por
+   precio devuelve el catálogo entero o nada, y marca/género YA son filtros con URL propia
+   (/catalogo/hombre?marca=nike). Lo que no existía era elegir 6 pares y darles una landing.
+   Sin tabla nueva y sin endpoint nuevo: viaja en settings, que la tienda ya carga en loadState. */
+let _colEdit=null,_colIds=[];
+
+function _colSlugify(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40);}
+
+function colSlugAuto(){
+  // El slug solo se autocompleta mientras no lo hayas tocado a mano (y nunca al editar una que
+  // ya existe: cambiarlo rompería los anuncios que ya apuntan a esa URL).
+  const s=$('colSlug');if(!s||s.dataset.tocado==='1'||_colEdit)return;
+  s.value=_colSlugify(($('colNombre')||{}).value);
+}
+
+function renderColeccionesAdmin(){
+  const box=$('colAdminList');if(!box)return;
+  if(!(colecciones||[]).length){box.innerHTML='<div style="font-size:11px;color:var(--ink3)">Aún no hay colecciones. Crea la primera abajo 👇</div>';return;}
+  box.innerHTML=colecciones.map(c=>{
+    const vivos=(c.ids||[]).filter(id=>prods.some(p=>p.id===id)).length;
+    const perdidos=(c.ids||[]).length-vivos;
+    return `<div style="background:var(--white);border:1px solid var(--line);border-radius:10px;padding:9px">
+      <div style="display:flex;align-items:center;gap:7px">
+        <div style="flex:1;min-width:0">
+          <span style="font-size:12.5px;font-weight:800;color:var(--ink)">${escHtml(c.nombre||c.slug)}</span>
+          <div style="font-size:9.5px;color:var(--ink3);margin-top:1px">/c/${escHtml(c.slug)} · <b>${vivos}</b> productos${perdidos?` · <span style="color:var(--red)">${perdidos} ya no existen</span>`:''}</div>
+        </div>
+        <span style="flex:0 0 auto;font-size:10px;font-weight:800;color:${c.activo===false?'var(--ink3)':'#0a7d3f'}">${c.activo===false?'OCULTA':'ACTIVA'}</span>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:7px">
+        <button onclick="colToggle('${escHtml(c.slug)}')" style="flex:1;border:1px solid var(--line);background:var(--bg);border-radius:7px;padding:6px;cursor:pointer;font-family:var(--font);font-size:10.5px;font-weight:700;color:var(--ink2)">${c.activo===false?'▶ Activar':'⏸ Ocultar'}</button>
+        <button onclick="colEditar('${escHtml(c.slug)}')" style="flex:1;border:1px solid var(--line);background:#eef4ff;border-radius:7px;padding:6px;cursor:pointer;font-family:var(--font);font-size:10.5px;font-weight:700;color:var(--ink)">✏️ Editar</button>
+        <button onclick="colCopiarLink('${escHtml(c.slug)}')" style="flex:0 0 34px;border:1px solid var(--line);background:var(--bg);border-radius:7px;cursor:pointer;font-size:11px">🔗</button>
+        <button onclick="colBorrar('${escHtml(c.slug)}')" style="flex:0 0 34px;border:none;background:#ffe9e6;color:var(--red);border-radius:7px;cursor:pointer;font-size:11px">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function colPickerRender(){
+  const box=$('colPicker');if(!box)return;
+  const q=(($('colBuscar')||{}).value||'').toLowerCase().trim();
+  const lista=prods.filter(p=>!q||((p.modelo||'')+' '+brandLabel(p.brand)).toLowerCase().includes(q));
+  // Los ya elegidos van primero y en su orden real: así se ve y se reordena lo que verá el cliente.
+  const elegidos=_colIds.map(id=>prods.find(p=>p.id===id)).filter(Boolean);
+  const resto=lista.filter(p=>!_colIds.includes(p.id));
+  const fila=(p,pos)=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid var(--line)">
+      <input type="checkbox" ${pos?'checked':''} onchange="colTogglePick(${p.id})" style="flex:0 0 auto">
+      ${pos?`<span style="flex:0 0 18px;font-size:10px;font-weight:800;color:var(--ink3)">${pos}</span>`:''}
+      <img src="${escHtml(p.img||'')}" alt="" style="flex:0 0 30px;width:30px;height:30px;object-fit:cover;border-radius:5px;background:var(--line)">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:11px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(p.modelo||('#'+p.id))}</div>
+        <div style="font-size:9.5px;color:var(--ink3)">${escHtml(brandLabel(p.brand))} · ${fmt(p.price)}${p.sold?' · AGOTADO':''}</div>
+      </div>
+    </div>`;
+  box.innerHTML=(elegidos.map((p,i)=>fila(p,i+1)).join(''))+(resto.map(p=>fila(p,0)).join(''))||'<div style="padding:10px;font-size:11px;color:var(--ink3)">Sin resultados</div>';
+  const c=$('colCount');if(c)c.textContent=_colIds.length+(_colIds.length===1?' elegido':' elegidos');
+}
+
+function colTogglePick(id){
+  const i=_colIds.indexOf(id);
+  if(i>=0)_colIds.splice(i,1); else _colIds.push(id);   // push = el orden de clic es el orden final
+  colPickerRender();
+}
+
+function colNuevo(){
+  _colEdit=null;_colIds=[];
+  const f=$('colForm');if(!f)return;
+  $('colFormTit').textContent='Nueva colección';
+  ['colNombre','colSlug','colDesc','colBuscar'].forEach(id=>{const el=$(id);if(el)el.value='';});
+  {const s=$('colSlug');if(s)delete s.dataset.tocado;}
+  {const a=$('colActivo');if(a)a.checked=true;}
+  colPickerRender();
+  f.style.display='block';
+  const b=$('colNuevoBtn');if(b)b.style.display='none';
+  f.scrollIntoView({block:'center',behavior:'smooth'});
+}
+
+function colEditar(slug){
+  const c=(colecciones||[]).find(x=>x.slug===slug);if(!c)return;
+  colNuevo();
+  _colEdit=slug;_colIds=(c.ids||[]).slice();
+  $('colFormTit').textContent='Editar '+(c.nombre||slug);
+  $('colNombre').value=c.nombre||'';
+  {const s=$('colSlug');s.value=c.slug;s.dataset.tocado='1';}   // el slug de una existente no se autogenera
+  $('colDesc').value=c.descripcion||'';
+  $('colActivo').checked=c.activo!==false;
+  colPickerRender();
+}
+
+function colCancelar(){
+  _colEdit=null;_colIds=[];
+  const f=$('colForm');if(f)f.style.display='none';
+  const b=$('colNuevoBtn');if(b)b.style.display='block';
+}
+
+async function _colGuardarLista(lista,msg){
+  colecciones=lista;
+  await adminWrite('upsert_settings',{data:{key:'colecciones',value:JSON.stringify(lista)}});
+  renderColeccionesAdmin();
+  if(msg)alert(msg);
+}
+
+async function guardarColeccion(btn){
+  const nombre=(($('colNombre')||{}).value||'').trim();
+  let slug=_colSlugify((($('colSlug')||{}).value||'')||nombre);
+  if(!nombre){alert('Ponle un nombre a la colección.');return;}
+  if(!slug){alert('El nombre no genera una URL válida. Escribe el slug a mano.');return;}
+  if(!_colIds.length){alert('Elige al menos un producto.');return;}
+  // Slug repetido = dos colecciones peleando por la misma URL. Se bloquea salvo que sea ella misma.
+  if((colecciones||[]).some(c=>c.slug===slug&&c.slug!==_colEdit)){alert('Ya existe una colección con la URL /c/'+slug);return;}
+  const fila={slug,nombre,descripcion:(($('colDesc')||{}).value||'').trim(),ids:_colIds.slice(),activo:!!($('colActivo')||{}).checked};
+  const lista=(colecciones||[]).slice();
+  const i=lista.findIndex(c=>c.slug===_colEdit);
+  if(i>=0)lista[i]=fila; else lista.push(fila);
+  if(btn){btn.disabled=true;btn.textContent='Guardando…';}
+  try{
+    await _colGuardarLista(lista,'✓ Colección publicada en strangesneakers.com/c/'+slug);
+    colCancelar();
+  }catch(e){alert('No se pudo guardar: '+e.message);}
+  finally{if(btn){btn.disabled=false;btn.textContent='💾 Guardar colección';}}
+}
+
+async function colToggle(slug){
+  const lista=(colecciones||[]).map(c=>c.slug===slug?{...c,activo:c.activo===false}:c);
+  await _colGuardarLista(lista);
+}
+
+async function colBorrar(slug){
+  if(!confirm('¿Borrar la colección /c/'+slug+'?\nLos productos NO se borran, solo la selección.'))return;
+  await _colGuardarLista((colecciones||[]).filter(c=>c.slug!==slug));
+}
+
+function colCopiarLink(slug){
+  const url='https://strangesneakers.com/c/'+slug;
+  try{navigator.clipboard.writeText(url);toast('🔗 Link copiado: '+url);}catch(e){prompt('Copia el link:',url);}
+}
+
 /* ── DESCUENTOS (Admin → Ofertas · tabla discounts, migración 006) ──
    El panel solo administra filas vía api/admin.js (list/save/delete_discount); la validación
    del cobro vive entera en api/_orders.js. Los usos que se ven aquí son VENTAS CONFIRMADAS
@@ -829,7 +968,7 @@ function setAdminSection(name){
   toggleAvSide(false);
   const m=$('avMain');if(m)m.scrollTop=0;
   if(name==='inicio'){renderStatsTab();loadOrders().then(()=>{if(avSec==='inicio')renderStatsTab();});}
-  if(name==='productos')renderAdmin();
+  if(name==='productos'){renderAdmin();renderColeccionesAdmin();}
   if(name==='ofertas'){renderLiqAdmin();loadDescuentos();}   // descuentos: se cargan al entrar a Ofertas (requiere sesión admin)
   if(name==='banners'){renderHeroAdmin();renderFeaturedAdmin();renderColAdmin();}
   if(name==='testimonios')renderTestiAdmin();
@@ -1766,7 +1905,11 @@ async function renderAnalytics(){
       box.innerHTML=chips+`<div style="padding:22px;text-align:center;color:var(--ink3);font-size:12px">No se pudo cargar analytics (${escHtml(e.message)}).<br><button onclick="renderAnalytics()" style="margin-top:9px;padding:8px 16px;border:1px solid var(--line);border-radius:9px;background:var(--white);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">Reintentar</button></div>`;
       return;
     }
-    if(anaRango+'|'+anaGroup!==key)return; // el usuario cambió de rango mientras cargaba
+    // El usuario cambió de rango mientras cargaba → soltar este resultado.
+    // Ojo: hay que reconstruir la clave IGUAL que arriba (con la ventana). Comparar solo
+    // rango+grupo contra `key` daba siempre distinto → el return se disparaba SIEMPRE y el
+    // panel se quedaba clavado en "Cargando analytics…" en la primera carga.
+    if(anaRango+'|'+anaGroup+'|v'+anaVentana!==key)return;
   }
   const R=j.resumen||{},P=j.resumen_prev,C=j.clientes||{};
   const tcard=(lbl,val,delta,def)=>`<div title="${escHtml(def||'')}" style="background:var(--white);border:1px solid var(--line);border-radius:14px;padding:12px 13px">

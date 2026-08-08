@@ -463,7 +463,7 @@ function openCart(){
   step=0;_icFired=false;_comboSugDismiss=false;
   syncDescuentosAuto();   // pedirle al server los descuentos automáticos de ESTE carrito (async, solo pinta)
   renderStep();
-  $('cscrim').classList.add('on');$('csheet').classList.add('on');lockScroll();
+  {const _cs=$('csheet');const _ya=_cs.classList.contains('on');$('cscrim').classList.add('on');_cs.classList.add('on');if(!_ya)lockScroll();}   // un bloqueo por capa (navPush deduplica)
   navPush('carrito','/carrito','Tu carrito — '+STORE_NAME,closeCart);
 }
 
