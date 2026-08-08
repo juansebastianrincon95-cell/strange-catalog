@@ -1774,7 +1774,7 @@ function _agenteBloque(nTareas){
   // Se muestra aunque no haya tareas tuyas: el agente puede tener trabajo propio (cupones vencidos).
   if(!nTareas && !_agenteVencidos && !_agenteResultado)return '';
   const suyo=_agenteVencidos
-    ? `<div style="margin-top:7px;font-size:10.5px;color:var(--ink2);background:var(--bg);border-radius:8px;padding:7px 9px">🔄 Tiene <b>${_agenteVencidos}</b> cupón${_agenteVencidos===1?'':'es'} vencido${_agenteVencidos===1?'':'s'} por reactivar — eso lo hace él, no tú.</div>`
+    ? `<div style="margin-top:7px;font-size:10.5px;color:var(--ink2);background:var(--bg);border-radius:8px;padding:7px 9px">🔄 Tiene <b>${_agenteVencidos}</b> ${_agenteVencidos===1?'cupón vencido':'cupones vencidos'} por reactivar — eso lo hace él, no tú.</div>`
     : '';
   return `<div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)">
     <div style="display:flex;align-items:center;gap:9px">
