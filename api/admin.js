@@ -532,7 +532,13 @@ module.exports = async (req, res) => {
           const txn = o.utm && o.utm.sc_txn;
           if (!txn) estado = 'sin_id';
           else if (!process.env.SISTECREDITO_SUBSCRIPTION_KEY) { estado = 'error'; detalle = 'falta SISTECREDITO_SUBSCRIPTION_KEY'; }
-          else estado = (await getScInfo(txn)).paid ? 'pagado' : 'no_pagado';
+          else {
+            const sc = await getScInfo(txn);
+            // Un 401/403 NO es "no pagó": es que no pudimos preguntar. Se marca como error para
+            // que salte a la vista en vez de dar la venta por perdida en silencio.
+            if (!sc.ok) { estado = 'error'; detalle = `Sistecrédito HTTP ${sc.http}`; }
+            else { estado = sc.paid ? 'pagado' : 'no_pagado'; detalle = `Sistecrédito HTTP ${sc.http} · estado ${sc.raw === null ? 'sin dato' : sc.raw}`; }
+          }
         } else if (o.pago === 'bold') {
           const link = o.utm && o.utm.bold_link;
           const key = (process.env.BOLD_API_KEY || '').trim();
@@ -543,7 +549,8 @@ module.exports = async (req, res) => {
               { headers: { Authorization: 'x-api-key ' + key } });
             const j = r.ok ? await r.json().catch(() => null) : null;
             const st = j && (j.payload || j).status;
-            estado = st === 'PAID' ? 'pagado' : 'no_pagado'; detalle = st || null;
+            if (!r.ok) { estado = 'error'; detalle = `Bold HTTP ${r.status}`; }
+            else { estado = st === 'PAID' ? 'pagado' : 'no_pagado'; detalle = `Bold HTTP ${r.status} · ${st || 'sin estado'}`; }
           }
         } else if (o.pago === 'addi') {
           // Addi no expone consulta de estado: queda para revisar a mano en su portal.
@@ -555,7 +562,12 @@ module.exports = async (req, res) => {
             const r = await fetch('https://production.wompi.co/v1/transactions?reference=' + encodeURIComponent(o.reference),
               { headers: { Authorization: 'Bearer ' + key } });
             const j = r.ok ? await r.json().catch(() => null) : null;
-            estado = (j && Array.isArray(j.data) && j.data.some(t => t.status === 'APPROVED')) ? 'pagado' : 'no_pagado';
+            if (!r.ok) { estado = 'error'; detalle = `Wompi HTTP ${r.status}`; }
+            else {
+              const txs = (j && Array.isArray(j.data)) ? j.data : [];
+              estado = txs.some(t => t.status === 'APPROVED') ? 'pagado' : 'no_pagado';
+              detalle = `Wompi HTTP ${r.status} · ${txs.length} transacción${txs.length === 1 ? '' : 'es'}${txs.length ? ' · ' + [...new Set(txs.map(t => t.status))].join('/') : ''}`;
+            }
           }
         }
       } catch (e) { estado = 'error'; detalle = String(e.message || e).slice(0, 120); }
@@ -582,6 +594,47 @@ module.exports = async (req, res) => {
       filas.push(Object.assign(base, { estado, detalle }));
     }
     return res.json({ ok: true, seco, revisados: filas.length, pagados, monto_pagado: montoPagado, filas });
+  }
+
+  /* ── PROBAR PASARELAS ──
+     Responde "¿de verdad estamos hablando con Wompi, Bold y Sistecrédito?" sin esperar a que haya
+     un pedido pendiente. Se les pregunta por una referencia que NO existe: la respuesta correcta
+     es 200 con lista vacía o 404 — ambas prueban que la credencial fue aceptada. Un 401/403 dice
+     que la llave está mala, que es justo el fallo que antes se disfrazaba de "no pagado". */
+  if (action === 'probar_pasarelas') {
+    const PING = 'PING-NOEXISTE-' + Date.now();
+    const out = [];
+    const juzgar = (http) => http === 401 || http === 403 ? 'CREDENCIAL RECHAZADA'
+                          : (http >= 200 && http < 500) ? 'conectado' : 'sin respuesta';
+
+    // Wompi
+    const wk = (process.env.WOMPI_PRIVATE_KEY || '').trim();
+    if (!wk) out.push({ pasarela: 'Wompi', estado: 'sin llave', detalle: 'falta WOMPI_PRIVATE_KEY' });
+    else try {
+      const r = await fetch('https://production.wompi.co/v1/transactions?reference=' + PING, { headers: { Authorization: 'Bearer ' + wk } });
+      const j = await r.json().catch(() => null);
+      out.push({ pasarela: 'Wompi', http: r.status, estado: juzgar(r.status), detalle: j && Array.isArray(j.data) ? `respondió con ${j.data.length} transacciones` : 'respondió sin lista' });
+    } catch (e) { out.push({ pasarela: 'Wompi', estado: 'sin respuesta', detalle: String(e.message || e).slice(0, 90) }); }
+
+    // Bold
+    const bk = (process.env.BOLD_API_KEY || '').trim();
+    if (!bk) out.push({ pasarela: 'Bold', estado: 'sin llave', detalle: 'falta BOLD_API_KEY' });
+    else try {
+      const r = await fetch('https://integrations.api.bold.co/online/link/v1/' + PING, { headers: { Authorization: 'x-api-key ' + bk } });
+      out.push({ pasarela: 'Bold', http: r.status, estado: juzgar(r.status), detalle: r.status === 404 ? 'link inexistente (respuesta esperada)' : 'respondió' });
+    } catch (e) { out.push({ pasarela: 'Bold', estado: 'sin respuesta', detalle: String(e.message || e).slice(0, 90) }); }
+
+    // Sistecrédito
+    if (!process.env.SISTECREDITO_SUBSCRIPTION_KEY) out.push({ pasarela: 'Sistecrédito', estado: 'sin llave', detalle: 'falta SISTECREDITO_SUBSCRIPTION_KEY' });
+    else try {
+      const sc = await getScInfo(PING);
+      out.push({ pasarela: 'Sistecrédito', http: sc.http, estado: juzgar(sc.http), detalle: 'transactionStatus: ' + (sc.raw === null ? 'sin dato (referencia inexistente)' : sc.raw) });
+    } catch (e) { out.push({ pasarela: 'Sistecrédito', estado: 'sin respuesta', detalle: String(e.message || e).slice(0, 90) }); }
+
+    // Addi no tiene API de consulta de estado: se documenta, no se inventa un check.
+    out.push({ pasarela: 'Addi', estado: 'sin API', detalle: 'no expone consulta de estado — sus pedidos se revisan a mano en el portal' });
+
+    return res.json({ ok: true, probado_con: PING, pasarelas: out });
   }
 
   if (action === 'delete_test_orders') {

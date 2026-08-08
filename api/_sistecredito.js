@@ -80,7 +80,17 @@ async function getScInfo(transactionId) {
   const r = await fetch(scBase() + PATH_INFO + encodeURIComponent(transactionId), { headers: scHeaders(false) });
   const j = await r.json().catch(() => ({}));
   const data = j.data || {};
-  return { paid: data.transactionStatus === 3, valueToPaid: data.valueToPaid, creditNumber: data.credit && data.credit.creditNumber };
+  // `http` y `raw` se devuelven para poder DISTINGUIR "la pasarela dijo que no pagó" de "la
+  // pasarela nos rechazó las credenciales". Sin esto, un 401 se veía igual que un no_pagado y
+  // podíamos dar por perdida una venta que sí estaba cobrada.
+  return {
+    paid: data.transactionStatus === 3,
+    http: r.status,
+    ok: r.ok,
+    raw: (data.transactionStatus !== undefined && data.transactionStatus !== null) ? String(data.transactionStatus) : null,
+    valueToPaid: data.valueToPaid,
+    creditNumber: data.credit && data.credit.creditNumber
+  };
 }
 
 module.exports = { createScTransaction, getScInfo };
