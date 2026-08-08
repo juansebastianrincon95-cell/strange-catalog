@@ -683,6 +683,100 @@ module.exports = async (req, res) => {
     return res.json({ ok: true });
   }
 
+  /* ── AGENTE DE TAREAS ──
+     Autonomía acordada con el dueño: ejecuta SOLO lo que no toca al cliente y deja los WhatsApp
+     REDACTADOS EN COLA para que él los suelte. Nada sale a un cliente sin su clic — un mensaje
+     mal escrito no se puede deshacer.
+     Coste cero: la redacción usa Gemini (GEMINI_API_KEY, ya en producción por el IA Studio) en su
+     capa gratuita, y si falla o no está, cae a las plantillas de siempre. El agente NUNCA depende
+     de la IA para funcionar: la IA solo mejora el texto. */
+  if (action === 'agente_tareas') {
+    const seco = !!(data && data.seco);
+    const hechas = [], cola = [];
+
+    // 1) SEGURO: reactivar cupones de bienvenida vencidos de quien nunca compró.
+    //    No le escribe a nadie ni mueve plata: solo vuelve a habilitar un descuento propio.
+    const { data: subs } = await sb.from('subscribers')
+      .select('id,nombre,whatsapp,welcome_code,welcome_issued_at,welcome_used_at')
+      .order('created_at', { ascending: false }).limit(1000);
+    const { data: ords } = await sb.from('orders').select('tel,status,nombre,items,utm').limit(2000);
+    const telKey = t => String(t || '').replace(/\D/g, '').slice(-10);
+    const compraron = new Set((ords || []).filter(o => !(o.utm && o.utm.test)).map(o => telKey(o.tel)).filter(Boolean));
+    const AHORA = Date.now(), DIA = 86400000;
+    const vencidos = (subs || []).filter(s => {
+      if (!s.welcome_issued_at || s.welcome_used_at) return false;
+      if (compraron.has(telKey(s.whatsapp))) return false;         // ya compró: no se le regala otro
+      return (AHORA - new Date(s.welcome_issued_at).getTime()) > 7 * DIA;
+    }).slice(0, 40);
+    if (vencidos.length && !seco) {
+      const iso = new Date().toISOString();
+      for (const s of vencidos) {
+        await sb.from('subscribers').update({ welcome_issued_at: iso, welcome_used_at: null }).eq('id', s.id);
+      }
+    }
+    if (vencidos.length) hechas.push({ tarea: 'Cupones de bienvenida reactivados', n: vencidos.length, detalle: vencidos.slice(0, 5).map(s => s.nombre || s.whatsapp) });
+
+    // 2) PREPARAR: leads pendientes sin contactar → mensaje redactado, listo para enviar.
+    const pendientes = (ords || []).filter(o =>
+      !(o.utm && o.utm.test) && o.status !== 'venta' && o.status !== 'no_venta' && o.status !== 'abandoned'
+    ).slice(0, 15);
+    const nombreCorto = n => String(n || '').trim().split(/\s+/)[0] || '';
+    const productosDe = o => (Array.isArray(o.items) ? o.items : []).map(i => i.label).filter(Boolean).slice(0, 2).join(' y ');
+    const plantilla = o => {
+      const n = nombreCorto(o.nombre), p = productosDe(o);
+      return `${n ? '¡Hola ' + n + '! 👋' : '¡Hola! 👋'} Te escribo de Strange Sneakers.${p ? ` Vi que te interesaron los ${p}.` : ''}\n\n¿Te ayudo a completar tu pedido? 🙌 Pagando en línea el *envío es GRATIS*, o contra entrega pagas solo el envío hoy y los zapatos al recibir. ¿Te lo aparto?`;
+    };
+
+    let redactados = null;
+    const GKEY = (process.env.GEMINI_API_KEY || '').trim();
+    if (GKEY && pendientes.length) {
+      // Un solo viaje para todos: más barato, más rápido y más consistente en el tono.
+      const fichas = pendientes.map((o, i) => `${i + 1}. Nombre: ${nombreCorto(o.nombre) || '(sin nombre)'} | Le interesó: ${productosDe(o) || '(no se sabe)'}`).join('\n');
+      const prompt = `Eres quien atiende el WhatsApp de Strange Sneakers, una tienda colombiana de sneakers. Escribe UN mensaje corto para cada cliente que dejó su pedido sin terminar.
+Reglas: tuteo colombiano, cálido y directo, máximo 45 palabras, sin emojis excesivos (máximo 2), sin prometer descuentos que no existen, sin decir "estimado". Menciona que pagando en línea el envío es gratis y que también hay contra entrega. Termina con una pregunta corta.
+Devuelve SOLO un JSON array de strings, un mensaje por cliente, en el mismo orden. Sin texto adicional.
+
+Clientes:
+${fichas}`;
+      try {
+        const gr = await new Promise((resolve) => {
+          const body = Buffer.from(JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }));
+          const rq = require('https').request({
+            hostname: 'generativelanguage.googleapis.com',
+            path: '/v1beta/models/gemini-2.0-flash:generateContent',
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Content-Length': body.length, 'x-goog-api-key': GKEY }
+          }, r => { let d = ''; r.on('data', c => d += c); r.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve(null); } }); });
+          rq.on('error', () => resolve(null));
+          rq.setTimeout(20000, () => { rq.destroy(); resolve(null); });
+          rq.end(body);
+        });
+        const txt = gr && gr.candidates && gr.candidates[0] && gr.candidates[0].content
+          && gr.candidates[0].content.parts && gr.candidates[0].content.parts[0]
+          && gr.candidates[0].content.parts[0].text;
+        if (txt) {
+          const m = String(txt).match(/\[[\s\S]*\]/);
+          if (m) { const arr = JSON.parse(m[0]); if (Array.isArray(arr) && arr.length) redactados = arr; }
+        }
+      } catch { redactados = null; }
+    }
+
+    pendientes.forEach((o, i) => {
+      const msg = (redactados && typeof redactados[i] === 'string' && redactados[i].trim()) ? redactados[i].trim() : plantilla(o);
+      cola.push({
+        tel: telKey(o.tel), nombre: o.nombre || '', mensaje: msg,
+        motivo: 'Pedido sin terminar', ia: !!(redactados && redactados[i])
+      });
+    });
+
+    return res.json({
+      ok: true, seco,
+      hechas,
+      cola,
+      ia: redactados ? 'gemini' : (GKEY ? 'plantilla (la IA no respondió)' : 'plantilla (sin GEMINI_API_KEY)')
+    });
+  }
+
   /* ── MOTOR DE DESCUENTOS (tabla discounts, migración 006) — CRUD del panel ──
      El panel solo administra las FILAS; quién descuenta cuánto lo decide siempre
      api/_orders.js server-side. Todo pasa por el requireAdmin de arriba. */

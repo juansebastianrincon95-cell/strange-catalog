@@ -968,6 +968,7 @@ function setAdminSection(name){
   toggleAvSide(false);
   const m=$('avMain');if(m)m.scrollTop=0;
   if(name==='inicio'){renderStatsTab();loadOrders().then(()=>{if(avSec==='inicio')renderStatsTab();});}
+  if(name==='analitica'){renderAnaliticaTab();loadOrders().then(()=>{if(avSec==='analitica')renderAnaliticaTab();});}
   if(name==='productos'){renderAdmin();renderColeccionesAdmin();}
   if(name==='ofertas'){renderLiqAdmin();loadDescuentos();}   // descuentos: se cargan al entrar a Ofertas (requiere sesión admin)
   if(name==='banners'){renderHeroAdmin();renderFeaturedAdmin();renderColAdmin();}
@@ -1751,11 +1752,101 @@ function renderStatsTab(){
         <span style="flex:1;font-size:12.5px;color:var(--ink2);line-height:1.4">${t.txt}</span>
         <span style="color:var(--ink3);font-size:13px">→</span>
       </div>`).join(''):`<div style="font-size:12.5px;color:var(--green);font-weight:600;padding:4px 0">✅ Al día — no hay tareas pendientes.</div>`}
+      ${_agenteBloque(tareas.length)}
     </div>
     ${envioSalud}
-    <div id="anaWrap"></div>
-    <button onclick="exportOrders()" style="width:100%;padding:11px;background:var(--ink);color:#fff;border:none;border-radius:11px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;margin:6px 0 8px">📤 Exportar datos para IA</button>
   </div>`;
+}
+
+/* ── AGENTE DE TAREAS ──
+   Autonomía acordada: ejecuta SOLO lo que no toca al cliente (preguntarle a las pasarelas,
+   reactivar cupones vencidos, detectar productos vendidos que Meta sigue pautando) y deja los
+   WhatsApp REDACTADOS EN COLA para que el dueño los suelte uno a uno. Nada sale a un cliente
+   sin su clic: un mensaje mal redactado no se puede deshacer. */
+function _agenteBloque(nTareas){
+  if(!nTareas)return '';
+  return `<div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)">
+    <div style="display:flex;align-items:center;gap:9px">
+      <div style="flex:0 0 auto;width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#1BA94C,#0d7a35);display:flex;align-items:center;justify-content:center;font-size:15px">🤖</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:800;color:var(--ink)">Agente de tareas</div>
+        <div style="font-size:10px;color:var(--ink3);line-height:1.35">Hace lo seguro solo y te deja los WhatsApp escritos para que tú los envíes</div>
+      </div>
+    </div>
+    <button id="btnAgente" onclick="correrAgente()" style="margin-top:9px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:10px;font-family:var(--font);font-size:12.5px;font-weight:700;cursor:pointer">⚡ Haz las tareas de hoy</button>
+    <div id="agenteOut" style="display:none;margin-top:9px"></div>
+  </div>`;
+}
+
+/* Analítica en su propia sección. Antes vivía dentro de Inicio y se renderizaba junto con las
+   tareas del día: 10 bloques armados de una sola pasada cada vez que entrabas a ver qué te
+   faltaba hacer. Separarlo es lo que lo vuelve rápido. */
+/* Corre el agente: primero le pregunta a las pasarelas por los pedidos colgados (acción que ya
+   existía y NUNCA inventa una venta: si la pasarela no dice "pagado", no se toca), después
+   reactiva cupones vencidos y redacta los WhatsApp. Los mensajes quedan en cola con un botón por
+   cliente — el envío siempre lo da el dueño. */
+async function correrAgente(){
+  const b=$('btnAgente'), out=$('agenteOut');
+  if(!b||!out)return;
+  b.disabled=true;b.textContent='⚡ Trabajando…';
+  out.style.display='block';
+  out.innerHTML='<div style="font-size:11px;color:var(--ink3);padding:6px 0">Consultando pasarelas y redactando mensajes…</div>';
+  try{
+    // 1) Pasarelas (silencioso: sella el rastro, no marca ventas sin confirmación)
+    let pasarelas=null;
+    try{ pasarelas=await adminWrite('revisar_pendientes',{data:{seco:true}}); }catch(e){}
+    // 2) Agente
+    const r=await adminWrite('agente_tareas',{data:{seco:false}});
+    const hechas=r.hechas||[], cola=r.cola||[];
+    const pag=pasarelas&&pasarelas.pagados?pasarelas.pagados:0;
+    let html='';
+    html+=`<div style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px">Lo que hice solo</div>`;
+    const hizo=[];
+    if(pasarelas)hizo.push(`Consulté ${pasarelas.revisados||0} pedido${(pasarelas.revisados||0)===1?'':'s'} colgado${(pasarelas.revisados||0)===1?'':'s'} en la pasarela${pag?` — <b style="color:var(--green)">${pag} están pagados</b>, revísalos en Leads`:' — ninguno está pagado'}`);
+    hechas.forEach(h=>hizo.push(`${h.tarea}: <b>${h.n}</b>`));
+    html+=hizo.length
+      ? `<ul style="margin:0 0 10px;padding-left:16px;font-size:11.5px;color:var(--ink2);line-height:1.6">${hizo.map(t=>`<li>${t}</li>`).join('')}</ul>`
+      : `<div style="font-size:11.5px;color:var(--ink3);margin-bottom:10px">Nada que ejecutar por mi cuenta.</div>`;
+    if(cola.length){
+      html+=`<div style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin:12px 0 6px">Listos para que TÚ los envíes · ${cola.length}</div>`;
+      html+=`<div style="font-size:10px;color:var(--ink3);margin-bottom:8px">Redactados con ${escHtml(r.ia||'plantilla')}. Léelos antes de enviar: se abre WhatsApp con el texto puesto y tú das enviar.</div>`;
+      html+=cola.map((c,i)=>`<div style="background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin-bottom:7px">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">
+          <b style="flex:1;font-size:11.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(c.nombre||c.tel)}</b>
+          <span style="flex:0 0 auto;font-size:9px;color:var(--ink3)">${escHtml(c.motivo||'')}</span>
+        </div>
+        <textarea id="agMsg${i}" style="width:100%;box-sizing:border-box;min-height:64px;padding:7px 8px;border:1px solid var(--line);border-radius:8px;font-family:var(--font);font-size:11px;line-height:1.45;color:var(--ink2);background:var(--white);resize:vertical">${escHtml(c.mensaje)}</textarea>
+        <button onclick="agenteEnviar(${i},'${escHtml(c.tel)}')" style="margin-top:6px;width:100%;padding:8px;background:#25D366;color:#fff;border:none;border-radius:8px;font-family:var(--font);font-size:11.5px;font-weight:700;cursor:pointer">💬 Abrir WhatsApp con este mensaje</button>
+      </div>`).join('');
+    }else{
+      html+=`<div style="font-size:11.5px;color:var(--green);font-weight:600;margin-top:8px">✅ No hay nadie a quien escribirle ahora mismo.</div>`;
+    }
+    out.innerHTML=html;
+    await loadOrders(); if(avSec==='inicio')renderStatsTab();
+  }catch(e){
+    out.innerHTML=`<div style="font-size:11.5px;color:var(--red)">No se pudo: ${escHtml(e.message)}</div>`;
+  }finally{ const bb=$('btnAgente'); if(bb){bb.disabled=false;bb.textContent='⚡ Haz las tareas de hoy';} }
+}
+
+// El envío SIEMPRE lo da el dueño: esto solo abre WhatsApp con el texto (editable) ya puesto.
+function agenteEnviar(i,tel){
+  const ta=$('agMsg'+i);
+  const msg=ta?ta.value:'';
+  const t=String(tel||'').replace(/\D/g,'');
+  const num=t.length===10?'57'+t:t;
+  window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`,'_blank');
+  if(ta){ta.style.opacity='.5';}
+}
+
+function renderAnaliticaTab(){
+  const el=$('panAnalitica');if(!el)return;
+  if(!el.dataset.montado){
+    el.innerHTML=`<div style="padding:14px 16px 24px;overflow-y:auto;flex:1;min-height:0">
+      <div id="anaWrap"></div>
+      <button onclick="exportOrders()" style="width:100%;padding:11px;background:var(--ink);color:#fff;border:none;border-radius:11px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;margin:6px 0 8px">📤 Exportar datos para IA</button>
+    </div>`;
+    el.dataset.montado='1';
+  }
   renderAnalytics();
 }
 
@@ -1833,7 +1924,12 @@ function _svgSerie(serie){
     const x=X(i).toFixed(1),y=Y(p.netas).toFixed(1),yp=YP(p.pedidos).toFixed(1);
     lin+=(i?' L':'M')+x+','+y; area+=` L${x},${y}`; linP+=(i?' L':'M')+x+','+yp;
     const t=`${_kLabel(p.k)} · ${fmt(p.netas)} · ${p.pedidos} pedido${p.pedidos===1?'':'s'}`;
-    dots+=`<circle cx="${x}" cy="${y}" r="3.4" fill="var(--green)"><title>${escHtml(t)}</title></circle>`;
+    // Estilo Shopify: la línea va limpia, sin puntos permanentes. El punto aparece al pasar por
+    // encima, y la zona sensible es una columna ancha e invisible — en el celular acertarle a un
+    // círculo de 3px es imposible.
+    const bw=(iw/Math.max(1,serie.length)).toFixed(1);
+    dots+=`<g class="anaPt"><rect x="${(X(i)-bw/2).toFixed(1)}" y="${pT}" width="${bw}" height="${ih}" fill="transparent"><title>${escHtml(t)}</title></rect>`
+       +`<circle cx="${x}" cy="${y}" r="4" fill="var(--white)" stroke="var(--green)" stroke-width="2.2" opacity="0" style="pointer-events:none"/></g>`;
   });
   area+=` L${X(serie.length-1).toFixed(1)},${(pT+ih).toFixed(1)} Z`;
   // hasta 6 etiquetas en X
@@ -1841,13 +1937,15 @@ function _svgSerie(serie){
   let xlab='';
   serie.forEach((p,i)=>{if(i%step===0||i===serie.length-1)xlab+=`<text x="${X(i).toFixed(1)}" y="${H-8}" text-anchor="middle" font-size="9.5" fill="#8a8a85">${escHtml(_kLabel(p.k))}</text>`;});
   // 3 guías horizontales
-  let guias='';[1,0.5,0].forEach(f=>{const y=(pT+ih-f*ih).toFixed(1);const lab=maxV<=1?(f===0?'$0':''):_abrev(maxV*f);guias+=`<line x1="${pL}" y1="${y}" x2="${W-pR}" y2="${y}" stroke="#eceae6" stroke-width="1"/><text x="${pL-5}" y="${+y+3}" text-anchor="end" font-size="9.5" fill="#8a8a85">${lab}</text>`;});
-  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block">
-    <defs><linearGradient id="anaGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1BA94C" stop-opacity=".22"/><stop offset="100%" stop-color="#1BA94C" stop-opacity="0"/></linearGradient></defs>
+  // Guías punteadas y muy tenues: la línea de datos tiene que ser lo único con peso visual.
+  let guias='';[1,0.5,0].forEach(f=>{const y=(pT+ih-f*ih).toFixed(1);const lab=maxV<=1?(f===0?'$0':''):_abrev(maxV*f);guias+=`<line x1="${pL}" y1="${y}" x2="${W-pR}" y2="${y}" stroke="#eceae6" stroke-width="1" ${f===0?'':'stroke-dasharray="3 4"'}/><text x="${pL-5}" y="${+y+3}" text-anchor="end" font-size="9.5" fill="#a8a49d">${lab}</text>`;});
+  return `<style>.anaPt circle{transition:opacity .12s}.anaPt:hover circle{opacity:1}</style>
+  <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block">
+    <defs><linearGradient id="anaGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1BA94C" stop-opacity=".18"/><stop offset="100%" stop-color="#1BA94C" stop-opacity="0"/></linearGradient></defs>
     ${guias}
     <path d="${area}" fill="url(#anaGrad)"/>
-    <path d="${lin}" fill="none" stroke="var(--green)" stroke-width="2.2" stroke-linejoin="round"/>
-    <path d="${linP}" fill="none" stroke="#5D2D91" stroke-width="1.4" stroke-dasharray="4 3" opacity=".75"/>
+    <path d="${lin}" fill="none" stroke="var(--green)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="${linP}" fill="none" stroke="#5D2D91" stroke-width="1.4" stroke-dasharray="4 3" opacity=".7"/>
     ${dots}${xlab}
   </svg>
   <div style="display:flex;gap:14px;justify-content:center;font-size:10px;color:var(--ink3);margin-top:2px">
@@ -1858,9 +1956,13 @@ function _svgSerie(serie){
 
 function _embudo(f){
   if(!f)return '';
-  const pasos=[['👀 Sesiones',f.sessions],['👟 Vieron producto',f.view_product],['🛒 Agregaron al carrito',f.add_to_cart],['💳 Iniciaron checkout',f.initiate_checkout],['💰 Llegaron a pagar',f.reached_payment],['📱 Lead WhatsApp',f.leads],['✅ Venta',f.ventas]]
+  const pasos=[['👀 Entraron',f.sessions],['👟 Vieron un producto',f.view_product],['🛒 Lo pusieron al carrito',f.add_to_cart],['💳 Empezaron el pago',f.initiate_checkout],['💰 Eligieron cómo pagar',f.reached_payment],['📱 Escribieron por WhatsApp',f.leads],['✅ Compraron',f.ventas]]
     .filter(p=>p[1]!=null);   // reached_payment es null en rangos previos al 2026-06-07 → se oculta
   const max=Math.max(...pasos.map(p=>p[1]),1);
+  // Peor fuga del embudo: el escalón donde se cae más gente. Es lo primero que hay que mirar.
+  let peor=-1,peorPct=101;
+  pasos.forEach((p,i)=>{ if(!i)return; const prev=pasos[i-1][1]; if(!prev)return;
+    const t=p[1]/prev*100; if(t<=100&&t<peorPct){peorPct=t;peor=i;} });
   return pasos.map((p,i)=>{
     const prev=i?pasos[i-1][1]:null;
     const tasa=prev?Math.round(p[1]/prev*100):null;
@@ -1868,11 +1970,16 @@ function _embudo(f){
     // si la venta se clasificó sin sesión rastreada en el rango → se muestra "100%+".
     const tasaTxt=tasa==null?'':(tasa>100?'100%+':tasa+'%');
     const w=Math.max(2,p[1]/max*100);
-    return `<div style="display:flex;align-items:center;gap:8px;padding:4px 0" ${tasa!=null&&tasa>100?'title="Más ventas que leads rastreados: ventas clasificadas a mano pueden no tener sesión en este rango"':''}>
-      <span style="flex:0 0 148px;font-size:11px;font-weight:600;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p[0]}</span>
-      <div style="flex:1;background:var(--bg);border-radius:6px;height:18px;overflow:hidden"><div style="width:${w}%;height:100%;background:${i===pasos.length-1?'var(--green)':'#b9b4ab'};border-radius:6px"></div></div>
-      <b style="flex:0 0 44px;text-align:right;font-size:12px">${p[1]}</b>
-      <span style="flex:0 0 44px;text-align:right;font-size:10px;color:${tasa!=null&&tasa<10?'var(--red)':'var(--ink3)'}">${tasaTxt}</span>
+    const seCaen=prev!=null&&tasa!=null&&tasa<=100?(prev-p[1]):null;
+    const esPeor=i===peor&&seCaen>0;
+    return `<div style="padding:5px 0">
+      <div style="display:flex;align-items:center;gap:8px" ${tasa!=null&&tasa>100?'title="Más ventas que leads rastreados: ventas clasificadas a mano pueden no tener sesión en este rango"':''}>
+      <span style="flex:0 0 152px;font-size:11px;font-weight:600;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p[0]}</span>
+      <div style="flex:1;background:var(--bg);border-radius:6px;height:20px;overflow:hidden;position:relative"><div style="width:${w}%;height:100%;background:${i===pasos.length-1?'var(--green)':esPeor?'#E8200A':'#b9b4ab'};border-radius:6px"></div></div>
+      <b style="flex:0 0 44px;text-align:right;font-size:12.5px;font-variant-numeric:tabular-nums">${p[1]}</b>
+      <span style="flex:0 0 46px;text-align:right;font-size:10.5px;font-weight:700;color:${tasa!=null&&tasa<10?'var(--red)':'var(--ink3)'}">${tasaTxt}</span>
+      </div>
+      ${seCaen>0?`<div style="margin-left:160px;font-size:9.5px;color:${esPeor?'var(--red)':'var(--ink3)'};font-weight:${esPeor?'700':'400'}">${esPeor?'⚠ mayor fuga · ':''}se fueron ${seCaen}</div>`:''}
     </div>`;
   }).join('');
 }
@@ -1880,6 +1987,48 @@ function _embudo(f){
 function _anaBloque(titulo,inner){
   return `<div style="background:var(--white);border:1px solid var(--line);border-radius:14px;padding:13px 15px;margin-bottom:14px">
     <div style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);margin-bottom:9px">${titulo}</div>${inner}</div>`;
+}
+
+/* ── LADRILLOS DE ESTILO (lenguaje visual de Shopify Analytics) ──
+   Tres reglas: etiqueta pequeña en mayúsculas ARRIBA del número; el número manda (grande, tabular,
+   sin adornos); y el color se reserva para el delta y el veredicto — nunca decora. */
+
+// Celda de métrica: etiqueta arriba, número grande, contexto debajo.
+function _sCell(label,value,sub,def){
+  return `<div title="${escHtml(def||'')}" style="padding:10px 12px;background:var(--white);border:1px solid var(--line);border-radius:12px;min-width:0">
+    <div style="font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${label}</div>
+    <div style="font-size:18px;font-weight:700;letter-spacing:-.03em;white-space:nowrap;font-variant-numeric:tabular-nums">${value}</div>
+    ${sub?`<div style="margin-top:3px;font-size:10px;color:var(--ink3);line-height:1.3">${sub}</div>`:''}
+  </div>`;
+}
+
+// Fila de lista contable: concepto a la izquierda, monto a la derecha. `tipo` tiñe el monto.
+function _sLinea(label,valor,tipo,def,fuerte){
+  const col=tipo==='resta'?'var(--red)':tipo==='total'?'var(--ink)':tipo==='bien'?'var(--green)':'var(--ink2)';
+  return `<div title="${escHtml(def||'')}" style="display:flex;align-items:baseline;gap:10px;padding:${fuerte?'9px 0':'6px 0'};${fuerte?'border-top:1.5px solid var(--ink);margin-top:3px':'border-top:1px solid var(--line)'}">
+    <span style="flex:1;min-width:0;font-size:${fuerte?'12':'11.5'}px;font-weight:${fuerte?'800':'500'};color:${fuerte?'var(--ink)':'var(--ink2)'}">${label}</span>
+    <span style="flex:0 0 auto;font-size:${fuerte?'15':'13'}px;font-weight:${fuerte?'800':'700'};color:${col};font-variant-numeric:tabular-nums">${valor}</span>
+  </div>`;
+}
+
+// Rejilla responsiva de celdas (se acomoda sola, no se desborda en el celular).
+function _sGrid(cells,min){
+  return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(${min||128}px,1fr));gap:8px">${cells.join('')}</div>`;
+}
+
+// Bloque plegable: para lo que aún no tiene datos suficientes. Nace cerrado y explica para qué sirve.
+function _sPlegable(titulo,porQue,cuando,inner){
+  return `<details style="background:var(--white);border:1px solid var(--line);border-radius:14px;margin-bottom:14px;overflow:hidden">
+    <summary style="padding:13px 15px;cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px">
+      <span style="flex:1;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2)">${titulo}</span>
+      <span style="flex:0 0 auto;font-size:9px;font-weight:700;padding:2px 8px;border-radius:6px;background:var(--bg);color:var(--ink3)">SIN DATOS AÚN</span>
+    </summary>
+    <div style="padding:0 15px 14px">
+      <div style="font-size:11.5px;color:var(--ink2);line-height:1.5;margin-bottom:6px">${porQue}</div>
+      <div style="font-size:10.5px;color:var(--ink3);line-height:1.45;padding:8px 10px;background:var(--bg);border-radius:9px;margin-bottom:10px">⏳ ${cuando}</div>
+      ${inner||''}
+    </div>
+  </details>`;
 }
 
 async function renderAnalytics(){
@@ -1931,40 +2080,98 @@ async function renderAnalytics(){
   const mini=(l,v,def)=>`<div title="${escHtml(def)}" style="background:var(--bg);border-radius:10px;padding:8px 10px;min-width:0">
     <div style="font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3)">${l}</div>
     <div style="font-size:13.5px;font-weight:700;white-space:nowrap">${v}</div></div>`;
+  // Desglose contable como una CUENTA que baja, no como 6 cajitas sueltas: se lee de arriba
+  // abajo igual que una factura y se ve de dónde sale cada peso.
+  const cob=Math.round(R.total_cobrado||0);
+  const mg=Math.round(R.margen_estimado||0);
+  const mgPct=cob?Math.round(mg/cob*100):null;
   const desglose=_anaBloque('💰 Desglose contable',
-    `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
-      ${mini('Brutas',_abrev(R.ventas_brutas),'Productos antes de descuentos → volumen')}
-      ${mini('Descuentos','−'+_abrev(R.descuentos),'Cupones y combos aplicados')}
-      ${mini('Netas',_abrev(R.ventas_netas),'Producto post-descuento → para ROAS')}
-      ${mini('Envíos',_abrev(R.envios),'Fletes cobrados al cliente')}
-      ${mini('Total cobrado',_abrev(R.total_cobrado),'Lo que entró a caja (producto + envío)')}
-      ${mini('Margen est.',_abrev(R.margen_estimado),'Utilidad estimada (ítems con costo)')}
+    `<div style="padding:2px 0">
+      ${_sLinea('Ventas brutas',_abrev(R.ventas_brutas),'','Productos antes de descuentos → volumen real de venta')}
+      ${_sLinea('− Descuentos','−'+_abrev(R.descuentos),'resta','Cupones y combos aplicados')}
+      ${_sLinea('= Ventas netas',_abrev(R.ventas_netas),'','Producto post-descuento. Es la base del ROAS')}
+      ${_sLinea('+ Envíos cobrados',_abrev(R.envios),'','Fletes que pagó el cliente. NO son ingreso del negocio')}
+      ${_sLinea('Total cobrado',_abrev(R.total_cobrado),'total','Lo que entró a caja (producto + envío)',true)}
+    </div>
+    <div style="margin-top:11px;padding:10px 12px;background:var(--bg);border-radius:11px;display:flex;align-items:center;gap:10px">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3)">Margen estimado</div>
+        <div style="font-size:10px;color:var(--ink3);margin-top:2px">Solo ítems con costo cargado (${Math.round((R.margen_cobertura||0)*100)}% del catálogo)</div>
+      </div>
+      <div style="flex:0 0 auto;text-align:right">
+        <div style="font-size:18px;font-weight:800;color:${mg>0?'var(--green)':'var(--ink3)'};font-variant-numeric:tabular-nums">${_abrev(R.margen_estimado)}</div>
+        ${mgPct!=null?`<div style="font-size:10px;color:var(--ink3)">${mgPct}% de lo cobrado</div>`:''}
+      </div>
     </div>`);
   const embudoBloque=j.funnel?_anaBloque('🔻 Embudo del rango',_embudo(j.funnel)):'';
   const V=j.visitantes||null;
+  const vPct=V?(V.recurrentes_pct||0):0;
   const visitantesBloque=V?_anaBloque('👀 Visitantes recurrentes',
-    `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
-      ${mini('Visitantes',V.total||0,'Personas únicas que entraron en el rango (por dispositivo/navegador). Incluye anónimos.')}
-      ${mini('Recurrentes',(V.recurrentes||0)+' · '+(V.recurrentes_pct||0)+'%','Volvieron en ≥2 días distintos. OJO: solo detecta el mismo dispositivo/navegador; otro celular o borrar cookies = visitante nuevo.')}
-      ${mini('Volvieron hoy',V.volvieron_hoy||0,'Visitantes recurrentes que entraron también hoy.')}
-    </div>
-    <div style="font-size:9.5px;color:var(--ink3);margin-top:7px;line-height:1.4">Incluye anónimos (sin contacto). Para reengancharlos usa las audiencias de remarketing en Meta — no se les puede escribir.</div>`):'';
+    _sGrid([
+      _sCell('Visitantes',V.total||0,'personas únicas','Personas únicas que entraron en el rango (por dispositivo/navegador). Incluye anónimos'),
+      _sCell('Volvieron',(V.recurrentes||0),`<b style="color:${vPct>=20?'var(--green)':'var(--ink3)'}">${vPct}%</b> del total`,'Entraron en 2 o más días distintos'),
+      _sCell('Hoy',V.volvieron_hoy||0,'recurrentes de hoy','Visitantes recurrentes que entraron también hoy')
+    ])
+    +`<div style="font-size:10px;color:var(--ink3);margin-top:9px;line-height:1.45;padding:8px 10px;background:var(--bg);border-radius:9px">
+      Se cuenta por <b>navegador</b>: si la misma persona entra desde otro celular o borra cookies, aparece como visitante nuevo. Son anónimos —no tienes cómo escribirles— así que para traerlos de vuelta se usan las <b>audiencias de remarketing</b> en Meta.
+    </div>`):'';
+  const totCli=(C.nuevos||0)+(C.recurrentes||0);
+  const pctRec=totCli?Math.round((C.recurrentes||0)/totCli*100):0;
   const clientesBloque=_anaBloque('👥 Clientes',
-    `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:8px">
-      ${mini('Nuevos',(C.nuevos||0)+' · '+_abrev(C.ventas_nuevos),'Primera compra dentro del rango')}
-      ${mini('Recurrentes',(C.recurrentes||0)+' · '+_abrev(C.ventas_recurrentes),'Ya habían comprado antes del rango')}
-      ${mini('Frecuencia',(C.frecuencia_promedio||0)+' compras/cliente','Pedidos del rango ÷ clientes del rango')}
-      ${mini('Entre compras',C.dias_entre_compras!=null?C.dias_entre_compras+' días':'—','Promedio histórico entre compras del mismo cliente')}
+    _sGrid([
+      _sCell('Nuevos',C.nuevos||0,_abrev(C.ventas_nuevos)+' facturado','Primera compra dentro del rango'),
+      _sCell('Recurrentes',C.recurrentes||0,_abrev(C.ventas_recurrentes)+' facturado','Ya habían comprado antes del rango'),
+      _sCell('Frecuencia',(C.frecuencia_promedio||0),'compras por cliente','Pedidos del rango ÷ clientes del rango'),
+      _sCell('Entre compras',C.dias_entre_compras!=null?C.dias_entre_compras:'—',C.dias_entre_compras!=null?'días de promedio':'aún nadie repite','Promedio histórico entre compras del mismo cliente')
+    ])
+    +`<div style="margin-top:10px;padding:9px 11px;background:var(--bg);border-radius:10px;font-size:10.5px;color:var(--ink2);line-height:1.45">
+      ${pctRec>0
+        ? `<b style="color:var(--green)">${pctRec}%</b> de tus clientes del rango ya te habían comprado antes.`
+        : `Todavía <b>ningún cliente ha comprado dos veces</b>. Hoy el negocio vive de traer gente nueva; cuando empiecen a repetir, aquí se va a notar primero.`}
     </div>`);
+  // Productos ganadores CON FOTO: en una tienda de zapatos el nombre no dice nada ("ADIDAS
+  // RUNNING" son 45 pares distintos). La foto se saca de prods/liqs, que el panel ya tiene
+  // cargados — sin pedirle nada más al servidor.
+  const _fotoDe=(id,type)=>{
+    const lista=type==='liq'?(typeof liqs!=='undefined'?liqs:[]):(typeof prods!=='undefined'?prods:[]);
+    const p=lista.find(x=>x.id===id);
+    return p&&p.img?p.img:'';
+  };
   const prodBloque=(j.productos&&j.productos.length)?_anaBloque('🏆 Productos ganadores',
-    `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px;min-width:480px">
-      <tr style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em;text-align:right"><th style="text-align:left;padding:4px 6px 4px 0">Producto</th><th>Ingresos</th><th>Und.</th><th>Vistas</th><th>Carrito</th><th title="% de vistas que agregaron al carrito">V→C</th><th title="% de carritos que terminaron en venta">C→V</th></tr>
-      ${j.productos.map(p=>`<tr style="border-top:1px solid var(--line);text-align:right">
-        <td style="text-align:left;padding:6px 6px 6px 0;font-weight:600;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(p.label)} <span style="color:var(--ink3);font-weight:400">#${p.id}</span></td>
-        <td style="font-weight:700;color:var(--green)">${_abrev(p.ingresos)}</td><td>${p.unidades}</td><td>${p.views}</td><td>${p.atc}</td>
-        <td>${p.conv_view_cart!=null?p.conv_view_cart+'%':'—'}</td><td>${p.conv_cart_venta!=null?p.conv_cart_venta+'%':'—'}</td>
-      </tr>`).join('')}
-    </table></div>`):'';
+    j.productos.slice(0,10).map((p,i)=>{
+      const img=_fotoDe(p.id,p.type);
+      const vc=p.conv_view_cart, cv=p.conv_cart_venta;
+      return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-top:${i?'1px solid var(--line)':'none'}">
+        <div style="flex:0 0 16px;font-size:11px;font-weight:800;color:${i<3?'var(--ink)':'var(--ink3)'};text-align:center">${i+1}</div>
+        ${img
+          ? `<img src="${escHtml(img)}" alt="" loading="lazy" style="flex:0 0 46px;width:46px;height:46px;object-fit:cover;border-radius:9px;background:var(--bg);border:1px solid var(--line)">`
+          : `<div style="flex:0 0 46px;width:46px;height:46px;border-radius:9px;background:var(--bg);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:17px">👟</div>`}
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(p.label)}</div>
+          <div style="font-size:10px;color:var(--ink3);margin-top:2px">${p.unidades} vendido${p.unidades===1?'':'s'} · ${p.views} vista${p.views===1?'':'s'} · ${p.atc} al carrito</div>
+          <div style="font-size:9.5px;color:var(--ink3);margin-top:2px">
+            <span title="De cada 100 que lo vieron, cuántos lo pusieron al carrito">vista→carrito <b style="color:${vc!=null&&vc>=10?'var(--green)':'var(--ink2)'}">${vc!=null?vc+'%':'—'}</b></span>
+            <span style="margin-left:8px" title="De cada 100 que lo pusieron al carrito, cuántos compraron">carrito→venta <b style="color:${cv!=null&&cv>=20?'var(--green)':'var(--ink2)'}">${cv!=null?cv+'%':'—'}</b></span>
+          </div>
+        </div>
+        <div style="flex:0 0 auto;text-align:right">
+          <div style="font-size:14px;font-weight:800;color:var(--green);font-variant-numeric:tabular-nums">${_abrev(p.ingresos)}</div>
+          <div style="font-size:9px;color:var(--ink3)">#${p.id}</div>
+        </div>
+      </div>`;
+    }).join('')):'';
+  // Mezcla de compra: ¿cuánta gente se lleva un par y cuánta sube al combo? Es LA palanca de
+  // ticket de esta tienda y no aparecía en ningún lado. Se calcula con los pares por pedido.
+  const MX=j.mezcla||null;
+  const mezclaBloque=MX&&MX.total?_anaBloque('🧺 Mezcla de compra',
+    _sGrid([
+      _sCell('Un solo par',MX.un_par||0,MX.total?Math.round((MX.un_par||0)/MX.total*100)+'% de los pedidos':'','Pedidos de 1 par'),
+      _sCell('Dos o más',MX.combo||0,MX.total?`<b style="color:var(--green)">${Math.round((MX.combo||0)/MX.total*100)}%</b> sube de nivel`:'','Pedidos de 2 pares o más — el efecto combo'),
+      _sCell('Pares por pedido',MX.pares_prom||'—','promedio','Cuántos pares se lleva en promedio cada cliente')
+    ])
+    +`<div style="margin-top:10px;padding:9px 11px;background:var(--bg);border-radius:10px;font-size:10.5px;color:var(--ink2);line-height:1.45">
+      Cada punto que suba "dos o más" te sube el ticket sin costarte un peso de tráfico. Es lo que hacen los combos y el envío gratis desde un monto.
+    </div>`):'';
   // ROAS de equilibrio derivado del margen real (null si la cobertura de costos < 30%). Se declara
   // ANTES de campBloque porque las dos tablas lo usan para colorear.
   const bk=(j&&j.breakeven!=null)?j.breakeven:null;
@@ -2023,7 +2230,11 @@ async function renderAnalytics(){
   const RFM_COLS={'Campeones':'#1BA94C','Leales':'#2E7D32','Potenciales':'#0288D1','Nuevos':'#5D2D91','En riesgo':'#F2A900','Dormidos':'#b3541e','Perdidos':'#E8200A'};
   const RFM_DEFS={'Campeones':'Compran mucho y hace poco (R≥4 y F≥4)','Leales':'Compran seguido y siguen activos (R≥3 y F≥3)','Potenciales':'Recientes con pocas compras: candidatos a la 2ª (R≥3 y F≤2)','Nuevos':'Primera compra, muy reciente (R≥4 y F=1)','En riesgo':'Eran buenos clientes y se están enfriando (R=2 y F≥3)','Dormidos':'Compraron poco y hace rato (R=2 y F≤2)','Perdidos':'El quintil más viejo de recencia (R=1)'};
   const RF=j.rfm||null;
-  const rfmBloque=(RF&&RF.clientes)?_anaBloque('🎯 Segmentos RFM · histórico completo',
+  // ¿Hay recurrencia que medir? Sin nadie que haya comprado 2 veces, la F de RFM es constante
+  // y las cohortes son una tabla de ceros: los dos bloques se pliegan y explican para qué sirven.
+  const _CH0=Array.isArray(j.cohortes)?j.cohortes:[];
+  const hayRecurrencia=_CH0.some(c=>(c.retencion||[]).slice(1).some(x=>x>0));
+  const _rfmInner=(RF&&RF.clientes)?(
     `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px;min-width:420px">
       <tr style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em;text-align:right"><th style="text-align:left;padding:4px 6px 4px 0">Segmento</th><th>Clientes</th><th>%</th><th>Facturación</th><th>%</th></tr>
       ${RF.segmentos.map(s=>`<tr style="border-top:1px solid var(--line);text-align:right${s.clientes?'':';opacity:.45'}">
@@ -2040,10 +2251,16 @@ async function renderAnalytics(){
       <button id="rfmExpBtn" onclick="exportAudienciaMeta()" style="padding:8px 13px;border:none;border-radius:9px;background:var(--ink);color:#fff;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">⬇ Exportar audiencia para Meta</button>
     </div>
     <div style="font-size:9.5px;color:var(--ink3);margin-top:7px;line-height:1.4">R = qué tan reciente compró · F = cuántas veces · M = cuánto ha gastado (puntajes 1-5 por quintiles sobre tu propia base). El CSV sale en el formato de Meta: Audiencias → Crear audiencia personalizada → Lista de clientes.</div>`):'';
+  const rfmBloque=!_rfmInner?'':(hayRecurrencia
+    ? _anaBloque('🎯 Segmentos RFM · histórico completo',_rfmInner)
+    : _sPlegable('🎯 Segmentos RFM',
+        'Le pone nota de 1 a 5 a cada cliente en tres cosas — <b>R</b>ecencia (hace cuánto compró), <b>F</b>recuencia (cuántas veces) y <b>M</b>onetario (cuánto gastó) — y lo mete en un grupo: Campeones, Leales, En riesgo, Dormidos. Sirve para saber <b>a quién escribirle y qué decirle</b>: a los En riesgo una promo antes de perderlos, a los Campeones lo nuevo primero.',
+        'Hoy no puede decir nada: <b>ningún cliente ha comprado dos veces</b>, así que la Frecuencia vale 1 para todos y no separa a nadie. Se activa solo cuando empiece a haber recompra.',
+        _rfmInner));
   // ── Cohortes de clientes: % que recompra por mes desde su primera compra ──
   const CH=Array.isArray(j.cohortes)?j.cohortes:[];
   const maxM=CH.length?Math.min(12,Math.max(...CH.map(c=>c.retencion.length))):0;   // hasta 12 meses visibles (el JSON trae más)
-  const cohBloque=CH.length?_anaBloque('📅 Cohortes de clientes · histórico completo',
+  const _cohInner=CH.length?(
     `<div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:10.5px;min-width:${190+maxM*46}px">
       <tr style="color:var(--ink3);font-size:9px;text-transform:uppercase;letter-spacing:.05em"><th style="text-align:left;padding:4px 8px 4px 0">1ª compra</th><th style="text-align:right;padding:0 8px">Clientes</th><th style="text-align:right;padding:0 8px" title="Ventas netas acumuladas ÷ clientes de la cohorte">LTV/cliente</th>${Array.from({length:maxM},(_,m)=>`<th style="text-align:center;padding:0 4px" title="Mes ${m} desde la primera compra">M${m}</th>`).join('')}</tr>
       ${CH.map(c=>`<tr style="border-top:1px solid var(--line)">
@@ -2058,8 +2275,14 @@ async function renderAnalytics(){
       </tr>`).join('')}
     </table></div>
     <div style="font-size:9.5px;color:var(--ink3);margin-top:7px;line-height:1.4">Cada fila agrupa a los clientes por el MES de su primera compra. M0 = ese mes (siempre 100%); cada celda = % de la cohorte que compró en ese mes. Se muestran hasta 12 meses.</div>`):'';
+  const cohBloque=!_cohInner?'':(hayRecurrencia
+    ? _anaBloque('📅 Cohortes de clientes · histórico completo',_cohInner)
+    : _sPlegable('📅 Cohortes de clientes',
+        'Agrupa a los clientes por el <b>mes de su primera compra</b> y sigue a cada grupo en el tiempo: de los que estrenaron en junio, ¿cuántos volvieron en julio? ¿y en agosto? Responde si el negocio <b>retiene</b> o si vive de conseguir gente nueva todo el tiempo.',
+        'Hoy sería una tabla de ceros: <b>nadie ha vuelto a comprar todavía</b>. Eso ya te dice algo — el negocio hoy vive 100% de clientes nuevos — pero no hace falta un gráfico para verlo.',
+        _cohInner));
   const aviso=j.truncado?`<div style="font-size:10px;color:var(--ink3);text-align:center;padding:4px 0 10px">⚠ Datos al límite (${j.truncado.ventas?'5.000 ventas':''}${j.truncado.ventas&&j.truncado.events?' · ':''}${j.truncado.events?'20.000 eventos':''}) — usa un rango más corto para cifras completas.</div>`:'';
-  box.innerHTML=chips+aviso+cards+serieBloque+desglose+embudoBloque+visitantesBloque+clientesBloque+rfmBloque+cohBloque+prodBloque+campBloque+atrBloque;
+  box.innerHTML=chips+aviso+cards+serieBloque+desglose+embudoBloque+mezclaBloque+prodBloque+campBloque+atrBloque+visitantesBloque+clientesBloque+rfmBloque+cohBloque;
 }
 
 // Descarga el CSV de audiencia (formato Custom Audience de Meta) desde /api/admin.
@@ -3142,7 +3365,7 @@ function checkStorageQuota(){
   }catch(e){}
 }
 
-const AV_TITLES={inicio:'Inicio',productos:'Productos',ofertas:'Ofertas',banners:'Banners',testimonios:'Testimonios',pedidos:'Pedidos',clientes:'Clientes',leads:'Leads',suscriptores:'Suscriptores',ajustes:'Ajustes'};
+const AV_TITLES={inicio:'Inicio',analitica:'Analítica',productos:'Productos',ofertas:'Ofertas',banners:'Banners',testimonios:'Testimonios',pedidos:'Pedidos',clientes:'Clientes',leads:'Leads',suscriptores:'Suscriptores',ajustes:'Ajustes'};
 
 // Navegar desde las tarjetas/tareas del Inicio: sección + filtro de leads opcional.
 function avGo(sec,filtro){

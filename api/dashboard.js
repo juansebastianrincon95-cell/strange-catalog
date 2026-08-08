@@ -639,6 +639,28 @@ module.exports = async (req, res) => {
       };
     }).sort((a, b) => b.ingresos - a.ingresos).slice(0, 10);
 
+    // ── MEZCLA DE COMPRA ── ¿cuántos se llevan un par y cuántos suben al combo?
+    // Es la palanca de ticket de esta tienda (combos Bronce/Plata/Oro) y no se veía en ningún
+    // lado. Se cuenta sobre los pedidos VENTA del rango. `pares` puede venir null en pedidos
+    // viejos → se deriva sumando las cantidades de items para no descartar el pedido.
+    const paresDe = o => {
+      const p = parseInt(o.pares);
+      if (p > 0) return p;
+      return (Array.isArray(o.items) ? o.items : []).reduce((s, it) => s + (parseInt(it.qty) || 1), 0);
+    };
+    const mezcla = (() => {
+      const pares = ventas.map(paresDe).filter(n => n > 0);
+      if (!pares.length) return null;
+      const unPar = pares.filter(n => n === 1).length;
+      const total = pares.length;
+      return {
+        total,
+        un_par: unPar,
+        combo: total - unPar,
+        pares_prom: +(pares.reduce((s, n) => s + n, 0) / total).toFixed(1)
+      };
+    })();
+
     // ── 5. CAMPAÑAS: ventas por utm + gasto/CTR/CPC/CPM de Meta ────────────
     const norm = s => String(s || '').trim().toLowerCase();
     // Cruce por campaign_id PRIMERO (hallazgo Codex #6): el id es estable aunque renombren
@@ -834,6 +856,7 @@ module.exports = async (req, res) => {
       funnel,             // sessions/view_product/add_to_cart/initiate_checkout/leads/ventas
       visitantes,         // total/recurrentes/recurrentes_pct/volvieron_hoy (incluye anónimos)
       productos,          // top 10 por ingresos con views/ATC/conversiones
+      mezcla,             // {total, un_par, combo, pares_prom} — cuántos suben al combo (null si no hay ventas)
       atribucion,         // 7 modelos sobre la ruta de toques por sesión (ventana 30 días) + puente + calidad
       breakeven,          // ROAS de equilibrio derivado del margen real (null si la cobertura de costos < 30%)
       rfm,                // segmentos RFM + lista por cliente (tope declarado) — histórico completo

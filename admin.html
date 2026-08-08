@@ -16,6 +16,7 @@
     <!-- aside (NO <nav>): el selector global nav{height:var(--navH)} pisaría la altura -->
     <aside class="av-side" id="avSide">
       <button class="av-nav on" data-nav="inicio" onclick="setAdminSection('inicio')"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h14V9.5"/><path d="M10 20v-6h4v6"/></svg>Inicio</button>
+      <button class="av-nav" data-nav="analitica" onclick="setAdminSection('analitica')"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>Analítica</button>
       <button class="av-nav" data-nav="productos" onclick="setAdminSection('productos')"><svg viewBox="0 0 24 24"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg>Productos</button>
       <button class="av-nav" data-nav="ofertas" onclick="setAdminSection('ofertas')"><svg viewBox="0 0 24 24"><path d="M20.6 13.4 11 3.8a2 2 0 0 0-1.4-.6H4a1 1 0 0 0-1 1v5.6c0 .5.2 1 .6 1.4l9.6 9.6a2 2 0 0 0 2.8 0l4.6-4.6a2 2 0 0 0 0-2.8z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg>Ofertas</button>
       <button class="av-nav" data-nav="banners" onclick="setAdminSection('banners')"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="m3 17 5-5 4 4 3.5-3.5L21 18"/></svg>Banners</button>
@@ -362,6 +363,9 @@
     <div class="alist" id="listLiq"></div>
   </div>
   <div id="panStats" data-sec="inicio" data-disp="flex" style="display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0"></div>
+  <!-- Analítica vive en su PROPIA sección: no se renderiza mientras miras tus tareas del día,
+       que es lo que hacía pesado el Inicio (una sola función armaba los 10 bloques de una vez). -->
+  <div id="panAnalitica" data-sec="analitica" data-disp="flex" style="display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0"></div>
   <div id="panPedidos" data-sec="pedidos" data-disp="flex" style="display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0"></div>
   <div id="panClientes" data-sec="clientes" data-disp="flex" style="display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0"></div>
   <div id="panLeads" data-sec="leads" data-disp="flex" style="display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0"></div>
