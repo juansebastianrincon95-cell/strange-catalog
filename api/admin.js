@@ -604,8 +604,14 @@ module.exports = async (req, res) => {
   if (action === 'probar_pasarelas') {
     const PING = 'PING-NOEXISTE-' + Date.now();
     const out = [];
-    const juzgar = (http) => http === 401 || http === 403 ? 'CREDENCIAL RECHAZADA'
-                          : (http >= 200 && http < 500) ? 'conectado' : 'sin respuesta';
+    /* Lo único que delata una llave mala es un 401/403. Un 404 (link inexistente) o incluso un
+       500 son respuestas a una referencia que INVENTAMOS: prueban que el servidor nos atendió.
+       Etiquetar un 500 como "sin respuesta" sería una falsa alarma — y las falsas alarmas hacen
+       que se deje de mirar el chequeo. */
+    const juzgar = (http) => !http ? 'sin respuesta'
+                          : (http === 401 || http === 403) ? 'CREDENCIAL RECHAZADA'
+                          : (http >= 200 && http < 500) ? 'conectado'
+                          : 'conectado (contestó ' + http + ' a una referencia falsa)';
 
     // Wompi
     const wk = (process.env.WOMPI_PRIVATE_KEY || '').trim();
