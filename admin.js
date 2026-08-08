@@ -1694,7 +1694,11 @@ function renderStatsTab(){
     productosDePedido(o).forEach(({p,type,it})=>{
       const key=type+':'+p.id;
       if(p.sold||prVistos.has(key))return;
-      prVistos.add(key);porRevisar.push(it.label||p.modelo||('#'+p.id));
+      // El nombre debe ser el MODELO, no it.label: label guarda el GÉNERO ("Mujer"/"Hombre"),
+      // así que la tarea decía "Revisa si siguen disponibles: Mujer, Mujer, Mujer" y era
+      // imposible saber qué par había que mirar. Sin modelo (45 de 177 no lo tienen), marca + id.
+      prVistos.add(key);
+      porRevisar.push(p.modelo||((typeof brandLabel==='function'&&p.brand?brandLabel(p.brand)+' ':'')+'#'+p.id));
     });
   });
   if(porRevisar.length){

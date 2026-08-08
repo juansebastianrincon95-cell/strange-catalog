@@ -10,7 +10,7 @@
    - cross-origin      → passthrough sin tocar (supabase, GA, fbq, etc.).
 
    Sube el numero de version (v1 → v2 …) en cada deploy que cambie el app-shell. */
-const CACHE = 'strange-admin-v22';   // v22: las tareas del agente salen de tu lista
+const CACHE = 'strange-admin-v23';   // v23: la tarea de disponibles dice el modelo, no el genero
 
 const SHELL = [
   '/',
