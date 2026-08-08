@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { getOrderByReference } = require('./_orders');
+const { getOrderByReference, montoACobrar } = require('./_orders');
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -7,7 +7,9 @@ module.exports = async (req, res) => {
   if (!reference) return res.status(400).json({ error: 'missing reference' });
   const order = await getOrderByReference(reference);
   if (!order) return res.status(404).json({ error: 'order_not_found' });
-  const expected = Number(order.subtotal != null ? order.subtotal : order.total);
+  // MISMA regla que confirmPaidOrder: en contra entrega se firma solo el flete. Si las dos
+  // difieren, el webhook rechaza el pago por amount_mismatch y la venta se pierde en silencio.
+  const expected = montoACobrar(order);
   const amountInt = expected * 100;
   if (!Number.isFinite(amountInt) || amountInt <= 0) return res.status(400).json({ error: 'invalid order amount' });
   // La firma de integridad del Web Checkout usa el "Secreto de Integridad" de Wompi

@@ -1,7 +1,7 @@
 const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
 const { rateLimit } = require('./_rate_limit');
-const { anonClient, serviceClient, cleanText, createOrder, getOrderByReference, confirmPaidOrder, contentIdsDe, genWelcomeCode, validarDescuentoPublico } = require('./_orders');
+const { anonClient, serviceClient, cleanText, createOrder, getOrderByReference, confirmPaidOrder, contentIdsDe, genWelcomeCode, validarDescuentoPublico, montoACobrar } = require('./_orders');
 const { sendEvent } = require('./_capi');
 const { createAddiApplication } = require('./_addi');
 const { createScTransaction, getScInfo } = require('./_sistecredito');
@@ -162,7 +162,7 @@ async function handleBoldLink(req, res) {
   if (!reference) return res.status(400).json({ error: 'reference requerida' });
   const order = await getOrderByReference(reference);
   if (!order) return res.status(404).json({ error: 'order_not_found' });
-  const amount = Number(order.subtotal != null ? order.subtotal : order.total);
+  const amount = montoACobrar(order);   // contra entrega: cobra SOLO el flete
   if (!Number.isFinite(amount) || amount < 1000 || amount > 100_000_000) {
     return res.status(400).json({ error: 'amount fuera de rango' });
   }
@@ -223,7 +223,7 @@ async function handleBoldStatus(req, res) {
     // payment_link PAID (el suyo) + una reference ajena válida podría marcar venta de otra orden.
     const bound = ord.utm && ord.utm.bold_link ? String(ord.utm.bold_link).replace(/[^\w-]/g, '').slice(0, 80) : '';
     if (!bound || bound !== link) return res.status(403).json({ error: 'link_mismatch' });
-    if (amount == null) amount = Number(ord.subtotal != null ? ord.subtotal : ord.total); // link CLOSE creado server-side con el monto de BD
+    if (amount == null) amount = montoACobrar(ord);   // link CLOSE server-side; en contra entrega es el flete
     const out = await confirmPaidOrder({ reference: d.reference, amount, currency: 'COP', req, origen: 'webhook_bold' }).catch(() => null);
     confirmed = !!(out && out.ok);
   }
@@ -276,7 +276,7 @@ async function handleAddiLink(req, res) {
   if (!reference) return res.status(400).json({ error: 'reference requerida' });
   const order = await getOrderByReference(reference);
   if (!order) return res.status(404).json({ error: 'order_not_found' });
-  const amount = Number(order.subtotal != null ? order.subtotal : order.total);
+  const amount = montoACobrar(order);   // contra entrega: cobra SOLO el flete
   if (!Number.isFinite(amount) || amount < 1000) return res.status(400).json({ error: 'amount fuera de rango' });
   const email = cleanText(req.body && req.body.email, 120);
   try {
@@ -391,7 +391,7 @@ async function handleScLink(req, res) {
   if (!reference) return res.status(400).json({ error: 'reference requerida' });
   const order = await getOrderByReference(reference);
   if (!order) return res.status(404).json({ error: 'order_not_found' });
-  const amount = Number(order.subtotal != null ? order.subtotal : order.total);
+  const amount = montoACobrar(order);   // contra entrega: cobra SOLO el flete
   if (!Number.isFinite(amount) || amount < 1000) return res.status(400).json({ error: 'amount fuera de rango' });
   try {
     const { transactionId, redirectUrl } = await createScTransaction(order);

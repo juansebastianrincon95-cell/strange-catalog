@@ -951,6 +951,18 @@ async function sendTelegram(text, { parseMode, timeoutMs = 2500, tipo = null, or
 
 // Aviso de venta al vendedor: arma el texto y lo manda por el bot (nunca bloquea la confirmación).
 // `tipo` distingue el aviso automático de la pasarela del reenvío que aprieta el vendedor.
+/* ── CUÁNTO SE COBRA POR ADELANTADO ──
+   Punto ÚNICO de verdad, usado por wompi-sign (para firmar el cobro) y por confirmPaidOrder
+   (para validar lo que reportó la pasarela). Si los dos no usan exactamente la misma regla, el
+   webhook rechaza el pago con amount_mismatch y la venta se pierde en silencio.
+   · Contra entrega: se cobra SOLO el flete por adelantado; el producto se paga al recibir.
+     `subtotal` sigue siendo el producto porque es la base del ROAS — el flete nunca es ingreso.
+   · Todo lo demás: el subtotal completo, como siempre. */
+function montoACobrar(order) {
+  if (order && order.pago === 'contra_entrega') return Math.round(Number(order.envio || 0));
+  return Math.round(Number(order && order.subtotal != null ? order.subtotal : (order && order.total)));
+}
+
 async function notifyVentaTelegram(order, tipo = 'venta') {
   const fmtCop = n => '$' + Number(n || 0).toLocaleString('es-CO');
   const lista = Array.isArray(order.items) ? order.items : [];
@@ -968,8 +980,18 @@ async function notifyVentaTelegram(order, tipo = 'venta') {
     .join(',');
   const linkFotos = code ? `\n📸 Ver el pedido con fotos:\nhttps://strangesneakers.com/?pedido=${code}` : '';
   const dir = [order.direccion, order.barrio, order.ciudad].filter(Boolean).join(', ');
-  const text = `💰 VENTA CONFIRMADA (${order.pago || 'online'})\n` +
-    `${fmtCop(order.subtotal != null ? order.subtotal : order.total)} — ${order.nombre || ''}\n` +
+  // Contra entrega: el vendedor NECESITA ver de una que el flete ya se cobró y cuánto hay que
+  // recoger en la puerta. Sin eso el aviso se lee como una venta pagada completa y se despacha mal.
+  const esCOD = order.pago === 'contra_entrega';
+  const via = (order.utm && order.utm.flete_via) ? ' vía ' + order.utm.flete_via : '';
+  const cabecera = esCOD
+    ? `📦 CONTRA ENTREGA — ENVÍO YA PAGADO${via}\n` +
+      `✅ Cobrado hoy (envío): ${fmtCop(order.envio)}\n` +
+      `💵 COBRAR AL ENTREGAR: ${fmtCop(order.subtotal != null ? order.subtotal : order.total)}\n` +
+      `${order.nombre || ''}\n`
+    : `💰 VENTA CONFIRMADA (${order.pago || 'online'})\n` +
+      `${fmtCop(order.subtotal != null ? order.subtotal : order.total)} — ${order.nombre || ''}\n`;
+  const text = cabecera +
     `📞 ${order.tel || ''}\n` +
     (dir ? `📍 ${dir}\n` : '') +
     (order.cedula ? `🪪 ${order.cedula}\n` : '') +
@@ -1037,7 +1059,7 @@ async function confirmPaidOrder({ reference, amount, amountInCents, currency = '
   const sb = serviceClient();
   const order = await getOrderByReference(reference);
   if (!order) return { ok: false, error: 'order_not_found' };
-  const expected = Number(order.subtotal != null ? order.subtotal : order.total);
+  const expected = montoACobrar(order);
   const paid = amountInCents != null ? Math.round(Number(amountInCents) / 100) : Math.round(Number(amount));
   if (currency && String(currency).toUpperCase() !== 'COP') return { ok: false, error: 'currency_mismatch' };
   if (!Number.isFinite(paid) || paid !== expected) return { ok: false, error: 'amount_mismatch', expected, paid };
@@ -1122,7 +1144,7 @@ async function confirmPaidOrder({ reference, amount, amountInCents, currency = '
   return { ok: true, order: { ...order, status: 'venta' } };
 }
 
-module.exports = { anonClient, serviceClient, cleanText, calculateOrder, createOrder, getOrderByReference, confirmPaidOrder, contentIdsDe, cartSig, decrementStock, genWelcomeCode, esCodigoBienvenida, marcarCuponBienvenidaUsado, sendTelegram, notifyVentaTelegram, calcFlete, normCiudad, consumirDescuentos, validarDescuentoPublico };
+module.exports = { anonClient, serviceClient, cleanText, calculateOrder, createOrder, getOrderByReference, confirmPaidOrder, contentIdsDe, cartSig, decrementStock, genWelcomeCode, esCodigoBienvenida, marcarCuponBienvenidaUsado, sendTelegram, notifyVentaTelegram, calcFlete, normCiudad, consumirDescuentos, validarDescuentoPublico, montoACobrar };
 
 // Motor de descuentos expuesto para pruebas locales (Vercel no lo usa; mismo patrón que
 // dashboard._clientes y admin._audiencia): permite testear la lógica con un sb falso, sin BD.

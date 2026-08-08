@@ -728,8 +728,12 @@ function rPayChoice(){
   // en móvil al tocar el marcador ⓘ (no dispara el pago: stopPropagation + preventDefault).
   const card=(fn,acc,tint,ico,tit,desc,tot,tip)=>`<button class="paychoice" onclick="${fn}" style="--acc:${acc}"><span class="pc-ic" style="background:${tint}">${ico}</span><span class="pc-main"><span class="pc-tit">${tit}</span><span class="pc-desc">${desc}</span><span class="pc-tot">${tot}</span></span><span class="pc-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>${tip?`<span class="pc-info" onclick="event.stopPropagation();event.preventDefault();this.parentElement.classList.toggle('tipon')" aria-label="Más información">i</span><span class="pc-tip">${tip}</span>`:''}</button>`;
   $('cbody').innerHTML=`<div class="paysec"><div class="paytit">¿Cómo quieres pagar?</div><div class="paychoice-list">`
+    // Contra entrega con flete: el envío se COBRA EN LÍNEA (Wompi/Bold). Antes esta tarjeta abría
+    // WhatsApp igual que "Pago por WhatsApp" pero $25.000 más cara — o sea, estaba dominada y nadie
+    // la elegía nunca (0 pedidos en 3 meses). Cobrando el flete, el pedido queda confirmado por
+    // pasarela y entra al sistema como venta con su envío pendiente de entregar.
     +(flete>0
-      ?card(`enviarWA('contra_entrega')`,'#1E1E1C','#f1f1ef',icDelivery,'Contra entrega',`Pagas el envío ahora y los zapatos al recibir en casa`,`Hoy: envío ${fmt(flete)} · Al recibir: ${fmt(sub)}`,`📦 El envío se paga primero para <b>asegurar tu despacho</b>. Así garantizamos que tu pedido salga y llegue — evitamos los pedidos que se piden y no se reciben.`)
+      ?card(`elegirPagoFlete()`,'#1E1E1C','#f1f1ef',icDelivery,'Contra entrega',`Pagas solo el envío ahora y los zapatos al recibir`,`Hoy: envío ${fmt(flete)} · Al recibir: ${fmt(sub)}`,`📦 El envío se paga primero para <b>asegurar tu despacho</b>. Así garantizamos que tu pedido salga y llegue — evitamos los pedidos que se piden y no se reciben.`)
       // Envío gratis alcanzado (umbral por monto): contra entrega sin flete → todo se paga al recibir
       :card(`enviarWA('contra_entrega')`,'#1E1E1C','#f1f1ef',icDelivery,'Contra entrega','¡Envío GRATIS! Pagas todo al recibir en casa ✓',`Al recibir: ${fmt(sub)}`,`🎉 Tu pedido alcanzó el <b>envío GRATIS</b> también contra entrega: no pagas nada hoy.`))
     +card(`enviarWA('pago_anticipado')`,'#25D366','#e9fbf1',icWa,'Pago por WhatsApp','Coordina tu pago por WhatsApp · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
@@ -815,11 +819,34 @@ async function enviarWA(tipo){
   return false;
 }
 
-async function pagarWompi(){
+/* ── CONTRA ENTREGA: elegir con qué pasarela se paga el ENVÍO ──
+   Solo se cobra el flete. El producto se paga al recibir, y el pedido queda registrado como
+   venta con su envío por despachar — así el vendedor sabe cuánto recoger en la puerta. */
+function elegirPagoFlete(){
+  const rows=Object.values(cart);
+  const pricing=cartPricing(rows);
+  const flete=calcFlete(pricing.pares,(cData&&cData.ciudad)||'',pricing.sub);
+  if(flete<=0){enviarWA('contra_entrega');return;}   // envío gratis: no hay nada que cobrar
+  const b=$('cbody');if(!b)return;
+  b.innerHTML=`<div class="paysec">
+    <div class="paytit">Paga tu envío para asegurar el despacho</div>
+    <div style="background:var(--bg);border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:12.5px;color:var(--ink2);line-height:1.5">
+      Pagas ahora <b>solo el envío: ${fmt(flete)}</b>.<br>
+      Los zapatos (<b>${fmt(pricing.sub)}</b>) los pagas <b>al recibir en casa</b> 📦
+    </div>
+    <div class="paychoice-list">
+      <button class="paychoice" onclick="pagarWompi(true)" style="--acc:#5D2D91"><span class="pc-ic" style="background:#fff"><img src="/logos/wompi.png" alt="Wompi" class="pc-logo"></span><span class="pc-main"><span class="pc-tit">Pagar el envío — Wompi</span><span class="pc-desc">Tarjeta · PSE · Nequi · Bancolombia</span><span class="pc-tot">A pagar hoy: ${fmt(flete)}</span></span><span class="pc-arrow">›</span></button>
+      <button class="paychoice" onclick="pagarBold(true)" style="--acc:#2541B2"><span class="pc-ic" style="background:#fff"><img src="/logos/bold.png" alt="Bold" class="pc-logo"></span><span class="pc-main"><span class="pc-tit">Pagar el envío — Bold</span><span class="pc-desc">Tarjeta · PSE · Botón Bancolombia</span><span class="pc-tot">A pagar hoy: ${fmt(flete)}</span></span><span class="pc-arrow">›</span></button>
+    </div>
+  </div>`;
+  $('cfoot').innerHTML=`<button class="btnback" onclick="goStep(2)">← Volver</button>`;
+}
+
+async function pagarWompi(cod){
   if(window._payBusy)return; // guard anti doble-toque (igual que pagarBold)
   window._payBusy=true;
   setTimeout(()=>{window._payBusy=false;},15000); // red de escape por si algo cuelga
-  trackEvent('select_payment',{product_id:'wompi'});
+  trackEvent('select_payment',{product_id:cod?'contra_entrega_wompi':'wompi'});
   const m={nombre:'fn',cedula:'fc',celular:'ft',direccion:'fd',barrio:'fb',ciudad:'fci'};
   let ok=true;const d={};
   Object.entries(m).forEach(([k,id])=>{const el=$(id);const v=el?el.value:(cData[k]||'');d[k]=v.trim();if(!v.trim())ok=false;});
@@ -827,16 +854,19 @@ async function pagarWompi(){
   cData=d;
   const rows=Object.values(cart);
   const pricing=cartPricing(rows);
-  const tot=pricing.sub;                   // Wompi cobra el subtotal (combo o con cupón; envío gratis)
+  // Contra entrega: se cobra SOLO el flete. subtotal sigue siendo el producto (base del ROAS);
+  // el server recalcula el envío con sus propios ajustes y firma el cobro con montoACobrar().
+  const tot=pricing.sub;
+  const fleteCOD=cod?calcFlete(pricing.pares,d.ciudad,pricing.sub):0;
   const reference='STR-'+Date.now();
   const totalPares=pricing.pares;
   const wOrder={
     id:Date.now(),fecha:new Date().toISOString(),
     items:cartItems(rows),
-    subtotal:tot,envio:0,total:tot,pares:totalPares,pago:'wompi',status:'pending',session_id:SESSION_ID,test:!!window.__TEST__,cupon:cuponAplicado||null,
+    subtotal:tot,envio:fleteCOD,total:tot+fleteCOD,pares:totalPares,pago:cod?'contra_entrega':'wompi',status:'pending',session_id:SESSION_ID,test:!!window.__TEST__,cupon:cuponAplicado||null,
     combo:pricing.combo?pricing.combo.id:null,
     nombre:d.nombre,cedula:d.cedula,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,direccion:d.direccion,
-    reference,utm:{...getUTM(),...getFbAttribution(),...getVisitCtx()},referrer:getReferrer(),seccion:gSel
+    reference,utm:{...getUTM(),...getFbAttribution(),...getVisitCtx(),...(cod?{flete_via:'wompi'}:{})},referrer:getReferrer(),seccion:gSel
   };
   orders.push(wOrder);
   saveState();
@@ -995,14 +1025,14 @@ async function checkWompiReturn(){
 }
 
 /* ── PAGO EN LÍNEA: BOLD (Payment Link API; firma/llave en api/orders.js) ── */
-async function pagarBold(){
+async function pagarBold(cod){
   // Guard anti doble-toque: un 2º tap mientras se crea el link generaba un pedido GEMELO
   // (visto en la compra de prueba real del 2026-06-11). Si tiene éxito, la página navega
   // a Bold y el guard muere con ella; si falla, el timeout lo libera.
   if(window._payBusy)return;
   window._payBusy=true;
   setTimeout(()=>{window._payBusy=false;},15000);
-  trackEvent('select_payment',{product_id:'bold'});
+  trackEvent('select_payment',{product_id:cod?'contra_entrega_bold':'bold'});
   const m={nombre:'fn',cedula:'fc',celular:'ft',direccion:'fd',barrio:'fb',ciudad:'fci'};
   let ok=true;const d={};
   Object.entries(m).forEach(([k,id])=>{const el=$(id);const v=el?el.value:(cData[k]||'');d[k]=v.trim();if(!v.trim())ok=false;});
@@ -1010,16 +1040,18 @@ async function pagarBold(){
   cData=d;
   const rows=Object.values(cart);
   const pricing=cartPricing(rows);
-  const tot=pricing.sub;                   // Bold cobra el subtotal (combo o con cupón; envío gratis)
+  // Contra entrega: Bold cobra SOLO el flete (montoACobrar en el server firma el mismo monto).
+  const tot=pricing.sub;
+  const fleteCOD=cod?calcFlete(pricing.pares,d.ciudad,pricing.sub):0;
   const reference='STR-'+Date.now();
   const totalPares=pricing.pares;
   const bOrder={
     id:Date.now(),fecha:new Date().toISOString(),
     items:cartItems(rows),
-    subtotal:tot,envio:0,total:tot,pares:totalPares,pago:'bold',status:'pending',session_id:SESSION_ID,test:!!window.__TEST__,cupon:cuponAplicado||null,
+    subtotal:tot,envio:fleteCOD,total:tot+fleteCOD,pares:totalPares,pago:cod?'contra_entrega':'bold',status:'pending',session_id:SESSION_ID,test:!!window.__TEST__,cupon:cuponAplicado||null,
     combo:pricing.combo?pricing.combo.id:null,
     nombre:d.nombre,cedula:d.cedula,ciudad:d.ciudad,barrio:d.barrio,tel:d.celular,direccion:d.direccion,
-    reference,utm:{...getUTM(),...getFbAttribution(),...getVisitCtx()},referrer:getReferrer(),seccion:gSel
+    reference,utm:{...getUTM(),...getFbAttribution(),...getVisitCtx(),...(cod?{flete_via:'bold'}:{})},referrer:getReferrer(),seccion:gSel
   };
   orders.push(bOrder);saveState();
   try{
