@@ -693,25 +693,38 @@ module.exports = async (req, res) => {
   if (action === 'agente_tareas') {
     const seco = !!(data && data.seco);
     const hechas = [], cola = [];
+    const AHORA = Date.now(), DIA = 86400000;
+    const telKey = t => String(t || '').replace(/\D/g, '').slice(-10);
+    const nombreCorto = n => String(n || '').trim().split(/\s+/)[0] || '';
+    const hoyISO = new Date().toISOString().slice(0, 10);
 
-    // 1) SEGURO: reactivar cupones de bienvenida vencidos de quien nunca compró.
-    //    No le escribe a nadie ni mueve plata: solo vuelve a habilitar un descuento propio.
     const { data: subs } = await sb.from('subscribers')
       .select('id,nombre,whatsapp,welcome_code,welcome_issued_at,welcome_used_at')
       .order('created_at', { ascending: false }).limit(1000);
-    const { data: ords } = await sb.from('orders').select('tel,status,nombre,items,utm').limit(2000);
-    const telKey = t => String(t || '').replace(/\D/g, '').slice(-10);
-    const compraron = new Set((ords || []).filter(o => !(o.utm && o.utm.test)).map(o => telKey(o.tel)).filter(Boolean));
-    const AHORA = Date.now(), DIA = 86400000;
-    //    Tope de 10 y solo los más recientes: reactivar un cupón que nadie va a usar no sirve de
-    //    nada, y cada uno se reactiva PARA escribirle a esa persona (va a la cola de abajo).
-    //    Reactivar 40 en silencio sería un no-op: el cupón vuelve a valer y nadie se entera.
-    const vencidos = (subs || []).filter(s => {
-      if (!s.welcome_issued_at || s.welcome_used_at) return false;
-      if (compraron.has(telKey(s.whatsapp))) return false;         // ya compró: no se le regala otro
-      if (!telKey(s.whatsapp)) return false;                        // sin WhatsApp no hay a quién escribirle
-      return (AHORA - new Date(s.welcome_issued_at).getTime()) > 7 * DIA;
-    }).slice(0, 10);
+    const { data: ords } = await sb.from('orders')
+      .select('id,tel,status,nombre,items,utm,fecha,created_at,seguimiento,wa_status,temperatura').limit(2000);
+
+    const reales = (ords || []).filter(o => !(o.utm && o.utm.test));
+    const compraron = new Set(reales.filter(o => o.status === 'venta').map(o => telKey(o.tel)).filter(Boolean));
+
+    // OJO: en items, `label` es el GÉNERO ("Mujer"/"Hombre"), no el nombre del producto. Lo que
+    // sirve para hablarle al cliente es la MARCA y la TALLA. Decir "te interesaron los Hombre"
+    // es exactamente el tipo de mensaje que quema la venta que intenta rescatar.
+    const MARCAS = { adidas:'Adidas', nike:'Nike', reebok:'Reebok', new_balance:'New Balance', on_cloud:'On Cloud',
+                     puma:'Puma', lecoq_sportif:'Le Coq Sportif', jordan:'Jordan', lacoste:'Lacoste',
+                     asics:'Asics', onitsuka_tiger:'Onitsuka Tiger', luxury:'Luxury' };
+    const productosDe = o => (Array.isArray(o.items) ? o.items : []).slice(0, 2).map(i => {
+      const marca = MARCAS[i.brand] || (i.brand ? String(i.brand).replace(/_/g, ' ') : '');
+      return marca ? (marca + (i.talla ? ' talla ' + i.talla : '')) : '';
+    }).filter(Boolean).join(' y ');
+
+    /* ── 1. LO QUE HACE SOLO: reactivar cupones vencidos de quien nunca compró ──
+       Tope 10 y solo con WhatsApp: reactivar un cupón sin poder avisarle a nadie es un no-op. */
+    const vencidos = (subs || []).filter(s =>
+      s.welcome_issued_at && !s.welcome_used_at && telKey(s.whatsapp) &&
+      !compraron.has(telKey(s.whatsapp)) &&
+      (AHORA - new Date(s.welcome_issued_at).getTime()) > 7 * DIA
+    ).slice(0, 10);
     if (vencidos.length && !seco) {
       const iso = new Date().toISOString();
       for (const s of vencidos) {
@@ -720,60 +733,90 @@ module.exports = async (req, res) => {
     }
     if (vencidos.length) hechas.push({ tarea: 'Cupones de bienvenida reactivados (7 días nuevos)', n: vencidos.length, detalle: vencidos.slice(0, 5).map(s => s.nombre || s.whatsapp) });
 
-    // 2) PREPARAR: leads pendientes sin contactar → mensaje redactado, listo para enviar.
-    const pendientes = (ords || []).filter(o =>
-      !(o.utm && o.utm.test) && o.status !== 'venta' && o.status !== 'no_venta' && o.status !== 'abandoned'
-    ).slice(0, 15);
-    const nombreCorto = n => String(n || '').trim().split(/\s+/)[0] || '';
-    // OJO: en items, `label` es el GÉNERO ("Mujer"/"Hombre"), no el nombre del producto. Lo que
-    // sirve para hablarle al cliente es la MARCA y la TALLA. Decir "te interesaron los Hombre"
-    // es exactamente el tipo de mensaje que quema una venta.
-    const MARCAS = { adidas:'Adidas', nike:'Nike', reebok:'Reebok', new_balance:'New Balance', on_cloud:'On Cloud',
-                     puma:'Puma', lecoq_sportif:'Le Coq Sportif', jordan:'Jordan', lacoste:'Lacoste',
-                     asics:'Asics', onitsuka_tiger:'Onitsuka Tiger', luxury:'Luxury' };
-    const productosDe = o => {
-      const its = (Array.isArray(o.items) ? o.items : []).slice(0, 2);
-      const partes = its.map(i => {
-        const marca = MARCAS[i.brand] || (i.brand ? String(i.brand).replace(/_/g, ' ') : '');
-        const talla = i.talla ? ` talla ${i.talla}` : '';
-        return marca ? `${marca}${talla}` : '';
-      }).filter(Boolean);
-      return partes.join(' y ');
+    /* ── 2. CANDIDATOS A MENSAJE, por prioridad ──
+       Una misma persona puede caer en varias listas (dejó el carrito Y se le vence el cupón).
+       Se le escribe UNA vez, por el motivo más valioso: escribirle dos veces el mismo día es la
+       forma más rápida de que te bloqueen. */
+    const cand = [];
+    const push = (prio, motivo, tel, nombre, contexto, extra) => {
+      const t = telKey(tel); if (!t) return;
+      cand.push(Object.assign({ prio, motivo, tel: t, nombre: nombre || '', contexto: contexto || '' }, extra || {}));
     };
-    const plantilla = o => {
-      const n = nombreCorto(o.nombre), p = productosDe(o);
-      return `${n ? '¡Hola ' + n + '! 👋' : '¡Hola! 👋'} Te escribo de Strange Sneakers.${p ? ` Vi que te interesaron unos ${p}.` : ''}\n\n¿Te ayudo a completar tu pedido? 🙌 Pagando en línea el *envío es GRATIS*, o contra entrega pagas solo el envío hoy y los zapatos al recibir. ¿Te lo aparto?`;
-    };
-    const plantillaCupon = s => {
-      const n = nombreCorto(s.nombre);
-      return `${n ? '¡Hola ' + n + '! 👋' : '¡Hola! 👋'} Te escribo de Strange Sneakers. Te reactivé tu cupón de *$20.000 OFF*${s.welcome_code ? ` (${s.welcome_code})` : ''} y vuelve a estar vigente por 7 días 🎁\n\n¿Te muestro lo que acaba de entrar? Pagando en línea el envío es GRATIS.`;
+
+    // (a) Pedido sin terminar — el más caliente: ya llenó datos y eligió cómo pagar
+    reales.filter(o => o.status !== 'venta' && o.status !== 'no_venta' && o.status !== 'abandoned')
+      .forEach(o => push(1, 'Pedido sin terminar', o.tel, o.nombre, productosDe(o)));
+
+    // (b) Seguimiento con fecha cumplida — tú mismo te lo agendaste
+    reales.filter(o => o.seguimiento && o.seguimiento <= hoyISO && o.status !== 'venta' && o.status !== 'no_venta')
+      .forEach(o => push(2, 'Seguimiento agendado', o.tel, o.nombre, productosDe(o)));
+
+    // (c) Carrito abandonado de las últimas 24h — dejó datos y se fue sin confirmar
+    reales.filter(o => o.status === 'abandoned' && (AHORA - new Date(o.fecha || o.created_at).getTime()) < DIA)
+      .forEach(o => push(3, 'Carrito abandonado hoy', o.tel, o.nombre, productosDe(o)));
+
+    // (d) Cupón que vence en 1-3 días y nunca compró — la urgencia es real, no inventada
+    (subs || []).forEach(s => {
+      if (!s.welcome_issued_at || s.welcome_used_at) return;
+      if (compraron.has(telKey(s.whatsapp))) return;
+      const quedan = 7 - Math.floor((AHORA - new Date(s.welcome_issued_at).getTime()) / DIA);
+      if (quedan >= 1 && quedan <= 3) {
+        push(4, 'Cupón vence en ' + quedan + (quedan === 1 ? ' día' : ' días'), s.whatsapp, s.nombre, '', { dias: quedan, codigo: s.welcome_code || '' });
+      }
+    });
+
+    // (e) Cupón que se acaba de reactivar arriba
+    vencidos.forEach(s => push(5, 'Cupón reactivado', s.whatsapp, s.nombre, '', { codigo: s.welcome_code || '' }));
+
+    // Dedup por teléfono: se queda el motivo de mayor prioridad (número menor)
+    const porTel = new Map();
+    cand.sort((a, b) => a.prio - b.prio).forEach(c => { if (!porTel.has(c.tel)) porTel.set(c.tel, c); });
+    const elegidos = [...porTel.values()].slice(0, 40);
+
+    /* ── 3. REDACCIÓN ── plantilla propia por motivo (siempre existe) y, si la IA responde, la mejora. */
+    const plantillas = {
+      1: c => (c.nombre ? '¡Hola ' + nombreCorto(c.nombre) + '! 👋' : '¡Hola! 👋') + ' Te escribo de Strange Sneakers.'
+            + (c.contexto ? ' Vi que te interesaron unos ' + c.contexto + '.' : '')
+            + '\n\n¿Te ayudo a completar tu pedido? 🙌 Pagando en línea el *envío es GRATIS*, o contra entrega pagas solo el envío hoy y los zapatos al recibir. ¿Te lo aparto?',
+      2: c => (c.nombre ? '¡Hola ' + nombreCorto(c.nombre) + '! 👋' : '¡Hola! 👋') + ' Te escribo como quedamos.'
+            + (c.contexto ? ' ¿Seguiste pensando en los ' + c.contexto + '?' : '')
+            + '\n\nSi quieres te lo aparto hoy. Pagando en línea el envío es GRATIS 🙌',
+      3: c => (c.nombre ? '¡Hola ' + nombreCorto(c.nombre) + '! 👋' : '¡Hola! 👋') + ' Vi que dejaste tu carrito a medias'
+            + (c.contexto ? ' con unos ' + c.contexto : '') + ' 👟'
+            + '\n\n¿Te ayudo a terminarlo? Pagando en línea el *envío es GRATIS*, o contra entrega pagas solo el envío hoy.',
+      4: c => (c.nombre ? '¡Hola ' + nombreCorto(c.nombre) + '! 👋' : '¡Hola! 👋') + ' Te recuerdo que tu cupón de *$20.000 OFF*'
+            + (c.codigo ? ' (' + c.codigo + ')' : '') + ' vence en ' + c.dias + (c.dias === 1 ? ' día' : ' días') + ' ⏳'
+            + '\n\n¿Te muestro lo que tenemos en tu talla? Pagando en línea el envío es GRATIS.',
+      5: c => (c.nombre ? '¡Hola ' + nombreCorto(c.nombre) + '! 👋' : '¡Hola! 👋') + ' Te reactivé tu cupón de *$20.000 OFF*'
+            + (c.codigo ? ' (' + c.codigo + ')' : '') + ': vuelve a estar vigente por 7 días 🎁'
+            + '\n\n¿Te muestro lo que acaba de entrar? Pagando en línea el envío es GRATIS.'
     };
 
     let redactados = null, modeloUsado = null, ultimoErrorIA = null;
     const GKEY = (process.env.GEMINI_API_KEY || '').trim();
-    if (GKEY && pendientes.length) {
-      // Un solo viaje para todos: más barato, más rápido y más consistente en el tono.
-      const fichas = pendientes.map((o, i) => `${i + 1}. Nombre: ${nombreCorto(o.nombre) || '(sin nombre)'} | Le interesó: ${productosDe(o) || '(no se sabe)'}`).join('\n');
-      const prompt = `Eres quien atiende el WhatsApp de Strange Sneakers, una tienda colombiana de sneakers. Escribe UN mensaje corto para cada cliente que dejó su pedido sin terminar.
-Reglas: tuteo colombiano, cálido y directo, máximo 45 palabras, sin emojis excesivos (máximo 2), sin prometer descuentos que no existen, sin decir "estimado". Menciona que pagando en línea el envío es gratis y que también hay contra entrega. Termina con una pregunta corta.
-Devuelve SOLO un JSON array de strings, un mensaje por cliente, en el mismo orden. Sin texto adicional.
-
-Clientes:
-${fichas}`;
-      // Se prueban varios modelos en orden: los nombres del catálogo de Gemini cambian con el
-      // tiempo y no queremos que el agente se quede mudo porque uno se renombró. El primero que
-      // conteste manda; si ninguno lo hace, caen las plantillas y el agente igual funciona.
+    if (GKEY && elegidos.length) {
+      const fichas = elegidos.map((c, i) =>
+        (i + 1) + '. Nombre: ' + (nombreCorto(c.nombre) || '(sin nombre)')
+        + ' | Situación: ' + c.motivo
+        + ' | Le interesó: ' + (c.contexto || '(no se sabe)')
+        + (c.codigo ? ' | Cupón: ' + c.codigo : '')
+      ).join('\n');
+      const prompt = 'Eres quien atiende el WhatsApp de Strange Sneakers, una tienda colombiana de sneakers. Escribe UN mensaje corto para cada persona de la lista, ajustado a SU situación.\n'
+        + 'Reglas: tuteo colombiano, cálido y directo, máximo 45 palabras, máximo 2 emojis, sin decir "estimado", sin inventar descuentos ni plazos que no estén en la ficha. Si hay cupón, menciónalo. Menciona que pagando en línea el envío es gratis y que también hay contra entrega. Termina con una pregunta corta.\n'
+        + 'Devuelve SOLO un JSON array de strings, un mensaje por persona, en el mismo orden. Sin texto adicional.\n\nPersonas:\n' + fichas;
+      // Los nombres de modelo de Gemini cambian con el tiempo: se prueban varios y manda el
+      // primero que conteste. Si ninguno responde, caen las plantillas y el agente igual sirve.
       const MODELOS = ['gemini-2.0-flash', 'gemini-flash-latest', 'gemini-2.5-flash', 'gemini-1.5-flash'];
       const pedir = (modelo) => new Promise((resolve) => {
         const body = Buffer.from(JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }));
         const rq = require('https').request({
           hostname: 'generativelanguage.googleapis.com',
-          path: `/v1beta/models/${modelo}:generateContent`,
+          path: '/v1beta/models/' + modelo + ':generateContent',
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Content-Length': body.length, 'x-goog-api-key': GKEY }
-        }, r => { let d = ''; r.on('data', c => d += c); r.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve(null); } }); });
+        }, r => { let d = ''; r.on('data', c => d += c); r.on('end', () => { try { resolve(JSON.parse(d)); } catch (e) { resolve(null); } }); });
         rq.on('error', () => resolve(null));
-        rq.setTimeout(20000, () => { rq.destroy(); resolve(null); });
+        rq.setTimeout(25000, () => { rq.destroy(); resolve(null); });
         rq.end(body);
       });
       for (const modelo of MODELOS) {
@@ -784,35 +827,36 @@ ${fichas}`;
             && gr.candidates[0].content.parts[0].text;
           if (txt) {
             const m = String(txt).match(/\[[\s\S]*\]/);
-            if (m) { const arr = JSON.parse(m[0]); if (Array.isArray(arr) && arr.length) { redactados = arr; modeloUsado = modelo; break; } }
+            if (m) {
+              const arr = JSON.parse(m[0]);
+              if (Array.isArray(arr) && arr.length) { redactados = arr; modeloUsado = modelo; break; }
+            }
           }
           if (gr && gr.error) ultimoErrorIA = String(gr.error.message || '').slice(0, 120);
         } catch (e) { ultimoErrorIA = String(e.message || '').slice(0, 120); }
       }
     }
 
-    pendientes.forEach((o, i) => {
-      const msg = (redactados && typeof redactados[i] === 'string' && redactados[i].trim()) ? redactados[i].trim() : plantilla(o);
+    elegidos.forEach((c, i) => {
+      const ia = redactados && typeof redactados[i] === 'string' && redactados[i].trim();
       cola.push({
-        tel: telKey(o.tel), nombre: o.nombre || '', mensaje: msg,
-        motivo: 'Pedido sin terminar', ia: !!(redactados && redactados[i])
-      });
-    });
-    // Cada cupón reactivado arriba entra aquí: sin mensaje, reactivarlo no le sirve a nadie.
-    vencidos.forEach(sub => {
-      cola.push({
-        tel: telKey(sub.whatsapp), nombre: sub.nombre || '', mensaje: plantillaCupon(sub),
-        motivo: 'Cupón reactivado', ia: false
+        tel: c.tel, nombre: c.nombre, motivo: c.motivo, ia: !!ia,
+        mensaje: ia ? redactados[i].trim() : plantillas[c.prio](c)
       });
     });
 
+    const resumen = {};
+    cola.forEach(c => { resumen[c.motivo] = (resumen[c.motivo] || 0) + 1; });
+
     return res.json({
-      ok: true, seco,
-      hechas,
-      cola,
-      ia: redactados ? ('IA ' + modeloUsado) : (GKEY ? ('plantilla — la IA no respondió' + (ultimoErrorIA ? ': ' + ultimoErrorIA : '')) : 'plantilla (sin GEMINI_API_KEY)')
+      ok: true, seco, hechas, cola, resumen,
+      descartados_por_duplicado: cand.length - porTel.size,
+      ia: redactados ? ('IA ' + modeloUsado)
+        : (GKEY ? ('plantilla — la IA no respondió' + (ultimoErrorIA ? ': ' + ultimoErrorIA : ''))
+                : 'plantilla (sin GEMINI_API_KEY)')
     });
   }
+
 
   /* ── MOTOR DE DESCUENTOS (tabla discounts, migración 006) — CRUD del panel ──
      El panel solo administra las FILAS; quién descuenta cuánto lo decide siempre

@@ -1809,7 +1809,11 @@ async function correrAgente(){
       : `<div style="font-size:11.5px;color:var(--ink3);margin-bottom:10px">Nada que ejecutar por mi cuenta.</div>`;
     if(cola.length){
       html+=`<div style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin:12px 0 6px">Listos para que TÚ los envíes · ${cola.length}</div>`;
-      html+=`<div style="font-size:10px;color:var(--ink3);margin-bottom:8px">Redactados con ${escHtml(r.ia||'plantilla')}. Léelos antes de enviar: se abre WhatsApp con el texto puesto y tú das enviar.</div>`;
+      // Resumen por motivo: de un vistazo se ve de dónde sale cada mensaje.
+      const res=r.resumen||{};
+      const chips=Object.entries(res).map(([k,v])=>`<span style="display:inline-block;padding:2px 8px;margin:0 4px 4px 0;border-radius:6px;background:var(--bg);border:1px solid var(--line);font-size:9.5px;font-weight:700;color:var(--ink2)">${escHtml(k)} · ${v}</span>`).join('');
+      if(chips)html+=`<div style="margin-bottom:7px">${chips}</div>`;
+      html+=`<div style="font-size:10px;color:var(--ink3);margin-bottom:8px">Redactados con ${escHtml(r.ia||'plantilla')}. Léelos antes de enviar: se abre WhatsApp con el texto puesto y tú das enviar.${r.descartados_por_duplicado?` <b>${r.descartados_por_duplicado}</b> mensaje${r.descartados_por_duplicado===1?'':'s'} se descartó por duplicado — a nadie se le escribe dos veces.`:''}</div>`;
       html+=cola.map((c,i)=>`<div style="background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin-bottom:7px">
         <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">
           <b style="flex:1;font-size:11.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(c.nombre||c.tel)}</b>
