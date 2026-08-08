@@ -737,6 +737,13 @@ module.exports = async (req, res) => {
        Una misma persona puede caer en varias listas (dejó el carrito Y se le vence el cupón).
        Se le escribe UNA vez, por el motivo más valioso: escribirle dos veces el mismo día es la
        forma más rápida de que te bloqueen. */
+    /* El código que hay que DICTARLE al cliente. Los suscriptores viejos no tienen código único
+       (welcome_code null): esos usan el genérico BIENVENIDO20, que el server valida
+       identificándolos por su teléfono contra subscribers (api/_orders.js). Mandar el mensaje sin
+       código dejaba al cliente sin saber qué escribir en el carrito — el cupón existía y no
+       servía. */
+    const codigoDe = s => s.welcome_code || 'BIENVENIDO20';
+
     const cand = [];
     const push = (prio, motivo, tel, nombre, contexto, extra) => {
       const t = telKey(tel); if (!t) return;
@@ -766,12 +773,12 @@ module.exports = async (req, res) => {
       if (compraron.has(telKey(s.whatsapp))) return;
       const quedan = 7 - Math.floor((AHORA - new Date(s.welcome_issued_at).getTime()) / DIA);
       if (quedan >= 1 && quedan <= 3) {
-        push(4, 'Cupón vence en ' + quedan + (quedan === 1 ? ' día' : ' días'), s.whatsapp, s.nombre, '', { dias: quedan, codigo: s.welcome_code || '' });
+        push(4, 'Cupón vence en ' + quedan + (quedan === 1 ? ' día' : ' días'), s.whatsapp, s.nombre, '', { dias: quedan, codigo: codigoDe(s) });
       }
     });
 
     // (e) Cupón que se acaba de reactivar arriba
-    vencidos.forEach(s => push(5, 'Cupón reactivado', s.whatsapp, s.nombre, '', { codigo: s.welcome_code || '' }));
+    vencidos.forEach(s => push(5, 'Cupón reactivado', s.whatsapp, s.nombre, '', { codigo: codigoDe(s) }));
 
     // Dedup por teléfono: se queda el motivo de mayor prioridad (número menor)
     const porTel = new Map();

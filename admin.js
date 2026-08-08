@@ -1826,7 +1826,17 @@ async function correrAgente(){
       html+=`<div style="font-size:11.5px;color:var(--green);font-weight:600;margin-top:8px">✅ No hay nadie a quien escribirle ahora mismo.</div>`;
     }
     out.innerHTML=html;
-    await loadOrders(); if(avSec==='inicio')renderStatsTab();
+    // Recargar TAMBIÉN los suscriptores: las tareas de cupones se calculan con subsData, así que
+    // sin esto el agente reactivaba los cupones de verdad pero la pantalla seguía pidiéndotelo.
+    // Se vuelve a pintar conservando el resultado del agente (renderStatsTab lo borraría).
+    const guardado=out.innerHTML;
+    await loadOrders();
+    if(typeof loadSubscribers==='function'){ try{ subsData=null; await loadSubscribers(); }catch(e){} }
+    if(avSec==='inicio'){
+      renderStatsTab();
+      const o2=$('agenteOut');
+      if(o2){ o2.style.display='block'; o2.innerHTML=guardado; }
+    }
   }catch(e){
     out.innerHTML=`<div style="font-size:11.5px;color:var(--red)">No se pudo: ${escHtml(e.message)}</div>`;
   }finally{ const bb=$('btnAgente'); if(bb){bb.disabled=false;bb.textContent='⚡ Haz las tareas de hoy';} }
