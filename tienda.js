@@ -810,7 +810,15 @@ function renderGrid(){
     const bb=$('brandbar');if(bb)bb.innerHTML='';   // liquidación no tiene filtro de marca
     $('statN').textContent=prods.length;
     $('secName').textContent='🔥 Ofertas';
-    $('secCt').textContent=liqs.length+' modelos';
+    // El contador tiene que hablar de lo que SE VE. Sin liquidación esta sección la llenan los
+    // combos (#combosRow, dentro de #liqSec), así que decir "0 modelos" encima de tres combos
+    // hace leer la página como vacía — y aquí es donde aterrizan los 4 banners del hero.
+    {
+      const nCombos=(typeof combos!=='undefined'?combos:[]).filter(c=>c&&c.activo!==false).length;
+      $('secCt').textContent = liqs.length ? (liqs.length+' modelos')
+                             : nCombos     ? (nCombos+(nCombos===1?' combo':' combos'))
+                             : '0 modelos';
+    }
     liqEl.style.display='block';
     const lhdr=liqEl.querySelector('.liq-hdr');
     if(lhdr)lhdr.style.display='none';
