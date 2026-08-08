@@ -298,7 +298,19 @@ function _descItemsPayload(){
 async function aplicarCupon(){
   const inp=$('cupInput');if(!inp)return;
   let code=inp.value.trim().toUpperCase();
-  const cupFail=msg=>{const e=$('cupErr');if(e){e.textContent=msg||'Código no válido';e.style.display='block';setTimeout(()=>{e.style.display='none';e.textContent='Código no válido';},3500);}};
+  // El mensaje se queda hasta que el cliente vuelva a escribir. Antes se borraba solo a los 3,5 s
+  // y, como el server tarda ~1,2 s en responder, la ventana real de lectura eran ~3 s: quien
+  // apartaba la vista un momento veía el botón volver a "Aplicar" sin ninguna explicación.
+  const cupFail=msg=>{
+    const e=$('cupErr');if(!e)return;
+    e.textContent=msg||'Código no válido';
+    e.style.display='block';
+    const i=$('cupInput');
+    if(i&&!i.dataset.limpiaErr){
+      i.dataset.limpiaErr='1';
+      i.addEventListener('input',()=>{const x=$('cupErr');if(x){x.style.display='none';x.textContent='Código no válido';}});
+    }
+  };
   // El suscriptor nuevo tiene código propio (BIENVENIDO20-XXXXX, lo guarda el popup). Si teclea
   // el genérico de memoria, se sube en silencio al suyo — el server ya no acepta el genérico
   // de quien no es suscriptor identificable, y el propio siempre valida.

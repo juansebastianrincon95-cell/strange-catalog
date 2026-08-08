@@ -887,7 +887,9 @@ function setG(v,btn){
   brandSel='all';   // al cambiar de sección, resetear el filtro de marca
   colSel=null;      // ...y salir de la colección: el cliente pidió ver una sección completa
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
-  btn.classList.add('on');
+  // btn puede no existir: openCatalog resuelve tabs[idx] por posición, y si algún día se quita un
+  // botón del DOM esto reventaba con TypeError y la vista no abría. Filtrar es lo importante.
+  if(btn)btn.classList.add('on');
   renderGrid();
   navUpdateCat();
 }

@@ -140,10 +140,14 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .ban-env{font-size:11px;color:var(--green);font-weight:600;margin-top:4px}
 
 /* TABS */
-/* Pestañas de género ocultas: se navega por el menú (Hombre/Mujer/Ofertas) + ← volver. Quedan solo
-   las marcas (#brandbar). Los botones siguen en el DOM para que setG/openCatalog funcionen. */
+/* Pestañas de género VISIBLES dentro del catálogo. Antes estaban ocultas asumiendo que el cliente
+   elegía género en el menú de la portada, pero el tráfico pagado aterriza en una ficha o en el
+   catálogo y nunca pasa por la portada: sin esto se quedaba sin ninguna forma de filtrar.
+   ⚠️ "🔥 Ofertas" se oculta con .tab-liq (no se borra del DOM): openCatalog resuelve tabs[4] para
+   la ruta /catalogo/ofertas —a la que apuntan los 4 banners del hero— y borrar el botón la rompe. */
 .tabs{display:none}
 .tabs.show{display:flex;gap:4px;padding:18px 10px 14px;background:var(--bg)}
+.tabs .tab-liq{display:none}
 .tab{flex:1;padding:10px 4px;background:var(--white);border:1.5px solid var(--line);border-radius:10px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink2);cursor:pointer;transition:all .16s;text-align:center}
 .tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .brandbar{display:flex;gap:6px;padding:16px 10px 12px;background:var(--bg);overflow-x:auto;scrollbar-width:none}
