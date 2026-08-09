@@ -538,7 +538,34 @@ async function reconciliarPendientes(req, res) {
       }
     } catch { out.push((o.reference || o.id) + ':error'); }
   }
-  return res.status(200).json({ ok: true, revisados: (pend || []).length, resultado: out });
+
+  /* ── CIERRE AUTOMÁTICO A LOS 30 DÍAS ──
+     Un pendiente que pasa los 30 días SALE de la ventana de arriba: nadie lo vuelve a mirar
+     NUNCA, pero sigue contando como "por clasificar" y ensuciando la lista de tareas para
+     siempre. Aquí se cierran como no_venta, que es lo que la pasarela ya dijo — NO se inventa
+     ninguna venta: si alguna hubiera sido pagada, el bucle de arriba ya la habría confirmado
+     mientras estuvo en ventana.
+     Se deja el motivo escrito para poder auditarlo, y Addi lleva uno distinto porque a él nunca
+     se le pudo preguntar (no expone API de estado). */
+  const cerrados = [];
+  try {
+    const limite = new Date(Date.now() - 30 * 864e5).toISOString();
+    const { data: viejos } = await sb.from('orders').select('id,reference,pago,utm,created_at')
+      .eq('status', 'pending').in('pago', ['wompi', 'bold', 'sistecredito', 'addi'])
+      .lt('created_at', limite).limit(100);
+    for (const o of (viejos || [])) {
+      if (o.utm && o.utm.test) continue;                       // los de prueba no se tocan
+      const dias = Math.round((Date.now() - new Date(o.created_at).getTime()) / 864e5);
+      const motivo = o.pago === 'addi'
+        ? `Cerrado automáticamente: ${dias} días sin confirmación. Addi no expone consulta de estado — verificar en su portal si se sospecha lo contrario.`
+        : `Cerrado automáticamente: ${dias} días y la pasarela nunca confirmó el pago.`;
+      const { error } = await sb.from('orders')
+        .update({ status: 'no_venta', motivo_no_venta: motivo }).eq('id', o.id).eq('status', 'pending');
+      if (!error) cerrados.push(o.reference || o.id);
+    }
+  } catch (e) { /* el cierre es limpieza: si falla, no puede tumbar la reconciliación */ }
+
+  return res.status(200).json({ ok: true, revisados: (pend || []).length, resultado: out, cerrados_30d: cerrados.length, cerrados });
 }
 
 module.exports = async (req, res) => {
