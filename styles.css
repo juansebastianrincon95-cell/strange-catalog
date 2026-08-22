@@ -373,7 +373,16 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 /* GALERÍA de la ficha: carrusel [foto principal, ...secundarias] con swipe + dots + flechas */
 .pm-gal{position:relative;width:100%;aspect-ratio:1/1;background:var(--bg);overflow:hidden;touch-action:pan-y}
 .pm-gal-track{display:flex;height:100%;transition:transform .35s cubic-bezier(.16,1,.3,1)}
-.pm-gal-track img{flex:0 0 100%;width:100%;height:100%;object-fit:cover;display:block;-webkit-user-drag:none;user-select:none}
+/* Transición SOLO de `transform` y a .4s ease-out, la misma que usa adidas: al entrar y salir el
+   acercamiento es suave, pero mover el cursor cambia `transform-origin` —que NO se transiciona—
+   así que el seguimiento es instantáneo y la lupa nunca va por detrás del ratón. */
+.pm-gal-track img{flex:0 0 100%;width:100%;height:100%;object-fit:cover;display:block;-webkit-user-drag:none;user-select:none;cursor:zoom-in;transition:transform .4s ease-out;will-change:transform}
+/* Con la lupa puesta se apagan los puntos (estorban encima de lo que se mira). El botón "Ampliar"
+   se queda: es la salida a pantalla completa, y apagarlo dejaría un botón invisible pero clicable. */
+.pm-gal.lupa .pm-gal-dots,.pm-gal.pellizcada .pm-gal-dots{opacity:0;transition:opacity .15s;pointer-events:none}
+/* Pista visible de que la foto se puede ampliar: sin esto nadie descubre el zoom. */
+.pm-gal-zoom{position:absolute;right:10px;bottom:10px;z-index:3;display:flex;align-items:center;gap:5px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:999px;padding:7px 11px;font-family:var(--font);font-size:11px;font-weight:700;cursor:zoom-in}
+.pm-gal-zoom:active{transform:scale(.94)}
 .pm-gal-arr{display:none;position:absolute;top:50%;transform:translateY(-50%);width:38px;height:38px;border:none;border-radius:50%;background:rgba(255,255,255,.88);color:var(--ink);font-size:22px;line-height:1;cursor:pointer;z-index:3;box-shadow:0 2px 10px rgba(0,0,0,.15);align-items:center;justify-content:center}
 .pm-gal-arr.prev{left:10px}.pm-gal-arr.next{right:10px}
 .pm-gal-arr:active{transform:translateY(-50%) scale(.92)}
@@ -432,9 +441,19 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .pm-guia-tx{font-size:12px;line-height:1.5;color:var(--ink2);margin-bottom:10px}
 .pm-guia-imgs{display:flex;justify-content:center}
 .pm-guia-img{width:100%;max-width:280px;max-height:320px;object-fit:contain;border-radius:10px;border:1px solid var(--line);cursor:zoom-in;background:var(--white)}
-#imgZoom{display:none;position:fixed;inset:0;z-index:700;background:rgba(0,0,0,.92);align-items:center;justify-content:center;padding:16px;cursor:zoom-out}
+/* VISOR AMPLIADO — pellizco (móvil), rueda (escritorio), doble toque para acercar/alejar y
+   arrastre para recorrer. Las fotos son de 1400x1400 y en la ficha se ven a ~560 px: aquí es
+   donde el cliente ve de verdad la costura, el material y el estado de la suela.
+   `touch-action:none` es obligatorio: sin eso el navegador se queda el pellizco y hace zoom
+   de página en vez de zoom de la foto. */
+#imgZoom{display:none;position:fixed;inset:0;z-index:700;background:rgba(0,0,0,.94);align-items:center;justify-content:center;overflow:hidden;touch-action:none;user-select:none}
 #imgZoom.on{display:flex}
-#imgZoom img{max-width:100%;max-height:100%;object-fit:contain;border-radius:8px}
+#imgZoom img{max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;transform-origin:center center;will-change:transform;-webkit-user-drag:none;user-select:none;cursor:zoom-in}
+#imgZoom.zoomed img{cursor:grab}
+/* Con ratón no se arrastra (el cursor ya recorre) y el clic cierra: la mano de "agarrar" mentiría. */
+@media(hover:hover) and (pointer:fine){#imgZoom img,#imgZoom.zoomed img{cursor:zoom-out}}
+.iz-close{position:absolute;top:12px;right:12px;z-index:3;width:40px;height:40px;border:none;border-radius:50%;background:rgba(255,255,255,.92);color:#111;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.3)}
+.iz-hint{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);z-index:3;background:rgba(0,0,0,.62);color:#fff;font-family:var(--font);font-size:12px;font-weight:600;padding:8px 15px;border-radius:999px;white-space:nowrap;pointer-events:none;transition:opacity .45s}
 .pm-pay{margin-top:18px}
 .pm-pay-t{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);text-align:center;margin-bottom:9px}
 .pm-cod{display:flex;align-items:center;gap:10px;background:#eafaf0;border:1px solid #bfe9cd;color:#137a3a;border-radius:12px;padding:11px 13px;font-size:12.5px;font-weight:600;line-height:1.3;margin-bottom:14px}
@@ -1040,41 +1059,68 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:24px;font-size:13px;font-weight:600;z-index:700;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;box-shadow:0 6px 24px rgba(0,0,0,.32);max-width:90vw;text-align:center}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
+/* ACCESOS POR GÉNERO en la portada. Mujer va primero: es la sección con más catálogo y la que
+   más se pauta. Van justo debajo del banner, que es donde cae el ojo tras el hero. */
+.gsec{display:flex;gap:8px;padding:14px 14px 2px;background:var(--bg)}
+.gsec-b{flex:1;min-width:0;padding:13px 6px;background:var(--white);border:1.5px solid var(--line);border-radius:12px;font-family:var(--font);font-size:13.5px;font-weight:700;color:var(--ink);letter-spacing:.01em;cursor:pointer;transition:border-color .15s,transform .12s}
+.gsec-b:hover{border-color:var(--ink)}
+.gsec-b:active{transform:scale(.97)}
+/* En escritorio el menú de arriba (.nav-menu) ya muestra Hombre/Mujer/Unisex en texto —
+   estos botones grandes solo hacían falta en móvil, donde .nav-menu está en display:none. */
+@media(min-width:700px){.gsec{display:none}}
+
 /* CLIENTES FELICES (testimonios) */
 .testi{padding:24px 0 14px;background:var(--bg)}
 .testi-hdr{padding:0 16px 14px;text-align:center}
 .testi-t{font-size:19px;font-weight:700;color:var(--ink)}
-.testi-stars{color:#f5a623;font-size:15px;letter-spacing:1px;margin-top:5px}
-.testi-stars span{color:var(--ink2);font-size:12px;font-weight:600;letter-spacing:0;margin-left:5px}
-.testi-row{columns:2;column-gap:10px;padding:0 14px 8px}
-@media(min-width:700px){.testi-row{columns:4;column-gap:14px;max-width:1120px;margin:0 auto;padding:0 24px 10px}}
-.testi-card{break-inside:avoid;-webkit-column-break-inside:avoid;display:inline-block;width:100%;margin:0 0 10px;background:var(--white);border:1px solid var(--line);border-radius:14px;padding:14px;cursor:pointer}
-@media(min-width:700px){.testi-card{margin-bottom:14px}}
-.testi-card-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
-.testi-card-foto{width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--bg)}
-/* Pantallazo/foto del pedido recibido — grande arriba de la tarjeta (estilo elena) */
+.testi-hdr-sub{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:6px}
+.testi-hdr-sub .testi-cnt{color:var(--ink2);font-size:12px;font-weight:600}
+/* Estrellas con relleno PARCIAL: --r admite decimales (4.8 pinta 4 llenas y 4/5 de la quinta).
+   El ancho se calcula en % del total, y como cada estrella arrastra su mismo letter-spacing,
+   la proporción cae exacta sobre el límite de cada estrella. */
+.stars{position:relative;display:inline-block;white-space:nowrap;line-height:1;color:#dcdcdc;letter-spacing:1.5px;font-size:13px}
+.stars::before{content:'★★★★★'}
+.stars i{position:absolute;left:0;top:0;overflow:hidden;white-space:nowrap;color:#f5a623;width:calc(var(--r,5)/5*100%)}
+.stars i::before{content:'★★★★★'}
+.stars-lg{font-size:17px;letter-spacing:2px}
+/* Masonry en columnas REALES repartidas por JS (a la más corta).
+   `columns` de CSS balancea por altura y dejaba la última columna VACÍA: declaraba 4, usaba 3,
+   y quedaba un hueco blanco a la derecha. Con columnas propias eso no puede pasar. */
+.testi-row{display:flex;align-items:flex-start;gap:10px;padding:0 14px 8px}
+@media(min-width:700px){.testi-row{gap:14px;max-width:1180px;margin:0 auto;padding:0 24px 10px}}
+.testi-col{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:10px}
+@media(min-width:700px){.testi-col{gap:14px}}
+.testi-card{width:100%;background:var(--white);border:1px solid var(--line);border-radius:14px;padding:14px;cursor:pointer;transition:box-shadow .16s,transform .16s}
+.testi-card:hover{box-shadow:0 6px 20px rgba(0,0,0,.10);transform:translateY(-2px)}
+.testi-card-top{margin-bottom:8px}
+/* Pantallazo/foto del pedido recibido — grande arriba de la tarjeta */
 .testi-card-cap{width:100%;height:auto;display:block;border-radius:10px;margin-bottom:10px;background:var(--bg)}
-.tm-cap{width:100%;height:auto;display:block;border-radius:12px;margin-top:12px;background:var(--bg)}
 .testi-card-name{font-size:13px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:4px}
 .testi-card-verif{color:#1aad49;font-size:11px}
 .testi-card-date{font-size:10px;color:var(--ink3)}
-.testi-card-stars{color:#f5a623;font-size:12px;letter-spacing:1px}
-.testi-card-text{font-size:12.5px;color:var(--ink2);line-height:1.5;margin-top:6px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-.testi-card-prod{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:9px;border-top:1px solid var(--line)}
-.testi-card-prod img{width:34px;height:34px;border-radius:7px;object-fit:cover}
-.testi-card-prod span{font-size:10.5px;color:var(--ink2);font-weight:600}
+.testi-card-stars{margin-top:3px}
+.testi-card-text{font-size:12.5px;color:var(--ink2);line-height:1.5;margin-top:6px;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+/* MODAL: pantallazo grande a la izquierda y el testimonio a la derecha; apilado en móvil.
+   Sin botón de comprar: esta capa es para LEER la reseña, no para vender. */
 .testi-modal{position:fixed;inset:0;z-index:640;display:none}
-.testi-modal.on{display:flex;align-items:center;justify-content:center;padding:20px}
-.tm-scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);cursor:pointer}
-.tm-card{position:relative;background:var(--white);border-radius:18px;max-width:380px;width:100%;padding:22px;animation:pmIn .3s both;max-height:90vh;overflow-y:auto}
-.tm-close{position:absolute;top:10px;right:10px;width:32px;height:32px;border:none;background:var(--bg);border-radius:50%;font-size:14px;cursor:pointer}
-.tm-head{display:flex;align-items:center;gap:12px}
-.tm-foto{width:52px;height:52px;border-radius:50%;object-fit:cover}
-.tm-name{font-size:15px;font-weight:700;color:var(--ink)}
+.testi-modal.on{display:flex;align-items:center;justify-content:center;padding:16px}
+.tm-scrim{position:fixed;inset:0;background:rgba(0,0,0,.6);cursor:pointer}
+.tm-card{position:relative;background:var(--white);border-radius:16px;max-width:900px;width:100%;max-height:90vh;overflow:hidden;animation:pmIn .3s both;display:flex;flex-direction:column}
+.tm-close{position:absolute;top:10px;right:10px;z-index:3;width:32px;height:32px;border:none;background:rgba(255,255,255,.94);box-shadow:0 1px 6px rgba(0,0,0,.18);border-radius:50%;font-size:14px;cursor:pointer}
+.tm-pane-img{background:#efefef;display:flex;align-items:center;justify-content:center;flex-shrink:0;min-height:0}
+.tm-cap{display:block;width:100%;height:auto;max-height:44vh;object-fit:contain}
+.tm-pane-txt{padding:20px;overflow-y:auto;min-height:0}
+@media(min-width:760px){
+  .tm-card{flex-direction:row;max-height:86vh}
+  .tm-pane-img{flex:1 1 56%;min-width:0;max-height:86vh}
+  .tm-cap{max-height:86vh}
+  .tm-pane-txt{flex:1 1 44%;min-width:0;max-height:86vh;padding:26px}
+}
+.tm-name{font-size:15px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:5px}
+.tm-verif{color:#1aad49;font-size:12px}
 .tm-date{font-size:11px;color:var(--ink3)}
-.tm-stars{color:#f5a623;font-size:16px;letter-spacing:2px;margin-top:12px}
-.tm-text{font-size:14px;color:var(--ink);line-height:1.6;margin-top:10px}
-.tm-prod{width:100%;margin-top:16px;background:var(--ink);color:#fff;border:none;padding:13px;border-radius:12px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer}
+.tm-stars{margin-top:12px}
+.tm-text{font-size:14px;color:var(--ink);line-height:1.6;margin-top:10px;white-space:pre-line}
 
 /* FOOTER (redes + newsletter) */
 .ftr{background:var(--bg);border-top:1px solid var(--line);margin-top:6px}

@@ -222,10 +222,17 @@
       <input id="testiCiudad" type="text" placeholder="Ciudad (ej. Medellín) — opcional" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
       <input id="testiFecha" type="text" placeholder="Fecha (ej. 28/05/2026) — opcional" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none">
       <textarea id="testiTexto" placeholder="Testimonio / recomendación del cliente" rows="2" style="margin-top:6px;width:100%;padding:9px 11px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:13px;font-weight:500;color:var(--ink);outline:none;resize:vertical"></textarea>
-      <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:9px;margin-top:6px;background:var(--white);border:1.5px dashed var(--ink3);border-radius:8px;font-family:var(--font);font-size:11.5px;font-weight:700;color:var(--ink2);cursor:pointer"><span id="testiFotoLbl">📷 Foto del cliente (opcional)</span><input type="file" accept="image/*" id="testiFoto" style="display:none" onchange="testiFotoUp(this.files[0]);this.value=''"></label>
       <label style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:9px;margin-top:6px;background:var(--white);border:1.5px dashed var(--ink3);border-radius:8px;font-family:var(--font);font-size:11.5px;font-weight:700;color:var(--ink2);cursor:pointer"><span id="testiCapLbl">🧾 Pantallazo del pedido recibido (opcional)</span><input type="file" accept="image/*" id="testiCap" style="display:none" onchange="testiCapUp(this.files[0]);this.value=''"></label>
-      <div style="font-size:10px;color:var(--ink3);margin-top:4px">💡 Tapa el número y la foto de perfil del cliente antes de subir el pantallazo.</div>
-      <select id="testiProdSel" style="margin-top:6px;width:100%;padding:9px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)"></select>
+      <div style="font-size:10px;color:#b23c17;margin-top:4px;font-weight:600">⚠️ Recorta la GUÍA COMPLETA antes de subir: nombre, dirección, teléfono, código de barras, QR y número. El QR y el número también llevan a los datos del envío.</div>
+      <select id="testiEstrellas" style="margin-top:6px;width:100%;padding:9px;background:var(--white);border:1.5px solid var(--line);border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--ink)">
+        <option value="5">★★★★★ &nbsp;5 estrellas</option>
+        <option value="4.5">★★★★½ &nbsp;4.5</option>
+        <option value="4">★★★★☆ &nbsp;4</option>
+        <option value="3.5">★★★½☆ &nbsp;3.5</option>
+        <option value="3">★★★☆☆ &nbsp;3</option>
+        <option value="2">★★☆☆☆ &nbsp;2</option>
+        <option value="1">★☆☆☆☆ &nbsp;1</option>
+      </select>
       <button id="testiAddBtn" onclick="testiAdd()" style="margin-top:8px;width:100%;padding:10px;background:var(--ink);color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">➕ Agregar testimonio</button>
       <button id="testiCancelBtn" onclick="testiEditCancel()" style="display:none;margin-top:6px;width:100%;padding:8px;background:var(--white);color:var(--ink2);border:1.5px solid var(--line);border-radius:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">✕ Cancelar edición</button>
     </div>

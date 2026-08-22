@@ -508,19 +508,43 @@ function subscribeFooter(){
 /* ── CLIENTES FELICES (testimonios) ── */
 let testimonios=[];
 
-// settings.testimonios [{nombre,fecha,texto,foto,productId}]
-let _tmProdId=null, _testiList=[];
+// settings.testimonios [{nombre,ciudad,fecha,texto,foto,captura,estrellas}]
+let _testiList=[];
 
-// estado del formulario ADMIN de testimonios
-const _AVCOL=['#E8200A','#0066FF','#1aad49','#FF7A00','#7b3fe4','#0aa6b8','#d6336c','#2b8a3e'];
+/* Sin foto del cliente, igual que elena: solo nombre + check verde, fecha, estrellas y texto.
+   El protagonista es el pantallazo. Una foto de perfil al lado compite con él, y además obliga a
+   publicar la cara de un cliente real (o a inventarla, que es peor). */
 
-function _avatar(name,hidden){
-  const nm=String(name||'C');
-  const parts=nm.trim().split(/\s+/);
-  const ini=((parts[0]||'')[0]||'')+((parts[1]||'')[0]||'');
-  let h=0;for(let i=0;i<nm.length;i++)h=(h*31+nm.charCodeAt(i))>>>0;
-  const c=_AVCOL[h%_AVCOL.length];
-  return `<div class="testi-card-foto" style="display:${hidden?'none':'flex'};align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;background:${c}">${escHtml(ini.toUpperCase())}</div>`;
+/* Al agrandar el pantallazo en el modal, dos capturas quedaron legibles con la guía de Servientrega
+   a la vista (nombre, dirección y celular del destinatario). Se reemplazaron el 2026-08-17 por
+   versiones recortadas sin la guía; el bloqueo temporal que las ocultaba ya no hace falta.
+   Regla que queda: antes de subir un pantallazo, recortar o tapar TODA la guía —no solo el nombre—
+   porque el QR y el número también llevan a los datos del envío. */
+
+// Estrellas de 0 a 5, con decimales. Los testimonios viejos no traen el campo → 5 por defecto.
+function _estrellas(v){const n=Number(v);return (isFinite(n)&&n>0)?Math.min(5,n):5;}
+function _starsHtml(v,cls){return `<span class="stars${cls?' '+cls:''}" style="--r:${_estrellas(v)}"><i></i></span>`;}
+
+// Nº de columnas del masonry según el ancho (elena usa 5 en escritorio y 2 en móvil).
+function _testiCols(){return innerWidth>=1000?5:innerWidth>=700?4:2;}
+
+/* Reparte las tarjetas a la columna MÁS CORTA. Se vuelve a llamar cada vez que carga un
+   pantallazo, porque hasta que la imagen no llega no se sabe cuánto mide la tarjeta. */
+let _testiRebT=null;
+function _testiReb(){clearTimeout(_testiRebT);_testiRebT=setTimeout(_testiRebDo,90);}
+function _testiRebDo(){
+  const row=$('testiRow');if(!row)return;
+  const cards=[...row.querySelectorAll('.testi-card')];
+  if(!cards.length)return;
+  const n=Math.min(_testiCols(),cards.length);
+  const alt=cards.map(c=>c.offsetHeight||1);      // medir ANTES de mover nada
+  const cols=[];
+  for(let i=0;i<n;i++){const d=document.createElement('div');d.className='testi-col';cols.push({el:d,h:0});}
+  cards.forEach((c,i)=>{
+    let m=0;for(let j=1;j<n;j++)if(cols[j].h<cols[m].h)m=j;
+    cols[m].el.appendChild(c);cols[m].h+=alt[i];      // appendChild las saca de la columna vieja
+  });
+  row.innerHTML='';cols.forEach(c=>row.appendChild(c.el));
 }
 
 function renderTestimonios(){
@@ -528,41 +552,47 @@ function renderTestimonios(){
   const ts=Array.isArray(testimonios)?testimonios:[];   // solo reales del admin; si no hay, la sección se oculta
   _testiList=ts;
   if(cnt)cnt.textContent=reviewsCount>0?`${reviewsCount.toLocaleString('es-CO')} reseñas`:`${ts.length} reseñas`;
+  // Promedio real de los testimonios cargados (por eso la cabecera puede mostrar 4,8 y no 5 clavado)
+  const avg=ts.length?ts.reduce((a,t)=>a+_estrellas(t.estrellas),0)/ts.length:5;
+  const as=$('testiAvgStars');if(as)as.style.setProperty('--r',avg.toFixed(2));
   if(!row)return;
   if(!ts.length){if(sec)sec.style.display='none';row.innerHTML='';return;}
   if(sec)sec.style.display='';
-  row.innerHTML=ts.map((t,i)=>{
-    const p=t.productId?prods.find(x=>x.id===t.productId):null;
-    const foto=t.foto?`<img class="testi-card-foto" src="${escHtml(t.foto)}" alt="${escHtml(t.nombre||'Cliente')}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`+_avatar(t.nombre,true):_avatar(t.nombre,false);
-    const prod=p?`<div class="testi-card-prod"><img src="${escHtml(p.img)}" alt=""><span>${escHtml((BRAND_LABELS[p.brand]||'')+' '+(genLabel(p.g)))}</span></div>`:'';
+  const cards=ts.map((t,i)=>{
     const meta=[t.ciudad,t.fecha].filter(Boolean).map(escHtml).join(' · ');
-    const cap=t.captura?`<img class="testi-card-cap" src="${escHtml(t.captura)}" alt="Pedido recibido" loading="lazy" onerror="this.style.display='none'">`:'';
+    const cap=t.captura?`<img class="testi-card-cap" src="${escHtml(t.captura)}" alt="Pedido recibido" loading="lazy" onload="_testiReb()" onerror="this.style.display='none';_testiReb()">`:'';
     return `<div class="testi-card" onclick="openTesti(${i})">
       ${cap}
-      <div class="testi-card-top">${foto}<div><div class="testi-card-name">${escHtml(t.nombre||'Cliente')} <span class="testi-card-verif">✓</span></div><div class="testi-card-date">${meta}</div></div></div>
-      <div class="testi-card-stars">★★★★★</div>
+      <div class="testi-card-top"><div class="testi-card-name">${escHtml(t.nombre||'Cliente')} <span class="testi-card-verif">✓</span></div><div class="testi-card-date">${meta}</div></div>
+      <div class="testi-card-stars">${_starsHtml(t.estrellas)}</div>
       <div class="testi-card-text">${escHtml(t.texto||'')}</div>
-      ${prod}
     </div>`;
-  }).join('');
+  });
+  // Reparto inicial por turnos; al cargar las imágenes _testiReb() lo reequilibra por altura real.
+  const n=Math.min(_testiCols(),cards.length);
+  const cols=Array.from({length:n},()=>'');
+  cards.forEach((h,i)=>{cols[i%n]+=h;});
+  row.innerHTML=cols.map(c=>`<div class="testi-col">${c}</div>`).join('');
+  _testiReb();
 }
+
+// Al cambiar el ancho cambia el nº de columnas: hay que volver a repartir.
+addEventListener('resize',_testiReb);
 
 function openTesti(i){
   const t=_testiList[i];if(!t)return;
   $('tmName').textContent=t.nombre||'Cliente';
   $('tmDate').textContent=[t.ciudad,t.fecha].filter(Boolean).join(' · ');
   $('tmText').textContent=t.texto||'';
-  const f=$('tmFoto');if(f){if(t.foto){f.src=t.foto;f.style.display='';}else f.style.display='none';}
-  const cp=$('tmCap');if(cp){if(t.captura){cp.src=t.captura;cp.style.display='';}else cp.style.display='none';}
-  _tmProdId=(t.productId&&prods.find(x=>x.id===t.productId))?t.productId:null;
-  const pb=$('tmProd');if(pb)pb.style.display=_tmProdId?'':'none';
+  const st=$('tmStars');if(st)st.style.setProperty('--r',_estrellas(t.estrellas));
+  // El pantallazo manda el panel entero: sin captura, el modal queda solo con el texto.
+  const pane=$('tmPaneImg'),cp=$('tmCap');
+  if(pane){if(t.captura){if(cp)cp.src=t.captura;pane.style.display='';}else pane.style.display='none';}
   {const _tm=$('testiModal');const _ya=_tm.classList.contains('on');_tm.classList.add('on');if(!_ya)lockScroll();}   // un bloqueo por capa
   navPush('testi',null,null,closeTesti);
 }
 
 function closeTesti(){if(!_navPopping)navRemove('testi');$('testiModal').classList.remove('on');unlockScroll();}
-
-function testiVerProducto(){const id=_tmProdId;closeTesti();if(id)openPhoto(id,'cat');}
 
 /* ── NEUROMARKETING ── */
 // Prueba social real: vistas por producto (de la tabla events, vía /api/product-views)
@@ -1099,8 +1129,186 @@ function renderPmGuia(){
   imgs.innerHTML=fotos.map(u=>`<img class="pm-guia-img" src="${escHtml(u)}" alt="Etiqueta de talla" loading="lazy" onclick="zoomImg('${escHtml(u)}')">`).join('');
 }
 function toggleGuiaTallas(){const b=$('pmGuiaBox');if(b)b.style.display=b.style.display==='none'?'block':'none';}
-function zoomImg(src){const z=$('imgZoom'),im=$('imgZoomImg');if(!z||!im)return;im.src=src;z.classList.add('on');}
-function closeZoom(){const z=$('imgZoom');if(z)z.classList.remove('on');}
+/* ── VISOR AMPLIADO (fotos del producto, guía de tallas, marquilla) ──
+   Pellizco, rueda, doble toque para acercar/alejar y arrastre para recorrer.
+   Escala en `transform` (la GPU la hace sin repintar) con origen en el centro, que es lo que
+   hace que la cuenta del punto focal salga corta y estable. */
+let _izS=1,_izX=0,_izY=0,_izPtr=new Map(),_izPinch=null,_izPan=null,_izLastTap=0,_izTapT=null,_izHintT=null;
+const IZ_MAX=4;
+/* En escritorio el visor se comporta como la lupa de la ficha: entra YA acercado y el detalle
+   sigue al cursor, sin doble clic ni arrastre. En táctil manda el pellizco.
+   Es una FUNCIÓN, no un valor: guardarlo en una constante al cargar hacía que el modo móvil de
+   las herramientas del navegador —que se activa después— no cambiara nada hasta recargar. */
+const _izHoverQ=matchMedia('(hover:hover) and (pointer:fine)');
+function _izHover(){return _izHoverQ.matches;}
+
+function _izApply(anim){
+  const im=$('imgZoomImg'),z=$('imgZoom');if(!im)return;
+  im.style.transition=anim?'transform .22s cubic-bezier(.16,1,.3,1)':'none';
+  im.style.transform=`translate(${_izX}px,${_izY}px) scale(${_izS})`;
+  if(z)z.classList.toggle('zoomed',_izS>1.02);
+}
+
+// Que no se pueda arrastrar la foto fuera de la pantalla y quede un vacío negro.
+function _izClamp(){
+  const im=$('imgZoomImg'),z=$('imgZoom');if(!im||!z)return;
+  const mx=Math.max(0,(im.offsetWidth*_izS-z.clientWidth)/2);
+  const my=Math.max(0,(im.offsetHeight*_izS-z.clientHeight)/2);
+  _izX=Math.min(mx,Math.max(-mx,_izX));
+  _izY=Math.min(my,Math.max(-my,_izY));
+}
+
+/* Acerca hasta `s2` dejando quieto el punto (cx,cy): así el zoom sigue al dedo o al cursor
+   en vez de saltar al centro. */
+function _izZoomA(s2,cx,cy){
+  const z=$('imgZoom');if(!z)return;
+  s2=Math.min(IZ_MAX,Math.max(1,s2));
+  const r=z.getBoundingClientRect();
+  const fx=cx-(r.left+r.width/2), fy=cy-(r.top+r.height/2);
+  _izX=fx-(fx-_izX)*s2/_izS;
+  _izY=fy-(fy-_izY)*s2/_izS;
+  _izS=s2;
+  if(_izS<=1.01){_izS=1;_izX=0;_izY=0;}
+  _izClamp();
+}
+
+function _izReset(){
+  _izS=1;_izX=0;_izY=0;_izPtr.clear();_izPinch=null;_izPan=null;
+  const im=$('imgZoomImg');if(im)im.style.transformOrigin='';
+  _izApply(false);
+}
+
+/* Coloca el punto que hay bajo el cursor como centro del acercamiento. Se calcula sobre la caja
+   SIN escalar (offsetWidth y el centrado del flex), porque getBoundingClientRect ya viene con la
+   escala aplicada y la cuenta se realimentaría a sí misma. */
+function _izSeguir(cx,cy){
+  const z=$('imgZoom'),im=$('imgZoomImg');if(!z||!im||!im.offsetWidth)return;
+  const zr=z.getBoundingClientRect();
+  const w0=im.offsetWidth,h0=im.offsetHeight;
+  const x0=zr.left+(zr.width-w0)/2, y0=zr.top+(zr.height-h0)/2;
+  const px=Math.min(100,Math.max(0,(cx-x0)/w0*100));
+  const py=Math.min(100,Math.max(0,(cy-y0)/h0*100));
+  im.style.transformOrigin=px+'% '+py+'%';
+  _izX=0;_izY=0;_izApply(false);
+}
+
+/* Cuánto acercar al abrir el visor: justo hasta la resolución REAL del archivo, ni un píxel más.
+   Con fotos de 1400 y el visor a ~845 px salen ~1,65x. Si algún día se suben a 2000, el
+   acercamiento sube solo sin tocar código. Nunca pide más píxeles de los que existen. */
+function _izNativo(){
+  const im=$('imgZoomImg');
+  if(!im||!im.offsetWidth||!im.naturalWidth)return PM_HOVER_Z;
+  return Math.min(IZ_MAX,Math.max(1.3,im.naturalWidth/im.offsetWidth));
+}
+
+function zoomImg(src){
+  const z=$('imgZoom'),im=$('imgZoomImg');if(!z||!im)return;
+  const ya=z.classList.contains('on');
+  im.src=src;_izReset();
+  z.classList.add('on');if(!ya)lockScroll();     // un bloqueo por capa
+  if(_izHover()){
+    // Se mide DESPUÉS de mostrar la capa: oculta, offsetWidth es 0 y la cuenta saldría mal.
+    const poner=()=>{_izS=_izNativo();_izApply(false);};
+    if(im.complete&&im.naturalWidth)poner(); else im.addEventListener('load',poner,{once:true});
+  }
+  const h=$('izHint');
+  if(h){
+    h.textContent=_izHover()?'Mueve el cursor para ver el detalle · rueda para acercar':'Pellizca o toca dos veces para acercar';
+    h.style.opacity='1';clearTimeout(_izHintT);_izHintT=setTimeout(()=>{h.style.opacity='0';},2600);
+  }
+  navPush('zoom',null,null,closeZoom);
+}
+
+function closeZoom(){
+  const z=$('imgZoom');if(!z||!z.classList.contains('on'))return;
+  if(!_navPopping)navRemove('zoom');
+  z.classList.remove('on');unlockScroll();_izReset();
+}
+
+// Amplía la foto que se está viendo en la galería de la ficha.
+function pmZoomActual(){
+  const tr=$('pmGalTrack');if(!tr)return;
+  const im=tr.children[_galIdx];if(im)zoomImg(im.currentSrc||im.src);
+}
+
+(function(){
+  const z=document.getElementById('imgZoom');if(!z)return;
+
+  // Escritorio: el detalle sigue al cursor, como la lupa de la ficha pero a pantalla completa.
+  z.addEventListener('mousemove',e=>{
+    if(!_izHover()||!z.classList.contains('on')||_izS<=1.01)return;
+    _izSeguir(e.clientX,e.clientY);
+  });
+
+  z.addEventListener('wheel',e=>{
+    if(!z.classList.contains('on'))return;
+    e.preventDefault();
+    if(_izHover()){   // la rueda solo gradúa el aumento; de recorrer ya se encarga el cursor
+      _izS=Math.min(IZ_MAX,Math.max(1,_izS*(e.deltaY<0?1.18:1/1.18)));
+      if(_izS<=1.01){_izS=1;const im=$('imgZoomImg');if(im)im.style.transformOrigin='';_izX=0;_izY=0;_izApply(false);}
+      else _izSeguir(e.clientX,e.clientY);
+      return;
+    }
+    _izZoomA(_izS*(e.deltaY<0?1.18:1/1.18),e.clientX,e.clientY);_izApply(false);
+  },{passive:false});
+
+  z.addEventListener('pointerdown',e=>{
+    if(e.target.closest('.iz-close'))return;
+    try{z.setPointerCapture(e.pointerId);}catch(_){}
+    _izPtr.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(_izPtr.size===2){
+      const p=[..._izPtr.values()];
+      _izPinch={d:Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y)||1,s:_izS};
+      _izPan=null;
+    }else if(_izPtr.size===1){
+      _izPan={x:e.clientX,y:e.clientY,tx:_izX,ty:_izY,mov:0};
+    }
+  });
+
+  z.addEventListener('pointermove',e=>{
+    if(!_izPtr.has(e.pointerId))return;
+    _izPtr.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(_izPinch&&_izPtr.size===2){
+      const p=[..._izPtr.values()];
+      const d=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);
+      _izZoomA(_izPinch.s*(d/_izPinch.d),(p[0].x+p[1].x)/2,(p[0].y+p[1].y)/2);_izApply(false);
+    }else if(_izPan){
+      const dx=e.clientX-_izPan.x, dy=e.clientY-_izPan.y;
+      _izPan.mov=Math.max(_izPan.mov,Math.hypot(dx,dy));
+      // En escritorio NO se arrastra: el cursor ya recorre la foto, y arrastrar pelearía con él.
+      if(_izS>1&&!_izHover()){_izX=_izPan.tx+dx;_izY=_izPan.ty+dy;_izClamp();_izApply(false);}
+    }
+  });
+
+  /* Un toque quieto significa cosas distintas según el estado: si está sin acercar, cierra
+     (era el comportamiento de siempre); si está acercado, no hace nada —para poder soltar el
+     dedo tras recorrer la foto sin que se cierre—. Dos toques seguidos alternan acercar/alejar.
+     Los 310 ms de espera son para no cerrar cuando el segundo toque viene en camino. */
+  const soltar=e=>{
+    _izPtr.delete(e.pointerId);
+    if(_izPtr.size<2)_izPinch=null;
+    if(_izPtr.size)return;
+    const mov=_izPan?_izPan.mov:99;_izPan=null;
+    if(mov>=8)return;
+    /* En escritorio un clic siempre cierra: el visor entra ya acercado, así que la regla táctil
+       ("solo cierra si no está acercado") dejaría al ratón sin forma de salir salvo ✕ o Escape.
+       Y sin doble clic que esperar, no hace falta el retardo de 310 ms. */
+    if(_izHover()){closeZoom();return;}
+    const t=Date.now();
+    if(t-_izLastTap<300){
+      _izLastTap=0;clearTimeout(_izTapT);
+      _izZoomA(_izS>1.05?1:2.6,e.clientX,e.clientY);_izApply(true);
+    }else{
+      _izLastTap=t;clearTimeout(_izTapT);
+      _izTapT=setTimeout(()=>{if(_izS<=1.05)closeZoom();},310);
+    }
+  };
+  z.addEventListener('pointerup',soltar);
+  z.addEventListener('pointercancel',e=>{_izPtr.delete(e.pointerId);if(_izPtr.size<2)_izPinch=null;if(!_izPtr.size)_izPan=null;});
+
+  // Al girar el teléfono cambia el tamaño disponible: recolocar para que no quede descuadrada.
+  addEventListener('resize',()=>{if(z.classList.contains('on')){_izClamp();_izApply(false);}});
+})();
 /* Aviso de verificación de talla: aparece AL ESCOGER, con la foto de la marquilla A LA VISTA.
    El ejemplo ya existía, pero escondido tras el botón "¿Cómo sé mi talla?" — y quien cree saber
    su talla nunca lo abre. No bloquea ni agrega pasos: solo pone el ejemplo donde se decide. */
@@ -1251,18 +1459,185 @@ function pmGalGo(dir){
   _galIdx=Math.min(Math.max(_galIdx+dir,0),_galN-1);
   const tr=$('pmGalTrack');if(tr)tr.style.transform=`translateX(-${_galIdx*100}%)`;
   document.querySelectorAll('#pmGalDots .pm-gal-dot').forEach((d,i)=>d.classList.toggle('on',i===_galIdx));
+  _pmHoverReset();   // al cambiar de foto, deshacer el acercamiento de la anterior
 }
 
-// Swipe táctil de la galería (mismo patrón que el hero)
+/* ── LUPA AL PASAR EL CURSOR (solo escritorio) ──
+   Copiado de adidas.es tras medir su componente `desktop-zoom`:
+     .is-zoomed .content { transform: scale(1.8) translateZ(0) }
+     transition: transform .4s ease-out      ← y el ORIGEN no se transiciona
+     el JS le pone `transform-origin` en píxeles según dónde está el cursor
+   Aquí es lo mismo con el origen en %, que es equivalente y no depende del tamaño del marco.
+
+   **1,8x y no más**, por resolución real: la foto se ve a ~563 px y el archivo es de 1400
+   (`IMG_MAX` del panel). A 1,8x son 1013 px pedidos contra 1400 disponibles → nítida y con margen
+   incluso en pantallas de mucha densidad. A 2,5x se pedían 1407 de 1400: justo al límite, y en un
+   portátil retina se veía blanda.
+   Adidas puede permitirse más porque **al ampliar cambia a otra imagen de 2000 px** que lleva
+   precargada y oculta. Nosotros no tenemos esa versión: el panel comprime todo a 1400 al subir. */
+const PM_HOVER_Z=1.8;
+
+function _pmHoverReset(){
+  const tr=$('pmGalTrack');if(!tr)return;
+  [...tr.children].forEach(im=>{im.style.transform='';im.style.transformOrigin='';});
+  const g=$('pmGal');if(g)g.classList.remove('lupa');
+  _pmPinReset();
+}
+
+/* ── PELLIZCO SOBRE LA PROPIA FICHA (solo táctil) ──
+   El equivalente móvil de la lupa: en el teléfono no hay cursor, así que se pellizca la foto
+   SIN salir de la página, como el `pinch-zoom-v2` de adidas (wrapper con overflow:hidden y el
+   contenido escalado por transform). `.pm-gal` ya recorta. El visor a pantalla completa sigue
+   ahí para quien quiera verla en grande. */
+let _pmZ=1,_pmZX=0,_pmZY=0;
+
+function _pmPinReset(){
+  if(_pmZ===1&&!_pmZX&&!_pmZY)return;
+  _pmZ=1;_pmZX=0;_pmZY=0;
+  const g=$('pmGal'),tr=$('pmGalTrack');
+  if(tr&&tr.children[_galIdx]){const im=tr.children[_galIdx];im.style.transition='transform .22s ease-out';im.style.transform='';}
+  if(g){g.classList.remove('pellizcada');g.style.touchAction='';}
+}
+
 (function(){
   const gal=document.getElementById('pmGal');if(!gal)return;
-  let x0=null;
-  gal.addEventListener('touchstart',e=>{x0=e.touches[0].clientX;},{passive:true});
+  gal.addEventListener('mousemove',e=>{
+    // Solo con ratón de verdad: en táctil el `mousemove` que el navegador inventa tras un toque
+    // dispararía la lupa sin que nadie la haya pedido.
+    if(!_izHover())return;
+    const tr=document.getElementById('pmGalTrack');
+    const im=tr&&tr.children[_galIdx];if(!im)return;
+    const r=gal.getBoundingClientRect();if(!r.width)return;
+    const px=Math.min(100,Math.max(0,(e.clientX-r.left)/r.width*100));
+    const py=Math.min(100,Math.max(0,(e.clientY-r.top)/r.height*100));
+    // El origen cambia sin transición: así el acercamiento sigue al cursor sin ir por detrás.
+    im.style.transformOrigin=px+'% '+py+'%';
+    im.style.transform='scale('+PM_HOVER_Z+')';
+    gal.classList.add('lupa');
+  });
+
+  gal.addEventListener('mouseleave',_pmHoverReset);
+})();
+
+/* Pellizco en la ficha, solo en táctil. Mientras está acercada: un dedo RECORRE la foto (no cambia
+   de foto ni abre el visor); al volver a 1 todo se comporta como antes.
+   `touch-action` pasa a 'none' solo mientras está acercada: así se puede recorrer en vertical.
+   En reposo se queda en 'pan-y' para que la página siga bajando con el dedo sobre la foto. */
+(function(){
+  const gal=document.getElementById('pmGal');if(!gal)return;
+  const P=new Map(); let pin=null,pan=null;
+  const foto=()=>{const tr=document.getElementById('pmGalTrack');return tr?tr.children[_galIdx]:null;};
+
+  function pinta(anim){
+    const im=foto();if(!im)return;
+    im.style.transition=anim?'transform .22s ease-out':'none';
+    im.style.transform=`translate(${_pmZX}px,${_pmZY}px) scale(${_pmZ})`;
+    gal.classList.toggle('pellizcada',_pmZ>1.02);
+    gal.style.touchAction=_pmZ>1.02?'none':'';
+  }
+  function topes(){
+    const im=foto();if(!im)return;
+    const mx=Math.max(0,(im.offsetWidth*_pmZ-gal.clientWidth)/2);
+    const my=Math.max(0,(im.offsetHeight*_pmZ-gal.clientHeight)/2);
+    _pmZX=Math.min(mx,Math.max(-mx,_pmZX));
+    _pmZY=Math.min(my,Math.max(-my,_pmZY));
+  }
+  /* Tope 3x. En un teléfono de densidad 3 la foto ya consume 1170 de los 1400 px del archivo con
+     solo estar en pantalla, así que pasado ~1,2x se estiran píxeles. 3x es el punto donde todavía
+     revela textura sin verse deshecha; a 4x ya se notaba blanda. Sube solo si sube `IMG_MAX`. */
+  function acercarA(s2,cx,cy){
+    s2=Math.min(3,Math.max(1,s2));
+    const r=gal.getBoundingClientRect();
+    const fx=cx-(r.left+r.width/2), fy=cy-(r.top+r.height/2);
+    _pmZX=fx-(fx-_pmZX)*s2/_pmZ; _pmZY=fy-(fy-_pmZY)*s2/_pmZ; _pmZ=s2;
+    if(_pmZ<=1.02){_pmZ=1;_pmZX=0;_pmZY=0;}
+    topes();
+  }
+
+  gal.addEventListener('pointerdown',e=>{
+    if(e.pointerType==='mouse')return;   // con ratón manda la lupa; el pellizco es solo de dedos
+    if(e.target.closest('.pm-gal-arr,.pm-gal-zoom,.pm-fav,.pm-gal-dots'))return;
+    P.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(P.size===2){
+      const q=[...P.values()];
+      pin={d:Math.hypot(q[0].x-q[1].x,q[0].y-q[1].y)||1,s:_pmZ};pan=null;
+    }else if(P.size===1&&_pmZ>1.02){
+      pan={x:e.clientX,y:e.clientY,tx:_pmZX,ty:_pmZY};
+    }
+  });
+
+  gal.addEventListener('pointermove',e=>{
+    if(!P.has(e.pointerId))return;
+    P.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pin&&P.size===2){
+      const q=[...P.values()];
+      const d=Math.hypot(q[0].x-q[1].x,q[0].y-q[1].y);
+      acercarA(pin.s*(d/pin.d),(q[0].x+q[1].x)/2,(q[0].y+q[1].y)/2);pinta(false);
+      e.preventDefault();
+    }else if(pan&&_pmZ>1.02){
+      _pmZX=pan.tx+(e.clientX-pan.x);_pmZY=pan.ty+(e.clientY-pan.y);topes();pinta(false);
+      e.preventDefault();
+    }
+  },{passive:false});
+
+  const soltar=e=>{
+    P.delete(e.pointerId);
+    if(P.size<2)pin=null;
+    if(!P.size){pan=null;if(_pmZ<=1.02)_pmPinReset();}
+  };
+  gal.addEventListener('pointerup',soltar);
+  gal.addEventListener('pointercancel',soltar);
+  /* Aquí NO va doble toque: chocaría con el toque que abre el visor. Habría que retrasar la
+     apertura 300 ms para saber si viene un segundo toque, y eso le mete lag a la acción
+     principal. En sitio se pellizca; el doble toque vive dentro del visor. */
+})();
+
+/* La rueda encima de la FOTO no hacía nada y la ficha parecía trabada.
+   En escritorio la ficha son 2 columnas: `.pm-scroll` va en overflow:hidden y el único que
+   scrollea es `.pm-body` (la info de la derecha). La columna de la foto no tiene nada que
+   desplazar, así que la rueda se perdía ahí. Se reenvía al panel que sí scrollea.
+   Va en su propio bloque —fuera de la guarda de hover— para que funcione con cualquier ratón. */
+(function(){
+  const gal=document.getElementById('pmGal');if(!gal)return;
+  gal.addEventListener('wheel',e=>{
+    if(!matchMedia('(min-width:700px)').matches)return;   // en móvil scrollea la página: no tocar
+    const body=document.querySelector('.pm-body');
+    if(!body||body.scrollHeight<=body.clientHeight)return;
+    const d=e.deltaMode===1?e.deltaY*16:e.deltaY;         // hay ratones que miden en líneas, no en píxeles
+    const antes=body.scrollTop;
+    body.scrollTop+=d;
+    // Solo se traga el evento si de verdad movió algo: al llegar al tope, que siga su camino.
+    if(body.scrollTop!==antes)e.preventDefault();
+  },{passive:false});
+})();
+
+// Swipe táctil de la galería (mismo patrón que el hero) + toque para ampliar.
+(function(){
+  const gal=document.getElementById('pmGal');if(!gal)return;
+  let x0=null,deslizo=false;
+  gal.addEventListener('touchstart',e=>{
+    if(e.touches.length>1){x0=null;return;}   // dos dedos = pellizco, no deslizamiento
+    x0=e.touches[0].clientX;deslizo=false;
+  },{passive:true});
   gal.addEventListener('touchend',e=>{
     if(x0===null)return;
     const dx=e.changedTouches[0].clientX-x0;x0=null;
+    if(Math.abs(dx)>10)deslizo=true;          // hubo arrastre: el click que viene NO es un toque
+    if(_pmZ>1.02)return;                      // acercada: el dedo la recorre, no cambia de foto
     if(Math.abs(dx)>40)pmGalGo(dx<0?1:-1);
   },{passive:true});
+
+  /* Tocar la foto la amplía. El oyente va en el MARCO, no en la <img>: `styles.css` le pone
+     `pointer-events:none` a `.pm-gal-track img` para tapar la barra de "Búsqueda visual" de Edge,
+     así que la imagen NUNCA es el destino de un clic y buscarla con `closest('img')` no encontraba
+     nada — tocar la foto no hacía absolutamente nada, ni en móvil ni en escritorio.
+     Se ignora el clic que el navegador dispara al terminar un deslizamiento. */
+  gal.addEventListener('click',e=>{
+    if(e.target.closest('.pm-gal-arr,.pm-gal-zoom,.pm-fav,.pm-gal-dots'))return;   // controles propios
+    if(deslizo){deslizo=false;return;}
+    if(_pmZ>1.02){_pmPinReset();return;}      // si está pellizcada, el toque la devuelve a su sitio
+    pmZoomActual();
+  });
 })();
 
 /* ── GUÍA DE CUIDADO — vive en extras.js (carga bajo demanda) ── */
