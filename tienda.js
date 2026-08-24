@@ -814,7 +814,7 @@ function cardHTML(p,i,prefix,toFicha){
         <button class="fav-btn ${esFav(p.id)?'on':''}" data-id="${p.id}" onclick="event.stopPropagation();togFav(${p.id},this)" aria-label="Favorito">♥</button>
         ${conTalla?'':`<button class="add-circle" onclick="${goAdd}">${on?'✓':'+'}</button>`}
       </div>
-      <div class="cfoot-card">${_showBrand?`<div class="cbrand">${escHtml(_bl)}</div>`:''}<div class="cmodel">${escHtml(_modelTxt)}</div><div class="cprice ${sp?'sale':''}">${fmt(p.price)}</div>${sp&&p.was?`<div class="cwas">${fmt(p.was)}</div>`:''}${conTalla?`<div class="ctallas" id="ctallas${prefix}${p.id}">
+      <div class="cfoot-card">${_showBrand?`<div class="cbrand">${escHtml(_bl)}</div>`:''}<div class="cmodel">${escHtml(_modelTxt)}</div><div class="cvermas" onclick="event.stopPropagation();openPhoto(${p.id},'cat')">Ver más</div><div class="cprice ${sp?'sale':''}">${fmt(p.price)}</div>${sp&&p.was?`<div class="cwas">${fmt(p.was)}</div>`:''}${conTalla?`<div class="ctallas" id="ctallas${prefix}${p.id}">
           <div class="ctallas-row">${_tallasHtml}</div>
           ${_addBtn}
         </div>`:''}</div>

@@ -285,17 +285,21 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 /* ── TALLA + AÑADIR EN LA TARJETA ── siempre visibles bajo el precio, nunca tapan la foto.
    Fila de chips con scroll horizontal (unisex trae hasta 9 tallas) + botón ancho completo en su
    propia fila (a este ancho de tarjeta no caben junto a los chips en la misma línea). */
-.ctallas{margin-top:8px}
-.ctallas-row{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;padding-bottom:1px}
+/* Tallas + Añadir EN LA MISMA FILA (a un costado, no debajo): los chips scrollean en el espacio
+   flexible, el botón queda fijo a la derecha, siempre visible sin importar cuántas tallas haya. */
+.ctallas{margin-top:8px;display:flex;align-items:center;gap:6px}
+.ctallas-row{flex:1 1 auto;min-width:0;display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;padding-bottom:1px}
 .ctallas-row::-webkit-scrollbar{display:none}
 .ctallas.err .ctallas-row{animation:pmShake .4s}
 .card.sold .ctallas{pointer-events:none}
-.ctalla-chip{flex:0 0 auto;min-width:28px;height:28px;padding:0 7px;border:1.5px solid var(--line);border-radius:8px;background:var(--white);font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:border-color .15s,background .15s,color .15s,transform .1s}
+.ctalla-chip{flex:0 0 auto;min-width:26px;height:26px;padding:0 6px;border:1.5px solid var(--line);border-radius:7px;background:var(--white);font-family:var(--font);font-size:11.5px;font-weight:700;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:border-color .15s,background .15s,color .15s,transform .1s}
 .ctalla-chip:active{transform:scale(.92)}
 .ctalla-chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .ctalla-chip.out{color:var(--ink3);background:var(--bg);cursor:not-allowed;text-decoration:line-through;opacity:.55}
-.cadd-btn{display:block;width:100%;margin-top:6px;background:var(--ink);color:#fff;border:none;padding:8px;border-radius:9px;font-family:var(--font);font-size:12.5px;font-weight:700;cursor:pointer;transition:transform .12s}
+.cadd-btn{flex:0 0 auto;white-space:nowrap;background:var(--ink);color:#fff;border:none;height:26px;padding:0 11px;border-radius:7px;font-family:var(--font);font-size:11.5px;font-weight:700;cursor:pointer;transition:transform .12s}
 .cadd-btn:active{transform:scale(.96)}
+/* "Ver más" — abre la ficha completa del producto (mismo destino que tocar la foto). */
+.cvermas{margin-top:3px;font-size:11px;font-weight:600;color:var(--ink2);text-decoration:underline;text-underline-offset:2px;cursor:pointer;width:fit-content}
 
 /* Aviso al escoger talla en la ficha del producto */
 .pm-talla-check{display:flex;align-items:center;gap:10px;margin-top:10px;padding:9px;background:#fff8e1;border:1px solid #ffd97a;border-radius:11px}
