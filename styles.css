@@ -305,7 +305,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .ctalla-chip:active{transform:scale(.92)}
 .ctalla-chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .ctalla-chip.out{color:var(--ink3);background:var(--bg);cursor:not-allowed;text-decoration:line-through;opacity:.55}
-.cadd-btn{flex:0 0 auto;min-width:78px;white-space:nowrap;background:var(--ink);color:#fff;border:none;height:31px;padding:0 20px;border-radius:0;font-family:var(--font);font-size:10px;font-weight:400;cursor:pointer;transition:transform .12s}
+.cadd-btn{flex:0 0 120px;width:120px;white-space:nowrap;background:var(--ink);color:#fff;border:none;height:31px;padding:0 16px;border-radius:0;font-family:var(--font);font-size:10px;font-weight:400;cursor:pointer;transition:transform .12s}
 .cadd-btn:active{transform:scale(.96)}
 /* "Ver más" — abre la ficha completa del producto (mismo destino que tocar la foto). */
 .cvermas{flex:0 0 auto;font-size:10px;font-weight:400;color:var(--ink);cursor:pointer;border-bottom:1px solid rgba(0,0,0,.5);width:fit-content;line-height:1.3}
