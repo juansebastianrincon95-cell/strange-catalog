@@ -659,6 +659,12 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
   .cdrag{display:none}
   .ctop{padding-top:22px}
 }
+/* Escalera de ancho (calcada de sahet): en monitores anchos 430px se ve angosto — sahet no usa un
+   ancho fijo, va bajando el % a medida que la pantalla crece para mantener el ancho en píxeles
+   estable (~470-580px). Reusamos nuestros propios puntos de quiebre (1180 ya es "escritorio ancho"
+   en el resto del sitio) en vez de copiar sus porcentajes literales. 700-1179px sigue en 430px. */
+@media(min-width:1180px){.csheet{width:480px;max-width:480px}}
+@media(min-width:1600px){.csheet{width:540px;max-width:540px}}
 .cdrag{display:none}
 .ctop{display:flex;align-items:center;justify-content:space-between;padding:max(16px,env(safe-area-inset-top)) 18px 8px;flex-shrink:0}
 .cttl{font-size:19px;font-weight:400;letter-spacing:-.04em}
