@@ -488,6 +488,32 @@ function renderFooter(){
   const f=$('siteFooter');if(f)f.style.display='';   // se muestra solo cuando ya cargó todo (evita verlo al inicio)
 }
 
+// Panel "Contáctanos" del nav (calcado del ícono de chat de sahet, como texto). Arma el
+// contenido al abrir (lazy) para leer WA/socials ya actualizados, sin depender de renderFooter().
+function toggleContact(){
+  const p=$('contactPanel');if(!p)return;
+  const open=!p.classList.contains('show');
+  if(open){
+    const icon=(href,svg,label)=>`<a href="${escHtml(href)}" target="_blank" rel="noopener">${svg}<span>${label}</span></a>`;
+    let h='';
+    if(WA)h+=icon('https://wa.me/'+WA,SOC_SVG.wa,'WhatsApp');
+    if(socials.ig)h+=icon(socials.ig,SOC_SVG.ig,'Instagram');
+    if(socials.fb)h+=icon(socials.fb,SOC_SVG.fb,'Facebook');
+    p.innerHTML=h||'<span class="contact-empty">Pronto</span>';
+    p.classList.add('show');
+    document.addEventListener('click',closeContactOutside);
+  }else{
+    p.classList.remove('show');
+    document.removeEventListener('click',closeContactOutside);
+  }
+}
+function closeContactOutside(e){
+  if(!e.target.closest('.contact-wrap')){
+    $('contactPanel').classList.remove('show');
+    document.removeEventListener('click',closeContactOutside);
+  }
+}
+
 /* ── PÁGINAS LEGALES — contenido y modal viven en extras.js (carga bajo demanda) ── */
 function openLegal(key){loadExtras().then(()=>openLegal(key)).catch(()=>{});}
 

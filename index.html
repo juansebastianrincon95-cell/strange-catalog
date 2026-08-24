@@ -175,6 +175,11 @@
     <button onclick="openInfo('quienes')">Quiénes somos</button>
   </div>
   <div class="nav-right">
+    <button class="sale-nav" onclick="openCatalog({gender:'liq'})">SALE</button>
+    <div class="contact-wrap">
+      <button class="contact-nav" onclick="toggleContact()">Contáctanos</button>
+      <div class="contact-panel" id="contactPanel"></div>
+    </div>
     <button class="fav-nav" onclick="abrirFavoritos()" aria-label="Favoritos">♥<span class="fav-dot" id="favDot">0</span></button>
   </div>
 </nav>

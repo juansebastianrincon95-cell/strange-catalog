@@ -32,6 +32,18 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 /* grupo derecho: carrito */
 .nav-right{position:absolute;right:12px;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:8px}
 .nav-bag:active{transform:scale(.91)}
+.sale-nav{height:28px;padding:0 10px;background:none;border:1.5px solid var(--ink);border-radius:0;color:var(--ink);font-family:var(--font);font-size:11px;font-weight:400;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;white-space:nowrap;transition:transform .14s}
+.sale-nav:active{transform:scale(.93)}
+.contact-wrap{position:relative}
+.contact-nav{height:28px;padding:0 10px;background:none;border:1.5px solid var(--line);border-radius:0;color:var(--ink);font-family:var(--font);font-size:11px;font-weight:400;cursor:pointer;white-space:nowrap;transition:transform .14s}
+.contact-nav:active{transform:scale(.93)}
+.contact-panel{position:absolute;top:calc(100% + 8px);right:0;min-width:190px;background:var(--white);border:1px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,.14);display:none;flex-direction:column;z-index:70}
+.contact-panel.show{display:flex}
+.contact-panel a{display:flex;align-items:center;gap:10px;padding:11px 14px;font-family:var(--font);font-size:13px;font-weight:400;color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line)}
+.contact-panel a:last-child{border-bottom:none}
+.contact-panel a svg{width:18px;height:18px;flex:0 0 auto;fill:currentColor}
+.contact-empty{font-size:11px;color:var(--ink3);padding:11px 14px;display:block}
+@media(max-width:380px){.sale-nav,.contact-nav{font-size:10px;padding:0 7px}}
 /* menú horizontal (solo escritorio) */
 .nav-menu{display:none}
 @media(min-width:1180px){
