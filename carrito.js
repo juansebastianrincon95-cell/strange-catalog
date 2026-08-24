@@ -419,7 +419,10 @@ function cartItems(rows){return rows.map(({p,qty,type,talla})=>({label:p.modelo|
 
 function syncDot(){
   const n=Object.values(cart).reduce((s,i)=>s+i.qty,0);
-  [$('bdot'),$('bdot2')].forEach(d=>{if(d){d.textContent=n;d.classList.toggle('show',n>0);}});
+  const dot=$('cartBarDot');
+  if(dot){dot.textContent=n;dot.classList.toggle('show',n>0);}
+  const total=$('cartBarTotal');
+  if(total)total.textContent=fmt(cartPricing().sub);
   renderComboBar();   // el progreso del combo sigue cada cambio del carrito
   saveCart();         // persistir el carrito en cada cambio
 }
@@ -476,10 +479,11 @@ function openCart(){
   syncDescuentosAuto();   // pedirle al server los descuentos automáticos de ESTE carrito (async, solo pinta)
   renderStep();
   {const _cs=$('csheet');const _ya=_cs.classList.contains('on');$('cscrim').classList.add('on');_cs.classList.add('on');if(!_ya)lockScroll();}   // un bloqueo por capa (navPush deduplica)
+  $('cartBar').classList.add('hide');
   navPush('carrito','/carrito','Tu carrito — '+STORE_NAME,closeCart);
 }
 
-function closeCart(){if(!_navPopping)navRemove('carrito');$('cscrim').classList.remove('on');$('csheet').classList.remove('on');unlockScroll();}
+function closeCart(){if(!_navPopping)navRemove('carrito');$('cscrim').classList.remove('on');$('csheet').classList.remove('on');unlockScroll();$('cartBar').classList.remove('hide');}
 
 function updDots(){[0,1,2].forEach(i=>{const d=$('cs'+i);d.className='csd'+(i===step?' active':i<step?' done':'');});
   if(step===0){const n=Object.values(cart).reduce((s,i)=>s+i.qty,0);$('cttl').textContent=`Tu carrito (${n} ${n===1?'producto':'productos'})`;}
