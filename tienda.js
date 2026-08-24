@@ -751,45 +751,38 @@ function cardBadge(p){
   return '';
 }
 
-/* ── SELECTOR RÁPIDO DE TALLA ── el botón "+" de la tarjeta agrega al carrito de una:
-   si el producto tiene tallas, muestra un mini selector sobre la tarjeta; el cliente toca su
-   talla y se agrega (el carrito se abre como confirmación). Reusa togCard (agrega + AddToCart +
-   reserva + abre carrito + sincroniza el ✓). */
-function quickAdd(e,id){
+/* ── TALLA + AÑADIR EN LA TARJETA ── siempre visibles bajo el precio (no tapan la foto). El
+   estado de "qué talla eligió" vive en el propio nodo .card (dataset), no en memoria global —
+   cardHTML() genera el nodo desde cero cada vez, así que nunca queda sucio entre productos. */
+function tallasChipsHtml(id,tallas,stock){
+  return tallas.map(t=>{
+    const out=stock&&(Number(stock[t])||0)<=0;
+    const s=escHtml(String(t));
+    return out
+      ? `<button type="button" class="ctalla-chip out" disabled aria-disabled="true" title="Agotada">${s}</button>`
+      : `<button type="button" class="ctalla-chip" onclick="event.stopPropagation();pickCardSize(${id},'${s}',this)">${s}</button>`;
+  }).join('');
+}
+function pickCardSize(id,talla,btn){
+  const card=btn.closest('.card'); if(!card)return;
+  card.querySelectorAll('.ctalla-chip').forEach(c=>c.classList.remove('on'));
+  btn.classList.add('on');
+  card.dataset.selTalla=talla;
+  const box=card.querySelector('.ctallas'); if(box)box.classList.remove('err');
+}
+// Mismo patrón que el viejo quickPick(): si esa talla YA está en el carrito, solo abre el
+// carrito; togCard hace todo lo demás (pixel/GA4/reserva/abrir carrito/sincronizar ✓).
+function addCardWithSize(id,btn){
+  const card=btn.closest('.card'); if(!card)return;
   const p=(prods||[]).find(x=>x.id===id); if(!p||p.sold)return;
-  const tallas=tallasDe(p);
-  if(!tallas.length){togCard(id,'cat');return;}        // sin tallas: agregar directo
-  const card=e.target.closest('.card'); if(!card)return;
-  openQuickSize(card,id,tallas);
-}
-function openQuickSize(card,id,tallas){
-  closeQuickSize();
-  const photo=card.querySelector('.cphoto'); if(!photo)return;
-  const ov=document.createElement('div'); ov.className='qsize'; ov.onclick=e=>e.stopPropagation();
-  /* Guía de tallas VISIBLE: la miniatura de la marquilla se ve de una, no detrás de un enlace.
-     Antes era un botón subrayado que casi nadie tocaba —quien cree saber su talla no lo abre—
-     y de ahí salían los cambios por talla. Sigue ampliándose al tocarla. */
-  const guia=(sizeGuide&&sizeGuide.img1)
-    ? `<button class="qsize-guia" onclick="event.stopPropagation();zoomImg('${escHtml(sizeGuide.img1)}')">
-         <img src="${escHtml(sizeGuide.img1)}" alt="Ejemplo de marquilla">
-         <span>Compárala con la marquilla de tus tenis</span>
-       </button>` : '';
-  ov.innerHTML=`<button class="qsize-x" onclick="event.stopPropagation();closeQuickSize()" aria-label="Cerrar">✕</button>
-    <div class="qsize-t">Elige tu talla</div>
-    <div class="qsize-row">${tallas.map(t=>`<button class="qsize-chip" onclick="event.stopPropagation();quickPick(${id},'${escHtml(String(t))}')">${escHtml(String(t))}</button>`).join('')}</div>
-    ${guia}`;
-  photo.appendChild(ov);
-}
-function closeQuickSize(){document.querySelectorAll('.qsize').forEach(o=>o.remove());}
-// Cerrar el selector al tocar/arrastrar FUERA de él (incluye arrastrar el carrusel). No se cierra
-// con el auto-giro de los carruseles porque eso no genera un pointerdown del usuario. Tampoco se
-// cierra mientras el zoom de la guía de tallas está abierto (el clic para cerrarlo cae fuera).
-document.addEventListener('pointerdown',e=>{if(document.getElementById('imgZoom')&&document.getElementById('imgZoom').classList.contains('on'))return;if(!e.target.closest('.qsize'))closeQuickSize();},true);
-function quickPick(id,talla){
+  const talla=card.dataset.selTalla;
+  if(!talla){
+    const box=card.querySelector('.ctallas');
+    if(box){box.classList.remove('err');void box.offsetWidth;box.classList.add('err');}
+    return;
+  }
   const key=cartKey(id,'cat',talla);
-  closeQuickSize();
-  if(!cart[key])togCard(id,'cat',talla);   // agrega esa talla + abre el carrito
-  else openCart();                          // ya estaba: solo abre el carrito
+  if(cart[key])openCart(); else togCard(id,'cat',talla);
 }
 
 // prefix: 'k' en el grid, 'kl' en lanzamientos (evita IDs duplicados).
@@ -800,15 +793,18 @@ function cardHTML(p,i,prefix,toFicha){
   const sp=p.promo||promoG;
   const pct=sp?dsc(p):0;
   const m=p.img?`<img src="${p.img}" alt="${altProd(p)}" loading="lazy">`:`<div class="noimg">👟</div>`;
-  // CUERPO de la tarjeta: con tallas abre la ficha (para ver el producto). El botón "+" agrega
-  // al carrito de una: si hay tallas muestra un mini selector sobre la tarjeta; si no, agrega directo.
-  const conTalla=tallasDe(p).length>0;
+  // CUERPO de la tarjeta: con tallas abre la ficha (para ver el producto). Sin tallas, el "+"
+  // circular agrega directo (comportamiento sin cambios).
+  const {tallas:_tallas,stock:_stock}=tallasInfo(p);
+  const conTalla=_tallas.length>0;
   const goCard=(toFicha||conTalla)?`openPhoto(${p.id},'cat')`:`cardClick(event,${p.id},'cat')`;
-  const goAdd=conTalla?`event.stopPropagation();quickAdd(event,${p.id})`:`event.stopPropagation();togCard(${p.id},'cat')`;
+  const goAdd=`event.stopPropagation();togCard(${p.id},'cat')`;   // solo aplica sin tallas
   // Nombre: marca (línea fina) + modelo (destacado). Sin modelo, el modelo cae a marca/género.
   const _bl=p.brand?brandLabel(p.brand):'';
   const _modelTxt=p.modelo||_bl||(genLabel(p.g));
   const _showBrand=!!(p.modelo&&_bl);
+  const _tallasHtml=conTalla?tallasChipsHtml(p.id,_tallas,_stock):'';
+  const _addBtn=conTalla?`<button type="button" class="cadd-btn" onclick="event.stopPropagation();addCardWithSize(${p.id},this)">Añadir</button>`:'';
   return `<div class="card ${on?'picked':''} ${p.sold?'sold':''}" id="${prefix}${p.id}" style="animation-delay:${Math.min(i*.02,.4)}s" onclick="${goCard}">
       <div class="cphoto">
         ${m}
@@ -816,9 +812,12 @@ function cardHTML(p,i,prefix,toFicha){
         ${p.sold?`<div class="bsold">Agotado</div>`:cardBadge(p)}
         <div class="bchk">✓</div>
         <button class="fav-btn ${esFav(p.id)?'on':''}" data-id="${p.id}" onclick="event.stopPropagation();togFav(${p.id},this)" aria-label="Favorito">♥</button>
-        <button class="add-circle" onclick="${goAdd}">${on?'✓':'+'}</button>
+        ${conTalla?'':`<button class="add-circle" onclick="${goAdd}">${on?'✓':'+'}</button>`}
       </div>
-      <div class="cfoot-card">${_showBrand?`<div class="cbrand">${escHtml(_bl)}</div>`:''}<div class="cmodel">${escHtml(_modelTxt)}</div><div class="cprice ${sp?'sale':''}">${fmt(p.price)}</div>${sp&&p.was?`<div class="cwas">${fmt(p.was)}</div>`:''}</div>
+      <div class="cfoot-card">${_showBrand?`<div class="cbrand">${escHtml(_bl)}</div>`:''}<div class="cmodel">${escHtml(_modelTxt)}</div><div class="cprice ${sp?'sale':''}">${fmt(p.price)}</div>${sp&&p.was?`<div class="cwas">${fmt(p.was)}</div>`:''}${conTalla?`<div class="ctallas" id="ctallas${prefix}${p.id}">
+          <div class="ctallas-row">${_tallasHtml}</div>
+          ${_addBtn}
+        </div>`:''}</div>
     </div>`;
 }
 

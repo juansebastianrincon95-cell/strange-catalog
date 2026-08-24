@@ -1,4 +1,4 @@
-:root{color-scheme:light;--bg:#FFFFFF;--white:#FFF;--ink:#0E0E0C;--ink2:#5a5a56;--ink3:#9a9a95;--line:rgba(0,0,0,0.08);--red:#E8200A;--blue:#0066FF;--green:#1aad49;--orange:#FF7A00;--wa:#25D366;--font:'Space Grotesk',system-ui,sans-serif;--annH:56px;--navH:64px}
+:root{color-scheme:light;--bg:#FFFFFF;--white:#FFF;--ink:#0E0E0C;--ink2:#5a5a56;--ink3:#9a9a95;--line:rgba(0,0,0,0.08);--red:#E8200A;--blue:#0066FF;--green:#1aad49;--orange:#FF7A00;--wa:#25D366;--font:'Montserrat',system-ui,sans-serif;--annH:56px;--navH:64px}
 @media(min-width:700px){:root{--annH:62px;--navH:78px}}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 /* El scroll interno de los modales NO arrastra el fondo (anti scroll-chaining) */
@@ -282,20 +282,20 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 .card.sold .add-circle,
 .liq-card.sold .add-circle{display:none}
 
-/* ── SELECTOR RÁPIDO DE TALLA ── overlay sobre la foto al tocar "+" (agrega de una) */
-.qsize{position:absolute;inset:0;z-index:6;background:rgba(255,255,255,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:8px;animation:fadeIn .12s}
-.qsize-t{font-size:12px;font-weight:700;color:var(--ink)}
-.qsize-row{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
-.qsize-chip{min-width:34px;padding:7px 9px;border:1.5px solid var(--line);background:var(--white);border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;color:var(--ink);cursor:pointer;transition:transform .1s}
-.qsize-chip:active{transform:scale(.94)}
-.qsize-chip:hover{border-color:var(--ink)}
-.qsize-x{position:absolute;top:6px;right:6px;width:24px;height:24px;border:none;background:none;font-size:15px;color:var(--ink2);cursor:pointer;line-height:1}
-/* La miniatura de la marquilla se ve de una en el selector rápido (antes era solo un enlace) */
-.qsize-guia{margin-top:2px;display:flex;align-items:center;gap:6px;max-width:100%;border:1px solid var(--line);background:var(--white);border-radius:9px;font-family:var(--font);font-size:10px;font-weight:600;color:var(--ink2);cursor:pointer;padding:4px 7px 4px 4px;text-align:left;line-height:1.25}
-/* contain, NO cover: la foto de la marquilla es una etiqueta blanca sobre fondo oscuro, y cover
-   recortaba justo al centro blanco — la miniatura salía en blanco y no servía de pista. */
-.qsize-guia img{width:30px;height:30px;object-fit:contain;border-radius:6px;flex-shrink:0;background:var(--bg)}
-.qsize-guia:hover{border-color:var(--ink);color:var(--ink)}
+/* ── TALLA + AÑADIR EN LA TARJETA ── siempre visibles bajo el precio, nunca tapan la foto.
+   Fila de chips con scroll horizontal (unisex trae hasta 9 tallas) + botón ancho completo en su
+   propia fila (a este ancho de tarjeta no caben junto a los chips en la misma línea). */
+.ctallas{margin-top:8px}
+.ctallas-row{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;padding-bottom:1px}
+.ctallas-row::-webkit-scrollbar{display:none}
+.ctallas.err .ctallas-row{animation:pmShake .4s}
+.card.sold .ctallas{pointer-events:none}
+.ctalla-chip{flex:0 0 auto;min-width:28px;height:28px;padding:0 7px;border:1.5px solid var(--line);border-radius:8px;background:var(--white);font-family:var(--font);font-size:12px;font-weight:700;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:border-color .15s,background .15s,color .15s,transform .1s}
+.ctalla-chip:active{transform:scale(.92)}
+.ctalla-chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.ctalla-chip.out{color:var(--ink3);background:var(--bg);cursor:not-allowed;text-decoration:line-through;opacity:.55}
+.cadd-btn{display:block;width:100%;margin-top:6px;background:var(--ink);color:#fff;border:none;padding:8px;border-radius:9px;font-family:var(--font);font-size:12.5px;font-weight:700;cursor:pointer;transition:transform .12s}
+.cadd-btn:active{transform:scale(.96)}
 
 /* Aviso al escoger talla en la ficha del producto */
 .pm-talla-check{display:flex;align-items:center;gap:10px;margin-top:10px;padding:9px;background:#fff8e1;border:1px solid #ffd97a;border-radius:11px}
