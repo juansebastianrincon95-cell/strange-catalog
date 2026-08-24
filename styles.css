@@ -21,16 +21,18 @@ body{padding-bottom:var(--barH)}
 
 /* NAV — dentro del header (.topbar). Móvil: ☰ izq · logo centro · carrito der.
    Escritorio: logo izq · menú centro · carrito der. */
-nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:center;justify-content:center;padding:8px 58px;background:var(--bg);border-bottom:1px solid var(--line)}
-.brand{text-align:center;line-height:1.04}
+nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;padding:8px 12px;background:var(--bg);border-bottom:1px solid var(--line)}
+.brand{text-align:center;line-height:1.04;min-width:0}
 .logo{font-size:19px;font-weight:400;letter-spacing:.04em;color:var(--ink);text-transform:uppercase}
 .brand-sub{font-size:11px;font-weight:400;color:var(--ink2);letter-spacing:.14em;text-transform:uppercase;margin-top:3px}
 /* ☰ menú (solo móvil) */
-.nav-burger{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:none;border:none;color:var(--ink);cursor:pointer;padding:0}
+.nav-burger{width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:none;border:none;color:var(--ink);cursor:pointer;padding:0}
 .nav-burger svg{width:24px;height:24px;stroke:currentColor;stroke-width:2;stroke-linecap:round}
-.nav-burger:active{transform:translateY(-50%) scale(.9)}
-/* grupo derecho: carrito */
-.nav-right{position:absolute;right:12px;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:8px}
+.nav-burger:active{transform:scale(.9)}
+/* grupo derecho: carrito. Antes vivía en position:absolute (no reservaba espacio real), lo que
+   causaba que .brand (centrado sobre TODO el ancho) se encimara con este grupo al crecer de 1
+   botón a 3 (SALE+Contáctanos+♥). Ahora es una columna real del grid del nav → nunca se solapan. */
+.nav-right{display:flex;align-items:center;gap:8px;justify-self:end}
 .nav-bag:active{transform:scale(.91)}
 .sale-nav{height:28px;padding:0 10px;background:none;border:1.5px solid var(--ink);border-radius:0;color:var(--ink);font-family:var(--font);font-size:11px;font-weight:400;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;white-space:nowrap;transition:transform .14s}
 .sale-nav:active{transform:scale(.93)}
