@@ -533,7 +533,13 @@ function rCart(){
     const m=p.img?`<img src="${p.img}" alt="${altProd(p)}">`:`<span style="font-size:22px">${type==='liq'?'🔥':'👟'}</span>`;
     const lbl=p.modelo||(type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer'));
     const tallaTag=talla?`<span class="crtalla">Talla ${escHtml(String(talla))}</span>`:'';
-    return `<div class="crow"><div class="crimg">${m}</div><div class="crinfo"><div class="crname">${escHtml(lbl)}</div>${tallaTag}<div class="crprice">${fmt(p.price)} c/u</div></div><div class="cqc"><button class="cqb" onclick="chQty('${key}',-1)">−</button><span class="cqv">${qty}</span><button class="cqb" onclick="chQty('${key}',1)">+</button></div><button class="crm" onclick="rmItem('${key}')">✕</button></div>`;
+    // Tachado + vigente por línea (mismo componente y misma regla de "¿hay promo activa?" que
+    // ya usa el resumen de abajo: p.promo||promoG). Reusa .cprice-row/.cwas/.cprice.sale del card.
+    const actP=(p.promo||promoG)&&p.was&&p.was>p.price;
+    const priceHtml=actP
+      ? `<div class="cprice-row"><div class="cwas">${fmt(p.was)}</div><div class="cprice sale">${fmt(p.price)} c/u</div></div>`
+      : `<div class="crprice">${fmt(p.price)} c/u</div>`;
+    return `<div class="crow"><div class="crimg">${m}</div><div class="crinfo"><div class="crname">${escHtml(lbl)}</div>${tallaTag}${priceHtml}</div><div class="cqc"><button class="cqb" onclick="chQty('${key}',-1)">−</button><span class="cqv">${qty}</span><button class="cqb" onclick="chQty('${key}',1)">+</button></div><button class="crm" onclick="rmItem('${key}')">✕</button></div>`;
   }).join('');
   const pricing=cartPricing(rows);
   const sub=pricing.subBruto,tot=pricing.pares;
