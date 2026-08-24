@@ -288,7 +288,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:flex;align-items:cen
 /* Tallas + Añadir EN LA MISMA FILA (a un costado, no debajo): los chips scrollean en el espacio
    flexible, el botón queda fijo a la derecha, siempre visible sin importar cuántas tallas haya. */
 .ctallas{margin-top:8px;display:flex;align-items:center;gap:6px}
-.ctallas-row{flex:1 1 auto;min-width:0;display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;padding-bottom:1px}
+.ctallas-row{flex:1 1 auto;min-width:0;display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;padding-bottom:1px;mask-image:linear-gradient(to right,#000 85%,transparent 100%);-webkit-mask-image:linear-gradient(to right,#000 85%,transparent 100%)}
 .ctallas-row::-webkit-scrollbar{display:none}
 .ctallas.err .ctallas-row{animation:pmShake .4s}
 .card.sold .ctallas{pointer-events:none}
