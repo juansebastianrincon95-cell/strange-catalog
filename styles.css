@@ -22,9 +22,9 @@ body{padding-bottom:var(--barH)}
 /* NAV — dentro del header (.topbar). Móvil: ☰ izq · logo centro · carrito der.
    Escritorio: logo izq · menú centro · carrito der. */
 nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;padding:8px 12px;background:var(--bg);border-bottom:1px solid var(--line)}
-.brand{text-align:center;line-height:1.04;min-width:0}
-.logo{font-size:19px;font-weight:400;letter-spacing:.04em;color:var(--ink);text-transform:uppercase}
-.brand-sub{font-size:11px;font-weight:400;color:var(--ink2);letter-spacing:.14em;text-transform:uppercase;margin-top:3px}
+.brand{text-align:center;line-height:1.04;min-width:0;overflow-wrap:anywhere}
+.logo{font-size:15px;font-weight:400;letter-spacing:.02em;color:var(--ink);text-transform:uppercase}
+.brand-sub{font-size:9.5px;font-weight:400;color:var(--ink2);letter-spacing:.1em;text-transform:uppercase;margin-top:2px}
 /* ☰ menú (solo móvil) */
 .nav-burger{width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:none;border:none;color:var(--ink);cursor:pointer;padding:0}
 .nav-burger svg{width:24px;height:24px;stroke:currentColor;stroke-width:2;stroke-linecap:round}
