@@ -229,7 +229,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .cprice{font-size:12px;font-weight:400;letter-spacing:normal;color:var(--ink);line-height:normal}
 .cprice.sale{color:var(--red);font-weight:600}
 .cwas{font-size:12px;font-weight:400;color:var(--ink);text-decoration:line-through;margin-top:0}
-.cship{font-size:10px;font-weight:400;color:var(--green);margin-top:6px}
+.cship{font-size:12px;font-weight:400;color:var(--green);margin-top:6px}
 
 /* LIQUIDACIÓN */
 .liq-sec{padding-bottom:140px;display:none}
