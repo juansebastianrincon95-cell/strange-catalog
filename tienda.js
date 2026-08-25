@@ -847,7 +847,8 @@ function cardHTML(p,i,prefix,toFicha){
       <div class="cfoot-card">${_showBrand?`<div class="cbrand">${escHtml(_bl)}</div>`:''}<div class="ctitle-row"><div class="cmodel">${escHtml(_modelTxt)}</div><div class="cvermas" onclick="event.stopPropagation();openPhoto(${p.id},'cat')">Ver más</div></div>${_priceRow}${conTalla?`<div class="ctallas" id="ctallas${prefix}${p.id}">
           <div class="ctallas-row">${_tallasHtml}</div>
           ${_addBtn}
-        </div>`:''}</div>
+        </div>
+        <div class="cship">Envío gratis</div>`:''}</div>
     </div>`;
 }
 
