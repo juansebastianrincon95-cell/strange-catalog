@@ -229,7 +229,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .cprice{font-size:12px;font-weight:400;letter-spacing:normal;color:var(--ink);line-height:normal}
 .cprice.sale{color:var(--red);font-weight:600}
 .cwas{font-size:12px;font-weight:400;color:var(--ink);text-decoration:line-through;margin-top:0}
-.cship{font-size:12px;font-weight:400;color:var(--green);margin-top:6px}
+.cship{font-size:12px;font-weight:400;color:var(--ink);margin-top:6px}
 
 /* LIQUIDACIÓN */
 .liq-sec{padding-bottom:140px;display:none}
@@ -323,11 +323,11 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .ctallas-row::-webkit-scrollbar{display:none}
 .ctallas.err .ctallas-row{animation:pmShake .4s}
 .card.sold .ctallas{pointer-events:none}
-.ctalla-chip{flex:0 0 auto;min-width:30px;height:30px;padding:0 6px;border:1.5px solid var(--line);border-radius:0;background:var(--white);font-family:var(--font);font-size:10px;font-weight:400;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:border-color .15s,background .15s,color .15s,transform .1s}
+.ctalla-chip{flex:0 0 auto;min-width:34px;height:34px;padding:0 7px;border:1.5px solid var(--line);border-radius:0;background:var(--white);font-family:var(--font);font-size:11px;font-weight:400;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:border-color .15s,background .15s,color .15s,transform .1s}
 .ctalla-chip:active{transform:scale(.92)}
 .ctalla-chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .ctalla-chip.out{color:var(--ink3);background:var(--bg);cursor:not-allowed;text-decoration:line-through;opacity:.55}
-.cadd-btn{flex:0 0 120px;width:120px;white-space:nowrap;background:var(--ink);color:#fff;border:none;height:31px;padding:0 16px;border-radius:0;font-family:var(--font);font-size:10px;font-weight:400;cursor:pointer;transition:transform .12s}
+.cadd-btn{flex:0 0 132px;width:132px;white-space:nowrap;background:var(--ink);color:#fff;border:none;height:35px;padding:0 16px;border-radius:0;font-family:var(--font);font-size:11px;font-weight:400;cursor:pointer;transition:transform .12s}
 .cadd-btn:active{transform:scale(.96)}
 /* "Ver más" — abre la ficha completa del producto (mismo destino que tocar la foto). */
 .cvermas{flex:0 0 auto;font-size:10px;font-weight:400;color:var(--ink);cursor:pointer;border-bottom:1px solid rgba(0,0,0,.5);width:fit-content;line-height:1.3}
