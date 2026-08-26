@@ -478,7 +478,7 @@ function openCart(){
   step=0;_icFired=false;_comboSugDismiss=false;
   syncDescuentosAuto();   // pedirle al server los descuentos automáticos de ESTE carrito (async, solo pinta)
   renderStep();
-  {const _cs=$('csheet');const _ya=_cs.classList.contains('on');$('cscrim').classList.add('on');_cs.classList.add('on');if(!_ya)lockScroll();}   // un bloqueo por capa (navPush deduplica)
+  {const _cs=$('csheet');const _ya=_cs.classList.contains('on');if(!_ya)lockScroll();$('cscrim').classList.add('on');_cs.classList.add('on');}   // un bloqueo por capa (navPush deduplica)
   $('cartBar').classList.add('hide');
   navPush('carrito','/carrito','Tu carrito — '+STORE_NAME,closeCart);
 }

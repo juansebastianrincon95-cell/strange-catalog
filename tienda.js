@@ -14,7 +14,7 @@ let _wmOpen=false;
 let _wmShownTracked=false;
 
 // popup_shown: 1 vez por visita (mide tasa popup→registro)
-function openWelcome(){const m=$('welcomeModal');if(m)m.classList.add('on');if(!_wmOpen){_wmOpen=true;lockScroll();}const t=$('wmReopen');if(t)t.classList.remove('show');
+function openWelcome(){if(!_wmOpen){_wmOpen=true;lockScroll();}const m=$('welcomeModal');if(m)m.classList.add('on');const t=$('wmReopen');if(t)t.classList.remove('show');
   if(!_wmShownTracked){_wmShownTracked=true;trackEvent('popup_shown');}}
 
 // Cerrar NO marca "visto": si no dejó sus datos, queda el tag anclado abajo para reabrirlo.
@@ -262,7 +262,7 @@ function openCatalog(opts){
   _sortBy='';{const _so=$('catSort');if(_so)_so.value='';}
   const v=$('catView');if(!v)return;
   // Mismo motivo que en la ficha: navPush('cat') deduplica, así que un bloqueo por capa.
-  {const _ya=v.classList.contains('on');v.classList.add('on');if(!_ya)lockScroll();}
+  {const _ya=v.classList.contains('on');if(!_ya)lockScroll();v.classList.add('on');}
   const tabs=document.querySelectorAll('#catView .tabs .tab');
   if(opts.coleccion&&coleccionDe(opts.coleccion)){
     gSel='all';brandSel='all';colSel=opts.coleccion;
@@ -313,7 +313,7 @@ function limpiarBusqueda(){
 }
 
 /* ── MENÚ MÓVIL (panel lateral ☰) ── */
-function openMenu(){const d=$('navDrawer');if(!d)return;d.classList.add('on');lockScroll();navPush('menu',null,null,closeMenu);}
+function openMenu(){const d=$('navDrawer');if(!d)return;lockScroll();d.classList.add('on');navPush('menu',null,null,closeMenu);}
 
 function closeMenu(){if(!_navPopping)navRemove('menu');const d=$('navDrawer');if(!d)return;d.classList.remove('on');unlockScroll();}
 
@@ -400,7 +400,7 @@ function openInfo(which){
   const cfg=INFO[which]||INFO.cambios;
   b.innerHTML=cfg[0];
   const t=$('infoTitle');if(t)t.textContent=cfg[1];
-  const m=$('infoModal');{const _ya=m.classList.contains('on');m.classList.add('on');if(!_ya)lockScroll();}   // un bloqueo por capa (navPush deduplica)
+  const m=$('infoModal');{const _ya=m.classList.contains('on');if(!_ya)lockScroll();m.classList.add('on');}   // un bloqueo por capa (navPush deduplica)
   const sc=m.querySelector('.info-scroll');if(sc)sc.scrollTop=0;
   navPush('info',cfg[2],cfg[1]+' — '+STORE_NAME,closeInfo);
 }
@@ -614,7 +614,7 @@ function openTesti(i){
   // El pantallazo manda el panel entero: sin captura, el modal queda solo con el texto.
   const pane=$('tmPaneImg'),cp=$('tmCap');
   if(pane){if(t.captura){if(cp)cp.src=t.captura;pane.style.display='';}else pane.style.display='none';}
-  {const _tm=$('testiModal');const _ya=_tm.classList.contains('on');_tm.classList.add('on');if(!_ya)lockScroll();}   // un bloqueo por capa
+  {const _tm=$('testiModal');const _ya=_tm.classList.contains('on');if(!_ya)lockScroll();_tm.classList.add('on');}   // un bloqueo por capa
   navPush('testi',null,null,closeTesti);
 }
 
@@ -751,7 +751,7 @@ function abrirFavoritos(){
   if(typeof closeMenu==='function')closeMenu();
   if(!favIds().length){toast('Aún no tienes favoritos ❤️');return;}
   renderFavoritos();
-  const m=$('favModal');if(m){m.classList.add('on');if(typeof lockScroll==='function')lockScroll();}
+  const m=$('favModal');if(m){if(typeof lockScroll==='function')lockScroll();m.classList.add('on');}
   if(typeof navPush==='function')navPush('fav',null,'Tus favoritos — '+STORE_NAME,cerrarFavoritos);   // el botón ATRÁS cierra el modal (no se sale del sitio ni deja el scroll bloqueado)
 }
 function cerrarFavoritos(){
@@ -1096,7 +1096,7 @@ function openPhoto(id,type){
   // estando ya en otra (cross-sell / "también te puede gustar") NO crea una capa nueva, así que
   // un solo atrás la cierra y solo desbloquea una vez. Sin esta guarda el contador quedaba en 1
   // y el body se quedaba en position:fixed → la página se congelaba y solo salía recargando.
-  {const _pm=$('photoModal');const _yaAbierta=_pm.classList.contains('on');_pm.classList.add('on');if(!_yaAbierta)lockScroll();}
+  {const _pm=$('photoModal');const _yaAbierta=_pm.classList.contains('on');if(!_yaAbierta)lockScroll();_pm.classList.add('on');}
   // SEO por producto: título de página y metadescripción propios cuando existen (meta.seo);
   // sin ellos, el título de siempre y la descripción global (setMetaDesc(null) restaura).
   const _seo=seoFicha(p);
@@ -1235,7 +1235,7 @@ function zoomImg(src){
   const z=$('imgZoom'),im=$('imgZoomImg');if(!z||!im)return;
   const ya=z.classList.contains('on');
   im.src=src;_izReset();
-  z.classList.add('on');if(!ya)lockScroll();     // un bloqueo por capa
+  if(!ya)lockScroll();z.classList.add('on');     // un bloqueo por capa
   if(_izHover()){
     // Se mide DESPUÉS de mostrar la capa: oculta, offsetWidth es 0 y la cuenta saldría mal.
     const poner=()=>{_izS=_izNativo();_izApply(false);};

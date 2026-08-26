@@ -899,7 +899,7 @@ function _showAdmin(){
   const cfgCl=$('cfgClarity');if(cfgCl)cfgCl.value=CLARITY_ID;
   _zonasDraft=null;renderEnvioAdmin();   // re-abrir el panel muestra las zonas GUARDADAS (no un draft viejo)
   checkStorageQuota();
-  $('apanel').classList.add('on');lockScroll();
+  lockScroll();$('apanel').classList.add('on');
   setAdminSection('inicio');
 }
 
