@@ -11,12 +11,28 @@ body{padding-bottom:var(--barH)}
    al subir (clase .hide la sube con translateY). El JS de auto-hide alterna .hide según el scroll. */
 .topbar{position:sticky;top:0;z-index:65;transition:transform .35s cubic-bezier(.4,0,.2,1)}
 .topbar.hide{transform:translateY(-100%)}
-/* BARRA DE ANUNCIO (envío gratis) — blanca, separada del nav por una línea gris fina. */
-.annbar{position:relative;height:var(--annH);background:var(--white);color:var(--ink);display:flex;align-items:center;justify-content:center;gap:10px;text-align:center;padding:0 14px;line-height:1.08;border-bottom:1px solid var(--line)}
+/* BARRA DE ANUNCIO — blanca, separada del nav por una línea gris fina. 3 mensajes rotando
+   verticalmente (calcada de adidas.co), se despliegan completos en .ann-panel al tocarla. */
+.annbar{position:relative;height:var(--annH);background:var(--white);color:var(--ink);border-bottom:1px solid var(--line);cursor:pointer;overflow:hidden}
+.annbar-viewport{height:100%;overflow:hidden}
+.annbar-track{height:300%;display:flex;flex-direction:column;transition:transform .5s cubic-bezier(.4,0,.2,1)}
+.annbar-slide{flex:0 0 33.3333%;height:33.3333%;display:flex;align-items:center;justify-content:center;gap:10px;padding:0 14px;text-align:center;line-height:1.08}
 .annbar-ic{font-size:18px;flex:0 0 auto}
 .annbar-tx{display:flex;flex-direction:column;align-items:center}
 .annbar-tx strong{font-size:14px;font-weight:400;letter-spacing:.06em;text-transform:uppercase}
 .annbar-tx small{font-size:11px;font-weight:400;letter-spacing:.03em;color:var(--ink2);margin-top:1px}
+
+.ann-panel{position:fixed;top:var(--annH);left:0;right:0;z-index:70;background:var(--white);border-bottom:1px solid var(--line);box-shadow:0 12px 30px rgba(0,0,0,.12);display:none;flex-direction:column;max-height:calc(100vh - var(--annH));overflow-y:auto}
+.ann-panel.show{display:flex}
+.ann-panel-x{position:absolute;top:10px;right:14px;width:32px;height:32px;border:1px solid var(--line);background:var(--white);border-radius:50%;font-size:13px;cursor:pointer;z-index:1}
+.ann-panel-item{display:flex;gap:12px;padding:18px 20px;border-bottom:1px solid var(--line);cursor:pointer}
+.ann-panel-item:last-child{border-bottom:none}
+.ann-panel-ic{font-size:20px;flex:0 0 auto}
+.ann-panel-body strong{display:block;font-size:14px;font-weight:600;color:var(--ink);margin-bottom:4px}
+.ann-panel-body p{font-size:12.5px;color:var(--ink2);line-height:1.5;margin-bottom:6px}
+.ann-panel-body p a{color:var(--ink);text-decoration:underline}
+.ann-panel-cta{font-size:12px;font-weight:600;text-decoration:underline;color:var(--ink)}
+@media(min-width:700px){.ann-panel{max-width:480px;left:auto;right:0}}
 @media(min-width:700px){.annbar-ic{font-size:20px}.annbar-tx strong{font-size:17px}.annbar-tx small{font-size:12.5px}}
 
 /* NAV — dentro del header (.topbar). Móvil: ☰ izq · logo centro · carrito der.

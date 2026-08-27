@@ -145,15 +145,56 @@
 </div>
 
 <header class="topbar" id="topbar">
-<!-- El envío es gratis SOLO pagando por adelantado; contra entrega cobra flete. Toda la barra abre
-     /envios, donde están los montos exactos (Ley 1480: la publicidad condicionada debe informar). -->
-<div class="annbar" role="note" aria-label="Envío gratis a toda Colombia. Toca para ver las condiciones de envío"
-     onclick="openInfo('envios')" style="cursor:pointer">
-  <span class="annbar-ic">🎉</span>
-  <span class="annbar-tx">
-    <strong>ENVÍO GRATIS A TODA COLOMBIA</strong>
-    <small><u>ver condiciones</u></small>
-  </span>
+<!-- Barra rotativa de 3 mensajes (calcada de adidas.co). El envío es gratis SOLO pagando por
+     adelantado; contra entrega cobra flete — esas condiciones exactas (Ley 1480) quedan a un
+     toque en el link fino del primer item del panel, no se pierden al quitar el link directo. -->
+<div class="annbar" id="annBar" role="note" aria-label="Ver promociones y beneficios"
+     onclick="toggleAnnPanel()" style="cursor:pointer">
+  <div class="annbar-viewport">
+    <div class="annbar-track" id="annTrack">
+      <div class="annbar-slide">
+        <span class="annbar-ic">🚚</span>
+        <span class="annbar-tx"><strong>ENVÍO GRATIS A TODA COLOMBIA</strong><small><u>ver más</u></small></span>
+      </div>
+      <div class="annbar-slide">
+        <span class="annbar-ic">💳</span>
+        <span class="annbar-tx"><strong>LLÉVALO HOY Y PAGA DESPUÉS</strong><small><u>ver más</u></small></span>
+      </div>
+      <div class="annbar-slide">
+        <span class="annbar-ic">✨</span>
+        <span class="annbar-tx"><strong>EL ESTILO QUE TE MUEVE</strong><small><u>ver más</u></small></span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="ann-panel" id="annPanel">
+  <button class="ann-panel-x" onclick="event.stopPropagation();closeAnnPanel()" aria-label="Cerrar">✕</button>
+  <div class="ann-panel-item" onclick="closeAnnPanel();openCatalog()">
+    <span class="ann-panel-ic">🚚</span>
+    <div class="ann-panel-body">
+      <strong>Envío gratis a toda Colombia</strong>
+      <p>Pagando en línea el envío no te cuesta nada — el precio que ves es el precio final.
+      <a onclick="event.stopPropagation();closeAnnPanel();openInfo('envios')">Ver condiciones de envío</a></p>
+      <span class="ann-panel-cta">Ver catálogo →</span>
+    </div>
+  </div>
+  <div class="ann-panel-item" onclick="closeAnnPanel();openCatalog()">
+    <span class="ann-panel-ic">💳</span>
+    <div class="ann-panel-body">
+      <strong>Llévalo hoy y paga después</strong>
+      <p>Elige cómo pagar: cuotas sin tarjeta con Addi, crédito fácil con Sistecrédito, o
+      seguro con tarjeta, PSE o Nequi a través de Wompi.</p>
+      <span class="ann-panel-cta">Ver catálogo →</span>
+    </div>
+  </div>
+  <div class="ann-panel-item" onclick="closeAnnPanel();openCatalog()">
+    <span class="ann-panel-ic">✨</span>
+    <div class="ann-panel-body">
+      <strong>El estilo que te mueve</strong>
+      <p>Encuentra el par perfecto para combinar con todo, todos los días.</p>
+      <span class="ann-panel-cta">Ver catálogo →</span>
+    </div>
+  </div>
 </div>
 <nav>
   <button class="nav-burger" onclick="openMenu()" aria-label="Abrir menú">

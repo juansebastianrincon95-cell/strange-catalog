@@ -141,6 +141,35 @@ function heroGo(i){heroCur=i;heroApply();}
 
 function heroGoStop(i){heroGo(i);if(_heroTimer){clearInterval(_heroTimer);_heroTimer=setInterval(()=>heroGo(heroCur+1),5000);}}
 
+/* ── BARRA SUPERIOR ROTATIVA (3 mensajes, calcada de adidas.co) ── */
+let annCur=0,_annTimer=null;
+function annApply(){
+  const track=$('annTrack');if(!track)return;
+  track.style.transform=`translateY(-${annCur*(100/3)}%)`;
+}
+function annGo(i){annCur=((i%3)+3)%3;annApply();}
+function annAutoStart(){if(_annTimer)clearInterval(_annTimer);_annTimer=setInterval(()=>annGo(annCur+1),4000);}
+
+function toggleAnnPanel(){
+  const p=$('annPanel');if(!p)return;
+  const open=!p.classList.contains('show');
+  if(open){
+    p.classList.add('show');
+    if(_annTimer)clearInterval(_annTimer);   // pausa la rotación mientras se lee el panel
+    document.addEventListener('click',closeAnnOutside);
+  }else{
+    closeAnnPanel();
+  }
+}
+function closeAnnPanel(){
+  const p=$('annPanel');if(p)p.classList.remove('show');
+  document.removeEventListener('click',closeAnnOutside);
+  annAutoStart();   // reanuda la rotación al cerrar
+}
+function closeAnnOutside(e){
+  if(!e.target.closest('#annBar') && !e.target.closest('#annPanel'))closeAnnPanel();
+}
+
 /* Editar un slide EXISTENTE: reemplazar imagen móvil/escritorio o el texto, sin borrarlo */
 let _heroEdit=null;
 

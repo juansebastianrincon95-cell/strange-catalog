@@ -35,6 +35,7 @@ if(localStorage.getItem('ss_reserve_until')&&!_reserveTimer){_reserveTimer=setIn
   if(typeof restoreCupon==='function')restoreCupon();   // recuperar el cupón aplicado (idem)
   if(bannerOn)$('banner').classList.remove('off');
   renderHero();   // carrusel del inicio (reemplaza el encabezado si hay banners)
+  annAutoStart();      // barra superior rotativa (3 mensajes, calcada de adidas.co)
   renderFeatured();    // sección "Últimos lanzamientos"
   renderColBanners();  // banners de colección Mujer/Hombre/Unisex
   renderGenRow('m');   // fila de variedad Mujer (tras banner Mujer)
