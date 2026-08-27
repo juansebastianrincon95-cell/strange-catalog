@@ -66,7 +66,7 @@ module.exports = async (req, res) => {
   const brand = cfg.store_name || 'Strange Sneakers';
 
   // Etiquetas legibles de marca para el feed de Meta
-  const BRAND_LABELS = { adidas:'Adidas', nike:'Nike', reebok:'Reebok', new_balance:'New Balance', on_cloud:'On Cloud', puma:'Puma', lecoq_sportif:'Le Coq Sportif', jordan:'Jordan', lacoste:'Lacoste', asics:'Asics', onitsuka_tiger:'Onitsuka Tiger', luxury:'Luxury' };
+  const BRAND_LABELS = { adidas:'Adidas', nike:'Nike', reebok:'Reebok', new_balance:'New Balance', on_cloud:'On Cloud', puma:'Puma', lecoq_sportif:'Le Coq Sportif', jordan:'Jordan', lacoste:'Lacoste', asics:'Asics', onitsuka_tiger:'Onitsuka Tiger', converse:'Converse', luxury:'Luxury' };
   const brandLabel = b => BRAND_LABELS[b] || null;
 
   // ── Tallas por género — MISMA regla que tallasInfo() en tienda.js ──

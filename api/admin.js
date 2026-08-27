@@ -99,7 +99,7 @@ const metaCiudad = c => sinTildes(c).toLowerCase().replace(/[^a-z0-9]/g, '');
 
 // Marcas válidas del catálogo (mismo listado que sugerir_modelo y api/feed.js). Vive aquí arriba
 // porque save_discount lo necesita para validar "Se aplica a → marcas".
-const BRAND_LABELS_DTO = { adidas: 'Adidas', nike: 'Nike', reebok: 'Reebok', new_balance: 'New Balance', on_cloud: 'On Cloud', puma: 'Puma', lecoq_sportif: 'Le Coq Sportif', jordan: 'Jordan', lacoste: 'Lacoste', asics: 'Asics', onitsuka_tiger: 'Onitsuka Tiger', luxury: 'Luxury' };
+const BRAND_LABELS_DTO = { adidas: 'Adidas', nike: 'Nike', reebok: 'Reebok', new_balance: 'New Balance', on_cloud: 'On Cloud', puma: 'Puma', lecoq_sportif: 'Le Coq Sportif', jordan: 'Jordan', lacoste: 'Lacoste', asics: 'Asics', onitsuka_tiger: 'Onitsuka Tiger', converse: 'Converse', luxury: 'Luxury' };
 // Email utilizable por Meta: forma básica de correo y primer carácter alfanumérico — un
 // "email" que empiece por = + - @ no matchea nada en Meta y sí es inyección CSV en Excel.
 const metaEmail = e => {
@@ -196,7 +196,7 @@ module.exports = async (req, res) => {
 
     // La marca ya registrada va como pista (reduce que alucine la marca); NO_IDENTIFICADO es la
     // salida honesta para que el panel no ofrezca una invención como propuesta.
-    const BRAND_LABELS = { adidas: 'Adidas', nike: 'Nike', reebok: 'Reebok', new_balance: 'New Balance', on_cloud: 'On Cloud', puma: 'Puma', lecoq_sportif: 'Le Coq Sportif', jordan: 'Jordan', lacoste: 'Lacoste', asics: 'Asics', onitsuka_tiger: 'Onitsuka Tiger', luxury: 'Luxury' };
+    const BRAND_LABELS = { adidas: 'Adidas', nike: 'Nike', reebok: 'Reebok', new_balance: 'New Balance', on_cloud: 'On Cloud', puma: 'Puma', lecoq_sportif: 'Le Coq Sportif', jordan: 'Jordan', lacoste: 'Lacoste', asics: 'Asics', onitsuka_tiger: 'Onitsuka Tiger', converse: 'Converse', luxury: 'Luxury' };
     const pista = p.brand && BRAND_LABELS[p.brand] ? ' La tienda lo tiene registrado como marca ' + BRAND_LABELS[p.brand] + '.' : '';
     const prompt = 'Identifica el tenis (sneaker) de la foto para el catálogo de una tienda en Colombia.' + pista +
       ' Responde UNA sola línea con el formato "Marca Modelo color/es" (ej: "Nike Air Max 90 blanco/gris"), en español, sin comillas ni punto final, máximo 60 caracteres.' +
@@ -771,7 +771,7 @@ module.exports = async (req, res) => {
     // es exactamente el tipo de mensaje que quema la venta que intenta rescatar.
     const MARCAS = { adidas:'Adidas', nike:'Nike', reebok:'Reebok', new_balance:'New Balance', on_cloud:'On Cloud',
                      puma:'Puma', lecoq_sportif:'Le Coq Sportif', jordan:'Jordan', lacoste:'Lacoste',
-                     asics:'Asics', onitsuka_tiger:'Onitsuka Tiger', luxury:'Luxury' };
+                     asics:'Asics', onitsuka_tiger:'Onitsuka Tiger', converse:'Converse', luxury:'Luxury' };
     const productosDe = o => (Array.isArray(o.items) ? o.items : []).slice(0, 2).map(i => {
       const marca = MARCAS[i.brand] || (i.brand ? String(i.brand).replace(/_/g, ' ') : '');
       return marca ? (marca + (i.talla ? ' talla ' + i.talla : '')) : '';
