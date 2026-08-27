@@ -1474,7 +1474,6 @@ function renderPmGal(urls,altTxt){
   _galIdx=0;_galN=urls.length;
   const tr=$('pmGalTrack');if(!tr)return;
   tr.style.transform='translateX(0)';
-  {const gal=$('pmGal');if(gal)gal.style.backgroundColor='';}   // limpia el tono del producto anterior mientras carga la nueva foto
   tr.innerHTML=urls.map(u=>`<img src="${escHtml(u)}" alt="${altTxt||'Foto del producto'}" loading="lazy">`).join('');
   const dots=$('pmGalDots');
   if(dots)dots.innerHTML=_galN>1?urls.map((_,i)=>`<span class="pm-gal-dot${i===0?' on':''}"></span>`).join(''):'';
@@ -1483,23 +1482,6 @@ function renderPmGal(urls,altTxt){
   // En móvil las flechas no se muestran (swipe); en escritorio aparecen al hover si hay >1 foto
   if(pv)pv.dataset.multi=showArr===''?'1':'0';
   if(nx)nx.dataset.multi=showArr===''?'1':'0';
-  const first=tr.querySelector('img');
-  if(first){
-    if(first.complete)_pmGalMatchBg(first);
-    else first.addEventListener('load',()=>_pmGalMatchBg(first),{once:true});
-  }
-}
-
-// El fondo del contenedor imita el gris/blanco propio de la foto (evita la franja blanca a los
-// lados cuando la foto es cuadrada y el contenedor no). Se toma de una esquina de la imagen.
-function _pmGalMatchBg(img){
-  try{
-    const c=document.createElement('canvas');c.width=1;c.height=1;
-    const ctx=c.getContext('2d');
-    ctx.drawImage(img,2,2,1,1,0,0,1,1);
-    const [r,g,b]=ctx.getImageData(0,0,1,1).data;
-    const gal=$('pmGal');if(gal)gal.style.backgroundColor=`rgb(${r},${g},${b})`;
-  }catch(e){}   // imagen externa sin CORS (URL manual del admin, no de Supabase) → se deja el fondo por defecto
 }
 
 function pmGalGo(dir){
