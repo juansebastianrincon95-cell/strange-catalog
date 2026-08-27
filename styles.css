@@ -127,7 +127,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 /* Mini-anuncio sobre el FAB de WhatsApp ("Pregunta por los combos") */
 .wa-bubble{position:fixed;right:18px;bottom:calc(max(18px,env(safe-area-inset-bottom)) + var(--barH) + 66px);z-index:564;display:none;align-items:center;gap:8px;background:var(--white);color:var(--ink);border:1px solid var(--line);border-radius:0;padding:10px 12px 10px 14px;font-family:var(--font);font-size:12.5px;font-weight:400;box-shadow:0 8px 24px rgba(0,0,0,.18);cursor:pointer;animation:pmIn .3s ease both}
 .wa-bubble.show{display:inline-flex}
-.cart-bar{position:fixed;left:0;right:0;bottom:0;z-index:566;height:var(--barH);padding:0 16px calc(env(safe-area-inset-bottom));box-sizing:content-box;background:var(--white);border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;text-decoration:none;color:var(--ink);cursor:pointer;transition:transform .25s}
+.cart-bar{position:fixed;left:0;right:0;bottom:0;z-index:621;height:var(--barH);padding:0 16px calc(env(safe-area-inset-bottom));box-sizing:content-box;background:var(--white);border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;text-decoration:none;color:var(--ink);cursor:pointer;transition:transform .25s}
 .cart-bar.hide{transform:translateY(100%)}
 .cart-bar-total{font-size:14px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
 .cart-bar-icon{position:relative;display:flex;align-items:center;justify-content:center;width:30px;height:30px}
@@ -403,7 +403,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .pm-back{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:36px;height:36px;background:var(--bg);border:none;border-radius:50%;color:var(--ink);font-size:19px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
 .pm-back:active{transform:translateY(-50%) scale(.9)}
 /* Área scrolleable (debajo de la barra fija) */
-.pm-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.pm-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-bottom:var(--barH)}
 .pm-img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block;background:var(--bg)}
 /* GALERÍA de la ficha: carrusel [foto principal, ...secundarias] con swipe + dots + flechas */
 .pm-gal{position:relative;width:100%;aspect-ratio:1/1;background:var(--bg);overflow:hidden;touch-action:pan-y}
@@ -544,7 +544,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
   .pm-img{width:60%;height:100%;aspect-ratio:auto;object-fit:cover;background:var(--white)}
   .pm-gal{width:60%;height:100%;aspect-ratio:auto;flex-shrink:0;background:var(--white)}
   .pm-gal-track img{object-fit:cover}
-  .pm-body{width:40%;height:100%;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:26px 24px 34px}
+  .pm-body{width:40%;height:100%;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:26px 24px calc(34px + var(--barH))}
   .pm-title{font-size:22px}
   .pm-price{font-size:32px}
 }
