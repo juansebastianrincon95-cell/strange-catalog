@@ -1,5 +1,5 @@
-:root{color-scheme:light;--bg:#FFFFFF;--white:#FFF;--ink:#0E0E0C;--ink2:#5a5a56;--ink3:#9a9a95;--line:rgba(0,0,0,0.08);--red:#E8200A;--blue:#0066FF;--green:#1aad49;--orange:#FF7A00;--wa:#25D366;--font:'Montserrat',system-ui,sans-serif;--annH:56px;--navH:64px;--barH:52px}
-@media(min-width:700px){:root{--annH:62px;--navH:78px}}
+:root{color-scheme:light;--bg:#FFFFFF;--white:#FFF;--ink:#0E0E0C;--ink2:#5a5a56;--ink3:#9a9a95;--line:rgba(0,0,0,0.08);--red:#E8200A;--blue:#0066FF;--green:#1aad49;--orange:#FF7A00;--wa:#25D366;--font:'Montserrat',system-ui,sans-serif;--annH:40px;--navH:64px;--barH:52px}
+@media(min-width:700px){:root{--annH:44px;--navH:78px}}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 /* El scroll interno de los modales NO arrastra el fondo (anti scroll-chaining) */
 .pm-wrap,.pm-body,.csheet,.cbody,.catview,.apanel,.wm-card,.guia-wrap{overscroll-behavior:contain}
@@ -11,16 +11,16 @@ body{padding-bottom:var(--barH)}
    al subir (clase .hide la sube con translateY). El JS de auto-hide alterna .hide según el scroll. */
 .topbar{position:sticky;top:0;z-index:65;transition:transform .35s cubic-bezier(.4,0,.2,1)}
 .topbar.hide{transform:translateY(-100%)}
-/* BARRA DE ANUNCIO — blanca, separada del nav por una línea gris fina. 3 mensajes rotando
-   verticalmente (calcada de adidas.co), se despliegan completos en .ann-panel al tocarla. */
-.annbar{position:relative;height:var(--annH);background:var(--white);color:var(--ink);border-bottom:1px solid var(--line);cursor:pointer;overflow:hidden}
+/* BARRA DE ANUNCIO — negra y compacta (calcada de adidas.co), 3 mensajes rotando verticalmente,
+   se despliegan completos en .ann-panel (ese sí blanco) al tocarla. */
+.annbar{position:relative;height:var(--annH);background:var(--ink);color:#fff;cursor:pointer;overflow:hidden}
 .annbar-viewport{height:100%;overflow:hidden}
 .annbar-track{height:300%;display:flex;flex-direction:column;transition:transform .5s cubic-bezier(.4,0,.2,1)}
-.annbar-slide{flex:0 0 33.3333%;height:33.3333%;display:flex;align-items:center;justify-content:center;gap:10px;padding:0 14px;text-align:center;line-height:1.08}
-.annbar-ic{font-size:18px;flex:0 0 auto}
+.annbar-slide{flex:0 0 33.3333%;height:33.3333%;display:flex;align-items:center;justify-content:center;gap:7px;padding:0 14px;text-align:center;line-height:1.08}
+.annbar-ic{font-size:13px;flex:0 0 auto}
 .annbar-tx{display:flex;flex-direction:column;align-items:center}
-.annbar-tx strong{font-size:14px;font-weight:400;letter-spacing:.06em;text-transform:uppercase}
-.annbar-tx small{font-size:11px;font-weight:400;letter-spacing:.03em;color:var(--ink2);margin-top:1px}
+.annbar-tx strong{font-size:10.5px;font-weight:400;letter-spacing:.06em;text-transform:uppercase}
+.annbar-tx small{font-size:8.5px;font-weight:400;letter-spacing:.03em;color:rgba(255,255,255,.65);margin-top:0}
 
 .ann-panel{position:fixed;top:var(--annH);left:0;right:0;z-index:70;background:var(--white);border-bottom:1px solid var(--line);box-shadow:0 12px 30px rgba(0,0,0,.12);display:none;flex-direction:column;max-height:calc(100vh - var(--annH));overflow-y:auto}
 .ann-panel.show{display:flex}
@@ -33,7 +33,7 @@ body{padding-bottom:var(--barH)}
 .ann-panel-body p a{color:var(--ink);text-decoration:underline}
 .ann-panel-cta{font-size:12px;font-weight:600;text-decoration:underline;color:var(--ink)}
 @media(min-width:700px){.ann-panel{max-width:480px;left:auto;right:0}}
-@media(min-width:700px){.annbar-ic{font-size:20px}.annbar-tx strong{font-size:17px}.annbar-tx small{font-size:12.5px}}
+@media(min-width:700px){.annbar-ic{font-size:15px}.annbar-tx strong{font-size:12px}.annbar-tx small{font-size:9.5px}}
 
 /* NAV — dentro del header (.topbar). Móvil: ☰ izq · logo centro · carrito der.
    Escritorio: logo izq · menú centro · carrito der. */
