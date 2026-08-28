@@ -526,10 +526,11 @@
       <div class="pm-stars" id="pmStars">★★★★★ <span id="pmReviews"></span></div>
       <div class="pm-price-row"><span class="pm-price" id="pmPrice">$180.000</span><span class="pm-was" id="pmWas" style="display:none"></span></div>
       <div class="pm-save" id="pmSave" style="display:none"></div>
-      <div class="pm-fin-cap">Paga a cuotas con</div>
-      <div class="pm-finance">
-        <div class="pm-fin"><img class="pm-fin-logo" src="/logos/addi.png" alt="Addi" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="pm-fin-txt" style="display:none">Paga a cuotas con<b>Addi</b></span></div>
-        <div class="pm-fin"><img class="pm-fin-logo" src="/logos/sistecredito.png" alt="Sistecrédito" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="pm-fin-txt" style="display:none">Crédito fácil con<b>Sistecrédito</b></span></div>
+      <div class="pm-fin-desc">Paga a cuotas con <b>Addi</b> o <b>Sistecrédito</b> — crédito 100% en línea, aprobación en minutos con solo tu cédula y celular.</div>
+      <button type="button" class="pm-guia-toggle" onclick="togglePmFin()">Ver más</button>
+      <div class="pm-guia-box" id="pmFinBox" style="display:none">
+        <div class="pm-guia-tx"><b>Addi</b> — aprobación en minutos con solo cédula y celular. Envío gratis incluido.</div>
+        <div class="pm-guia-tx" style="margin-bottom:0"><b>Sistecrédito</b> — aprobación en minutos con solo tu cédula. Envío gratis incluido.</div>
       </div>
       <div class="pm-sizes" id="pmSizes" style="display:none">
         <div class="pm-sizes-top"><span class="pm-sizes-lbl">Elige tu talla <span class="pm-sizes-unit">(EUR)</span></span><span class="pm-sizes-err" id="pmSizesErr">Selecciona una talla 👆</span></div>
@@ -561,6 +562,8 @@
           <img src="/logos/pse.png" alt="PSE" onerror="this.remove()">
           <img src="/logos/visa.png" alt="Visa" onerror="this.remove()">
           <img src="/logos/mastercard.png" alt="Mastercard" onerror="this.remove()">
+          <img src="/logos/addi.png" alt="Addi" onerror="this.remove()">
+          <img src="/logos/sistecredito.png" alt="Sistecrédito" onerror="this.remove()">
         </div>
       </div>
       <div class="pm-meta">

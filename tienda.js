@@ -1087,6 +1087,7 @@ function openPhoto(id,type){
   // Si el producto tiene MODELO (ej. "Nike Air Max 90"), ese es el título; si no, Marca · Género.
   $('pmTitle').textContent=p.modelo||((_mk?_mk+' · ':'')+(type==='liq'?'Liquidación':(genLabel(p.g))));
   {const ge=$('pmGender');if(ge){if(type==='liq'){ge.style.display='none';}else{ge.textContent=genLabel(p.g);ge.style.display='';}}}
+  {const fb=$('pmFinBox');if(fb)fb.style.display='none';}   // siempre arranca colapsado (igual que la guía de tallas)
   pmReviewN=reviewsCount;   // nº de reseñas = el de marketing del admin (settings.reviews_count)
   {const rv=$('pmReviews');if(rv)rv.textContent=pmReviewN>0?`(${pmReviewN.toLocaleString('es-CO')} reseñas)`:'';}
   {const dd=$('pmDesc');if(dd)dd.textContent=genDescripcion(p,type);}
@@ -1189,6 +1190,7 @@ function renderPmGuia(){
   imgs.innerHTML=fotos.map(u=>`<img class="pm-guia-img" src="${escHtml(u)}" alt="Etiqueta de talla" loading="lazy" onclick="zoomImg('${escHtml(u)}')">`).join('');
 }
 function toggleGuiaTallas(){const b=$('pmGuiaBox');if(b)b.style.display=b.style.display==='none'?'block':'none';}
+function togglePmFin(){const b=$('pmFinBox');if(b)b.style.display=b.style.display==='none'?'block':'none';}
 /* ── VISOR AMPLIADO (fotos del producto, guía de tallas, marquilla) ──
    Pellizco, rueda, doble toque para acercar/alejar y arrastre para recorrer.
    Escala en `transform` (la GPU la hace sin repintar) con origen en el centro, que es lo que

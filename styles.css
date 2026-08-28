@@ -461,9 +461,8 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .pm-spec{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--line);font-size:12.5px;line-height:1.5}
 .pm-spec-k{color:var(--ink3);font-weight:400;text-transform:capitalize;flex:0 0 auto}
 .pm-spec-v{color:var(--ink2);text-align:right;word-break:break-word}
-.pm-finance{display:flex;gap:10px;margin-top:14px}
-.pm-fin{flex:1;background:var(--white);border:1px solid var(--line);border-radius:0;padding:10px 8px;font-size:10.5px;font-weight:400;color:var(--ink2);text-align:center;line-height:1.35}
-.pm-fin b{color:var(--ink);display:block;font-size:12px}
+.pm-fin-desc{font-size:13px;line-height:1.5;color:var(--ink2);margin-top:14px}
+.pm-fin-desc b{color:var(--ink);font-weight:600}
 .pm-add{display:block;width:100%;margin-top:16px;background:var(--ink);color:#fff;border:none;padding:15px;border-radius:0;font-family:var(--font);font-size:15px;font-weight:400;cursor:pointer;transition:transform .12s,background .15s}
 /* Barra sticky de compra (siempre visible, línea recta al checkout estilo Nike) */
 .pm-foot{display:none;flex:0 0 auto;background:var(--white);border-top:1px solid var(--line);padding:7px 14px max(10px,env(safe-area-inset-bottom));box-shadow:0 -4px 16px rgba(0,0,0,.07);z-index:5}
@@ -516,7 +515,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .pm-cod b{font-weight:400}
 .pm-cod-ic{font-size:20px;flex-shrink:0}
 .pm-pay-strip{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:18px;background:var(--white);border:1px solid var(--line);border-radius:0;padding:13px 14px}
-.pm-pay-strip img{height:23px;width:auto;max-width:62px;object-fit:contain;display:block}
+.pm-pay-strip img{height:27px;width:auto;max-width:72px;object-fit:contain;display:block}
 .pm-meta{margin-top:16px;display:flex;flex-direction:column;gap:9px}
 .pm-chip{display:flex;align-items:center;gap:11px;font-size:12.5px;font-weight:400;line-height:1.3;border-radius:0;padding:11px 13px;background:var(--white);border:1px solid var(--line);box-shadow:0 1px 2px rgba(0,0,0,.03);color:var(--ink2);transition:transform .16s,box-shadow .16s}
 .pm-chip:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(0,0,0,.07)}
@@ -542,10 +541,6 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .photo-modal.on .pm-trust-item{animation:trustIn .5s cubic-bezier(.16,1,.3,1) both}
 .photo-modal.on .pm-trust-item:nth-child(2){animation-delay:.09s}
 @keyframes trustIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-/* Financiación + medios de pago con logos reales (carpeta logos/, fallback a texto vía onerror) */
-.pm-fin-cap{font-size:10px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-top:16px;margin-bottom:7px}
-.pm-finance .pm-fin{display:flex;align-items:center;justify-content:center;min-height:52px}
-.pm-fin-logo{max-height:30px;max-width:88%;object-fit:contain}
 /* Reseñas de ejemplo en la ficha — bloque "Dejamos que nuestros clientes hablen" (estilo elena) */
 .pm-reviews{margin-top:20px;border-top:1px solid var(--line);padding-top:18px}
 .pm-rev-head{text-align:center;margin-bottom:14px}
