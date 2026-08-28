@@ -409,7 +409,12 @@
     <div style="text-align:right"><div class="ban-val">$180.000</div><div class="ban-env">✓ Envío gratis</div></div>
   </div>
 
-  <div class="tabs show">
+  <!-- Pestañas de género ocultas (ver CSS .tabs): ahora la cabecera (Hombre/Mujer/Unisex/Ofertas
+       en el nav) se queda siempre visible arriba del catálogo, así que estos botones eran una
+       segunda forma de llegar exactamente al mismo lugar. NO se borran del DOM: openCatalog()/
+       setG() (tienda.js) resuelven por posición vía querySelectorAll, igual que ya pasaba con
+       "🔥 Ofertas" (nunca visible, tampoco borrada, por la misma razón). -->
+  <div class="tabs">
     <button class="tab on" onclick="setG('all',this)">Todos</button>
     <button class="tab"    onclick="setG('h',this)">Hombre</button>
     <button class="tab"    onclick="setG('m',this)">Mujer</button>
