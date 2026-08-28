@@ -32,7 +32,12 @@ body{padding-bottom:var(--barH)}
 .ann-panel-body p{font-size:12.5px;color:var(--ink2);line-height:1.5;margin-bottom:6px}
 .ann-panel-body p a{color:var(--ink);text-decoration:underline}
 .ann-panel-cta{font-size:12px;font-weight:600;text-decoration:underline;color:var(--ink)}
-@media(min-width:700px){.ann-panel{max-width:480px;left:auto;right:0}}
+/* Escritorio: ancho completo, los 3 mensajes en fila (calcado de adidas.co) en vez de apilados */
+@media(min-width:700px){
+  .ann-panel{flex-direction:row;max-height:none}
+  .ann-panel-item{flex:1;flex-direction:column;align-items:flex-start;border-bottom:none;border-right:1px solid var(--line);padding:26px 32px}
+  .ann-panel-item:last-child{border-right:none}
+}
 @media(min-width:700px){.annbar-ic{font-size:15px}.annbar-tx strong{font-size:12px}.annbar-tx small{font-size:9.5px}}
 
 /* NAV — dentro del header (.topbar). Móvil: ☰ izq · logo centro · carrito der.
