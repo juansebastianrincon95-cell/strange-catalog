@@ -444,22 +444,34 @@ function waMayoristas(){
   window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,'_blank');
 }
 
-/* ── CABECERA AUTO-OCULTABLE (estilo Adidas) ── se oculta al bajar, reaparece al subir ── */
+/* ── CABECERA AUTO-OCULTABLE (estilo Adidas) ── se oculta al bajar, reaparece al subir.
+   Se engancha tanto al scroll de la ventana (home) como al de los modales de pantalla completa
+   (catálogo Hombre/Mujer/Unisex, ficha de producto) — mientras un modal está abierto, lockScroll()
+   fija el body y el scroll real ocurre DENTRO de esos contenedores, no en window. */
 (function(){
   const bar=document.getElementById('topbar');
   if(!bar)return;
-  let lastY=window.scrollY||0, ticking=false;
   const TH=6;   // umbral para ignorar micro-scrolls
-  function update(){
-    const y=window.scrollY||document.documentElement.scrollTop||0;
-    if(y<=2){ bar.classList.remove('hide'); }                         // arriba del todo: siempre visible
-    else if(Math.abs(y-lastY)>TH){
-      if(y>lastY && y>bar.offsetHeight) bar.classList.add('hide');    // bajando → ocultar
-      else bar.classList.remove('hide');                              // subiendo → mostrar
+  function bind(getY){
+    let lastY=getY(), ticking=false;
+    function update(){
+      const y=getY();
+      if(y<=2){ bar.classList.remove('hide'); }                         // arriba del todo: siempre visible
+      else if(Math.abs(y-lastY)>TH){
+        if(y>lastY && y>bar.offsetHeight) bar.classList.add('hide');    // bajando → ocultar
+        else bar.classList.remove('hide');                              // subiendo → mostrar
+      }
+      lastY=y; ticking=false;
     }
-    lastY=y; ticking=false;
+    return ()=>{ if(!ticking){ requestAnimationFrame(update); ticking=true; } };
   }
-  window.addEventListener('scroll',()=>{ if(!ticking){ requestAnimationFrame(update); ticking=true; } },{passive:true});
+  window.addEventListener('scroll',bind(()=>window.scrollY||document.documentElement.scrollTop||0),{passive:true});
+  const _cv=document.getElementById('catView');
+  if(_cv)_cv.addEventListener('scroll',bind(()=>_cv.scrollTop),{passive:true});
+  const _pms=document.querySelector('.pm-scroll');
+  if(_pms)_pms.addEventListener('scroll',bind(()=>_pms.scrollTop),{passive:true});
+  const _pmb=document.querySelector('.pm-body');
+  if(_pmb)_pmb.addEventListener('scroll',bind(()=>_pmb.scrollTop),{passive:true});
 })();
 
 // Preview del inicio: 6 modelos disponibles más recientes (prods viene ordenado por id asc).
