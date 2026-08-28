@@ -456,7 +456,6 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .pm-save{font-size:13px;font-weight:400;color:var(--green);margin-top:4px}
 .pm-sec{margin-top:36px;padding-top:20px;border-top:1px solid var(--line)}
 .pm-sec-t{font-size:11px;font-weight:400;letter-spacing:.05em;text-transform:uppercase;color:var(--ink);margin-bottom:14px}
-.pm-desc{font-size:13px;color:var(--ink2);line-height:1.6}
 /* Metacampos públicos (columna meta jsonb) — tabla ligera de "Detalles del producto" */
 .pm-specs{margin-top:36px;padding-top:20px;border-top:1px solid var(--line)}
 .pm-spec{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--line);font-size:12.5px;line-height:1.5}
