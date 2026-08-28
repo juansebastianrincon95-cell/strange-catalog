@@ -292,6 +292,7 @@ function openCatalog(opts){
   const v=$('catView');if(!v)return;
   // Mismo motivo que en la ficha: navPush('cat') deduplica, así que un bloqueo por capa.
   {const _ya=v.classList.contains('on');if(!_ya)lockScroll();v.classList.add('on');}
+  {const tb=$('topbar');if(tb)tb.classList.remove('hide');}   // la cabecera siempre visible al ver Hombre/Mujer/Unisex (estilo adidas)
   const tabs=document.querySelectorAll('#catView .tabs .tab');
   if(opts.coleccion&&coleccionDe(opts.coleccion)){
     gSel='all';brandSel='all';colSel=opts.coleccion;
