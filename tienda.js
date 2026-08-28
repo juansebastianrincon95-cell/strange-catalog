@@ -1086,6 +1086,7 @@ function openPhoto(id,type){
   const _mk=BRAND_LABELS[p.brand]||'';
   // Si el producto tiene MODELO (ej. "Nike Air Max 90"), ese es el título; si no, Marca · Género.
   $('pmTitle').textContent=p.modelo||((_mk?_mk+' · ':'')+(type==='liq'?'Liquidación':(genLabel(p.g))));
+  {const ge=$('pmGender');if(ge){if(type==='liq'){ge.style.display='none';}else{ge.textContent=genLabel(p.g);ge.style.display='';}}}
   pmReviewN=reviewsCount;   // nº de reseñas = el de marketing del admin (settings.reviews_count)
   {const rv=$('pmReviews');if(rv)rv.textContent=pmReviewN>0?`(${pmReviewN.toLocaleString('es-CO')} reseñas)`:'';}
   {const dd=$('pmDesc');if(dd)dd.textContent=genDescripcion(p,type);}

@@ -445,6 +445,8 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .pm-gal-dot.on{width:16px;border-radius:0;background:var(--ink)}
 @media(min-width:700px){.pm-gal:hover .pm-gal-arr[data-multi="1"]{display:flex}}
 .pm-body{padding:18px 18px 26px}
+.pm-gender{font-size:11px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);margin-bottom:8px}
+.pm-ship-badge{display:inline-block;background:var(--green);color:#fff;font-size:10.5px;font-weight:400;letter-spacing:.04em;text-transform:uppercase;padding:5px 10px;border-radius:0;margin-bottom:10px}
 .pm-title{font-size:18px;font-weight:400;color:var(--ink);letter-spacing:-.01em}
 .pm-stars{margin-top:6px;font-size:14px;color:#f5a623;letter-spacing:1px}
 .pm-stars span{color:var(--ink2);font-size:12px;font-weight:400;letter-spacing:0;margin-left:5px}
