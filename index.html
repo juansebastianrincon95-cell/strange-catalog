@@ -532,13 +532,16 @@
         <div class="pm-guia-tx"><b>Addi</b> — aprobación en minutos con solo cédula y celular. Envío gratis incluido.</div>
         <div class="pm-guia-tx" style="margin-bottom:0"><b>Sistecrédito</b> — aprobación en minutos con solo tu cédula. Envío gratis incluido.</div>
       </div>
-      <div class="pm-sizes" id="pmSizes" style="display:none">
-        <div class="pm-sizes-top"><span class="pm-sizes-lbl">Elige tu talla <span class="pm-sizes-unit">(EUR)</span></span><span class="pm-sizes-err" id="pmSizesErr">Selecciona una talla 👆</span></div>
-        <div class="pm-sizes-row" id="pmSizesRow"></div>
-        <!-- Aviso que aparece AL ESCOGER la talla, con la foto de la marquilla a la vista.
-             Antes el ejemplo vivía detrás del botón "¿Cómo sé mi talla?", y quien cree saber su
-             talla nunca lo abre — de ahí los cambios por talla. Se rellena en pmPickSize(). -->
-        <div class="pm-talla-check" id="pmTallaCheck" style="display:none"></div>
+      <div class="pm-sizes-cta">
+        <div class="pm-sizes" id="pmSizes" style="display:none">
+          <div class="pm-sizes-top"><span class="pm-sizes-lbl">Elige tu talla <span class="pm-sizes-unit">(EUR)</span></span><span class="pm-sizes-err" id="pmSizesErr">Selecciona una talla 👆</span></div>
+          <div class="pm-sizes-row" id="pmSizesRow"></div>
+          <!-- Aviso que aparece AL ESCOGER la talla, con la foto de la marquilla a la vista.
+               Antes el ejemplo vivía detrás del botón "¿Cómo sé mi talla?", y quien cree saber su
+               talla nunca lo abre — de ahí los cambios por talla. Se rellena en pmPickSize(). -->
+          <div class="pm-talla-check" id="pmTallaCheck" style="display:none"></div>
+        </div>
+        <button class="pm-add" id="pmAdd" onclick="addFromModal()">+ Agregar al carrito</button>
       </div>
       <div class="pm-guia" id="pmGuia" style="display:none">
         <button type="button" class="pm-guia-toggle" onclick="toggleGuiaTallas()">📏 ¿Cómo sé mi talla?</button>
@@ -547,11 +550,13 @@
           <div class="pm-guia-imgs" id="pmGuiaImgs"></div>
         </div>
       </div>
-      <div class="pm-desc" id="pmDesc"></div>
+      <div class="pm-sec">
+        <div class="pm-sec-t">Descripción</div>
+        <div class="pm-desc" id="pmDesc"></div>
+      </div>
       <!-- Metacampos públicos del producto (columna meta jsonb): material, temporada, cuidado…
            Se rellena en renderPmSpecs(); oculto si el producto no tiene metacampos. -->
       <div class="pm-specs" id="pmSpecs" style="display:none"></div>
-      <button class="pm-add" id="pmAdd" onclick="addFromModal()">+ Agregar al carrito</button>
       <div class="pm-pay">
         <div class="pm-cod"><span class="pm-cod-ic">🚚</span><span><b>Pago contra entrega</b> · paga al recibir en todo el país</span></div>
         <div class="pm-pay-t">También puedes pagar con</div>
@@ -571,9 +576,16 @@
         <div class="pm-chip reserve" id="pmReserve" style="display:none"><span class="pm-chip-ic">⏰</span><span>Reservado para ti por <b id="pmReserveT">15:00</b></span></div>
         <div class="pm-chip gift"><span class="pm-chip-ic">🎁</span><span>Tu compra incluye <b>guía de cuidado</b> + <b>5%</b> en tu próximo par</span></div>
       </div>
-      <div class="pm-trust">
-        <div class="pm-trust-item"><span class="pm-ti-ic">🔄</span><span>Cambios<br>por talla</span></div>
-        <div class="pm-trust-item"><span class="pm-ti-ic">🛡️</span><span>100%<br>Garantía</span></div>
+      <div class="pm-sec">
+        <div class="pm-sec-t">Devoluciones y garantías</div>
+        <div class="pm-return-sub">Cambio de producto</div>
+        <div class="pm-return-li">Solo cambios por talla: si te equivocaste, el envío corre por tu cuenta; si es defecto de fábrica, nosotros lo cubrimos.</div>
+        <div class="pm-return-li">Tienes 2 días hábiles desde que recibes tu pedido para solicitar el cambio, en perfecto estado y en la misma bolsa.</div>
+        <div class="pm-return-sub">Garantías</div>
+        <div class="pm-return-li">Tu compra tiene 1 mes de garantía por defectos de costura o despegue, sin costo adicional.</div>
+        <div class="pm-return-sub">Reembolso</div>
+        <div class="pm-return-li">No hacemos devoluciones de dinero ni cancelación de créditos. Si tu talla no está disponible, puedes elegir otro modelo.</div>
+        <button type="button" class="pm-guia-toggle" onclick="openInfo('cambios')">Ver política completa</button>
       </div>
       <div class="pm-reviews" id="pmRevList"></div>
       <div id="pmCross" class="pmx" style="display:none"></div>

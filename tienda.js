@@ -1071,7 +1071,7 @@ function renderPmSpecs(p){
   }catch(_){entradas=[];}
   if(!entradas.length){box.style.display='none';box.innerHTML='';return;}
   box.style.display='';
-  box.innerHTML='<div class="pm-specs-t">Detalles del producto</div>'
+  box.innerHTML='<div class="pm-sec-t">Detalles del producto</div>'
     +entradas.slice(0,12).map(([k,v])=>`<div class="pm-spec"><span class="pm-spec-k">${escHtml(k)}</span><span class="pm-spec-v">${escHtml(String(v))}</span></div>`).join('');
 }
 /* ── MODAL FOTO ── */

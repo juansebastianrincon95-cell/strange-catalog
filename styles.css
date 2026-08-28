@@ -454,10 +454,11 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .pm-price{font-size:24px;font-weight:400;color:var(--ink);letter-spacing:-.03em}
 .pm-was{font-size:16px;color:var(--ink3);text-decoration:line-through}
 .pm-save{font-size:13px;font-weight:400;color:var(--green);margin-top:4px}
-.pm-desc{font-size:13px;color:var(--ink2);line-height:1.6;margin-top:12px}
+.pm-sec{margin-top:36px;padding-top:20px;border-top:1px solid var(--line)}
+.pm-sec-t{font-size:11px;font-weight:400;letter-spacing:.05em;text-transform:uppercase;color:var(--ink);margin-bottom:14px}
+.pm-desc{font-size:13px;color:var(--ink2);line-height:1.6}
 /* Metacampos públicos (columna meta jsonb) — tabla ligera de "Detalles del producto" */
-.pm-specs{margin-top:12px;border:1px solid var(--line);border-radius:0;padding:4px 14px;background:var(--white)}
-.pm-specs-t{font-size:11px;font-weight:400;color:var(--ink);text-transform:uppercase;letter-spacing:.05em;padding:9px 0 4px}
+.pm-specs{margin-top:36px;padding-top:20px;border-top:1px solid var(--line)}
 .pm-spec{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--line);font-size:12.5px;line-height:1.5}
 .pm-spec-k{color:var(--ink3);font-weight:400;text-transform:capitalize;flex:0 0 auto}
 .pm-spec-v{color:var(--ink2);text-align:right;word-break:break-word}
@@ -475,7 +476,8 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .pm-add:active{transform:scale(.98)}
 .pm-add.in{background:var(--green)}
 /* ── SELECTOR DE TALLAS (ficha) ── */
-.pm-sizes{margin:36px 0 2px}
+.pm-sizes-cta{margin-top:36px}
+.pm-sizes{margin:0 0 2px}
 .pm-sizes-top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:9px}
 .pm-sizes-lbl{font-size:14px;font-weight:400;color:var(--ink);letter-spacing:.01em}
 .pm-sizes-unit{font-weight:400;color:var(--ink3);font-size:12px}
@@ -532,14 +534,10 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .photo-modal.on .pm-chip{animation:trustIn .5s cubic-bezier(.16,1,.3,1) both}
 .photo-modal.on .pm-chip:nth-child(2){animation-delay:.06s}
 .photo-modal.on .pm-chip:nth-child(3){animation-delay:.12s}
-.pm-trust{margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.pm-trust-item{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,var(--white),var(--bg));border:1px solid var(--line);border-radius:0;padding:11px 12px;font-size:12px;font-weight:400;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.03);transition:transform .16s,box-shadow .16s}
-.pm-trust-item span{line-height:1.15}
-.pm-trust-item:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.09)}
-.pm-ti-ic{flex-shrink:0;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;background:#eef4ff}
-.pm-trust-item:nth-child(2) .pm-ti-ic{background:#eafaf0}
-.photo-modal.on .pm-trust-item{animation:trustIn .5s cubic-bezier(.16,1,.3,1) both}
-.photo-modal.on .pm-trust-item:nth-child(2){animation-delay:.09s}
+.pm-return-sub{font-size:12.5px;font-weight:400;color:var(--ink);margin:12px 0 4px}
+.pm-return-sub:first-of-type{margin-top:0}
+.pm-return-li{font-size:12.5px;line-height:1.6;color:var(--ink2);padding-left:12px;position:relative}
+.pm-return-li::before{content:"–";position:absolute;left:0;color:var(--ink3)}
 @keyframes trustIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 /* Reseñas de ejemplo en la ficha — bloque "Dejamos que nuestros clientes hablen" (estilo elena) */
 .pm-reviews{margin-top:20px;border-top:1px solid var(--line);padding-top:18px}
@@ -561,6 +559,9 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
   .pm-gal{width:60%;height:100%;aspect-ratio:auto;flex-shrink:0;background:var(--white)}
   .pm-gal-track img{object-fit:cover}
   .pm-body{width:40%;height:100%;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:26px 24px calc(34px + var(--barH))}
+  .pm-sizes-cta{display:flex;align-items:flex-start;gap:14px}
+  .pm-sizes{flex:1;min-width:0}
+  .pm-add{width:auto;flex-shrink:0;margin-top:0;margin-left:auto;padding:15px 28px;white-space:nowrap}
   .pm-title{font-size:28px}
   .pm-price{font-size:28px}
 }
