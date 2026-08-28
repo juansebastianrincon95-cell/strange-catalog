@@ -512,7 +512,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .pm-pay{margin-top:18px}
 .pm-pay-t{font-size:10px;font-weight:400;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);text-align:center;margin-bottom:9px}
 .pm-cod{display:flex;align-items:center;gap:10px;background:var(--white);border:1px solid var(--line);color:var(--ink);border-radius:0;padding:11px 13px;font-size:12.5px;font-weight:400;line-height:1.3;margin-bottom:14px}
-.pm-cod b{font-weight:400}
+.pm-cod b{font-weight:600}
 .pm-cod-ic{font-size:20px;flex-shrink:0}
 .pm-pay-strip{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:18px;background:var(--white);border:1px solid var(--line);border-radius:0;padding:13px 14px}
 .pm-pay-strip img{height:27px;width:auto;max-width:72px;object-fit:contain;display:block}
