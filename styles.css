@@ -446,12 +446,12 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 @media(min-width:700px){.pm-gal:hover .pm-gal-arr[data-multi="1"]{display:flex}}
 .pm-body{padding:18px 18px 26px}
 .pm-gender{font-size:11px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);margin-bottom:8px}
-.pm-ship-badge{display:inline-block;background:var(--green);color:#fff;font-size:10.5px;font-weight:400;letter-spacing:.04em;text-transform:uppercase;padding:5px 10px;border-radius:0;margin-bottom:10px}
-.pm-title{font-size:18px;font-weight:400;color:var(--ink);letter-spacing:-.01em}
+.pm-ship-badge{display:inline-block;background:var(--green);color:#fff;font-size:10.5px;font-weight:400;letter-spacing:.04em;text-transform:uppercase;padding:5px 10px;border-radius:0;margin-bottom:12px}
+.pm-title{font-size:20px;font-weight:400;color:var(--ink);letter-spacing:.02em;text-transform:uppercase}
 .pm-stars{margin-top:6px;font-size:14px;color:#f5a623;letter-spacing:1px}
 .pm-stars span{color:var(--ink2);font-size:12px;font-weight:400;letter-spacing:0;margin-left:5px}
-.pm-price-row{display:flex;align-items:baseline;gap:10px;margin-top:12px}
-.pm-price{font-size:27px;font-weight:400;color:var(--ink);letter-spacing:-.03em}
+.pm-price-row{display:flex;align-items:baseline;gap:10px;margin-top:14px}
+.pm-price{font-size:22px;font-weight:400;color:var(--ink);letter-spacing:-.03em}
 .pm-was{font-size:15px;color:var(--ink3);text-decoration:line-through}
 .pm-save{font-size:12px;font-weight:400;color:var(--green);margin-top:4px}
 .pm-desc{font-size:13px;color:var(--ink2);line-height:1.6;margin-top:12px}
@@ -561,8 +561,8 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
   .pm-gal{width:60%;height:100%;aspect-ratio:auto;flex-shrink:0;background:var(--white)}
   .pm-gal-track img{object-fit:cover}
   .pm-body{width:40%;height:100%;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:26px 24px calc(34px + var(--barH))}
-  .pm-title{font-size:22px}
-  .pm-price{font-size:32px}
+  .pm-title{font-size:26px}
+  .pm-price{font-size:26px}
 }
 .cart-line{display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:400;line-height:1.3;border-radius:0;padding:10px 12px;margin-top:8px;border:1px solid transparent}
 .cart-line b{font-weight:400}
