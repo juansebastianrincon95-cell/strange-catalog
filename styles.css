@@ -560,7 +560,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
   .pm-body{width:40%;height:100%;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:26px 24px calc(34px + var(--barH))}
   .pm-sizes-cta{display:flex;align-items:flex-start;gap:14px}
   .pm-sizes{flex:1;min-width:0}
-  .pm-add{width:auto;flex-shrink:0;margin-top:0;margin-left:auto;padding:15px 28px;white-space:nowrap}
+  .pm-add{width:auto;flex-shrink:0;margin-top:27px;margin-left:auto;padding:15px 28px;white-space:nowrap}
   .pm-title{font-size:28px}
   .pm-price{font-size:28px}
 }
