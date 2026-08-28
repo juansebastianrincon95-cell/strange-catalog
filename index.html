@@ -420,7 +420,14 @@
     <span class="secn" id="secName">Todos</span>
     <div class="secright">
       <span class="seccn" id="secCt"></span>
-      <button type="button" class="secsearch-ic" onclick="toggleCatSearch()" aria-label="Buscar">🔍</button>
+      <div class="secsearch-wrap">
+        <button type="button" class="secsearch-ic" onclick="toggleCatSearch()" aria-label="Buscar">🔍</button>
+        <div class="catsearch" id="catSearchBar" style="display:none">
+          <span class="catsearch-ic">🔍</span>
+          <input id="catSearchInput" type="search" inputmode="search" autocomplete="off" placeholder="Buscar marca o modelo…" oninput="buscarProductos(this.value)">
+          <button class="catsearch-x" id="catSearchX" style="display:none" onclick="limpiarBusqueda()" aria-label="Limpiar">✕</button>
+        </div>
+      </div>
       <select id="catSort" class="catsort" aria-label="Ordenar por" onchange="setSort(this.value)">
         <option value="">Relevancia</option>
         <option value="price_asc">Precio: menor a mayor</option>
@@ -429,11 +436,6 @@
         <option value="views">Más vistos</option>
       </select>
     </div>
-  </div>
-  <div class="catsearch" id="catSearchBar" style="display:none">
-    <span class="catsearch-ic">🔍</span>
-    <input id="catSearchInput" type="search" inputmode="search" autocomplete="off" placeholder="Buscar marca o modelo…" oninput="buscarProductos(this.value)">
-    <button class="catsearch-x" id="catSearchX" style="display:none" onclick="limpiarBusqueda()" aria-label="Limpiar">✕</button>
   </div>
 
   <div class="grid" id="grid"></div>

@@ -200,13 +200,14 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .secn{font-size:11px;font-weight:400;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3)}
 .seccn{font-size:11px;color:var(--ink3)}
 .secright{display:flex;align-items:center;gap:10px;min-width:0}
+.secsearch-wrap{position:relative;flex-shrink:0}
 .secsearch-ic{flex-shrink:0;width:32px;height:32px;border:1px solid var(--line);background:var(--white);border-radius:0;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .catsort{flex:0 0 auto;max-width:180px;border:1px solid var(--line);background:var(--white);border-radius:0;padding:7px 10px;font-family:var(--font);font-size:14px;color:var(--ink);cursor:pointer;outline:none}
 .catsort:focus{border-color:var(--ink)}
 @media(max-width:600px){.catsort{font-size:16px;max-width:150px;padding:8px 10px}}
 
 /* GRID */
-.catsearch{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--white);border-bottom:1px solid var(--line)}
+.catsearch{position:absolute;top:calc(100% + 10px);right:0;z-index:40;width:min(300px,85vw);display:flex;align-items:center;gap:8px;padding:12px;background:var(--white);border:1px solid var(--line);box-shadow:0 12px 30px rgba(0,0,0,.15)}
 .catsearch-ic{font-size:14px;opacity:.6;flex-shrink:0}
 .catsearch input{flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:0;padding:10px 12px;font-family:var(--font);font-size:16px;color:var(--ink);outline:none}
 .catsearch input:focus{border-color:var(--ink)}

@@ -341,8 +341,20 @@ function toggleCatSearch(){
   const b=$('catSearchBar');if(!b)return;
   const show=b.style.display==='none';
   b.style.display=show?'flex':'none';
-  if(show){const i=$('catSearchInput');if(i)i.focus();}
-  else limpiarBusqueda();   // al cerrar la lupa, se limpia la búsqueda (si no, el filtro queda activo sin verse)
+  if(show){
+    const i=$('catSearchInput');if(i)i.focus();
+    document.addEventListener('click',closeCatSearchOutside);
+  }else{
+    limpiarBusqueda();   // al cerrar la lupa, se limpia la búsqueda (si no, el filtro queda activo sin verse)
+    document.removeEventListener('click',closeCatSearchOutside);
+  }
+}
+function closeCatSearchOutside(e){
+  if(!e.target.closest('.secsearch-wrap')){
+    const b=$('catSearchBar');if(b)b.style.display='none';
+    limpiarBusqueda();
+    document.removeEventListener('click',closeCatSearchOutside);
+  }
 }
 
 /* ── MENÚ MÓVIL (panel lateral ☰) ── */
