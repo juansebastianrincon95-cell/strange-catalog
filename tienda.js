@@ -308,17 +308,13 @@ function openCatalog(opts){
     const idx=g==='h'?1:g==='m'?2:g==='u'?3:g==='liq'?4:0;
     setG(g, tabs[idx]);   // setG hace renderGrid
   }
-  // Título del catálogo según la sección (las pestañas están ocultas).
-  const tt=v.querySelector('.catview-title');
-  let _ct='Catálogo';
-  if(tt){
-    const map={h:'Hombre',m:'Mujer',u:'Unisex',liq:'Ofertas',all:'Productos'};
-    const _c=colSel?coleccionDe(colSel):null;
-    tt.textContent = _c ? (_c.nombre||_c.slug)
-                    : opts.brand ? (typeof BRAND_LABELS!=='undefined' && BRAND_LABELS[opts.brand] ? BRAND_LABELS[opts.brand] : 'Productos')
-                    : (map[opts.gender||'all']||'Catálogo');
-    _ct=tt.textContent;
-  }
+  // Título del catálogo según la sección (ya no hay barra "← Título" visible, pero el título
+  // de la pestaña del navegador sigue reflejando la sección — se calcula sin tocar el DOM).
+  const map={h:'Hombre',m:'Mujer',u:'Unisex',liq:'Ofertas',all:'Productos'};
+  const _c=colSel?coleccionDe(colSel):null;
+  const _ct = _c ? (_c.nombre||_c.slug)
+             : opts.brand ? (typeof BRAND_LABELS!=='undefined' && BRAND_LABELS[opts.brand] ? BRAND_LABELS[opts.brand] : 'Productos')
+             : (map[opts.gender||'all']||'Catálogo');
   v.scrollTop=0;
   navPush('cat',navCatUrl(),_ct+' — '+STORE_NAME,closeCatalog);
 }
@@ -340,6 +336,13 @@ function limpiarBusqueda(){
   const i=$('catSearchInput');if(i)i.value='';
   _searchQ='';const x=$('catSearchX');if(x)x.style.display='none';
   if(typeof renderGrid==='function')renderGrid();
+}
+function toggleCatSearch(){
+  const b=$('catSearchBar');if(!b)return;
+  const show=b.style.display==='none';
+  b.style.display=show?'flex':'none';
+  if(show){const i=$('catSearchInput');if(i)i.focus();}
+  else limpiarBusqueda();   // al cerrar la lupa, se limpia la búsqueda (si no, el filtro queda activo sin verse)
 }
 
 /* ── MENÚ MÓVIL (panel lateral ☰) ── */
