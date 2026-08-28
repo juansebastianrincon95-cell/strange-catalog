@@ -34,7 +34,7 @@ body{padding-bottom:var(--barH)}
 /* Escritorio: ancho completo, los 3 mensajes en fila (calcado de adidas.co) en vez de apilados */
 @media(min-width:700px){
   .ann-panel{flex-direction:row;max-height:none;gap:48px;padding:28px 40px}
-  .ann-panel-item{flex:1;flex-direction:column;align-items:flex-start;padding:0}
+  .ann-panel-item{flex:1;align-items:flex-start;padding:0}
 }
 @media(min-width:700px){.annbar-ic{font-size:15px}.annbar-tx strong{font-size:12px}}
 
