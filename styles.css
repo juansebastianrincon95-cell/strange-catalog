@@ -93,14 +93,11 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .nd-links button:active{background:var(--bg)}
 @media(min-width:1180px){.navdrawer{display:none!important}}
 
-/* VENTANAS INFO (Mayoristas / Cambios) — ventana a PANTALLA COMPLETA con flecha ← de volver */
-.info-modal{position:fixed;inset:0;z-index:660;display:none;background:var(--bg)}
+/* VENTANAS INFO (Mayoristas / Cambios) — mismo flujo que #catView: la cabecera se queda
+   siempre visible arriba, el modal empieza debajo en vez de taparla. */
+.info-modal{position:fixed;top:calc(var(--annH) + var(--navH));left:0;right:0;bottom:0;z-index:660;display:none;background:var(--bg)}
 .info-modal.on{display:block}
 .info-page{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--bg);animation:pmPage .3s cubic-bezier(.16,1,.3,1) both}
-.info-head{flex:0 0 auto;position:relative;display:flex;align-items:center;justify-content:center;padding:15px 16px;background:var(--white);border-bottom:1px solid var(--line)}
-.info-back{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:none;border:none;color:var(--ink);font-size:25px;line-height:1;cursor:pointer}
-.info-back:active{transform:translateY(-50%) scale(.9)}
-.info-htitle{font-size:15px;font-weight:400;letter-spacing:.03em;color:var(--ink);text-transform:uppercase}
 .info-scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .info-body{max-width:640px;margin:0 auto;padding:26px 22px 44px}
 .info-kicker{display:inline-block;font-size:11px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);background:var(--bg);border:1px solid var(--line);border-radius:0;padding:5px 12px;margin-bottom:12px}
@@ -120,9 +117,6 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .info-grid{display:block}
 /* ── ESCRITORIO: ventanas Mayoristas/Cambios más profesionales (no estilo móvil estirado) ── */
 @media(min-width:700px){
-  .info-head{padding:18px}
-  .info-htitle{font-size:18px}
-  .info-back{left:18px;width:44px;height:44px;font-size:28px}
   .info-body{max-width:920px;padding:52px 40px 70px}
   .info-h1{font-size:40px;line-height:1.08}
   .info-lead{font-size:16.5px;margin-top:14px;max-width:620px}

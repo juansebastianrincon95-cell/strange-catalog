@@ -444,8 +444,8 @@ function openInfo(which){
   const INFO={mayoristas:[INFO_MAYORISTAS,'Mayoristas','/mayoristas'],cambios:[INFO_CAMBIOS,'Cambios y Garantías','/cambios'],quienes:[INFO_QUIENES,'Quiénes somos','/quienes'],envios:[INFO_ENVIOS,'Condiciones de envío','/envios']};
   const cfg=INFO[which]||INFO.cambios;
   b.innerHTML=cfg[0];
-  const t=$('infoTitle');if(t)t.textContent=cfg[1];
   const m=$('infoModal');{const _ya=m.classList.contains('on');if(!_ya)lockScroll();m.classList.add('on');}   // un bloqueo por capa (navPush deduplica)
+  {const tb=$('topbar');if(tb)tb.classList.remove('hide');}   // la cabecera siempre visible (mismo flujo que Productos/Hombre/Mujer/Unisex/Ofertas)
   const sc=m.querySelector('.info-scroll');if(sc)sc.scrollTop=0;
   navPush('info',cfg[2],cfg[1]+' — '+STORE_NAME,closeInfo);
 }
@@ -461,8 +461,9 @@ function waMayoristas(){
 
 /* ── CABECERA AUTO-OCULTABLE (estilo Adidas) ── se oculta al bajar, reaparece al subir.
    Se engancha tanto al scroll de la ventana (home) como al de los modales de pantalla completa
-   (catálogo Hombre/Mujer/Unisex, ficha de producto) — mientras un modal está abierto, lockScroll()
-   fija el body y el scroll real ocurre DENTRO de esos contenedores, no en window. */
+   (catálogo Hombre/Mujer/Unisex/Ofertas, ficha de producto, páginas de info Envíos/Mayoristas/
+   Cambios/Quiénes somos) — mientras un modal está abierto, lockScroll() fija el body y el scroll
+   real ocurre DENTRO de esos contenedores, no en window. */
 (function(){
   const bar=document.getElementById('topbar');
   if(!bar)return;
@@ -487,6 +488,8 @@ function waMayoristas(){
   if(_pms)_pms.addEventListener('scroll',bind(()=>_pms.scrollTop),{passive:true});
   const _pmb=document.querySelector('.pm-body');
   if(_pmb)_pmb.addEventListener('scroll',bind(()=>_pmb.scrollTop),{passive:true});
+  const _is=document.querySelector('.info-scroll');
+  if(_is)_is.addEventListener('scroll',bind(()=>_is.scrollTop),{passive:true});
 })();
 
 // Preview del inicio: 6 modelos disponibles más recientes (prods viene ordenado por id asc).
