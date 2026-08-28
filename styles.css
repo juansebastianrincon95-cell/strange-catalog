@@ -452,6 +452,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .pm-stars span{color:var(--ink2);font-size:13px;font-weight:400;letter-spacing:0;margin-left:5px}
 .pm-price-row{display:flex;align-items:baseline;gap:10px;margin-top:14px}
 .pm-price{font-size:24px;font-weight:400;color:var(--ink);letter-spacing:-.03em}
+.pm-price.sale{color:var(--red)}
 .pm-was{font-size:16px;color:var(--ink3);text-decoration:line-through}
 .pm-save{font-size:13px;font-weight:400;color:var(--green);margin-top:4px}
 .pm-sec{margin-top:36px}

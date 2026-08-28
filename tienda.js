@@ -1094,6 +1094,7 @@ function openPhoto(id,type){
   renderPmSpecs(p);   // metacampos públicos (meta jsonb): material, temporada, cuidado…
   {const wa=$('pmWas');if(wa){if(p.was&&p.was>p.price){wa.textContent=fmt(p.was);wa.style.display='';}else wa.style.display='none';}}
   $('pmPrice').textContent=fmt(p.price);
+  $('pmPrice').classList.toggle('sale',!!(p.was&&p.was>p.price));
   {const ff=$('pmFootPrice');if(ff)ff.textContent=fmt(p.price);}
   // Anclaje de ahorro: "Ahorras $X (Y%)" si tiene precio antes
   const sv=$('pmSave');
