@@ -25,8 +25,7 @@ body{padding-bottom:var(--barH)}
 .ann-panel{position:fixed;top:var(--annH);left:0;right:0;z-index:70;background:var(--white);border-bottom:1px solid var(--line);box-shadow:0 12px 30px rgba(0,0,0,.12);display:flex;flex-direction:column;max-height:calc(100vh - var(--annH));overflow-y:auto;clip-path:inset(0 0 100% 0);pointer-events:none;transition:clip-path .42s cubic-bezier(.4,0,.2,1)}
 .ann-panel.show{clip-path:inset(0 0 0% 0);pointer-events:auto}
 .ann-panel-x{position:absolute;top:10px;right:14px;width:32px;height:32px;border:1px solid var(--line);background:var(--white);border-radius:50%;font-size:13px;cursor:pointer;z-index:1}
-.ann-panel-item{display:flex;gap:12px;padding:18px 20px;border-bottom:1px solid var(--line);cursor:pointer}
-.ann-panel-item:last-child{border-bottom:none}
+.ann-panel-item{display:flex;gap:12px;padding:16px 20px;cursor:pointer}
 .ann-panel-ic{font-size:20px;flex:0 0 auto}
 .ann-panel-body strong{display:block;font-size:14px;font-weight:600;color:var(--ink);margin-bottom:4px}
 .ann-panel-body p{font-size:12.5px;color:var(--ink2);line-height:1.5;margin-bottom:6px}
@@ -34,9 +33,8 @@ body{padding-bottom:var(--barH)}
 .ann-panel-cta{font-size:12px;font-weight:600;text-decoration:underline;color:var(--ink)}
 /* Escritorio: ancho completo, los 3 mensajes en fila (calcado de adidas.co) en vez de apilados */
 @media(min-width:700px){
-  .ann-panel{flex-direction:row;max-height:none}
-  .ann-panel-item{flex:1;flex-direction:column;align-items:flex-start;border-bottom:none;border-right:1px solid var(--line);padding:26px 32px}
-  .ann-panel-item:last-child{border-right:none}
+  .ann-panel{flex-direction:row;max-height:none;gap:48px;padding:28px 40px}
+  .ann-panel-item{flex:1;flex-direction:column;align-items:flex-start;padding:0}
 }
 @media(min-width:700px){.annbar-ic{font-size:15px}.annbar-tx strong{font-size:12px}.annbar-tx small{font-size:9.5px}}
 
