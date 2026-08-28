@@ -1129,6 +1129,7 @@ function openPhoto(id,type){
   // un solo atrás la cierra y solo desbloquea una vez. Sin esta guarda el contador quedaba en 1
   // y el body se quedaba en position:fixed → la página se congelaba y solo salía recargando.
   {const _pm=$('photoModal');const _yaAbierta=_pm.classList.contains('on');if(!_yaAbierta)lockScroll();_pm.classList.add('on');}
+  {const tb=$('topbar');if(tb)tb.classList.remove('hide');}   // la cabecera siempre visible al abrir un producto (estilo adidas)
   // SEO por producto: título de página y metadescripción propios cuando existen (meta.seo);
   // sin ellos, el título de siempre y la descripción global (setMetaDesc(null) restaura).
   const _seo=seoFicha(p);

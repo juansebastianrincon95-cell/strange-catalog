@@ -5,11 +5,12 @@
 .pm-wrap,.pm-body,.csheet,.cbody,.catview,.apanel,.wm-card,.guia-wrap{overscroll-behavior:contain}
 /* overflow-x:clip (no 'hidden') evita scroll horizontal SIN romper position:sticky del nav */
 html,body{background:var(--bg)!important;color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased;overflow-x:clip}
-body{padding-bottom:var(--barH)}
+body{padding-top:calc(var(--annH) + var(--navH));padding-bottom:var(--barH)}
 
-/* CABECERA (barra de envío + nav) — estilo Adidas: sticky arriba, se OCULTA al bajar y REAPARECE
-   al subir (clase .hide la sube con translateY). El JS de auto-hide alterna .hide según el scroll. */
-.topbar{position:sticky;top:0;z-index:65;transition:transform .35s cubic-bezier(.4,0,.2,1)}
+/* CABECERA (barra de envío + nav) — estilo Adidas: FIJA arriba (inmune al truco de lockScroll
+   que pone body{position:fixed}), se OCULTA al bajar y REAPARECE al subir (clase .hide la sube
+   con translateY). El JS de auto-hide alterna .hide según el scroll. */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:65;transition:transform .35s cubic-bezier(.4,0,.2,1)}
 .topbar.hide{transform:translateY(-100%)}
 /* BARRA DE ANUNCIO — negra y compacta (calcada de adidas.co), 3 mensajes rotando verticalmente,
    se despliegan completos en .ann-panel (ese sí blanco) al tocarla. */
@@ -408,7 +409,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 @media(max-width:699px){.fav-nav{font-size:16px}.fav-dot{min-width:14px;height:14px;font-size:8px}}   /* móvil: corazón más pequeño + contador proporcional */
 
 /* MODAL FOTO — display:none por defecto (fix del bug principal) */
-.photo-modal{position:fixed;inset:0;z-index:620;display:none;background:rgba(0,0,0,.55)}
+.photo-modal{position:fixed;top:calc(var(--annH) + var(--navH));left:0;right:0;bottom:0;z-index:620;display:none;background:rgba(0,0,0,.55)}
 .photo-modal.on{display:block}
 .pm-scrim{position:fixed;inset:0;cursor:pointer}
 /* VENTANA del producto a pantalla completa (no tarjeta): barra fija arriba + contenido scrolleable */
