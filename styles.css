@@ -99,7 +99,11 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 
 /* VENTANAS INFO (Mayoristas / Cambios) — mismo flujo que #catView: la cabecera se queda
    siempre visible arriba, el modal empieza debajo en vez de taparla. */
-.info-modal{position:fixed;top:calc(var(--annH) + var(--navH));left:0;right:0;bottom:0;z-index:660;display:none;background:var(--bg)}
+/* top:0 + padding-top (en vez de top:calc(...)) para que la CAJA cubra toda la pantalla con su
+   propio fondo — si no, cuando la cabecera se oculta al bajar el scroll, el hueco que deja
+   arriba revela el home congelado detrás (se veía como una "tarjeta pegada"). El contenido
+   interno (.info-page, position:absolute;inset:0) igual arranca debajo del padding. */
+.info-modal{position:fixed;top:0;padding-top:calc(var(--annH) + var(--navH));left:0;right:0;bottom:0;z-index:660;display:none;background:var(--bg)}
 .info-modal.on{display:block}
 .info-page{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--bg);animation:pmPage .3s cubic-bezier(.16,1,.3,1) both}
 .info-scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
@@ -412,7 +416,10 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 @media(max-width:699px){.fav-nav{font-size:16px}.fav-dot{min-width:14px;height:14px;font-size:8px}}   /* móvil: corazón más pequeño + contador proporcional */
 
 /* MODAL FOTO — display:none por defecto (fix del bug principal) */
-.photo-modal{position:fixed;top:calc(var(--annH) + var(--navH));left:0;right:0;bottom:0;z-index:620;display:none;background:rgba(0,0,0,.55)}
+/* Mismo motivo que .info-modal (ver comentario ahí): top:0 + padding-top en vez de
+   top:calc(...), para que el scrim cubra siempre toda la pantalla sin dejar hueco cuando la
+   cabecera se oculta. .pm-wrap (position:absolute;inset:0) arranca debajo del padding igual. */
+.photo-modal{position:fixed;top:0;padding-top:calc(var(--annH) + var(--navH));left:0;right:0;bottom:0;z-index:620;display:none;background:rgba(0,0,0,.55)}
 .photo-modal.on{display:block}
 .pm-scrim{position:fixed;top:calc(var(--annH) + var(--navH));left:0;right:0;bottom:0;cursor:pointer}
 /* VENTANA del producto a pantalla completa (no tarjeta): barra fija arriba + contenido scrolleable */
@@ -1090,7 +1097,10 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .favmodal-empty{padding:54px 26px;text-align:center;color:var(--ink3);font-size:13px;line-height:1.8}
 
 /* CATÁLOGO COMPLETO (vista a pantalla completa) */
-.catview{position:fixed;top:calc(var(--annH) + var(--navH));left:0;right:0;bottom:0;z-index:560;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;display:none;padding-bottom:var(--barH)}
+/* Mismo motivo que .info-modal/.photo-modal: top:0 + padding-top en vez de top:calc(...) —
+   acá el propio .catview es el contenedor con scroll, así que el padding-top empuja la grilla
+   hacia abajo igual que antes, pero ahora la CAJA (con su fondo) cubre desde y=0 siempre. */
+.catview{position:fixed;top:0;padding-top:calc(var(--annH) + var(--navH));left:0;right:0;bottom:0;z-index:560;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;display:none;padding-bottom:var(--barH)}
 .catview.on{display:block}
 
 /* TOGGLE Móvil/Escritorio (admin banners) */
