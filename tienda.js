@@ -366,6 +366,16 @@ function openMenu(){const d=$('navDrawer');if(!d)return;lockScroll();d.classList
 
 function closeMenu(){if(!_navPopping)navRemove('menu');const d=$('navDrawer');if(!d)return;d.classList.remove('on');unlockScroll();}
 
+/* Botón "Inicio" del nav: cierra cualquier capa abierta (catálogo, info, ficha…) y sube al
+   tope del home — antes este botón era "Productos" y abría el catálogo completo. */
+function goInicio(){
+  closeMenu();
+  while(_layers.length){const l=_layers.pop();try{l.doClose();}catch(e){}}
+  history.replaceState({d:0},'','/');
+  navApplyMeta();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
 function navGo(t){
   closeMenu();
   if(t==='h')openCatalog({gender:'h'});
@@ -376,7 +386,7 @@ function navGo(t){
   else if(t==='mayoristas')openInfo('mayoristas');
   else if(t==='cambios')openInfo('cambios');
   else if(t==='quienes')openInfo('quienes');
-  else openCatalog();   // Productos → todos
+  else goInicio();   // Inicio
 }
 
 /* ── VENTANAS INFO (Mayoristas / Cambios y Garantías) ── reusan el modal .guia-modal ── */
