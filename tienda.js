@@ -285,12 +285,19 @@ function renderColBanners(){
 // Los banners abren el catálogo (vista aparte) filtrado por su género.
 function colCTA(g){ openCatalog({gender: g==='m'?'m' : g==='h'?'h' : g==='u'?'u' : 'all'}); }
 
+/* La ficha (#photoModal) y la ventana de info (#infoModal) tienen z-index más alto que el
+   catálogo, el menú móvil, favoritos y el carrito — si esos dos quedan abiertos detrás sin
+   cerrarse, se quedan tapando la pantalla y el nav/carrito/favoritos parecen no responder al
+   hacer clic. Se cierran a mano (sin pasar por navRemove+history.go) para no disparar una
+   navegación real: el layer nuevo que se abre justo después ya deja el historial consistente. */
+function closeHigherLayers(){
+  {const pm=$('photoModal');if(pm&&pm.classList.contains('on')){pm.classList.remove('on');unlockScroll();navRemove('ficha');}}
+  {const im=$('infoModal');if(im&&im.classList.contains('on')){im.classList.remove('on');unlockScroll();navRemove('info');}}
+}
+
 function openCatalog(opts){
   opts=opts||{};
-  // Si la ventana de info (Envíos/Mayoristas/Cambios/Quiénes somos) quedó abierta, cerrarla
-  // primero: su z-index es más alto que el del catálogo, así que si no se cierra se queda
-  // tapando la pantalla y hacer clic en Hombre/Mujer/Unisex/Ofertas parece no hacer nada.
-  {const im=$('infoModal');if(im&&im.classList.contains('on')){im.classList.remove('on');unlockScroll();navRemove('info');}}
+  closeHigherLayers();   // ver comentario arriba: Hombre/Mujer/Unisex/Ofertas/Inicio deben verse aunque venga de una ficha o de info
   _searchQ='';{const _si=$('catSearchInput');if(_si)_si.value='';const _sx=$('catSearchX');if(_sx)_sx.style.display='none';}
   _sortBy='';{const _so=$('catSort');if(_so)_so.value='';}
   const v=$('catView');if(!v)return;
@@ -362,7 +369,7 @@ function closeCatSearchOutside(e){
 }
 
 /* ── MENÚ MÓVIL (panel lateral ☰) ── */
-function openMenu(){const d=$('navDrawer');if(!d)return;lockScroll();d.classList.add('on');navPush('menu',null,null,closeMenu);}
+function openMenu(){const d=$('navDrawer');if(!d)return;closeHigherLayers();lockScroll();d.classList.add('on');navPush('menu',null,null,closeMenu);}
 
 function closeMenu(){if(!_navPopping)navRemove('menu');const d=$('navDrawer');if(!d)return;d.classList.remove('on');unlockScroll();}
 
@@ -826,6 +833,7 @@ function renderFavoritos(){
 function abrirFavoritos(){
   if(typeof closeCatalog==='function')closeCatalog();
   if(typeof closeMenu==='function')closeMenu();
+  if(typeof closeHigherLayers==='function')closeHigherLayers();
   if(!favIds().length){toast('Aún no tienes favoritos ❤️');return;}
   renderFavoritos();
   const m=$('favModal');if(m){if(typeof lockScroll==='function')lockScroll();m.classList.add('on');}
@@ -1130,6 +1138,10 @@ function openPhoto(id,type){
   const p=list.find(x=>x.id===id);
   if(!p)return;
   if(!p.img)return;
+  // Si la ventana de info quedó abierta, cerrarla: su z-index es más alto que el de la ficha,
+  // así que si no se cierra tapa la pantalla (el catálogo, en cambio, se deja abierto a
+  // propósito: es el "volver" natural cuando la ficha se abrió desde una tarjeta del catálogo).
+  {const im=$('infoModal');if(im&&im.classList.contains('on')){im.classList.remove('on');unlockScroll();navRemove('info');}}
   pmId=id;pmType=type;
   {const fb=$('pmFav');if(fb){fb.dataset.id=id;fb.classList.toggle('on',esFav(id));fb.style.display=type==='liq'?'none':'';}}   // corazón de la ficha (favoritos solo en catálogo, no liquidación)
   renderPmGal([p.img,...(p.imgs||[])],altProd(p));

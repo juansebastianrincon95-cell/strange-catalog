@@ -476,6 +476,11 @@ let _icFired=false;
 
 function openCart(){
   step=0;_icFired=false;_comboSugDismiss=false;
+  // La ficha y la ventana de info tienen z-index más alto que el carrito: si quedan abiertas
+  // detrás (ej. el usuario le da al carrito flotante mientras ve un producto), el carrito se
+  // abre invisible, tapado por lo que ya estaba abierto. El catálogo SÍ se deja abierto a
+  // propósito (ver el carrito y volver a comprar donde iba es el flujo esperado).
+  if(typeof closeHigherLayers==='function')closeHigherLayers();
   syncDescuentosAuto();   // pedirle al server los descuentos automáticos de ESTE carrito (async, solo pinta)
   renderStep();
   {const _cs=$('csheet');const _ya=_cs.classList.contains('on');if(!_ya)lockScroll();$('cscrim').classList.add('on');_cs.classList.add('on');}   // un bloqueo por capa (navPush deduplica)
