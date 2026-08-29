@@ -287,6 +287,10 @@ function colCTA(g){ openCatalog({gender: g==='m'?'m' : g==='h'?'h' : g==='u'?'u'
 
 function openCatalog(opts){
   opts=opts||{};
+  // Si la ventana de info (Envíos/Mayoristas/Cambios/Quiénes somos) quedó abierta, cerrarla
+  // primero: su z-index es más alto que el del catálogo, así que si no se cierra se queda
+  // tapando la pantalla y hacer clic en Hombre/Mujer/Unisex/Ofertas parece no hacer nada.
+  {const im=$('infoModal');if(im&&im.classList.contains('on')){im.classList.remove('on');unlockScroll();navRemove('info');}}
   _searchQ='';{const _si=$('catSearchInput');if(_si)_si.value='';const _sx=$('catSearchX');if(_sx)_sx.style.display='none';}
   _sortBy='';{const _so=$('catSort');if(_so)_so.value='';}
   const v=$('catView');if(!v)return;
@@ -441,6 +445,9 @@ function waHola(){
 
 function openInfo(which){
   const b=$('infoBody');if(!b)return;
+  // Mismo motivo que en openCatalog(): si el catálogo quedó abierto detrás, cerrarlo primero
+  // para que no quede invisible tapando Hombre/Mujer/Unisex/Ofertas al volver a esa sección.
+  {const cv=$('catView');if(cv&&cv.classList.contains('on')){cv.classList.remove('on');unlockScroll();navRemove('cat');}}
   const INFO={mayoristas:[INFO_MAYORISTAS,'Mayoristas','/mayoristas'],cambios:[INFO_CAMBIOS,'Cambios y Garantías','/cambios'],quienes:[INFO_QUIENES,'Quiénes somos','/quienes'],envios:[INFO_ENVIOS,'Condiciones de envío','/envios']};
   const cfg=INFO[which]||INFO.cambios;
   b.innerHTML=cfg[0];
