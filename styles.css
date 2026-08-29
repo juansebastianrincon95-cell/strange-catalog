@@ -414,12 +414,8 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 @keyframes pmPage{from{transform:translateX(100%)}to{transform:translateX(0)}}
 @keyframes pmUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 @keyframes pmIn{from{opacity:0;transform:scale(.9) translateY(16px)}to{opacity:1;transform:scale(1) translateY(0)}}
-/* Barra superior FIJA (← volver + marca) */
-.pm-head{flex:0 0 auto;position:relative;z-index:4;background:var(--white);display:flex;align-items:center;justify-content:center;padding:14px 16px;border-bottom:1px solid var(--line)}
-.pm-logo{font-size:15px;font-weight:400;color:var(--ink);letter-spacing:-.02em}
-.pm-back{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:36px;height:36px;background:var(--bg);border:none;border-radius:50%;color:var(--ink);font-size:19px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
-.pm-back:active{transform:translateY(-50%) scale(.9)}
-/* Área scrolleable (debajo de la barra fija) */
+/* Área scrolleable (antes debajo de una barra "← CATALOGO SNEAKERS" propia, ya quitada:
+   mismo motivo que #catView/#infoModal — la cabecera del sitio se queda siempre visible). */
 .pm-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-bottom:var(--barH)}
 .pm-img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block;background:var(--bg)}
 /* GALERÍA de la ficha: carrusel [foto principal, ...secundarias] con swipe + dots + flechas */
