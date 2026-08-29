@@ -376,7 +376,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .fav-btn.on{color:var(--red)}
 .card.sold .fav-btn{display:none}
 .pm-gal .fav-btn{top:12px;right:12px;left:auto;bottom:auto;width:40px;height:40px;font-size:21px}   /* corazón de la ficha: arriba-derecha de la galería */
-.pm-back-float{position:absolute;top:12px;left:12px;z-index:3;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.92);border:none;color:var(--ink);font-size:21px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.18);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);transition:transform .2s cubic-bezier(.34,1.56,.64,1)}
+.pm-back-float{position:absolute;top:12px;left:12px;z-index:3;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.92);border:none;color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.18);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);transition:transform .2s cubic-bezier(.34,1.56,.64,1)}
 .pm-back-float:active{transform:scale(.85)}
 
 /* corazón del nav con contador (imita .nav-bag / .bdot) */
