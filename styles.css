@@ -10,7 +10,11 @@ body{padding-top:calc(var(--annH) + var(--navH));padding-bottom:var(--barH)}
 /* CABECERA (barra de envío + nav) — estilo Adidas: FIJA arriba (inmune al truco de lockScroll
    que pone body{position:fixed}), se OCULTA al bajar y REAPARECE al subir (clase .hide la sube
    con translateY). El JS de auto-hide alterna .hide según el scroll. */
-.topbar{position:fixed;top:0;left:0;right:0;z-index:65;transition:transform .35s cubic-bezier(.4,0,.2,1)}
+/* z-index 680: por encima de catView/photoModal/infoModal (560/620/660) — si no, sus paneles
+   desplegables (Contáctanos, el banner negro) quedan tapados por la ficha/catálogo/info, que
+   ahora arrancan DEBAJO de la cabecera pero siguen ganando el pulso de apilamiento por tener
+   un z-index más alto que el del propio .topbar donde viven esos paneles. */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:680;transition:transform .35s cubic-bezier(.4,0,.2,1)}
 .topbar.hide{transform:translateY(-100%)}
 /* BARRA DE ANUNCIO — negra y compacta (calcada de adidas.co), 3 mensajes rotando verticalmente,
    se despliegan completos en .ann-panel (ese sí blanco) al tocarla. */
