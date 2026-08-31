@@ -109,7 +109,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    es lo que evita que estrellas/badges queden tapados por la cabecera cuando está visible. */
 .info-modal{position:fixed;top:0;padding-top:calc(var(--annH) + var(--navH));left:0;right:0;bottom:0;z-index:660;display:none;background:var(--bg)}
 .info-modal.on{display:block}
-.info-page{position:absolute;inset:0;padding-top:calc(var(--annH) + var(--navH));display:flex;flex-direction:column;background:var(--bg);animation:pmPage .3s cubic-bezier(.16,1,.3,1) both}
+.info-page{position:absolute;inset:0;padding-top:calc(var(--annH) + var(--navH));display:flex;flex-direction:column;background:var(--bg);animation:pmPage .3s cubic-bezier(.16,1,.3,1) both;transition:padding-top .35s cubic-bezier(.4,0,.2,1)}
 .info-scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .info-body{max-width:640px;margin:0 auto;padding:26px 22px 44px}
 .info-kicker{display:inline-block;font-size:11px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);background:var(--bg);border:1px solid var(--line);border-radius:0;padding:5px 12px;margin-bottom:12px}
@@ -431,7 +431,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    (el scrim de .photo-modal) cuando la cabecera se oculta al bajar el scroll. padding-top propio
    empuja a .pm-scroll (hijo en flujo normal) hacia abajo, evitando que estrellas/badges queden
    tapados por la cabecera cuando está visible — las dos cosas a la vez (bug reportado 2x). */
-.pm-wrap{position:absolute;inset:0;padding-top:calc(var(--annH) + var(--navH));max-width:none;max-height:none;margin:0;background:var(--white);border-radius:0;display:flex;flex-direction:column;overflow:hidden;animation:pmPage .3s cubic-bezier(.16,1,.3,1) both}
+.pm-wrap{position:absolute;inset:0;padding-top:calc(var(--annH) + var(--navH));max-width:none;max-height:none;margin:0;background:var(--white);border-radius:0;display:flex;flex-direction:column;overflow:hidden;animation:pmPage .3s cubic-bezier(.16,1,.3,1) both;transition:padding-top .35s cubic-bezier(.4,0,.2,1)}
 @keyframes pmPage{from{transform:translateX(100%)}to{transform:translateX(0)}}
 @keyframes pmUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 @keyframes pmIn{from{opacity:0;transform:scale(.9) translateY(16px)}to{opacity:1;transform:scale(1) translateY(0)}}
@@ -1108,8 +1108,15 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 /* Mismo motivo que .info-modal/.photo-modal: top:0 + padding-top en vez de top:calc(...) —
    acá el propio .catview es el contenedor con scroll, así que el padding-top empuja la grilla
    hacia abajo igual que antes, pero ahora la CAJA (con su fondo) cubre desde y=0 siempre. */
-.catview{position:fixed;top:0;padding-top:calc(var(--annH) + var(--navH));left:0;right:0;bottom:0;z-index:560;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;display:none;padding-bottom:var(--barH)}
+.catview{position:fixed;top:0;padding-top:calc(var(--annH) + var(--navH));left:0;right:0;bottom:0;z-index:560;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;display:none;padding-bottom:var(--barH);transition:padding-top .35s cubic-bezier(.4,0,.2,1)}
 .catview.on{display:block}
+/* Estilo adidas real: cuando la cabecera se OCULTA (scroll hacia abajo dentro del catálogo/
+   ficha/info), el contenido sube y ocupa ese espacio en vez de dejarlo como un hueco fijo del
+   color del panel — se ve igual que una página normal, no un hueco que "aparece". #topbar y
+   estos 3 son hermanos directos en el HTML, por eso el selector ~ funciona sin JS adicional. */
+#topbar.hide ~ #catView{padding-top:0}
+#topbar.hide ~ #photoModal .pm-wrap{padding-top:0}
+#topbar.hide ~ #infoModal .info-page{padding-top:0}
 
 /* TOGGLE Móvil/Escritorio (admin banners) */
 /* Subida de banner: las DOS versiones (móvil + escritorio) visibles a la vez, lado a lado.
