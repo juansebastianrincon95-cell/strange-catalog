@@ -133,6 +133,82 @@ function toast(msg){
   clearTimeout(_toastT);_toastT=setTimeout(()=>t.classList.remove('on'),2000);
 }
 
+// Recorta el fondo de estudio (blanco/gris) de una foto de producto rellenando desde los CUATRO
+// BORDES (flood fill) el color de fondo detectado en la esquina — deja solo la silueta del
+// zapato con transparencia (el blanco/gris INTERIOR del zapato, ej. la suela, no se toca porque
+// no está conectado al borde). Best-effort: si el navegador no puede leer los píxeles (foto de
+// otro dominio sin cabecera CORS), devuelve null y quien llama usa la foto tal cual, sin recorte.
+function cutoutSilueta(img,maxSize){
+  maxSize=maxSize||220;
+  const iw=img.naturalWidth||img.width,ih=img.naturalHeight||img.height;
+  const scale=Math.min(1,maxSize/Math.max(iw,ih));
+  const w=Math.max(1,Math.round(iw*scale)),h=Math.max(1,Math.round(ih*scale));
+  const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+  const ctx=cv.getContext('2d',{willReadFrequently:true});
+  let data;
+  try{
+    ctx.drawImage(img,0,0,w,h);   // puede tirar InvalidStateError si el <img> quedó "broken"
+    data=ctx.getImageData(0,0,w,h);   // o esto, si el canvas quedó tainted por CORS
+  }catch(e){return null;}   // cualquiera de los dos casos → sin recorte, flyToCart cae a la foto tal cual
+  const px=data.data,br=px[0],bg=px[1],bb=px[2],TH=30;
+  const visited=new Uint8Array(w*h),stack=[];
+  for(let x=0;x<w;x++)stack.push(x,x+(h-1)*w);
+  for(let y=0;y<h;y++)stack.push(y*w,y*w+w-1);
+  const close=i=>{const o=i*4;return Math.abs(px[o]-br)<TH&&Math.abs(px[o+1]-bg)<TH&&Math.abs(px[o+2]-bb)<TH;};
+  while(stack.length){
+    const i=stack.pop();
+    if(i<0||i>=w*h||visited[i])continue;
+    visited[i]=1;
+    if(!close(i))continue;
+    px[i*4+3]=0;
+    const x=i%w,y=(i/w)|0;
+    if(x>0)stack.push(i-1);
+    if(x<w-1)stack.push(i+1);
+    if(y>0)stack.push(i-w);
+    if(y<h-1)stack.push(i+w);
+  }
+  ctx.putImageData(data,0,0);
+  return cv;
+}
+
+// Animación "vuela al carrito": recorta el fondo de la foto de la tarjeta (ver cutoutSilueta) y
+// anima la silueta en línea recta hasta el ícono del carrito. Devuelve true si arrancó (para que
+// togCard() sepa si debe demorar el openCart() automático — si no, el carrito tapa el ícono
+// destino a mitad de vuelo).
+function flyToCart(imgEl){
+  // Es puramente decorativo — un error acá NUNCA debe tumbar el agregar-al-carrito real
+  // (togCard ya movió el producto al carrito antes de llamar esto). Por eso todo el cuerpo
+  // va envuelto: cualquier falla cae a "no animar" en vez de romper la compra.
+  try{
+    const bar=$('cartBar');
+    if(!imgEl||imgEl.tagName!=='IMG'||!imgEl.src||!bar)return false;
+    const r0=imgEl.getBoundingClientRect();
+    if(!r0.width||!r0.height)return false;   // tarjeta fuera de pantalla (ej. carrusel escondido)
+    const icon=bar.querySelector('.cart-bar-icon')||bar;
+    const r1=icon.getBoundingClientRect();
+    const cut=cutoutSilueta(imgEl,220);
+    const clone=cut||imgEl.cloneNode();
+    clone.className='fly-cart'+(cut?' fly-cart-cut':'');
+    clone.style.left=r0.left+'px';
+    clone.style.top=r0.top+'px';
+    clone.style.width=r0.width+'px';
+    clone.style.height=r0.height+'px';
+    document.body.appendChild(clone);
+    const dx=(r1.left+r1.width/2)-(r0.left+r0.width/2);
+    const dy=(r1.top+r1.height/2)-(r0.top+r0.height/2);
+    requestAnimationFrame(()=>{
+      clone.style.transform=`translate(${dx}px,${dy}px) scale(.12)`;
+      clone.style.opacity='.2';
+    });
+    setTimeout(()=>{
+      clone.remove();
+      bar.classList.add('bump');
+      setTimeout(()=>bar.classList.remove('bump'),300);
+    },520);
+    return true;
+  }catch(e){return false;}
+}
+
 function loadConfig(){
   try{
     const c=JSON.parse(localStorage.getItem('ss_config')||'{}');

@@ -383,7 +383,7 @@ function toggleCupon(){
 function cartKey(id,type,talla){return (type==='liq'?'L'+id:''+id)+(talla?'-t'+talla:'');}
 // ¿El producto está en el carrito en CUALQUIER talla? (para el ✓ de la tarjeta del grid)
 function enCarrito(id,type){return Object.values(cart).some(it=>it.type===type&&it.p.id===id);}
-function togCard(id,type,talla){
+function togCard(id,type,talla,fromEl){
   const key=cartKey(id,type,talla);
   const list=type==='liq'?liqs:prods;
   const p=list.find(x=>x.id===id);
@@ -398,7 +398,10 @@ function togCard(id,type,talla){
     ga4('add_to_cart',{currency:'COP',value:p.price,items:[{item_id:pxId(type,id),item_name:_anm,price:p.price,quantity:1}]});   // GA4 / Google Ads
     trackEvent('add_to_cart',{product_id:String(key),price:p.price,gender:type==='liq'?null:p.g});
     startReserva();   // arranca/continúa el contador de reserva al agregar al carrito
-    openCart();       // el carrito se despliega como confirmación al agregar cada producto
+    // Si hay foto de origen, la vemos volar al carrito antes de abrirlo (si no, openCart()
+    // le pone .hide al instante y tapa/mueve el ícono destino a mitad de la animación).
+    const voló=typeof flyToCart==='function'&&flyToCart(fromEl);
+    if(voló)setTimeout(openCart,520);else openCart();
   }else if(wasInCart&&!inCart){
     toast('Quitado del carrito');
   }

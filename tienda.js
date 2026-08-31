@@ -906,7 +906,7 @@ function addCardWithSize(id,btn){
     return;
   }
   const key=cartKey(id,'cat',talla);
-  if(cart[key])openCart(); else togCard(id,'cat',talla);
+  if(cart[key])openCart(); else togCard(id,'cat',talla,card.querySelector('.cphoto img'));
 }
 
 // prefix: 'k' en el grid, 'kl' en lanzamientos (evita IDs duplicados).
@@ -916,13 +916,16 @@ function cardHTML(p,i,prefix,toFicha){
   const on=enCarrito(p.id,'cat')&&!p.sold;
   const sp=p.promo||promoG;
   const pct=sp?dsc(p):0;
-  const m=p.img?`<img src="${p.img}" alt="${altProd(p)}" loading="lazy">`:`<div class="noimg">👟</div>`;
+  // crossorigin="anonymous": sin esto, flyToCart() no puede leer los píxeles (recorte de fondo)
+  // de las fotos que quedaron con la URL directa de Supabase Storage (dominio distinto al sitio)
+  // — con esto sí puede, porque Supabase Storage permite lectura cross-origin en buckets públicos.
+  const m=p.img?`<img src="${p.img}" alt="${altProd(p)}" loading="lazy" crossorigin="anonymous">`:`<div class="noimg">👟</div>`;
   // CUERPO de la tarjeta: con tallas abre la ficha (para ver el producto). Sin tallas, el "+"
   // circular agrega directo (comportamiento sin cambios).
   const {tallas:_tallas,stock:_stock}=tallasInfo(p);
   const conTalla=_tallas.length>0;
   const goCard=(toFicha||conTalla)?`openPhoto(${p.id},'cat')`:`cardClick(event,${p.id},'cat')`;
-  const goAdd=`event.stopPropagation();togCard(${p.id},'cat')`;   // solo aplica sin tallas
+  const goAdd=`event.stopPropagation();togCard(${p.id},'cat',null,this.parentElement.querySelector('img'))`;   // solo aplica sin tallas
   // Nombre: marca (línea fina) + modelo (destacado). Sin modelo, el modelo cae a marca/género.
   const _bl=p.brand?brandLabel(p.brand):'';
   const _modelTxt=p.modelo||_bl||(genLabel(p.g));
@@ -1025,14 +1028,14 @@ function renderLiqGrid(){
   $('liqGrid').innerHTML=liqs.map((p,i)=>{
     const on=enCarrito(p.id,'liq')&&!p.sold;
     const pct=dsc(p);
-    const m=p.img?`<img src="${p.img}" alt="${altProd(p)}" loading="lazy">`:`<div class="noimg">🔥</div>`;
+    const m=p.img?`<img src="${p.img}" alt="${altProd(p)}" loading="lazy" crossorigin="anonymous">`:`<div class="noimg">🔥</div>`;
     return `<div class="liq-card ${on?'picked':''} ${p.sold?'sold':''}" id="lk${p.id}" style="animation-delay:${Math.min(i*.02,.4)}s" onclick="cardClick(event,${p.id},'liq')">
       <div class="lphoto">
         ${m}
         ${pct?`<div class="lbdsc">-${pct}%</div>`:''}
         ${p.sold?`<div class="lbsold">Agotado</div>`:''}
         <div class="lbchk">✓</div>
-        <button class="add-circle" onclick="event.stopPropagation();togCard(${p.id},'liq')">${on?'✓':'+'}</button>
+        <button class="add-circle" onclick="event.stopPropagation();togCard(${p.id},'liq',null,this.parentElement.querySelector('img'))">${on?'✓':'+'}</button>
       </div>
       <div class="lfoot"><div class="lpnow">${fmt(p.price)}</div>${p.was?`<div class="lpwas">${fmt(p.was)}</div>`:''}${pct?`<div class="lsave">Ahorras $${(p.was-p.price).toLocaleString('es-CO')}</div>`:''}</div>
     </div>`;
@@ -1047,7 +1050,7 @@ function cardClick(e,id,type){
   const inPhoto=e.target.closest('.cphoto')||e.target.closest('.lphoto');
   if(inPhoto&&p.img){openPhoto(id,type);return;}
   if(tallasDe(p).length){openPhoto(id,type);return;}   // con tallas: la elección es en la ficha
-  togCard(id,type);
+  togCard(id,type,null,e.currentTarget.querySelector('.cphoto img, .lphoto img'));
 }
 
 function setG(v,btn){
@@ -1564,8 +1567,15 @@ function addFromModal(){
   }
   const id=pmId,t=pmType,talla=pmTalla;
   const ya=!!cart[cartKey(id,t,talla)];   // ya estaba en esa talla → no alternar, solo abrir carrito
-  closePhotoBtn();
-  if(ya)openCart(); else togCard(id,t,talla);
+  if(ya){closePhotoBtn();openCart();}
+  else{
+    // togCard()→flyToCart() lee la posición/píxeles de la foto de forma SÍNCRONA acá mismo, con
+    // la ficha todavía abierta — por eso va ANTES de cerrarla (closePhotoBtn le pone display:none
+    // al instante, y ahí ya no queda foto visible de la cual "volar").
+    const tr=$('pmGalTrack');
+    togCard(id,t,talla,tr?tr.children[_galIdx]:null);
+    closePhotoBtn();
+  }
 }
 
 function closePhotoBtn(){
@@ -1583,7 +1593,9 @@ function renderPmGal(urls,altTxt){
   _galIdx=0;_galN=urls.length;
   const tr=$('pmGalTrack');if(!tr)return;
   tr.style.transform='translateX(0)';
-  tr.innerHTML=urls.map(u=>`<img src="${escHtml(u)}" alt="${altTxt||'Foto del producto'}" loading="lazy">`).join('');
+  // crossorigin: mismo motivo que en cardHTML() — sin esto, flyToCart() no puede recortar el
+  // fondo de las fotos guardadas con la URL directa de Supabase Storage (dominio distinto).
+  tr.innerHTML=urls.map(u=>`<img src="${escHtml(u)}" alt="${altTxt||'Foto del producto'}" loading="lazy" crossorigin="anonymous">`).join('');
   const dots=$('pmGalDots');
   if(dots)dots.innerHTML=_galN>1?urls.map((_,i)=>`<span class="pm-gal-dot${i===0?' on':''}"></span>`).join(''):'';
   const showArr=_galN>1?'':'none';

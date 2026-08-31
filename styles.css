@@ -159,6 +159,15 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .cart-bar-icon{position:relative;display:flex;align-items:center;justify-content:center;width:30px;height:30px}
 .cart-bar-dot{position:absolute;top:-3px;right:-5px;min-width:15px;height:15px;padding:0 3px;background:var(--ink);color:#fff;font-size:9px;font-weight:700;border-radius:50%;display:flex;align-items:center;justify-content:center;opacity:0;transform:scale(.5);transition:opacity .2s,transform .35s cubic-bezier(.34,1.56,.64,1)}
 .cart-bar-dot.show{opacity:1;transform:scale(1)}
+/* Animación "vuela al carrito" (flyToCart en base.js): clon fixed de la foto de la tarjeta que
+   viaja hasta el ícono del carrito y se achica/desvanece. transform+opacity nada más (compositor,
+   sin reflow) para que ande fluido aunque haya muchas tarjetas en pantalla. */
+.fly-cart{position:fixed;z-index:9999;border-radius:12px;object-fit:cover;pointer-events:none;background:var(--white);box-shadow:0 8px 24px rgba(0,0,0,.28);transition:transform .5s cubic-bezier(.4,0,.2,1),opacity .5s ease .1s}
+/* Cuando SÍ se pudo recortar el fondo (cutoutSilueta devolvió un <canvas>): nada de tarjeta
+   blanca detrás, se ve solo la silueta del zapato "volando" sola. */
+.fly-cart-cut{background:transparent;box-shadow:none;object-fit:contain}
+.cart-bar.bump .cart-bar-icon{animation:cartBump .3s ease}
+@keyframes cartBump{0%{transform:scale(1)}45%{transform:scale(1.3)}100%{transform:scale(1)}}
 .wa-bubble::after{content:'';position:absolute;right:20px;bottom:-6px;width:12px;height:12px;background:var(--white);border-right:1px solid var(--line);border-bottom:1px solid var(--line);transform:rotate(45deg)}
 .wa-bubble:active{transform:scale(.96)}
 .wa-bubble-x{display:flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:var(--bg);color:var(--ink3);font-size:10px;font-weight:400;flex:0 0 auto}
