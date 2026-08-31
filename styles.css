@@ -51,19 +51,21 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    usa grid, .brand ocupa la columna central 1fr) y pegado a la izquierda en escritorio (línea
    con @media(min-width:1180px) más abajo, que ya existía para el wordmark). */
 .brand{display:flex;align-items:center;justify-content:center;min-width:0;color:var(--ink);text-decoration:none}
-.brand-mark{height:30px;width:auto;display:block;animation:brandDrop .55s cubic-bezier(.22,1,.36,1) both}
+.brand-mark{height:30px;width:auto;display:block;transform-origin:50% 100%;animation:brandDrop .7s cubic-bezier(.22,1,.36,1) both}
 @media(min-width:700px){.brand-mark{height:40px}}
-/* Entrada del logo estilo "bounce"/resorte al cargar la página: cae un poco, rebota suave y se
-   asienta. Distancia corta (18px) a propósito — si cae desde más arriba se mete visualmente en
-   la barra negra de anuncios (es un elemento hermano justo encima, sin overflow:hidden entre
-   medio) y se ve como un glitch en vez de una entrada prolija. Una sola vez al cargar (no se
-   repite al navegar dentro del sitio, la cabecera nunca se vuelve a montar). */
+/* Entrada del logo estilo "bounce"/resorte al cargar la página: cae, rebota y se BALANCEA sobre
+   la suela (transform-origin abajo-centro, como si se meciera al caer) antes de asentarse plano.
+   Distancia corta (18px) a propósito — si cae desde más arriba se mete visualmente en la barra
+   negra de anuncios (es un elemento hermano justo encima, sin overflow:hidden entre medio) y se
+   ve como un glitch en vez de una entrada prolija. Una sola vez al cargar (no se repite al
+   navegar dentro del sitio, la cabecera nunca se vuelve a montar). */
 @keyframes brandDrop{
-  0%{transform:translateY(-18px);opacity:0}
-  50%{transform:translateY(2px);opacity:1}
-  70%{transform:translateY(-4px)}
-  85%{transform:translateY(1px)}
-  100%{transform:translateY(0)}
+  0%{transform:translateY(-18px) rotate(0deg);opacity:0}
+  45%{transform:translateY(0) rotate(-7deg);opacity:1}
+  60%{transform:translateY(-3px) rotate(6deg)}
+  75%{transform:translateY(1px) rotate(-4deg)}
+  88%{transform:translateY(0) rotate(2deg)}
+  100%{transform:translateY(0) rotate(0deg)}
 }
 @media(prefers-reduced-motion:reduce){.brand-mark{animation:none}}
 /* ☰ menú (solo móvil) */
