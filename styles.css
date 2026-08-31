@@ -103,12 +103,13 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    propio fondo — si no, cuando la cabecera se oculta al bajar el scroll, el hueco que deja
    arriba revela el home congelado detrás (se veía como una "tarjeta pegada"). OJO: un hijo
    position:absolute con inset:0 se posiciona contra el borde EXTERIOR del padding (ignora el
-   padding-top del padre), así que .info-page necesita su propio top explícito repitiendo el
-   mismo cálculo — si no, sus primeros elementos (estrellas, badges) quedan tapados por la
-   cabecera (z-index más alto) aunque estén "dentro" del área con padding.  */
+   padding-top del padre) — por eso .info-page repite inset:0 (para que SU fondo también cubra
+   desde y=0 y no deje un hueco gris/negro cuando la cabecera se oculta) pero le sumamos
+   padding-top propio: eso sí empuja a sus hijos en flujo normal (.info-scroll) hacia abajo, que
+   es lo que evita que estrellas/badges queden tapados por la cabecera cuando está visible. */
 .info-modal{position:fixed;top:0;padding-top:calc(var(--annH) + var(--navH));left:0;right:0;bottom:0;z-index:660;display:none;background:var(--bg)}
 .info-modal.on{display:block}
-.info-page{position:absolute;top:calc(var(--annH) + var(--navH));right:0;bottom:0;left:0;display:flex;flex-direction:column;background:var(--bg);animation:pmPage .3s cubic-bezier(.16,1,.3,1) both}
+.info-page{position:absolute;inset:0;padding-top:calc(var(--annH) + var(--navH));display:flex;flex-direction:column;background:var(--bg);animation:pmPage .3s cubic-bezier(.16,1,.3,1) both}
 .info-scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .info-body{max-width:640px;margin:0 auto;padding:26px 22px 44px}
 .info-kicker{display:inline-block;font-size:11px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);background:var(--bg);border:1px solid var(--line);border-radius:0;padding:5px 12px;margin-bottom:12px}
@@ -421,16 +422,16 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 /* MODAL FOTO — display:none por defecto (fix del bug principal) */
 /* Mismo motivo que .info-modal (ver comentario ahí): top:0 + padding-top en vez de
    top:calc(...), para que el scrim cubra siempre toda la pantalla sin dejar hueco cuando la
-   cabecera se oculta. .pm-wrap necesita su propio top explícito (ver comentario en .pm-wrap):
-   inset:0 en un hijo absolute ignora el padding-top del padre. */
+   cabecera se oculta. .pm-wrap repite inset:0 + su propio padding-top (ver comentario ahí). */
 .photo-modal{position:fixed;top:0;padding-top:calc(var(--annH) + var(--navH));left:0;right:0;bottom:0;z-index:620;display:none;background:rgba(0,0,0,.55)}
 .photo-modal.on{display:block}
 .pm-scrim{position:fixed;top:calc(var(--annH) + var(--navH));left:0;right:0;bottom:0;cursor:pointer}
 /* VENTANA del producto a pantalla completa (no tarjeta): barra fija arriba + contenido scrolleable.
-   top explícito (no inset:0): un hijo absolute con inset:0 se posiciona contra el borde EXTERIOR
-   del padding del padre (ignora el padding-top), así que sin esto las estrellas/badges del inicio
-   del panel de info quedaban tapados por la cabecera en escritorio (bug reportado por el usuario). */
-.pm-wrap{position:absolute;top:calc(var(--annH) + var(--navH));right:0;bottom:0;left:0;max-width:none;max-height:none;margin:0;background:var(--white);border-radius:0;display:flex;flex-direction:column;overflow:hidden;animation:pmPage .3s cubic-bezier(.16,1,.3,1) both}
+   inset:0 (no un top explícito): así SU fondo blanco cubre desde y=0 y no deja un hueco gris
+   (el scrim de .photo-modal) cuando la cabecera se oculta al bajar el scroll. padding-top propio
+   empuja a .pm-scroll (hijo en flujo normal) hacia abajo, evitando que estrellas/badges queden
+   tapados por la cabecera cuando está visible — las dos cosas a la vez (bug reportado 2x). */
+.pm-wrap{position:absolute;inset:0;padding-top:calc(var(--annH) + var(--navH));max-width:none;max-height:none;margin:0;background:var(--white);border-radius:0;display:flex;flex-direction:column;overflow:hidden;animation:pmPage .3s cubic-bezier(.16,1,.3,1) both}
 @keyframes pmPage{from{transform:translateX(100%)}to{transform:translateX(0)}}
 @keyframes pmUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 @keyframes pmIn{from{opacity:0;transform:scale(.9) translateY(16px)}to{opacity:1;transform:scale(1) translateY(0)}}
