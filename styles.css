@@ -800,7 +800,11 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 @media(min-width:700px){.crsl.crsl-on .crsl-a{display:flex}}
 .xs-row::-webkit-scrollbar{height:4px}
 .xs-row::-webkit-scrollbar-thumb{background:#cfe9d8;border-radius:0}
-.xs-card{flex:0 0 108px;scroll-snap-align:start;background:#fff;border:1px solid var(--line);border-radius:0;padding:7px;font-family:var(--font);text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:3px}
+/* min-width:0 es necesario: un item flex NO se achica por debajo del ancho de su contenido que
+   no puede pasar a otra línea (ej. .xs-nom con white-space:nowrap) salvo que se lo digamos —
+   sin esto, un modelo con nombre largo ("NEW BALANCE 9060") estiraba la tarjeta más allá de los
+   108px fijos, mientras que uno corto ("ADIDAS RUNNING") quedaba más angosto. */
+.xs-card{flex:0 0 108px;min-width:0;scroll-snap-align:start;background:#fff;border:1px solid var(--line);border-radius:0;padding:7px;font-family:var(--font);text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:3px}
 .xs-card:active{transform:scale(.98)}
 .xs-img{width:100%;aspect-ratio:1/1;border-radius:0;background:var(--bg);display:flex;align-items:center;justify-content:center;overflow:hidden}
 .xs-img img{width:100%;height:100%;object-fit:cover}
