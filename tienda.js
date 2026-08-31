@@ -492,14 +492,27 @@ function waMayoristas(){
   const bar=document.getElementById('topbar');
   if(!bar)return;
   const TH=6;   // umbral para ignorar micro-scrolls
+  // Dentro de la ficha/catálogo/info, el panel que se scrollea CRECE cuando la cabecera se
+  // oculta (ese espacio se lo queda el contenido, estilo adidas: nada se tapa con un color de
+  // relleno). Ese cambio de tamaño por sí solo puede achicar el scrollTop del navegador (menos
+  // hueco que recorrer), lo cual se veía como "subir" y disparaba un parpadeo infinito
+  // ocultar→mostrar→ocultar. Por eso, tras cada cambio de .hide, se ignora el reacomodo de
+  // scroll que ESE MISMO cambio provoca durante lo que dura su transición CSS (.35s + margen).
+  let suppressUntil=0;
+  function setHide(on){
+    if(bar.classList.contains('hide')===on)return;
+    bar.classList.toggle('hide',on);
+    suppressUntil=performance.now()+400;
+  }
   function bind(getY){
     let lastY=getY(), ticking=false;
     function update(){
       const y=getY();
-      if(y<=2){ bar.classList.remove('hide'); }                         // arriba del todo: siempre visible
+      if(performance.now()<suppressUntil){ lastY=y; ticking=false; return; }
+      if(y<=2){ setHide(false); }                                        // arriba del todo: siempre visible
       else if(Math.abs(y-lastY)>TH){
-        if(y>lastY && y>bar.offsetHeight) bar.classList.add('hide');    // bajando → ocultar
-        else bar.classList.remove('hide');                              // subiendo → mostrar
+        if(y>lastY && y>bar.offsetHeight) setHide(true);                 // bajando → ocultar
+        else setHide(false);                                             // subiendo → mostrar
       }
       lastY=y; ticking=false;
     }
