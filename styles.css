@@ -46,9 +46,13 @@ body{padding-top:calc(var(--annH) + var(--navH));padding-bottom:var(--barH)}
 /* NAV — dentro del header (.topbar). Móvil: ☰ izq · logo centro · carrito der.
    Escritorio: logo izq · menú centro · carrito der. */
 nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;padding:8px 12px;background:var(--bg);border-bottom:1px solid var(--line)}
-.brand{text-align:center;line-height:1.04;min-width:0;overflow-wrap:anywhere}
-.logo{font-size:14px;font-weight:400;letter-spacing:.02em;color:var(--ink);text-transform:uppercase}
-.brand-sub{font-size:9.5px;font-weight:400;color:var(--ink2);letter-spacing:.1em;text-transform:uppercase;margin-top:2px}
+/* Logo: mismo criterio que adidas.co — un solo SVG inline con fill="currentColor", sin texto.
+   .brand es el link a inicio (antes envolvía el wordmark de texto); centrado en móvil (el nav
+   usa grid, .brand ocupa la columna central 1fr) y pegado a la izquierda en escritorio (línea
+   con @media(min-width:1180px) más abajo, que ya existía para el wordmark). */
+.brand{display:flex;align-items:center;justify-content:center;min-width:0;color:var(--ink);text-decoration:none}
+.brand-mark{height:26px;width:auto;display:block}
+@media(min-width:700px){.brand-mark{height:34px}}
 /* ☰ menú (solo móvil) */
 .nav-burger{width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:none;border:none;color:var(--ink);cursor:pointer;padding:0}
 .nav-burger svg{width:24px;height:24px;stroke:currentColor;stroke-width:2;stroke-linecap:round}
@@ -75,8 +79,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 @media(min-width:1180px){
   nav{display:grid;grid-template-columns:minmax(180px,1fr) auto minmax(180px,1fr);justify-content:initial;gap:18px;padding:8px 30px}
   .nav-burger{display:none}
-  .brand{justify-self:start;text-align:left;overflow-wrap:normal}
-  .logo{font-size:22px}
+  .brand{justify-self:start;justify-content:flex-start}
   .nav-menu{display:flex;justify-self:center;align-items:center;gap:24px}
   .nav-menu button{background:none;border:none;font-family:var(--font);font-size:13px;font-weight:400;letter-spacing:.04em;text-transform:uppercase;color:var(--ink);cursor:pointer;padding:6px 0;position:relative;white-space:nowrap}
   .nav-menu button::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--ink);transform:scaleX(0);transition:transform .18s}
