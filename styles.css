@@ -51,8 +51,8 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    usa grid, .brand ocupa la columna central 1fr) y pegado a la izquierda en escritorio (línea
    con @media(min-width:1180px) más abajo, que ya existía para el wordmark). */
 .brand{display:flex;align-items:center;justify-content:center;min-width:0;color:var(--ink);text-decoration:none}
-.brand-mark{height:26px;width:auto;display:block}
-@media(min-width:700px){.brand-mark{height:34px}}
+.brand-mark{height:30px;width:auto;display:block}
+@media(min-width:700px){.brand-mark{height:40px}}
 /* ☰ menú (solo móvil) */
 .nav-burger{width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:none;border:none;color:var(--ink);cursor:pointer;padding:0}
 .nav-burger svg{width:24px;height:24px;stroke:currentColor;stroke-width:2;stroke-linecap:round}
@@ -77,7 +77,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 /* menú horizontal (solo escritorio) */
 .nav-menu{display:none}
 @media(min-width:1180px){
-  nav{display:grid;grid-template-columns:minmax(180px,1fr) auto minmax(180px,1fr);justify-content:initial;gap:18px;padding:8px 30px}
+  nav{display:grid;grid-template-columns:minmax(180px,1fr) auto minmax(180px,1fr);justify-content:initial;gap:18px;padding:8px 40px}
   .nav-burger{display:none}
   .brand{justify-self:start;justify-content:flex-start}
   .nav-menu{display:flex;justify-self:center;align-items:center;gap:24px}
