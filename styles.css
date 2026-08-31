@@ -51,8 +51,21 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    usa grid, .brand ocupa la columna central 1fr) y pegado a la izquierda en escritorio (línea
    con @media(min-width:1180px) más abajo, que ya existía para el wordmark). */
 .brand{display:flex;align-items:center;justify-content:center;min-width:0;color:var(--ink);text-decoration:none}
-.brand-mark{height:30px;width:auto;display:block}
+.brand-mark{height:30px;width:auto;display:block;animation:brandDrop .55s cubic-bezier(.22,1,.36,1) both}
 @media(min-width:700px){.brand-mark{height:40px}}
+/* Entrada del logo estilo "bounce"/resorte al cargar la página: cae un poco, rebota suave y se
+   asienta. Distancia corta (18px) a propósito — si cae desde más arriba se mete visualmente en
+   la barra negra de anuncios (es un elemento hermano justo encima, sin overflow:hidden entre
+   medio) y se ve como un glitch en vez de una entrada prolija. Una sola vez al cargar (no se
+   repite al navegar dentro del sitio, la cabecera nunca se vuelve a montar). */
+@keyframes brandDrop{
+  0%{transform:translateY(-18px);opacity:0}
+  50%{transform:translateY(2px);opacity:1}
+  70%{transform:translateY(-4px)}
+  85%{transform:translateY(1px)}
+  100%{transform:translateY(0)}
+}
+@media(prefers-reduced-motion:reduce){.brand-mark{animation:none}}
 /* ☰ menú (solo móvil) */
 .nav-burger{width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:none;border:none;color:var(--ink);cursor:pointer;padding:0}
 .nav-burger svg{width:24px;height:24px;stroke:currentColor;stroke-width:2;stroke-linecap:round}
