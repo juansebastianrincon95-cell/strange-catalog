@@ -588,7 +588,11 @@
         <div class="pm-return-li">Tu compra tiene 1 mes de garantía por defectos de costura o despegue, sin costo adicional.</div>
         <div class="pm-return-sub">Reembolso</div>
         <div class="pm-return-li">No hacemos devoluciones de dinero ni cancelación de créditos. Si tu talla no está disponible, puedes elegir otro modelo.</div>
-        <button type="button" class="pm-guia-toggle" onclick="openInfo('cambios')">Ver política completa</button>
+        <div class="pm-return-more" id="pmReturnMore" style="display:none">
+          <div class="pm-return-sub">Proceso</div>
+          <div class="pm-return-li">El cambio puede tardar 15 días hábiles aproximadamente.</div>
+        </div>
+        <button type="button" class="pm-guia-toggle" id="pmReturnToggle" onclick="togReturnMore()">Ver política completa</button>
       </div>
       <div class="pm-reviews" id="pmRevList"></div>
       <div id="pmCross" class="pmx" style="display:none"></div>

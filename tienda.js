@@ -476,6 +476,17 @@ function openInfo(which){
 
 function closeInfo(){if(!_navPopping)navRemove('info');const m=$('infoModal');if(m)m.classList.remove('on');unlockScroll();}
 
+// "Ver política completa" en la ficha: despliega el resto del texto AHÍ MISMO. Antes abría
+// openInfo('cambios') en un overlay de pantalla completa sin botón de cerrar (solo "atrás" del
+// navegador) — en el navegador interno de Instagram/Facebook eso se siente como si sacara al
+// cliente de la tienda y perdía el zapato que estaba viendo.
+function togReturnMore(){
+  const box=$('pmReturnMore'),btn=$('pmReturnToggle');if(!box||!btn)return;
+  const open=box.style.display!=='none';
+  box.style.display=open?'none':'block';
+  btn.textContent=open?'Ver política completa':'Ver menos';
+}
+
 function waMayoristas(){
   const msg=`Hola ${STORE_NAME}, quiero ser mayorista. ¿Me puedes enviar precios, condiciones y catálogo disponible?`;
   try{trackEvent('lead',{});}catch(e){}
