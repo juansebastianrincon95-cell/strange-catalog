@@ -1,4 +1,4 @@
-:root{color-scheme:light;--bg:#FFFFFF;--white:#FFF;--ink:#0E0E0C;--ink2:#5a5a56;--ink3:#9a9a95;--line:rgba(0,0,0,0.08);--red:#E8200A;--blue:#0066FF;--green:#1aad49;--orange:#FF7A00;--wa:#25D366;--font:'Montserrat',system-ui,sans-serif;--annH:40px;--navH:64px;--barH:52px}
+:root{color-scheme:light;--bg:#FFFFFF;--white:#FFF;--ink:#0E0E0C;--ink2:#5a5a56;--ink3:#9a9a95;--line:rgba(0,0,0,0.08);--red:#E8200A;--blue:#0066FF;--green:#1aad49;--orange:#FF7A00;--wa:#25D366;--font:'Montserrat',system-ui,sans-serif;--annH:40px;--navH:64px;--barH:34px}
 @media(min-width:700px){:root{--annH:44px;--navH:78px}}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 /* El scroll interno de los modales NO arrastra el fondo (anti scroll-chaining) */
@@ -171,10 +171,13 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 /* Mini-anuncio sobre el FAB de WhatsApp ("Pregunta por los combos") */
 .wa-bubble{position:fixed;right:18px;bottom:calc(max(18px,env(safe-area-inset-bottom)) + var(--barH) + 66px);z-index:564;display:none;align-items:center;gap:8px;background:var(--white);color:var(--ink);border:1px solid var(--line);border-radius:0;padding:10px 12px 10px 14px;font-family:var(--font);font-size:12.5px;font-weight:400;box-shadow:0 8px 24px rgba(0,0,0,.18);cursor:pointer;animation:pmIn .3s ease both}
 .wa-bubble.show{display:inline-flex}
-.cart-bar{position:fixed;left:0;right:0;bottom:0;z-index:621;height:var(--barH);padding:0 16px calc(env(safe-area-inset-bottom));box-sizing:content-box;background:var(--white);border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;text-decoration:none;color:var(--ink);cursor:pointer;transition:transform .25s}
+/* Medidas calcadas de la barra de precio/carrito de sahet.co (mismo patron: <a> con flex +
+   space-between, todo clicable) — mas compacta que el tamaño original (52px de alto, texto
+   14px). Sahet: 34px de alto, padding 10px, precio 12px/600. */
+.cart-bar{position:fixed;left:0;right:0;bottom:0;z-index:621;height:var(--barH);padding:0 10px calc(env(safe-area-inset-bottom));box-sizing:content-box;background:var(--white);border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;text-decoration:none;color:var(--ink);cursor:pointer;transition:transform .25s}
 .cart-bar.hide{transform:translateY(100%)}
-.cart-bar-total{font-size:14px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
-.cart-bar-icon{position:relative;display:flex;align-items:center;justify-content:center;width:30px;height:30px}
+.cart-bar-total{font-size:12px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.cart-bar-icon{position:relative;display:flex;align-items:center;justify-content:center;width:18px;height:21px}
 .cart-bar-dot{position:absolute;top:-3px;right:-5px;min-width:15px;height:15px;padding:0 3px;background:var(--ink);color:#fff;font-size:9px;font-weight:700;border-radius:50%;display:flex;align-items:center;justify-content:center;opacity:0;transform:scale(.5);transition:opacity .2s,transform .35s cubic-bezier(.34,1.56,.64,1)}
 .cart-bar-dot.show{opacity:1;transform:scale(1)}
 /* Animación "vuela al carrito" (flyToCart en base.js): clon fixed de la foto de la tarjeta que
