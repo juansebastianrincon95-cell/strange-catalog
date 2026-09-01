@@ -205,7 +205,10 @@ module.exports = async (req, res) => {
     // Modelo de TEXTO con visión (el de ai-photo.js es el de generación de IMAGEN — aquí no aplica).
     // Los nombres de modelo de Gemini cambian con el tiempo (mismo motivo que la lista MODELOS de
     // 'reactivar_cupones' más abajo): se prueban varios en orden y manda el primero que responda 200.
-    const MODELOS_VISION = ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'];
+    // Confirmado en vivo (2026-09-01): de toda la lista, esta API key SOLO tiene acceso a
+    // gemini-3.6-flash — el resto devuelve 404 siempre, así que probarlos solo suma latencia
+    // (y, peor, retrasa ver el verdadero error de 3.6 si ESE es el que falla).
+    const MODELOS_VISION = ['gemini-3.6-flash'];
     let gRes = null, ultimoErrorGemini = null;
     for (const modelo of MODELOS_VISION) {
       const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + modelo + ':generateContent', {
@@ -881,7 +884,9 @@ module.exports = async (req, res) => {
         + 'Devuelve SOLO un JSON array de strings, un mensaje por persona, en el mismo orden. Sin texto adicional.\n\nPersonas:\n' + fichas;
       // Los nombres de modelo de Gemini cambian con el tiempo: se prueban varios y manda el
       // primero que conteste. Si ninguno responde, caen las plantillas y el agente igual sirve.
-      const MODELOS = ['gemini-3.6-flash', 'gemini-2.0-flash', 'gemini-flash-latest', 'gemini-2.5-flash', 'gemini-1.5-flash'];
+      // Confirmado en vivo (2026-09-01): de toda esta lista, la API key solo tiene acceso a
+      // gemini-3.6-flash — el resto son 404 siempre. Se deja como único intento.
+      const MODELOS = ['gemini-3.6-flash'];
       const pedir = (modelo) => new Promise((resolve) => {
         const body = Buffer.from(JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }));
         const rq = require('https').request({
