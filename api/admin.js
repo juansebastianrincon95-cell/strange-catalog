@@ -202,20 +202,24 @@ module.exports = async (req, res) => {
       ' Responde UNA sola línea con el formato "Marca Modelo color/es" (ej: "Nike Air Max 90 blanco/gris"), en español, sin comillas ni punto final, máximo 60 caracteres.' +
       ' Si no reconoces el modelo con certeza razonable responde exactamente NO_IDENTIFICADO. Nunca inventes una referencia.';
 
-    // Modelo de TEXTO con visión (el de ai-photo.js es el de generación de IMAGEN — aquí no aplica)
-    const gRes = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_KEY },
-      body: JSON.stringify({
-        contents: [{ parts: [{ inline_data: { mime_type: mime, data: b64 } }, { text: prompt }] }],
-        generationConfig: { temperature: 0.2 }
-      })
-    }).catch(() => null);
-    if (!gRes) return res.status(502).json({ error: 'Gemini no respondió' });
-    if (gRes.status !== 200) {
-      const detail = (await gRes.text().catch(() => '')).slice(0, 300);
-      return res.status(502).json({ error: 'Gemini error', detail });
+    // Modelo de TEXTO con visión (el de ai-photo.js es el de generación de IMAGEN — aquí no aplica).
+    // Los nombres de modelo de Gemini cambian con el tiempo (mismo motivo que la lista MODELOS de
+    // 'reactivar_cupones' más abajo): se prueban varios en orden y manda el primero que responda 200.
+    const MODELOS_VISION = ['gemini-flash-latest', 'gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'];
+    let gRes = null, ultimoErrorGemini = null;
+    for (const modelo of MODELOS_VISION) {
+      const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + modelo + ':generateContent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_KEY },
+        body: JSON.stringify({
+          contents: [{ parts: [{ inline_data: { mime_type: mime, data: b64 } }, { text: prompt }] }],
+          generationConfig: { temperature: 0.2 }
+        })
+      }).catch(() => null);
+      if (r && r.status === 200) { gRes = r; break; }
+      ultimoErrorGemini = r ? (await r.text().catch(() => '')).slice(0, 300) : 'sin respuesta';
     }
+    if (!gRes) return res.status(502).json({ error: 'Gemini error', detail: ultimoErrorGemini });
     const gJson = await gRes.json().catch(() => null);
     const texto = (((((gJson || {}).candidates || [])[0] || {}).content || {}).parts || [])
       .map(pt => pt.text || '').join(' ').trim();
