@@ -96,7 +96,10 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
   .nav-burger{display:none}
   .brand{justify-self:start;justify-content:flex-start}
   .nav-menu{display:flex;justify-self:center;align-items:center;gap:24px}
-  .nav-menu button{background:none;border:none;font-family:var(--font);font-size:13px;font-weight:400;letter-spacing:.04em;text-transform:uppercase;color:var(--ink);cursor:pointer;padding:6px 0;position:relative;white-space:nowrap}
+  /* top:10px baja el texto del menú respecto al logo — mismo criterio que adidas.co (ahí es al
+     revés, el logo sube con top:-10px; el resultado visual de "logo por encima de la línea del
+     menú" es el mismo). font-weight:700 calca el peso real que usa adidas en su nav. */
+  .nav-menu button{background:none;border:none;font-family:var(--font);font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink);cursor:pointer;padding:6px 0;position:relative;top:10px;white-space:nowrap}
   .nav-menu button::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--ink);transform:scaleX(0);transition:transform .18s}
   .nav-menu button:hover::after{transform:scaleX(1)}
   .nav-right{position:static;transform:none;justify-self:end}
