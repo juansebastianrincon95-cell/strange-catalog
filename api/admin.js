@@ -205,7 +205,7 @@ module.exports = async (req, res) => {
     // Modelo de TEXTO con visión (el de ai-photo.js es el de generación de IMAGEN — aquí no aplica).
     // Los nombres de modelo de Gemini cambian con el tiempo (mismo motivo que la lista MODELOS de
     // 'reactivar_cupones' más abajo): se prueban varios en orden y manda el primero que responda 200.
-    const MODELOS_VISION = ['gemini-flash-latest', 'gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'];
+    const MODELOS_VISION = ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'];
     let gRes = null, ultimoErrorGemini = null;
     for (const modelo of MODELOS_VISION) {
       const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + modelo + ':generateContent', {
@@ -881,7 +881,7 @@ module.exports = async (req, res) => {
         + 'Devuelve SOLO un JSON array de strings, un mensaje por persona, en el mismo orden. Sin texto adicional.\n\nPersonas:\n' + fichas;
       // Los nombres de modelo de Gemini cambian con el tiempo: se prueban varios y manda el
       // primero que conteste. Si ninguno responde, caen las plantillas y el agente igual sirve.
-      const MODELOS = ['gemini-2.0-flash', 'gemini-flash-latest', 'gemini-2.5-flash', 'gemini-1.5-flash'];
+      const MODELOS = ['gemini-3.6-flash', 'gemini-2.0-flash', 'gemini-flash-latest', 'gemini-2.5-flash', 'gemini-1.5-flash'];
       const pedir = (modelo) => new Promise((resolve) => {
         const body = Buffer.from(JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }));
         const rq = require('https').request({
