@@ -1013,9 +1013,14 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    DETRÁS de los círculos (fondo blanco propio para taparla donde pasa por encima) y se extiende
    desde debajo de uno hasta el siguiente, cruzando el margen entre secciones. */
 .sf-sec{margin-top:20px;position:relative}
-.sf-sec:not(:last-child)::before{content:'';position:absolute;left:10px;top:24px;bottom:-30px;width:1.5px;background:rgba(0,0,0,.18);z-index:0}
+.sf-sec:not(:last-child)::before{content:'';position:absolute;left:10px;top:24px;bottom:-30px;width:1.5px;background:rgba(0,0,0,.18);z-index:0;transition:background-color .2s}
 .sf-head{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink);margin-bottom:14px;position:relative;z-index:1}
-.sf-num{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--ink);background:var(--white);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sf-num{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--ink);background:var(--white);color:var(--ink);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background-color .2s,color .2s}
+/* Paso completado (calcado de sahet.co: revisado en vivo — al llenar todos los campos válidos
+   de "Datos de envío", su círculo y la línea que baja de él se ponen negros). Ver
+   bmRefreshDatosStep() en compra.js, que agrega/quita esta clase en #sfSecDatos. */
+.sf-sec.sf-done .sf-num{background:var(--ink);color:#fff}
+.sf-sec.sf-done::before{background:var(--ink)}
 .sf-chev{margin-left:auto;width:15px;height:15px;color:var(--ink2)}
 .sf-chev svg{width:100%;height:100%}
 .sf-body{margin-left:32px;position:relative;z-index:1}
@@ -1029,14 +1034,13 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 /* Botones de pasarela chicos, solo logo + monto — calcados de los botones de método de pago
    reales de sahet.co (revisado en vivo: son botones compactos con solo el logo, no tarjetas
    grandes con título/descripción como .paychoice del carrito clásico). */
-.sf-gw-row{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.sf-gw{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;background:var(--white);border:1px solid var(--line);padding:10px 8px;cursor:pointer;transition:border-color .15s}
-.sf-gw:hover{border-color:var(--ink)}
-.sf-gw-logo{height:18px;object-fit:contain}
-.sf-gw-tot{font-size:10.5px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.sf-gw-row{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.sf-gw{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:var(--white);border:1px solid var(--ink);border-radius:0;padding:6px 8px;max-width:100px;cursor:pointer}
+.sf-gw-logo{height:14px;object-fit:contain}
+.sf-gw-tot{font-size:9.5px;color:var(--ink2);font-variant-numeric:tabular-nums}
 /* Pasarela ya elegida (estilo sahet.co: al elegir un método, las demás opciones colapsan y
    queda solo la elegida + un link "Cambiar" — el pago real lo dispara el botón del pie). */
-.sf-gw-sel{flex:0 0 auto;min-width:110px;border-color:var(--ink);cursor:default}
+.sf-gw-sel{flex:0 0 auto;min-width:90px;cursor:default}
 .sf-gw-cambiar{background:none;border:none;font-family:var(--font);font-size:11.5px;color:var(--ink2);text-decoration:underline;cursor:pointer;padding:0}
 
 

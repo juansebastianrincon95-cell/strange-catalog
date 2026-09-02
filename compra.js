@@ -112,20 +112,30 @@ function bmResumenSahetHTML(){
 // (una sola fila, sin etiqueta fija arriba) — mismos ids que formEnvioHTML() (carrito.js), así
 // que enviarWA/pagarWompi/pagarBold/leerFormEnvio los leen igual sin saber qué apariencia tienen.
 function formEnvioSahetHTML(){
-  const f=(id,ph,ic,val,type,extra)=>`<div class="sf-fld"><span class="sf-ic">${ic}</span><input id="${id}" type="${type||'text'}" placeholder="${ph}" ${extra||''} value="${escHtml(val||'')}"></div>`;
-  return `<div class="sf-sec">
+  const f=(id,ph,ic,val,type,extra,oninput)=>`<div class="sf-fld"><span class="sf-ic">${ic}</span><input id="${id}" type="${type||'text'}" placeholder="${ph}" ${extra||''} oninput="${oninput||'bmRefreshDatosStep()'}" value="${escHtml(val||'')}"></div>`;
+  return `<div class="sf-sec" id="sfSecDatos">
     <div class="sf-head"><span class="sf-num">2</span>Datos de envío<span class="sf-chev">${BM_ICONS.chevron}</span></div>
     <div class="sf-body">
       ${f('fc','CÉDULA',BM_ICONS.cedula,cData.cedula,'text','inputmode="numeric" autocomplete="off"')}
       ${f('fn','NOMBRE COMPLETO',BM_ICONS.nombre,cData.nombre,'text','autocomplete="name" autocapitalize="words"')}
       ${f('ft','WHATSAPP',BM_ICONS.whatsapp,cData.celular,'tel','inputmode="tel" autocomplete="tel"')}
       ${f('fem','EMAIL',BM_ICONS.email,cData.email,'email','inputmode="email" autocomplete="email"')}
-      <div class="sf-fld"><span class="sf-ic">${BM_ICONS.ciudad}</span><input id="fci" type="text" placeholder="CIUDAD O MUNICIPIO" autocomplete="address-level2" autocapitalize="words" oninput="bmRefreshTotales();bmGwSelected=null;bmRefreshMediosPago()" value="${escHtml(cData.ciudad||'')}"></div>
+      ${f('fci','CIUDAD O MUNICIPIO',BM_ICONS.ciudad,cData.ciudad,'text','autocomplete="address-level2" autocapitalize="words"','bmRefreshTotales();bmGwSelected=null;bmRefreshMediosPago();bmRefreshDatosStep()')}
       ${f('fd','DIRECCIÓN',BM_ICONS.direccion,cData.direccion,'text','autocomplete="street-address"')}
       ${f('fb','BARRIO',BM_ICONS.barrio,cData.barrio,'text','autocomplete="address-level3"')}
       <div class="ferr" id="ferr">Completa todos los campos y acepta la política de datos</div>
     </div>
   </div>`;
+}
+
+// ¿Los 6 campos requeridos de "Datos de envío" están llenos? (email es opcional, igual que en
+// leerFormEnvio()). Solo mira si hay texto — la validación real de verdad sigue siendo
+// leerFormEnvio() al pagar; esto es puramente visual (círculo/línea en negro, estilo sahet.co).
+function bmDatosCompletos(){
+  return ['fc','fn','ft','fd','fb','fci'].every(id=>{const el=$(id);return el&&el.value.trim();});
+}
+function bmRefreshDatosStep(){
+  const sec=$('sfSecDatos');if(sec)sec.classList.toggle('sf-done',bmDatosCompletos());
 }
 
 // ¿Hace falta elegir pasarela para el envío? Solo aplica a contra entrega con flete>0 (si es
@@ -138,8 +148,12 @@ function bmNeedsGateway(){
 }
 
 function bmConsentHTML(){
+  // Lee el checkbox EN VIVO si ya existe (bmMediosPagoBodyHTML se re-pinta al elegir/cambiar
+  // pasarela o al escribir la ciudad — sin esto, cada re-render lo reconstruía desde cData.consent,
+  // que sigue en false hasta pagar, y le borraba la marca al cliente que ya lo había tildado).
+  const checked=$('fconsent')?$('fconsent').checked:!!cData.consent;
   return `<label class="sf-consent" for="fconsent">
-    <input id="fconsent" type="checkbox" ${cData.consent?'checked':''}>
+    <input id="fconsent" type="checkbox" ${checked?'checked':''}>
     <span>Al dar clic en el siguiente botón aceptas haber leído nuestra <a href="#" onclick="openLegal('privacidad');return false">Política de Datos</a> y nuestras condiciones de <a href="#" onclick="openInfo('cambios');return false">Cambios y Garantías</a>.</span>
   </label>`;
 }
@@ -223,6 +237,7 @@ function renderBuyModal(){
   $('bmTitle').textContent=bmIntent==='whatsapp'?'Comprar por WhatsApp':'Comprar contra entrega';
   $('bmBody').innerHTML=bmResumenSahetHTML()+formEnvioSahetHTML()+bmMediosPagoHTML();
   $('bmFoot').innerHTML=bmFooterHTML();
+  bmRefreshDatosStep();
 }
 
 // Solo se llega aquí cuando NO hace falta elegir pasarela (whatsapp, o contra entrega con
