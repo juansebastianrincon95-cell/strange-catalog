@@ -383,29 +383,9 @@ function toggleCupon(){
 function cartKey(id,type,talla){return (type==='liq'?'L'+id:''+id)+(talla?'-t'+talla:'');}
 // ¿El producto está en el carrito en CUALQUIER talla? (para el ✓ de la tarjeta del grid)
 function enCarrito(id,type){return Object.values(cart).some(it=>it.type===type&&it.p.id===id);}
-function togCard(id,type,talla,fromEl){
-  const key=cartKey(id,type,talla);
-  const list=type==='liq'?liqs:prods;
-  const p=list.find(x=>x.id===id);
-  if(!p||p.sold)return;
-  const wasInCart=!!cart[key];
-  cart[key]?delete cart[key]:(cart[key]={p,qty:1,type,talla:talla||null});
-  const inCart=!!cart[key];
-  if(inCart&&!wasInCart){
-    const _acat=type==='liq'?'liquidacion':p.g;
-    const _anm=type==='liq'?'Liquidación':genLabel(p.g);
-    px('AddToCart',{content_ids:[pxId(type,id)],content_type:'product',content_category:_acat,content_name:_anm,value:p.price,currency:'COP',...getUTM()});
-    ga4('add_to_cart',{currency:'COP',value:p.price,items:[{item_id:pxId(type,id),item_name:_anm,price:p.price,quantity:1}]});   // GA4 / Google Ads
-    trackEvent('add_to_cart',{product_id:String(key),price:p.price,gender:type==='liq'?null:p.g});
-    startReserva();   // arranca/continúa el contador de reserva al agregar al carrito
-    // Si hay foto de origen, la vemos volar al carrito antes de abrirlo (si no, openCart()
-    // le pone .hide al instante y tapa/mueve el ícono destino a mitad de la animación).
-    const voló=typeof flyToCart==='function'&&flyToCart(fromEl);
-    if(voló)setTimeout(openCart,520);else openCart();
-  }else if(wasInCart&&!inCart){
-    toast('Quitado del carrito');
-  }
-  // sincroniza la tarjeta (grid + lanzamientos + preview + recientes): ✓ si está en el carrito en ALGUNA talla
+// Sincroniza la tarjeta (grid + lanzamientos + preview + recientes): ✓ si está en el carrito
+// en ALGUNA talla. Separado de togCard() para poder reusarlo desde addItemToCart().
+function syncCardUI(id,type){
   const anyIn=enCarrito(id,type);
   const els=type==='liq'?[$('lk'+id)]:[$('k'+id),$('kl'+id),$('kp'+id),$('kr'+id),$('kf'+id)];
   els.forEach(el=>{
@@ -414,8 +394,45 @@ function togCard(id,type,talla,fromEl){
     const circle=el.querySelector('.add-circle');
     if(circle)circle.textContent=anyIn?'✓':'+';
   });
+}
+
+// Agrega SIN alternar (nunca quita) ni abrir el carrito — lo usa togCard() en su rama de
+// agregar, y las compras rápidas de la ficha (buyNowFicha) que saltan directo a "Tus datos"
+// sin pasar por la animación/apertura normal del carrito. Devuelve false si no aplicaba
+// (agotado, inexistente o ya estaba en el carrito con esa talla).
+function addItemToCart(id,type,talla){
+  const key=cartKey(id,type,talla);
+  const list=type==='liq'?liqs:prods;
+  const p=list.find(x=>x.id===id);
+  if(!p||p.sold||cart[key])return false;
+  cart[key]={p,qty:1,type,talla:talla||null};
+  const _acat=type==='liq'?'liquidacion':p.g;
+  const _anm=type==='liq'?'Liquidación':genLabel(p.g);
+  px('AddToCart',{content_ids:[pxId(type,id)],content_type:'product',content_category:_acat,content_name:_anm,value:p.price,currency:'COP',...getUTM()});
+  ga4('add_to_cart',{currency:'COP',value:p.price,items:[{item_id:pxId(type,id),item_name:_anm,price:p.price,quantity:1}]});   // GA4 / Google Ads
+  trackEvent('add_to_cart',{product_id:String(key),price:p.price,gender:type==='liq'?null:p.g});
+  startReserva();   // arranca/continúa el contador de reserva al agregar al carrito
+  syncCardUI(id,type);
   syncDot();
   if(pmId===id&&pmType===type)syncPmBtn();
+  return true;
+}
+
+function togCard(id,type,talla,fromEl){
+  const key=cartKey(id,type,talla);
+  if(cart[key]){
+    delete cart[key];
+    toast('Quitado del carrito');
+    syncCardUI(id,type);
+    syncDot();
+    if(pmId===id&&pmType===type)syncPmBtn();
+    return;
+  }
+  if(!addItemToCart(id,type,talla))return;   // no existe o está agotado
+  // Si hay foto de origen, la vemos volar al carrito antes de abrirlo (si no, openCart()
+  // le pone .hide al instante y tapa/mueve el ícono destino a mitad de la animación).
+  const voló=typeof flyToCart==='function'&&flyToCart(fromEl);
+  if(voló)setTimeout(openCart,520);else openCart();
 }
 // Ítems del pedido para WhatsApp/orders (incluye la talla). Único punto de construcción.
 function cartItems(rows){return rows.map(({p,qty,type,talla})=>({label:p.modelo||(type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer')),type,id:p.id,brand:p.brand||null,qty,precio:p.price*qty,talla:talla||null}));}
@@ -476,6 +493,9 @@ function restoreCupon(){
 // InitiateCheckout NO se dispara al abrir, sino al avanzar a "Tus datos" (goStep 1), para no
 // inflar el funnel de Meta. _icFired evita duplicarlo dentro de un mismo ciclo de carrito.
 let _icFired=false;
+// Intención de compra rápida desde la ficha ('contra_entrega'|'whatsapp'|null) — la fija
+// buyNowFicha() y rPayChoice() la consume UNA vez para resaltar esa tarjeta de pago.
+let _buyIntent=null;
 
 function openCart(){
   step=0;_icFired=false;_comboSugDismiss=false;
@@ -725,6 +745,10 @@ function calcFlete(pares,ciudad,subtotal){
 }
 
 function rPayChoice(){
+  // Se consume UNA vez (compra rápida desde la ficha): resalta la tarjeta que el cliente ya
+  // eligió al tocar "Contraentrega" o "Comprar por WhatsApp", pero el pago sigue siendo un
+  // clic suyo — solo le ahorramos tener que volver a decidir entre las 6 opciones.
+  const _hi=_buyIntent;_buyIntent=null;
   const rows=Object.values(cart);
   const pricing=cartPricing(rows);          // combo (precio fijo) o normal con cupón
   const sub=pricing.sub;
@@ -744,17 +768,17 @@ function rPayChoice(){
   const icLogo=(src,alt,fb)=>`<img src="${src}" alt="${alt}" class="pc-logo" onerror="this.outerHTML=${JSON.stringify(fb).replace(/"/g,'&quot;')}">`;
   // tip (opcional): muestra una burbuja de info — en escritorio al pasar el cursor por la card,
   // en móvil al tocar el marcador ⓘ (no dispara el pago: stopPropagation + preventDefault).
-  const card=(fn,acc,tint,ico,tit,desc,tot,tip)=>`<button class="paychoice" onclick="${fn}" style="--acc:${acc}"><span class="pc-ic" style="background:${tint}">${ico}</span><span class="pc-main"><span class="pc-tit">${tit}</span><span class="pc-desc">${desc}</span><span class="pc-tot">${tot}</span></span><span class="pc-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>${tip?`<span class="pc-info" onclick="event.stopPropagation();event.preventDefault();this.parentElement.classList.toggle('tipon')" aria-label="Más información">i</span><span class="pc-tip">${tip}</span>`:''}</button>`;
+  const card=(fn,acc,tint,ico,tit,desc,tot,tip,hi)=>`<button class="paychoice${hi?' paychoice-hi':''}" onclick="${fn}" style="--acc:${acc}"><span class="pc-ic" style="background:${tint}">${ico}</span><span class="pc-main"><span class="pc-tit">${tit}</span><span class="pc-desc">${desc}</span><span class="pc-tot">${tot}</span></span><span class="pc-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>${tip?`<span class="pc-info" onclick="event.stopPropagation();event.preventDefault();this.parentElement.classList.toggle('tipon')" aria-label="Más información">i</span><span class="pc-tip">${tip}</span>`:''}</button>`;
   $('cbody').innerHTML=`<div class="paysec"><div class="paytit">¿Cómo quieres pagar?</div><div class="paychoice-list">`
     // Contra entrega con flete: el envío se COBRA EN LÍNEA (Wompi/Bold). Antes esta tarjeta abría
     // WhatsApp igual que "Pago por WhatsApp" pero $25.000 más cara — o sea, estaba dominada y nadie
     // la elegía nunca (0 pedidos en 3 meses). Cobrando el flete, el pedido queda confirmado por
     // pasarela y entra al sistema como venta con su envío pendiente de entregar.
     +(flete>0
-      ?card(`elegirPagoFlete()`,'#1E1E1C','#f1f1ef',icDelivery,'Contra entrega',`Pagas solo el envío ahora y los zapatos al recibir`,`Hoy: envío ${fmt(flete)} · Al recibir: ${fmt(sub)}`,`📦 El envío se paga primero para <b>asegurar tu despacho</b>. Así garantizamos que tu pedido salga y llegue — evitamos los pedidos que se piden y no se reciben.`)
+      ?card(`elegirPagoFlete()`,'#1E1E1C','#f1f1ef',icDelivery,'Contra entrega',`Pagas solo el envío ahora y los zapatos al recibir`,`Hoy: envío ${fmt(flete)} · Al recibir: ${fmt(sub)}`,`📦 El envío se paga primero para <b>asegurar tu despacho</b>. Así garantizamos que tu pedido salga y llegue — evitamos los pedidos que se piden y no se reciben.`,_hi==='contra_entrega')
       // Envío gratis alcanzado (umbral por monto): contra entrega sin flete → todo se paga al recibir
-      :card(`enviarWA('contra_entrega')`,'#1E1E1C','#f1f1ef',icDelivery,'Contra entrega','¡Envío GRATIS! Pagas todo al recibir en casa ✓',`Al recibir: ${fmt(sub)}`,`🎉 Tu pedido alcanzó el <b>envío GRATIS</b> también contra entrega: no pagas nada hoy.`))
-    +card(`enviarWA('pago_anticipado')`,'#25D366','#e9fbf1',icWa,'Pago por WhatsApp','Coordina tu pago por WhatsApp · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
+      :card(`enviarWA('contra_entrega')`,'#1E1E1C','#f1f1ef',icDelivery,'Contra entrega','¡Envío GRATIS! Pagas todo al recibir en casa ✓',`Al recibir: ${fmt(sub)}`,`🎉 Tu pedido alcanzó el <b>envío GRATIS</b> también contra entrega: no pagas nada hoy.`,_hi==='contra_entrega'))
+    +card(`enviarWA('pago_anticipado')`,'#25D366','#e9fbf1',icWa,'Pago por WhatsApp','Coordina tu pago por WhatsApp · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`,null,_hi==='whatsapp')
     +card(`pagarWompi()`,'#5D2D91','#fff',icLogo('/logos/wompi.png','Wompi',icCard),'Pagar en línea — Wompi','Tarjeta · PSE · Nequi · Bancolombia · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
     +card(`pagarBold()`,'#2541B2','#fff',icLogo('/logos/bold.png','Bold',icCard),'Pagar en línea — Bold','Tarjeta · PSE · Botón Bancolombia · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)
     +card(`pagarAddi()`,'#0a7d4b','#fff',icLogo('/logos/addi.png','Addi',icCuotas),'Pagar con Addi — a cuotas','Crédito 100% online · Solo cédula y celular · Envío GRATIS ✓',`Total a pagar: ${fmt(sub)}`)

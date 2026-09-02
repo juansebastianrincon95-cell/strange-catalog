@@ -1562,20 +1562,24 @@ function renderFichaReviews(){
   }).join('');
 }
 
+// Si el producto tiene tallas, es OBLIGATORIO elegir una antes de agregar/comprar (shake + aviso
+// + scroll hasta el selector). Compartido por addFromModal() y buyNowFicha().
+function pmRequiereTalla(p){
+  if(!(tallasDe(p).length&&!pmTalla))return false;
+  const box=$('pmSizes');
+  if(box){
+    box.classList.remove('err');void box.offsetWidth;box.classList.add('err');
+    const sc=document.querySelector('.pm-scroll');
+    if(sc){const y=box.offsetTop-130;if(y<sc.scrollTop||box.offsetTop>sc.scrollTop+sc.clientHeight-120)sc.scrollTo({top:y,behavior:'smooth'});}
+  }
+  return true;
+}
+
 function addFromModal(){
   if(pmId===null)return;
   const list=pmType==='liq'?liqs:prods;
   const p=list.find(x=>x.id===pmId);
-  // Si el producto tiene tallas, es OBLIGATORIO elegir una antes de agregar (shake + aviso).
-  if(tallasDe(p).length&&!pmTalla){
-    const box=$('pmSizes');
-    if(box){
-      box.classList.remove('err');void box.offsetWidth;box.classList.add('err');
-      const sc=document.querySelector('.pm-scroll');
-      if(sc){const y=box.offsetTop-130;if(y<sc.scrollTop||box.offsetTop>sc.scrollTop+sc.clientHeight-120)sc.scrollTo({top:y,behavior:'smooth'});}
-    }
-    return;
-  }
+  if(pmRequiereTalla(p))return;
   const id=pmId,t=pmType,talla=pmTalla;
   const ya=!!cart[cartKey(id,t,talla)];   // ya estaba en esa talla → no alternar, solo abrir carrito
   if(ya){closePhotoBtn();openCart();}
@@ -1587,6 +1591,24 @@ function addFromModal(){
     togCard(id,t,talla,tr?tr.children[_galIdx]:null);
     closePhotoBtn();
   }
+}
+
+// Compra rápida desde la ficha (estilo elenacuidadocapilar.com: "Agregar al carrito" +
+// "Contraentrega" + "Comprar por WhatsApp" como 3 botones independientes en el producto).
+// Agrega el par y salta DIRECTO al paso "Tus datos", saltándose la revisión del carrito — pero
+// el envío de WhatsApp o el cobro del envío contra entrega SIGUEN siendo un clic explícito del
+// cliente en el paso de pago (paso 3, ya resaltado por intención): nunca se disparan solos.
+function buyNowFicha(intent){
+  if(pmId===null)return;
+  const list=pmType==='liq'?liqs:prods;
+  const p=list.find(x=>x.id===pmId);
+  if(pmRequiereTalla(p))return;
+  const id=pmId,t=pmType,talla=pmTalla;
+  if(!cart[cartKey(id,t,talla)])addItemToCart(id,t,talla);
+  closePhotoBtn();
+  _buyIntent=intent;   // 'contra_entrega' | 'whatsapp' — rPayChoice() resalta esa tarjeta una vez
+  openCart();
+  goStep(1);
 }
 
 function closePhotoBtn(){

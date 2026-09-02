@@ -523,6 +523,17 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .pm-foot-add:active{transform:scale(.99)}
 .pm-add:active{transform:scale(.98)}
 .pm-add.in{background:var(--green)}
+/* Compra rápida en la ficha (estilo elenacuidadocapilar.com): "Contraentrega" y "Comprar por
+   WhatsApp" debajo de "Agregar al carrito" — saltan directo a "Tus datos", sin pasar por la
+   revisión del carrito. Ver buyNowFicha() en tienda.js. */
+.pm-buyrow{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.pm-buy{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:15px;border-radius:0;font-family:var(--font);font-size:15px;font-weight:400;cursor:pointer;transition:transform .12s,filter .15s}
+.pm-buy:active{transform:scale(.98)}
+.pm-buy-cod{background:var(--white);color:var(--ink);border:1.5px solid var(--ink)}
+.pm-buy-cod:hover{background:var(--bg)}
+.pm-buy-wa{background:var(--wa);color:#fff;border:none}
+.pm-buy-wa:hover{filter:brightness(1.05)}
+.pm-buy-ic{font-size:17px;line-height:1}
 /* ── SELECTOR DE TALLAS (ficha) ── */
 .pm-sizes-cta{margin-top:36px}
 .pm-sizes{margin:0 0 2px}
@@ -890,6 +901,10 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .paychoice{position:relative;width:100%;display:flex;align-items:center;gap:13px;text-align:left;background:var(--white);border:1px solid var(--line);border-radius:0;padding:15px 16px;cursor:pointer;font-family:var(--font);box-shadow:0 1px 2px rgba(0,0,0,.04);transition:transform .15s,box-shadow .15s,border-color .15s}
 .paychoice:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,.10);border-color:color-mix(in srgb,var(--acc) 40%,var(--line))}
 .paychoice:active{transform:translateY(0) scale(.995)}
+/* Tarjeta pre-elegida por una compra rápida de la ficha (buyNowFicha/"Contraentrega" o "Comprar
+   por WhatsApp" estilo elenacuidadocapilar.com) — solo un anillo del color de la tarjeta, el
+   pago sigue siendo su clic. */
+.paychoice-hi{border-color:var(--acc);box-shadow:0 0 0 2.5px var(--acc),0 10px 26px rgba(0,0,0,.10)}
 .pc-ic{flex-shrink:0;width:44px;height:44px;border-radius:0;display:flex;align-items:center;justify-content:center;color:var(--acc)}
 .pc-ic svg{width:23px;height:23px;display:block}
 /* Logos reales de pasarela en el paso 3 (caja blanca con borde sutil) */
