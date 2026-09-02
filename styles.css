@@ -527,7 +527,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    WhatsApp" debajo de "Agregar al carrito" — saltan directo a "Tus datos", sin pasar por la
    revisión del carrito. Ver buyNowFicha() en tienda.js. */
 .pm-buyrow{display:flex;flex-direction:column;gap:10px;margin-top:10px}
-.pm-buy{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:15px;border-radius:0;font-family:var(--font);font-size:15px;font-weight:400;cursor:pointer;transition:transform .12s,filter .15s}
+.pm-buy{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:15px;border-radius:0;font-family:var(--font);font-size:14px;font-weight:400;text-transform:uppercase;letter-spacing:.03em;cursor:pointer;transition:transform .12s,filter .15s}
 .pm-buy:active{transform:scale(.98)}
 .pm-buy-cod{background:var(--white);color:var(--ink);border:1.5px solid var(--ink)}
 .pm-buy-cod:hover{background:var(--bg)}
