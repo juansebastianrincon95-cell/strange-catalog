@@ -395,8 +395,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .cvermas{flex:0 0 auto;font-size:10px;font-weight:400;color:var(--ink);cursor:pointer;border-bottom:1px solid rgba(0,0,0,.5);width:fit-content;line-height:1.3}
 
 /* Aviso al escoger talla en la ficha del producto */
-.pm-talla-check{display:flex;align-items:center;gap:10px;margin-top:10px;padding:9px;background:#fff8e1;border:1px solid #ffd97a;border-radius:0}
-.pm-talla-check-img{width:62px;height:62px;object-fit:contain;border-radius:0;flex-shrink:0;cursor:zoom-in;background:var(--white)}
+.pm-talla-check{margin-top:10px;padding:9px 10px;background:#fff8e1;border:1px solid #ffd97a;border-radius:0}
 .pm-talla-check-tx{font-size:11.5px;line-height:1.45;color:#6b4e00}
 .pm-talla-check-a{display:inline-block;font-weight:400;color:#8a5a00;text-decoration:underline;cursor:pointer}
 

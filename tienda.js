@@ -1469,11 +1469,9 @@ function pmAvisoTalla(t){
   const box=$('pmTallaCheck'); if(!box)return;
   const foto=sizeGuide&&sizeGuide.img1;
   if(!t||!foto){box.style.display='none';box.innerHTML='';return;}
-  // SIN loading="lazy": el HTML se inserta con la caja todavía en display:none y el observador de
-  // carga diferida nunca se activa para ese <img> — quedaba en blanco para siempre. Y no hace
-  // falta: esta foto solo se pinta cuando el cliente toca una talla, ya es diferida de por sí.
-  box.innerHTML=`<img class="pm-talla-check-img" src="${escHtml(foto)}" alt="Ejemplo de marquilla" onclick="zoomImg('${escHtml(foto)}')">`+
-    `<div class="pm-talla-check-tx"><b>Elegiste la talla ${escHtml(String(t))}.</b> Compárala con la marquilla dentro de un zapato tuyo antes de seguir. <span class="pm-talla-check-a" onclick="zoomImg('${escHtml(foto)}')">Ver el ejemplo ampliado</span></div>`;
+  // Sin la miniatura de la marquilla (ocupaba mucho espacio en la ficha): queda solo el aviso
+  // de texto con el link a la foto ampliada — misma zoomImg() que ya usaba el thumbnail.
+  box.innerHTML=`<div class="pm-talla-check-tx"><b>Elegiste la talla ${escHtml(String(t))}.</b> Compárala con la marquilla dentro de un zapato tuyo antes de seguir. <span class="pm-talla-check-a" onclick="zoomImg('${escHtml(foto)}')">Ver el ejemplo ampliado</span></div>`;
   box.style.display='';
 }
 
