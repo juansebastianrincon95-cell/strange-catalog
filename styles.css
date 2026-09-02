@@ -1013,24 +1013,29 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    DETRÁS de los círculos (fondo blanco propio para taparla donde pasa por encima) y se extiende
    desde debajo de uno hasta el siguiente, cruzando el margen entre secciones. */
 .sf-sec{margin-top:20px;position:relative}
-.sf-sec:not(:last-child)::before{content:'';position:absolute;left:10px;top:24px;bottom:-30px;width:1.5px;background:rgba(0,0,0,.18);z-index:0;transition:background-color .2s}
-.sf-head{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink);margin-bottom:14px;position:relative;z-index:1}
-.sf-num{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--ink);background:var(--white);color:var(--ink);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background-color .2s,color .2s}
+.sf-sec:not(:last-child)::before{content:'';position:absolute;left:8px;top:20px;bottom:-30px;width:1.5px;background:rgba(0,0,0,.18);z-index:0;transition:background-color .2s}
+/* Medidas calcadas de sahet.co (revisado en vivo por DOM el 2026-09-03): título 12px SIN
+   negrita, círculo de 16px sin borde con fondo gris claro (no blanco+contorno) — todo el
+   acordeón de sahet es peso 400, nunca bold. */
+.sf-head{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:400;text-transform:uppercase;color:var(--ink);margin-bottom:14px;position:relative;z-index:1}
+.sf-num{width:16px;height:16px;border-radius:50%;background:#e9e9e7;color:var(--ink);font-size:11px;font-weight:400;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background-color .2s,color .2s}
 /* Paso completado (calcado de sahet.co: revisado en vivo — al llenar todos los campos válidos
    de "Datos de envío", su círculo y la línea que baja de él se ponen negros). Ver
    bmRefreshDatosStep() en compra.js, que agrega/quita esta clase en #sfSecDatos. */
 .sf-sec.sf-done .sf-num{background:var(--ink);color:#fff}
 .sf-sec.sf-done::before{background:var(--ink)}
-.sf-chev{margin-left:auto;width:15px;height:15px;color:var(--ink2)}
+.sf-chev{margin-left:auto;width:14px;height:14px;color:var(--ink2)}
 .sf-chev svg{width:100%;height:100%}
-.sf-body{margin-left:32px;position:relative;z-index:1}
-.sf-fld{display:flex;align-items:center;gap:11px;padding:12px 0;border-bottom:1px solid var(--line);transition:border-color .15s}
+.sf-body{margin-left:28px;position:relative;z-index:1}
+/* Campo = icono + etiqueta chica arriba + input abajo (revisado en vivo: sahet NO usa un
+   placeholder que desaparece al escribir, es una etiqueta fija de 10px siempre visible). */
+.sf-fld{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);transition:border-color .15s}
 .sf-fld:focus-within{border-color:var(--ink)}
-.sf-ic{width:18px;height:18px;flex-shrink:0;color:var(--ink2)}
+.sf-ic{width:17px;height:17px;flex-shrink:0;color:var(--ink2);margin-top:1px}
 .sf-ic svg{width:100%;height:100%}
-.sf-fld input{flex:1;min-width:0;border:none;background:none;font-family:var(--font);font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink);outline:none;padding:0}
-.sf-fld input::placeholder{color:var(--ink3);text-transform:uppercase}
-.sf-fld input:not(:placeholder-shown){text-transform:none;letter-spacing:0;font-weight:400;font-size:13.5px}
+.sf-fld-b{flex:1;min-width:0}
+.sf-lbl{display:block;font-size:9.5px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--ink3);margin-bottom:2px}
+.sf-fld input{width:100%;border:none;background:none;font-family:var(--font);font-size:12px;font-weight:400;color:var(--ink);outline:none;padding:0}
 /* Botones de pasarela chicos, solo logo + monto — calcados de los botones de método de pago
    reales de sahet.co (revisado en vivo: son botones compactos con solo el logo, no tarjetas
    grandes con título/descripción como .paychoice del carrito clásico). */

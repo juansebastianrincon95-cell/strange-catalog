@@ -111,11 +111,12 @@ function bmResumenSahetHTML(){
   </div>`;
 }
 
-// Sección ② Datos de envío: icono de línea + input con el nombre del campo como placeholder
-// (una sola fila, sin etiqueta fija arriba) — mismos ids que formEnvioHTML() (carrito.js), así
-// que enviarWA/pagarWompi/pagarBold/leerFormEnvio los leen igual sin saber qué apariencia tienen.
+// Sección ② Datos de envío: icono + etiqueta chica arriba + input abajo (revisado en vivo en
+// sahet.co por DOM: NO es un placeholder que desaparece al escribir — es una etiqueta fija de
+// verdad, siempre visible, con el valor escrito debajo). Mismos ids que formEnvioHTML()
+// (carrito.js), así que enviarWA/pagarWompi/pagarBold/leerFormEnvio los leen igual.
 function formEnvioSahetHTML(){
-  const f=(id,ph,ic,val,type,extra,oninput)=>`<div class="sf-fld"><span class="sf-ic">${ic}</span><input id="${id}" type="${type||'text'}" placeholder="${ph}" ${extra||''} oninput="${oninput||'bmRefreshDatosStep()'}" value="${escHtml(val||'')}"></div>`;
+  const f=(id,ph,ic,val,type,extra,oninput)=>`<div class="sf-fld"><span class="sf-ic">${ic}</span><div class="sf-fld-b"><label class="sf-lbl" for="${id}">${ph}</label><input id="${id}" type="${type||'text'}" ${extra||''} oninput="${oninput||'bmRefreshDatosStep()'}" value="${escHtml(val||'')}"></div></div>`;
   return `<div class="sf-sec" id="sfSecDatos">
     <div class="sf-head"><span class="sf-num">2</span>Datos de envío<span class="sf-chev">${BM_ICONS.chevron}</span></div>
     <div class="sf-body">
