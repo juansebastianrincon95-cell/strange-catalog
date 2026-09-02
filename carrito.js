@@ -882,6 +882,26 @@ async function enviarWA(tipo){
   return false;
 }
 
+/* "Comprar por WhatsApp" desde la ficha: a diferencia de enviarWA() (que exige los 6 campos del
+   formulario porque arma un pedido completo con dirección de envío), esto es solo el enganche
+   del chat — el cliente aún no dio nombre/cédula/dirección, eso lo levanta el vendedor por
+   WhatsApp junto con la forma de pago. Va DIRECTO a wa.me sin pasar por el modal de datos.
+   El link a /p/<id>-slug lleva la foto: middleware.js reescribe el og:image de esa ruta con la
+   foto real del producto, así que WhatsApp arma la preview con la foto del zapato sola. */
+function waConsultaFicha(p,type,talla){
+  fireInitiateCheckout();
+  trackEvent('reached_payment');
+  const mk=p.brand?(BRAND_LABELS[p.brand]||p.brand)+' · ':'';
+  const lbl=p.modelo||(type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer'));
+  const url='https://strangesneakers.com'+navProdUrl(p.id,type,p);
+  const msg=`💬 *QUIERE COMPRAR — ${STORE_NAME}*\n━━━━━━━━━━━━━━━━━━━━\n👟 *${mk}${lbl}* · #${p.id}\n📏 *Talla:* ${talla}\n💰 *Precio:* ${fmt(p.price)}\n\n📸 Ver el zapato:\n${url}\n\nIndícale la forma de pago 🙏`;
+  const pid=pxId(type,p.id);
+  px('Lead',{content_ids:[pid],content_type:'product',value:p.price,currency:'COP',num_items:1},SESSION_ID+'_lead_wa_'+p.id+'_'+talla);
+  gads('lead',{value:p.price,currency:'COP'}); ga4('generate_lead',{value:p.price,currency:'COP'});
+  trackEvent('lead',{price:p.price});
+  window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,'_blank');
+}
+
 /* ── CONTRA ENTREGA: elegir con qué pasarela se paga el ENVÍO ──
    Solo se cobra el flete. El producto se paga al recibir, y el pedido queda registrado como
    venta con su envío por despachar — así el vendedor sabe cuánto recoger en la puerta. */

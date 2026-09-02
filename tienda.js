@@ -1605,6 +1605,13 @@ function buyNowFicha(intent){
   if(pmRequiereTalla(p))return;
   const id=pmId,t=pmType,talla=pmTalla;
   if(!cart[cartKey(id,t,talla)])addItemToCart(id,t,talla);
+  // "Comprar por WhatsApp": va DIRECTO al chat con la foto (preview del link) y la talla — el
+  // vendedor levanta el resto (nombre, dirección, forma de pago) por chat. No pasa por el modal
+  // de datos de envío: ese es solo para "Contra entrega" (ver waConsultaFicha en carrito.js).
+  if(intent==='whatsapp'){
+    waConsultaFicha(p,t,talla);
+    return;
+  }
   if(window.BUY_MODAL_ON===false){
     closePhotoBtn();
     _buyIntent=intent;   // 'contra_entrega' | 'whatsapp' — rPayChoice() resalta esa tarjeta una vez

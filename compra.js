@@ -1,7 +1,9 @@
 /* ── MODAL DE COMPRA RÁPIDA (contenido de elenacuidadocapilar.com, apariencia de sahet.co) ──
-   Se abre desde buyNowFicha() (tienda.js) SIN cerrar la ficha del producto — calcado de sahet.co
-   (revisado en vivo por DOM, 2026-09-03): UNA tarjeta con DOS pestañas que comparten el mismo
-   estado:
+   Se abre SOLO para "Comprar contra entrega" — buyNowFicha() (tienda.js) intercepta "Comprar
+   por WhatsApp" antes de llegar aquí y va directo a wa.me vía waConsultaFicha() (carrito.js):
+   ese botón no necesita datos de envío, el vendedor los levanta por chat. Este modal flota SOBRE
+   la ficha del producto (no la cierra) — calcado de sahet.co (revisado en vivo por DOM,
+   2026-09-03): UNA tarjeta con DOS pestañas que comparten el mismo estado:
      · BOLSA  — lista editable (foto+stepper+Eliminar) de lo que ya está en el carrito.
      · PAGAR  — ① Datos de envío, ② Medios de pago, ③ Confirmación (resumen de solo lectura +
                 desglose de precio), y el botón final de pago.
@@ -217,7 +219,6 @@ function bmConsentHTML(){
 // Wompi/Bold aquí NO paga todavía — solo marca bmGwSelected. El botón del pie (bmFooterHTML) es
 // el que valida y llama a pagarWompi/pagarBold, ya con la pasarela elegida. ──
 function bmMediosPagoBodyHTML(){
-  if(bmIntent==='whatsapp')return `<div class="sf-metodo">💬 Pago por WhatsApp</div>${bmConsentHTML()}`;
   const {pares,sub}=cartPricing();
   const ciudadViva=(($('fci')||{}).value)||(cData&&cData.ciudad)||'';
   const flete=calcFlete(pares,ciudadViva,sub);
@@ -303,8 +304,7 @@ function bmFooterHTML(){
     const dis=bmGwSelected?'':' disabled';
     return `<button class="btnmain"${dis} onclick="bmPagarGw()">Pagar ${fmt(flete)}</button><button class="btnback" onclick="bmIrAlCarritoCompleto()">Ver todas las formas de pago (tarjeta, PSE, Addi…)</button>`;
   }
-  const label=bmIntent==='whatsapp'?'💬 Completar pedido por WhatsApp':'🚚 Continuar con contra entrega';
-  return `<button class="btnmain" onclick="bmPagar()">${label}</button><button class="btnback" onclick="bmIrAlCarritoCompleto()">Ver todas las formas de pago (tarjeta, PSE, Addi…)</button>`;
+  return `<button class="btnmain" onclick="bmPagar()">🚚 Continuar con contra entrega</button><button class="btnback" onclick="bmIrAlCarritoCompleto()">Ver todas las formas de pago (tarjeta, PSE, Addi…)</button>`;
 }
 
 function renderBuyModal(){
@@ -319,15 +319,15 @@ function renderBuyModal(){
   }
 }
 
-// Solo se llega aquí cuando NO hace falta elegir pasarela (whatsapp, o contra entrega con
-// envío gratis) — con flete>0 el botón principal ni se muestra (bmFooterHTML), el cliente paga
-// tocando Wompi/Bold directo en ② Medios de pago vía bmValidarYPagar().
+// Solo se llega aquí cuando el envío es gratis (sin costo que cobrar por adelantado) — con
+// flete>0 el botón principal ni se muestra (bmFooterHTML), el cliente paga tocando Wompi/Bold
+// directo en ② Medios de pago vía bmValidarYPagar().
 function bmPagar(){
   const d=leerFormEnvio();
   if(!d)return;
   cData=d;
   captureLead(d);
-  enviarWA(bmIntent==='whatsapp'?'pago_anticipado':'contra_entrega');
+  enviarWA('contra_entrega');
 }
 
 // Escape al flujo clásico completo (Addi/Sistecrédito/Wompi/Bold sin restricción de intención):
