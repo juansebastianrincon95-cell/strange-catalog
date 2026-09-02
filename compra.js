@@ -88,6 +88,9 @@ function bmToggleDetalles(){
   const b=$('srToggleBtn');if(b)b.textContent=bmDetallesVisible?'Ocultar detalles':'Ver detalles';
 }
 // Sección ① Productos: los que el cliente ya eligió (grid de fotos + desglose de precio).
+// SIEMPRE lleva .sf-done — a diferencia de "Datos de envío" (que se valida campo por campo),
+// el producto ya quedó elegido desde antes de abrir este modal (buyNowFicha ya lo agregó al
+// carrito), así que no hay nada que "completar" aquí: el círculo y su línea nacen en negro.
 function bmResumenSahetHTML(){
   const rows=Object.values(cart);
   const totalPares=rows.reduce((s,{qty})=>s+qty,0);
@@ -97,7 +100,7 @@ function bmResumenSahetHTML(){
     const tag=talla?`<span class="crtalla">${escHtml(String(talla))}${qty>1?' · '+qty:''}</span>`:'';
     return `<div class="sr-card"><div class="sr-ph">${img}${qty>1?`<span class="sr-qty">${qty}</span>`:''}</div><div class="sr-nom">${escHtml(nom)}</div><div class="sr-precio">${fmt(p.price*qty)}</div>${tag}</div>`;
   }).join('');
-  return `<div class="sf-sec" style="margin-top:0">
+  return `<div class="sf-sec sf-done" style="margin-top:0">
     <div class="sf-head"><span class="sf-num">1</span>Productos<span class="sf-chev">${BM_ICONS.chevron}</span></div>
     <div class="sf-body">
       <div class="sr-badge">${totalPares} Producto${totalPares===1?'':'s'}</div>
