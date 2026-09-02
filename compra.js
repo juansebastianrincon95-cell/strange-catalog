@@ -116,7 +116,7 @@ function formEnvioSahetHTML(){
     ${f('fn','NOMBRE COMPLETO',BM_ICONS.nombre,cData.nombre,'text','autocomplete="name" autocapitalize="words"')}
     ${f('ft','WHATSAPP',BM_ICONS.whatsapp,cData.celular,'tel','inputmode="tel" autocomplete="tel"')}
     ${f('fem','EMAIL',BM_ICONS.email,cData.email,'email','inputmode="email" autocomplete="email"')}
-    <div class="sf-fld"><span class="sf-ic">${BM_ICONS.ciudad}</span><input id="fci" type="text" placeholder="CIUDAD O MUNICIPIO" autocomplete="address-level2" autocapitalize="words" oninput="bmRefreshTotales()" value="${escHtml(cData.ciudad||'')}"></div>
+    <div class="sf-fld"><span class="sf-ic">${BM_ICONS.ciudad}</span><input id="fci" type="text" placeholder="CIUDAD O MUNICIPIO" autocomplete="address-level2" autocapitalize="words" oninput="bmRefreshTotales();bmRefreshMediosPago()" value="${escHtml(cData.ciudad||'')}"></div>
     ${f('fd','DIRECCIÓN',BM_ICONS.direccion,cData.direccion,'text','autocomplete="street-address"')}
     ${f('fb','BARRIO',BM_ICONS.barrio,cData.barrio,'text','autocomplete="address-level3"')}
     <div class="ferr" id="ferr">Completa todos los campos y acepta la política de datos</div>
@@ -125,20 +125,68 @@ function formEnvioSahetHTML(){
 
 // Sección ③ Medios de pago: el método ya es el que el cliente eligió en la ficha (contra
 // entrega o WhatsApp) — no hay nada más que elegir aquí, solo el consentimiento y el botón
-// (en el pie fijo, bmFooterHTML) que abre DIRECTO esa opción vía bmPagar().
+// ¿Hace falta elegir pasarela para el envío? Solo aplica a contra entrega con flete>0 (si es
+// $0 o el intent es whatsapp, no hay nada que cobrar por adelantado — enviarWA basta).
+function bmNeedsGateway(){
+  if(bmIntent!=='contra_entrega')return false;
+  const {pares,sub}=cartPricing();
+  const ciudadViva=(($('fci')||{}).value)||(cData&&cData.ciudad)||'';
+  return calcFlete(pares,ciudadViva,sub)>0;
+}
+
+function bmConsentHTML(){
+  return `<label class="sf-consent" for="fconsent">
+    <input id="fconsent" type="checkbox" ${cData.consent?'checked':''}>
+    <span>Al dar clic en el siguiente botón aceptas haber leído nuestra <a href="#" onclick="openLegal('privacidad');return false">Política de Datos</a> y nuestras condiciones de <a href="#" onclick="openInfo('cambios');return false">Cambios y Garantías</a>.</span>
+  </label>`;
+}
+
+// Contenido de ③ Medios de pago: si no hace falta elegir pasarela, solo el método ya tocado en
+// la ficha (WhatsApp/Contra entrega). Si el envío tiene costo, las tarjetas de Wompi y Bold
+// quedan VISIBLES aquí mismo (calcado de sahet.co: su paso "Medios de pago" muestra las
+// opciones directo, no las esconde detrás de un botón) — igual mensaje y mismos onclick que
+// elegirPagoFlete() (carrito.js), pero validando el formulario antes vía bmValidarYPagar().
+function bmMediosPagoBodyHTML(){
+  if(bmIntent==='whatsapp')return `<div class="sf-metodo">💬 Pago por WhatsApp</div>${bmConsentHTML()}`;
+  const {pares,sub}=cartPricing();
+  const ciudadViva=(($('fci')||{}).value)||(cData&&cData.ciudad)||'';
+  const flete=calcFlete(pares,ciudadViva,sub);
+  if(flete<=0)return `<div class="sf-metodo">🚚 Contra entrega</div>${bmConsentHTML()}`;
+  return `<div class="sf-metodo-tx">Paga ahora <b>solo el envío: ${fmt(flete)}</b>. Los zapatos (<b>${fmt(sub)}</b>) los pagas <b>al recibir en casa</b> 📦</div>
+    <div class="paychoice-list">
+      <button class="paychoice" onclick="bmValidarYPagar('wompi')" style="--acc:#5D2D91"><span class="pc-ic" style="background:#fff"><img src="/logos/wompi.png" alt="Wompi" class="pc-logo"></span><span class="pc-main"><span class="pc-tit">Pagar el envío — Wompi</span><span class="pc-desc">Tarjeta · PSE · Nequi · Bancolombia</span><span class="pc-tot">A pagar hoy: ${fmt(flete)}</span></span><span class="pc-arrow">›</span></button>
+      <button class="paychoice" onclick="bmValidarYPagar('bold')" style="--acc:#2541B2"><span class="pc-ic" style="background:#fff"><img src="/logos/bold.png" alt="Bold" class="pc-logo"></span><span class="pc-main"><span class="pc-tit">Pagar el envío — Bold</span><span class="pc-desc">Tarjeta · PSE · Botón Bancolombia</span><span class="pc-tot">A pagar hoy: ${fmt(flete)}</span></span><span class="pc-arrow">›</span></button>
+    </div>
+    ${bmConsentHTML()}`;
+}
+
 function bmMediosPagoHTML(){
-  const metodo=bmIntent==='whatsapp'?'💬 Pago por WhatsApp':'🚚 Contra entrega';
   return `<div class="sf-sec">
     <div class="sf-head"><span class="sf-num">3</span>Medios de pago<span class="sf-chev">${BM_ICONS.chevron}</span></div>
-    <div class="sf-metodo">${metodo}</div>
-    <label class="sf-consent" for="fconsent">
-      <input id="fconsent" type="checkbox" ${cData.consent?'checked':''}>
-      <span>Al dar clic en el siguiente botón aceptas haber leído nuestra <a href="#" onclick="openLegal('privacidad');return false">Política de Datos</a> y nuestras condiciones de <a href="#" onclick="openInfo('cambios');return false">Cambios y Garantías</a>.</span>
-    </label>
+    <div id="srMedios">${bmMediosPagoBodyHTML()}</div>
   </div>`;
 }
 
+// Re-pinta solo la sección 3 y el pie (el botón principal se oculta cuando hace falta elegir
+// pasarela, ver bmFooterHTML) — se llama al escribir la ciudad, igual que bmRefreshTotales().
+function bmRefreshMediosPago(){
+  const box=$('srMedios');if(box)box.innerHTML=bmMediosPagoBodyHTML();
+  $('bmFoot').innerHTML=bmFooterHTML();
+}
+
+// Valida el formulario y captura el lead ANTES de pagar el envío por Wompi/Bold — mismo guard
+// que bmPagar(), pero llamado directo desde las tarjetas de la sección 3 en vez de un botón
+// intermedio. pagarWompi/pagarBold quedan intactas, agnósticas de quién las llama.
+function bmValidarYPagar(gw){
+  const d=leerFormEnvio();
+  if(!d)return;
+  cData=d;
+  captureLead(d);
+  if(gw==='wompi')pagarWompi(true);else pagarBold(true);
+}
+
 function bmFooterHTML(){
+  if(bmNeedsGateway())return `<button class="btnback" onclick="bmIrAlCarritoCompleto()">Ver todas las formas de pago (tarjeta, PSE, Addi…)</button>`;
   const label=bmIntent==='whatsapp'?'💬 Completar pedido por WhatsApp':'🚚 Continuar con contra entrega';
   return `<button class="btnmain" onclick="bmPagar()">${label}</button><button class="btnback" onclick="bmIrAlCarritoCompleto()">Ver todas las formas de pago (tarjeta, PSE, Addi…)</button>`;
 }
@@ -149,33 +197,15 @@ function renderBuyModal(){
   $('bmFoot').innerHTML=bmFooterHTML();
 }
 
+// Solo se llega aquí cuando NO hace falta elegir pasarela (whatsapp, o contra entrega con
+// envío gratis) — con flete>0 el botón principal ni se muestra (bmFooterHTML), el cliente paga
+// tocando Wompi/Bold directo en la sección 3 vía bmValidarYPagar().
 function bmPagar(){
   const d=leerFormEnvio();
   if(!d)return;
   cData=d;
   captureLead(d);
-  if(bmIntent==='whatsapp'){enviarWA('pago_anticipado');return;}
-  const {pares,sub}=cartPricing();
-  const flete=calcFlete(pares,d.ciudad,sub);
-  if(flete<=0){enviarWA('contra_entrega');return;}
-  bmMostrarPagoFlete(flete,sub);
-}
-
-// Espejo de elegirPagoFlete() (carrito.js) pero dentro del modal: mismo mensaje y mismos
-// onclick="pagarWompi(true)"/"pagarBold(true)" (funciones agnósticas del contenedor).
-function bmMostrarPagoFlete(flete,sub){
-  $('bmBody').innerHTML=`<div class="paysec">
-    <div class="paytit">Paga tu envío para asegurar el despacho</div>
-    <div style="background:var(--bg);border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:12.5px;color:var(--ink2);line-height:1.5">
-      Pagas ahora <b>solo el envío: ${fmt(flete)}</b>.<br>
-      Los zapatos (<b>${fmt(sub)}</b>) los pagas <b>al recibir en casa</b> 📦
-    </div>
-    <div class="paychoice-list">
-      <button class="paychoice" onclick="pagarWompi(true)" style="--acc:#5D2D91"><span class="pc-ic" style="background:#fff"><img src="/logos/wompi.png" alt="Wompi" class="pc-logo"></span><span class="pc-main"><span class="pc-tit">Pagar el envío — Wompi</span><span class="pc-desc">Tarjeta · PSE · Nequi · Bancolombia</span><span class="pc-tot">A pagar hoy: ${fmt(flete)}</span></span><span class="pc-arrow">›</span></button>
-      <button class="paychoice" onclick="pagarBold(true)" style="--acc:#2541B2"><span class="pc-ic" style="background:#fff"><img src="/logos/bold.png" alt="Bold" class="pc-logo"></span><span class="pc-main"><span class="pc-tit">Pagar el envío — Bold</span><span class="pc-desc">Tarjeta · PSE · Botón Bancolombia</span><span class="pc-tot">A pagar hoy: ${fmt(flete)}</span></span><span class="pc-arrow">›</span></button>
-    </div>
-  </div>`;
-  $('bmFoot').innerHTML=`<button class="btnback" onclick="renderBuyModal()">← Volver</button>`;
+  enviarWA(bmIntent==='whatsapp'?'pago_anticipado':'contra_entrega');
 }
 
 // Escape al flujo clásico completo (Addi/Sistecrédito/Wompi/Bold sin restricción de intención):

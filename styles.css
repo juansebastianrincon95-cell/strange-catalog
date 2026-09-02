@@ -997,6 +997,8 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 /* Checkbox de consentimiento — mismo estilo inline que usaba el formulario clásico, ahora junto
    al resumen (posición calcada del aviso legal de sahet, justo después del total). */
 .sf-metodo{display:inline-block;font-size:13px;font-weight:600;color:var(--ink);background:var(--bg);border:1px solid var(--line);padding:8px 12px}
+.sf-metodo-tx{background:var(--bg);padding:12px 14px;margin-bottom:12px;font-size:12.5px;color:var(--ink2);line-height:1.5}
+.sf-metodo-tx+.paychoice-list{margin-bottom:14px}
 .sf-consent{display:flex;gap:9px;align-items:flex-start;margin-top:14px;padding-top:14px;border-top:1px solid var(--line);font-size:11.5px;line-height:1.45;color:var(--ink2);cursor:pointer}
 .sf-consent input{margin-top:2px;width:16px;height:16px;flex:0 0 auto;accent-color:var(--ink)}
 .sf-consent a{color:var(--ink);font-weight:700}
@@ -1005,9 +1007,14 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    input de una sola fila cuyo placeholder ES la etiqueta (sin label fija arriba, calcado de
    CÉDULA/NOMBRE/WHATSAPP/EMAIL/DIRECCIÓN en su acordeón "① Datos de envío"). Mismos ids que el
    formulario clásico — ver formEnvioSahetHTML() en compra.js. */
-.sf-sec{margin-top:20px}
-.sf-head{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink);margin-bottom:14px}
-.sf-num{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--ink);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+/* Línea vertical que conecta los círculos ①②③ (calcada de sahet.co: sus 3 pasos del acordeón
+   quedan unidos por una línea al costado izquierdo). Va DETRÁS de los círculos (que llevan
+   fondo blanco propio para taparla donde pasa por encima) y se extiende desde debajo de un
+   círculo hasta el siguiente, cruzando el margen entre secciones. */
+.sf-sec{margin-top:20px;position:relative}
+.sf-sec:not(:last-child)::before{content:'';position:absolute;left:10px;top:24px;bottom:-30px;width:1.5px;background:rgba(0,0,0,.18);z-index:0}
+.sf-head{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink);margin-bottom:14px;position:relative;z-index:1}
+.sf-num{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--ink);background:var(--white);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .sf-chev{margin-left:auto;width:15px;height:15px;color:var(--ink2)}
 .sf-chev svg{width:100%;height:100%}
 .sf-fld{display:flex;align-items:center;gap:11px;padding:12px 0;border-bottom:1px solid var(--line);transition:border-color .15s}
