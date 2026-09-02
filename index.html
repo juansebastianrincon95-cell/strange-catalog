@@ -612,10 +612,11 @@
 </div>
 
 <!-- COMPRA RÁPIDA: modal que flota SOBRE la ficha (no la cierra) para "Comprar contra entrega" /
-     "Comprar por WhatsApp" — resumen + upsell + datos + pago en una sola vista. Ver compra.js. -->
+     "Comprar por WhatsApp" — calcado de sahet.co: pestañas BOLSA (editable) / PAGAR (datos +
+     medios + confirmación). Ver compra.js. -->
 <div class="bm-scrim" id="bmScrim" onclick="closeBuyModal()"></div>
 <div class="buy-modal" id="buyModal">
-  <div class="bm-head"><span id="bmTitle">Finaliza tu pedido</span><button class="cx" onclick="closeBuyModal()">✕</button></div>
+  <div class="bm-head"><div class="bm-tabs" id="bmTabs"></div><button class="cx" onclick="closeBuyModal()">✕</button></div>
   <div class="bm-body" id="bmBody"></div>
   <div class="bm-foot" id="bmFoot"></div>
 </div>

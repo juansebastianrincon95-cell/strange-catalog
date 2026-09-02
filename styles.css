@@ -970,10 +970,18 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 }
 @media(min-width:1180px){.buy-modal{width:480px;max-width:480px}}
 @media(min-width:1600px){.buy-modal{width:540px;max-width:540px}}
-.bm-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 8px;flex-shrink:0}
-.bm-head span{font-size:17px;font-weight:400;letter-spacing:-.03em}
+.bm-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 0;flex-shrink:0;gap:10px}
 .bm-body{overflow-y:auto;flex:1;min-height:0;-webkit-overflow-scrolling:touch;padding:0 18px}
 .bm-foot{padding:12px 18px 2px;border-top:1px solid var(--line);flex-shrink:0}
+/* Pestañas BOLSA/PAGAR calcadas de sahet.co (revisado en vivo por DOM: "BOLSA 13" con badge
+   negro / "PAGAR $552.700" con el monto, la activa con fondo oscuro) — ver bmTabsHTML() en
+   compra.js. Comparten el mismo cart/cData: cambiar de pestaña no pierde nada. */
+.bm-tabs{display:flex;gap:6px;flex:1;min-width:0}
+.bm-tab{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--bg);border:none;border-radius:0;padding:10px 8px;font-family:var(--font);font-size:12.5px;font-weight:600;color:var(--ink2);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bm-tab.on{background:var(--ink);color:#fff}
+.bm-tab-badge{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 4px;border-radius:50%;background:rgba(0,0,0,.12);color:inherit;font-size:10px;font-weight:700}
+.bm-tab.on .bm-tab-badge{background:rgba(255,255,255,.25)}
+.bm-tab-tot{font-variant-numeric:tabular-nums}
 
 /* Resumen de compra rápida estilo sahet.co (revisado en vivo contra su "CONFIRMACIÓN" el
    2026-09-01): grid de fotos con badge de cantidad + desglose de precio con píldora roja
@@ -1000,6 +1008,17 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .sr-off-v{color:var(--red);font-weight:600;font-variant-numeric:tabular-nums}
 .sr-total{font-size:16px;border-top:2px solid var(--ink)}
 .sr-total .v{font-size:19px;letter-spacing:-.02em}
+/* Grid de solo lectura de "③ Confirmación" (calcado de sahet.co: 3 columnas, foto chica con
+   badge de cantidad en la esquina, etiqueta de talla debajo) — NO editable, sin stepper ni
+   "Eliminar", distinto a .sr-row (la BOLSA sí editable). Ver bmConfirmacionHTML() en compra.js. */
+.sc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0 4px}
+.sc-card{display:flex;flex-direction:column;gap:2px}
+.sc-ph{position:relative;aspect-ratio:1;background:var(--bg);overflow:hidden;display:flex;align-items:center;justify-content:center}
+.sc-ph img{width:100%;height:100%;object-fit:cover}
+.sc-qty{position:absolute;top:3px;right:3px;min-width:16px;height:16px;padding:0 4px;border-radius:50%;background:var(--ink);color:#fff;font-size:9.5px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.sc-nom{font-size:10px;color:var(--ink2);line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sc-precio{font-size:10.5px;color:var(--ink);font-variant-numeric:tabular-nums}
+.sc-talla{font-size:9.5px;color:var(--ink2)}
 /* Checkbox de consentimiento — mismo estilo inline que usaba el formulario clásico, ahora junto
    al resumen (posición calcada del aviso legal de sahet, justo después del total). */
 .sf-metodo{display:inline-block;font-size:13px;font-weight:600;color:var(--ink);background:var(--bg);border:1px solid var(--line);padding:8px 12px}

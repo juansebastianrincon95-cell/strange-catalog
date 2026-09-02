@@ -1,10 +1,13 @@
 /* ── MODAL DE COMPRA RÁPIDA (contenido de elenacuidadocapilar.com, apariencia de sahet.co) ──
-   Se abre desde buyNowFicha() (tienda.js) SIN cerrar la ficha del producto: primero el resumen
-   con grid de fotos + desglose de precio (estilo sahet.co), luego el formulario de envío con
-   icono+etiqueta+input subrayado (también estilo sahet.co) y el botón final de pago — mismos
-   campos de siempre (cédula/nombre/whatsapp/email/ciudad/dirección/barrio), todo en una sola
-   vista con scroll. Sin upsell/cross-sell entre el total y el formulario (a propósito: solo
-   distraía de terminar el pedido del zapato que ya eligió).
+   Se abre desde buyNowFicha() (tienda.js) SIN cerrar la ficha del producto — calcado de sahet.co
+   (revisado en vivo por DOM, 2026-09-03): UNA tarjeta con DOS pestañas que comparten el mismo
+   estado:
+     · BOLSA  — lista editable (foto+stepper+Eliminar) de lo que ya está en el carrito.
+     · PAGAR  — ① Datos de envío, ② Medios de pago, ③ Confirmación (resumen de solo lectura +
+                desglose de precio), y el botón final de pago.
+   Arranca en PAGAR (buyNowFicha ya salta la revisión del carrito a propósito) pero BOLSA queda
+   siempre a un clic si el cliente quiere ajustar cantidad o quitar algo — igual que en sahet,
+   donde ambas pestañas están siempre accesibles y cambiar de una a otra no pierde nada.
 
    Reusa tal cual (sin tocarlas) las funciones reales de pago de carrito.js: enviarWA/pagarWompi/
    pagarBold leen los campos del formulario por id ($('fn')...$('fci')) sin saber en qué
@@ -16,7 +19,7 @@
    window.BUY_MODAL_ON=false permite volver al flujo clásico (csheet) sin tocar código. */
 const BUY_MODAL_ON=true;
 
-let bmIntent=null,bmCtx=null,bmGwSelected=null;
+let bmIntent=null,bmCtx=null,bmGwSelected=null,bmTab='pagar';
 
 // Iconos de línea (mismo template SVG que ya usa rPayChoice() en carrito.js: viewBox 24x24,
 // stroke=currentColor) — sahet.co usa iconos de contorno minimalistas, no emoji.
@@ -36,6 +39,7 @@ function openBuyModal(intent){
   bmIntent=intent;
   bmCtx={id:pmId,type:pmType,talla:pmTalla};
   bmGwSelected=null;
+  bmTab='pagar';
   // Limpia el csheet clásico: si quedó renderizado detrás (ej. el cliente había abierto el
   // carrito antes), sus inputs #fn/#fc/... duplicarían los ids del formulario de este modal y
   // $('fn') tomaría el primero en el DOM (el del csheet, que precede a #buyModal) — vacío o
@@ -63,15 +67,32 @@ function closeBuyModal(){
   bmIntent=null;bmCtx=null;
 }
 
-// Resumen estilo sahet.co: grid de fotos (con el badge de cantidad) + desglose de precio con
-// la píldora roja "-X% OFF" calcada de su "CONFIRMACIÓN" (revisado en vivo el 2026-09-01).
+// ── Pestañas BOLSA / PAGAR (calcadas de sahet.co: "BOLSA [n]" con badge negro, "PAGAR $total"
+// con el monto — cambiar de una a otra no pierde nada, comparten el mismo cart/cData). ──
+function bmMontoAPagar(){
+  const {pares,sub}=cartPricing();
+  const flete=bmIntent==='contra_entrega'?calcFlete(pares,(($('fci')||{}).value)||(cData&&cData.ciudad)||'',sub):0;
+  return sub+flete;
+}
+function bmTabsHTML(){
+  const totalPares=Object.values(cart).reduce((s,{qty})=>s+qty,0);
+  return `<button type="button" class="bm-tab${bmTab==='bolsa'?' on':''}" onclick="bmSwitchTab('bolsa')">Bolsa <span class="bm-tab-badge">${totalPares}</span></button>
+    <button type="button" class="bm-tab${bmTab==='pagar'?' on':''}" onclick="bmSwitchTab('pagar')">Pagar <span class="bm-tab-tot">${fmt(bmMontoAPagar())}</span></button>`;
+}
+function bmRefreshTabs(){
+  const box=$('bmTabs');if(box)box.innerHTML=bmTabsHTML();
+}
+function bmSwitchTab(tab){
+  bmTab=tab;
+  renderBuyModal();
+}
+
 function bmTotalsHTML(){
   const rows=Object.values(cart);
   const pricing=cartPricing(rows);
   const orig=rows.reduce((s,{p,qty})=>{const act=(p.promo||promoG)&&p.was&&p.was>p.price;return s+(act?p.was:p.price)*qty;},0);
   const ahorroTotal=orig-pricing.sub;
   const pctOff=orig>0?Math.round((ahorroTotal/orig)*100):0;
-  // Ciudad en vivo del input si ya existe (el cliente está escribiendo), si no la última guardada.
   const ciudadViva=(($('fci')||{}).value)||(cData&&cData.ciudad)||'';
   const flete=bmIntent==='contra_entrega'?calcFlete(pricing.pares,ciudadViva,pricing.sub):0;
   const totalFinal=pricing.sub+flete;
@@ -80,12 +101,11 @@ function bmTotalsHTML(){
 }
 function bmRefreshTotales(){
   const box=$('srTotals');if(box)box.innerHTML=bmTotalsHTML();
+  bmRefreshTabs();
 }
 
-// Lista de líneas estilo "BOLSA" de sahet.co (revisado en vivo por DOM: foto grande, nombre,
-// "Talla X" con stepper −/+ y "Eliminar" — reusa .cqb/.cqv, el mismo stepper que ya usa el
-// carrito clásico, en vez de inventar uno nuevo). A diferencia de "CONFIRMACIÓN" (resumen de
-// solo lectura, ya no se usa aquí), esto sí permite editar sin salir del modal.
+// ── BOLSA: lista editable (foto grande+nombre+"Eliminar"+"Talla X"+stepper+precio), calcada
+// por DOM de la BOLSA real de sahet.co. Reusa .cqb/.cqv, el mismo stepper del carrito clásico. ──
 function bmProductosListHTML(){
   return Object.entries(cart).map(([key,{p,qty,type,talla}])=>{
     const img=p.img?`<img src="${p.img}" alt="${altProd(p)}">`:`<span style="font-size:30px">${type==='liq'?'🔥':'👟'}</span>`;
@@ -101,10 +121,15 @@ function bmProductosListHTML(){
     </div>`;
   }).join('');
 }
+function bmBolsaHTML(){
+  return `<div id="srList">${bmProductosListHTML()}</div>`;
+}
+function bmBolsaFooterHTML(){
+  return `<button class="btnmain" onclick="bmSwitchTab('pagar')">Ir a pagar ${fmt(bmMontoAPagar())}</button>`;
+}
 function bmRefreshProductos(){
-  const totalPares=Object.values(cart).reduce((s,{qty})=>s+qty,0);
-  const badge=$('srBadge');if(badge)badge.textContent=`${totalPares} Producto${totalPares===1?'':'s'}`;
   const list=$('srList');if(list)list.innerHTML=bmProductosListHTML();
+  bmRefreshTabs();
 }
 // +/− de cantidad y "Eliminar" — mismo patrón que chQty()/rmItem() (carrito.js), pero refresca
 // las funciones propias del modal (totales/medios de pago dependen de cartPricing(), que cambia
@@ -118,6 +143,7 @@ function bmChQty(key,d){
   bmRefreshProductos();
   bmRefreshTotales();
   bmRefreshMediosPago();
+  if($('bmFoot')&&bmTab==='bolsa')$('bmFoot').innerHTML=bmBolsaFooterHTML();
 }
 function bmRmItem(key){
   delete cart[key];
@@ -130,31 +156,17 @@ function bmRmItem(key){
   bmRefreshProductos();
   bmRefreshTotales();
   bmRefreshMediosPago();
-}
-// Sección ① Productos: los que el cliente ya eligió, editable (foto+stepper+Eliminar) igual que
-// la "BOLSA" de sahet.co. SIEMPRE lleva .sf-done — a diferencia de "Datos de envío" (que se
-// valida campo por campo), el producto ya quedó elegido desde antes de abrir este modal
-// (buyNowFicha ya lo agregó al carrito), así que no hay nada que "completar" aquí.
-function bmResumenSahetHTML(){
-  const totalPares=Object.values(cart).reduce((s,{qty})=>s+qty,0);
-  return `<div class="sf-sec sf-done" style="margin-top:0">
-    <div class="sf-head"><span class="sf-num">1</span>Productos<span class="sf-chev">${BM_ICONS.chevron}</span></div>
-    <div class="sf-body">
-      <div class="sr-badge" id="srBadge">${totalPares} Producto${totalPares===1?'':'s'}</div>
-      <div id="srList">${bmProductosListHTML()}</div>
-      <div class="sr-totals" id="srTotals">${bmTotalsHTML()}</div>
-    </div>
-  </div>`;
+  if($('bmFoot')&&bmTab==='bolsa')$('bmFoot').innerHTML=bmBolsaFooterHTML();
 }
 
-// Sección ② Datos de envío: icono + etiqueta chica arriba + input abajo (revisado en vivo en
+// ── PAGAR — ① Datos de envío: icono + etiqueta chica arriba + input abajo (revisado en vivo en
 // sahet.co por DOM: NO es un placeholder que desaparece al escribir — es una etiqueta fija de
 // verdad, siempre visible, con el valor escrito debajo). Mismos ids que formEnvioHTML()
-// (carrito.js), así que enviarWA/pagarWompi/pagarBold/leerFormEnvio los leen igual.
+// (carrito.js), así que enviarWA/pagarWompi/pagarBold/leerFormEnvio los leen igual. ──
 function formEnvioSahetHTML(){
   const f=(id,ph,ic,val,type,extra,oninput)=>`<div class="sf-fld"><span class="sf-ic">${ic}</span><div class="sf-fld-b"><label class="sf-lbl" for="${id}">${ph}</label><input id="${id}" type="${type||'text'}" ${extra||''} oninput="${oninput||'bmRefreshDatosStep()'}" value="${escHtml(val||'')}"></div></div>`;
-  return `<div class="sf-sec" id="sfSecDatos">
-    <div class="sf-head"><span class="sf-num">2</span>Datos de envío<span class="sf-chev">${BM_ICONS.chevron}</span></div>
+  return `<div class="sf-sec" id="sfSecDatos" style="margin-top:0">
+    <div class="sf-head"><span class="sf-num">1</span>Datos de envío<span class="sf-chev">${BM_ICONS.chevron}</span></div>
     <div class="sf-body">
       ${f('fc','CÉDULA',BM_ICONS.cedula,cData.cedula,'text','inputmode="numeric" autocomplete="off"')}
       ${f('fn','NOMBRE COMPLETO',BM_ICONS.nombre,cData.nombre,'text','autocomplete="name" autocapitalize="words"')}
@@ -198,12 +210,12 @@ function bmConsentHTML(){
   </label>`;
 }
 
-// Contenido de ③ Medios de pago: si no hace falta elegir pasarela, solo el método ya tocado en
-// la ficha (WhatsApp/Contra entrega). Si el envío tiene costo, se elige Wompi o Bold — pero
-// igual que sahet.co (revisado en vivo: elegir un método solo lo SELECCIONA, colapsa el resto
-// y deja un link "Cambiar"; el pago real se dispara con un botón "Pagar $X" aparte, al final)
-// tocar Wompi/Bold aquí NO paga todavía — solo marca bmGwSelected. El botón del pie
-// (bmFooterHTML) es el que valida y llama a pagarWompi/pagarBold, ya con la pasarela elegida.
+// ── PAGAR — ② Medios de pago: si no hace falta elegir pasarela, solo el método ya tocado en la
+// ficha (WhatsApp/Contra entrega). Si el envío tiene costo, se elige Wompi o Bold — igual que
+// sahet.co (revisado en vivo: elegir un método solo lo SELECCIONA, colapsa el resto y deja un
+// link "Cambiar"; el pago real se dispara con un botón "Pagar $X" aparte, al final) tocar
+// Wompi/Bold aquí NO paga todavía — solo marca bmGwSelected. El botón del pie (bmFooterHTML) es
+// el que valida y llama a pagarWompi/pagarBold, ya con la pasarela elegida. ──
 function bmMediosPagoBodyHTML(){
   if(bmIntent==='whatsapp')return `<div class="sf-metodo">💬 Pago por WhatsApp</div>${bmConsentHTML()}`;
   const {pares,sub}=cartPricing();
@@ -226,7 +238,7 @@ function bmMediosPagoBodyHTML(){
 
 function bmMediosPagoHTML(){
   return `<div class="sf-sec">
-    <div class="sf-head"><span class="sf-num">3</span>Medios de pago<span class="sf-chev">${BM_ICONS.chevron}</span></div>
+    <div class="sf-head"><span class="sf-num">2</span>Medios de pago<span class="sf-chev">${BM_ICONS.chevron}</span></div>
     <div class="sf-body"><div id="srMedios">${bmMediosPagoBodyHTML()}</div></div>
   </div>`;
 }
@@ -237,12 +249,34 @@ function bmSelectGw(gw){
   bmRefreshMediosPago();
 }
 
-// Re-pinta solo la sección 3 y el pie (el botón principal cambia a "Pagar $X" cuando hace falta
+// Re-pinta solo la sección 2 y el pie (el botón principal cambia a "Pagar $X" cuando hace falta
 // elegir pasarela, ver bmFooterHTML) — se llama al escribir la ciudad y al elegir/cambiar la
 // pasarela, igual que bmRefreshTotales().
 function bmRefreshMediosPago(){
   const box=$('srMedios');if(box)box.innerHTML=bmMediosPagoBodyHTML();
-  $('bmFoot').innerHTML=bmFooterHTML();
+  if($('bmFoot')&&bmTab==='pagar')$('bmFoot').innerHTML=bmFooterHTML();
+  bmRefreshTabs();
+}
+
+// ── PAGAR — ③ Confirmación: resumen de SOLO LECTURA (grid compacto de fotos + desglose de
+// precio) — calcado de la "CONFIRMACIÓN" real de sahet.co. A diferencia de BOLSA, aquí no se
+// edita nada (ni stepper ni "Eliminar"): es la última revisión antes de pagar. ──
+function bmConfirmacionHTML(){
+  const totalPares=Object.values(cart).reduce((s,{qty})=>s+qty,0);
+  const cards=Object.values(cart).map(({p,qty,type,talla})=>{
+    const img=p.img?`<img src="${p.img}" alt="${altProd(p)}">`:`<span style="font-size:26px">${type==='liq'?'🔥':'👟'}</span>`;
+    const nom=p.modelo||(type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer'));
+    const tag=talla?`<span class="sc-talla">${escHtml(String(talla))}${qty>1?' · '+qty:''}</span>`:'';
+    return `<div class="sc-card"><div class="sc-ph">${img}${qty>1?`<span class="sc-qty">${qty}</span>`:''}</div><div class="sc-nom">${escHtml(nom)}</div><div class="sc-precio">${fmt(p.price*qty)}</div>${tag}</div>`;
+  }).join('');
+  return `<div class="sf-sec">
+    <div class="sf-head"><span class="sf-num">3</span>Confirmación<span class="sf-chev">${BM_ICONS.chevron}</span></div>
+    <div class="sf-body">
+      <div class="sr-badge">${totalPares} Producto${totalPares===1?'':'s'}</div>
+      <div class="sc-grid">${cards}</div>
+      <div class="sr-totals" id="srTotals">${bmTotalsHTML()}</div>
+    </div>
+  </div>`;
 }
 
 // Valida el formulario y captura el lead ANTES de pagar el envío por Wompi/Bold — mismo guard
@@ -274,15 +308,20 @@ function bmFooterHTML(){
 }
 
 function renderBuyModal(){
-  $('bmTitle').textContent=bmIntent==='whatsapp'?'Comprar por WhatsApp':'Comprar contra entrega';
-  $('bmBody').innerHTML=bmResumenSahetHTML()+formEnvioSahetHTML()+bmMediosPagoHTML();
-  $('bmFoot').innerHTML=bmFooterHTML();
-  bmRefreshDatosStep();
+  $('bmTabs').innerHTML=bmTabsHTML();
+  if(bmTab==='bolsa'){
+    $('bmBody').innerHTML=bmBolsaHTML();
+    $('bmFoot').innerHTML=bmBolsaFooterHTML();
+  }else{
+    $('bmBody').innerHTML=formEnvioSahetHTML()+bmMediosPagoHTML()+bmConfirmacionHTML();
+    $('bmFoot').innerHTML=bmFooterHTML();
+    bmRefreshDatosStep();
+  }
 }
 
 // Solo se llega aquí cuando NO hace falta elegir pasarela (whatsapp, o contra entrega con
 // envío gratis) — con flete>0 el botón principal ni se muestra (bmFooterHTML), el cliente paga
-// tocando Wompi/Bold directo en la sección 3 vía bmValidarYPagar().
+// tocando Wompi/Bold directo en ② Medios de pago vía bmValidarYPagar().
 function bmPagar(){
   const d=leerFormEnvio();
   if(!d)return;
