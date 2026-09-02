@@ -17,6 +17,20 @@ const BUY_MODAL_ON=true;
 
 let bmIntent=null,bmCtx=null,bmDetallesVisible=true;
 
+// Iconos de línea (mismo template SVG que ya usa rPayChoice() en carrito.js: viewBox 24x24,
+// stroke=currentColor) — sahet.co usa iconos de contorno minimalistas, no emoji.
+const BM_SV='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">';
+const BM_ICONS={
+  cedula:BM_SV+'<rect x="2" y="5.5" width="20" height="13" rx="2"/><circle cx="8" cy="12" r="1.8"/><path d="M13 10.3h6M13 13.7h4"/></svg>',
+  nombre:BM_SV+'<circle cx="12" cy="8" r="3.3"/><path d="M5 20c0-4 3.1-6.6 7-6.6s7 2.6 7 6.6"/></svg>',
+  whatsapp:BM_SV+'<path d="M8 10.3c.9 2 2.9 4 4.9 4.9l1.1-1.4c.3-.3.7-.4 1.1-.2.8.4 1.6.6 2.5.7.5.1.9.5.9 1v2.1c0 .6-.5 1-1 1-6.6 0-12-5.4-12-12 0-.5.4-1 1-1h2.1c.5 0 .9.4 1 .9.1.9.3 1.7.7 2.5.2.4.1.8-.2 1.1z"/></svg>',
+  email:BM_SV+'<rect x="2.5" y="5.5" width="19" height="13" rx="2"/><path d="M3 6.5l9 6.3 9-6.3"/></svg>',
+  ciudad:BM_SV+'<path d="M12 21s6.5-6 6.5-10.8A6.5 6.5 0 1 0 5.5 10.2C5.5 15 12 21 12 21z"/><circle cx="12" cy="10" r="2.2"/></svg>',
+  direccion:BM_SV+'<path d="M4 11.2 12 4.5l8 6.7"/><path d="M6 10v9.5h12V10"/><path d="M10 19.5v-5.8h4v5.8"/></svg>',
+  barrio:BM_SV+'<path d="M3.5 20.5v-9l5-3.3 5 3.3v9z"/><path d="M13.5 20.5V7l5-3v16.5"/><path d="M7 20.5v-4h3v4"/></svg>',
+  chevron:BM_SV+'<path d="M6 15l6-6 6 6"/></svg>'
+};
+
 function bmProduct(){
   if(!bmCtx)return null;
   const list=bmCtx.type==='liq'?liqs:prods;
@@ -54,20 +68,20 @@ function closeBuyModal(){
   bmIntent=null;bmCtx=null;
 }
 
-// Resumen estilo sahet.co: grid de fotos (con el badge de cantidad) + desglose de precio.
-// El desglose reusa las mismas clases del resumen clásico (.csum-row/.csum-total/.free) para
-// mantener la misma tipografía en todo el sitio, en vez de inventar una nueva.
+// Resumen estilo sahet.co: grid de fotos (con el badge de cantidad) + desglose de precio con
+// la píldora roja "-X% OFF" calcada de su "CONFIRMACIÓN" (revisado en vivo el 2026-09-01).
 function bmTotalsHTML(){
   const rows=Object.values(cart);
   const pricing=cartPricing(rows);
   const orig=rows.reduce((s,{p,qty})=>{const act=(p.promo||promoG)&&p.was&&p.was>p.price;return s+(act?p.was:p.price)*qty;},0);
   const ahorroTotal=orig-pricing.sub;
+  const pctOff=orig>0?Math.round((ahorroTotal/orig)*100):0;
   // Ciudad en vivo del input si ya existe (el cliente está escribiendo), si no la última guardada.
   const ciudadViva=(($('fci')||{}).value)||(cData&&cData.ciudad)||'';
   const flete=bmIntent==='contra_entrega'?calcFlete(pricing.pares,ciudadViva,pricing.sub):0;
   const totalFinal=pricing.sub+flete;
-  const discRow=ahorroTotal>0?`<div class="csum-row disc"><span>${pricing.combo?escHtml(pricing.combo.nombre):escHtml(pricing.descTag||'Descuento')}</span><span class="v">−${fmt(ahorroTotal)}</span></div>`:'';
-  return `<div class="csum-row"><span>Productos</span><span class="v">${fmt(orig)}</span></div>${discRow}<div class="csum-row"><span>Envío</span><span class="v${flete===0?' free':''}">${flete===0?'Gratis':fmt(flete)}</span></div><div class="csum-total"><span class="l">Total</span><span class="v">${fmt(totalFinal)}</span></div>`;
+  const discRow=ahorroTotal>0?`<div class="sr-trow"><span class="sr-offpill">-${pctOff}% OFF</span><span class="sr-off-v">−${fmt(ahorroTotal)}</span></div>`:'';
+  return `<div class="sr-trow"><span>Productos</span><span class="v">${fmt(orig)}</span></div>${discRow}<div class="sr-trow"><span>Envío</span><span class="v${flete===0?' free':''}">${flete===0?'Gratis':fmt(flete)}</span></div><div class="sr-trow sr-total"><span>Total</span><span class="v">${fmt(totalFinal)}</span></div>`;
 }
 function bmRefreshTotales(){
   const box=$('srTotals');if(box)box.innerHTML=bmTotalsHTML();
@@ -83,33 +97,35 @@ function bmResumenSahetHTML(){
   const cards=rows.map(({p,qty,type,talla})=>{
     const img=p.img?`<img src="${p.img}" alt="${altProd(p)}">`:`<span style="font-size:26px">${type==='liq'?'🔥':'👟'}</span>`;
     const nom=p.modelo||(type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer'));
-    return `<div class="sr-card"><div class="sr-ph">${img}${qty>1?`<span class="sr-qty">${qty}</span>`:''}</div><div class="sr-nom">${escHtml(nom)}</div><div class="sr-precio">${fmt(p.price*qty)}</div>${talla?`<span class="crtalla">Talla ${escHtml(String(talla))}</span>`:''}</div>`;
+    const tag=talla?`<span class="crtalla">${escHtml(String(talla))}${qty>1?' · '+qty:''}</span>`:'';
+    return `<div class="sr-card"><div class="sr-ph">${img}${qty>1?`<span class="sr-qty">${qty}</span>`:''}</div><div class="sr-nom">${escHtml(nom)}</div><div class="sr-precio">${fmt(p.price*qty)}</div>${tag}</div>`;
   }).join('');
-  return `<div class="sr-badge">${totalPares} producto${totalPares===1?'':'s'}</div>
+  return `<div class="sr-badge">${totalPares} Producto${totalPares===1?'':'s'}</div>
     <div class="sr-grid" id="srGrid"${bmDetallesVisible?'':' style="display:none"'}>${cards}</div>
     <button type="button" class="sr-toggle" id="srToggleBtn" onclick="bmToggleDetalles()">${bmDetallesVisible?'Ocultar detalles':'Ver detalles'}</button>
-    <div class="csum" id="srTotals">${bmTotalsHTML()}</div>
+    <div class="sr-totals" id="srTotals">${bmTotalsHTML()}</div>
     <label class="sf-consent" for="fconsent">
       <input id="fconsent" type="checkbox" ${cData.consent?'checked':''}>
-      <span>Al confirmar tu pedido aceptas haber leído nuestra <a href="#" onclick="openLegal('privacidad');return false">Política de Datos</a> y nuestras condiciones de <a href="#" onclick="openInfo('cambios');return false">Cambios y Garantías</a>.</span>
+      <span>Al dar clic en el siguiente botón aceptas haber leído nuestra <a href="#" onclick="openLegal('privacidad');return false">Política de Datos</a> y nuestras condiciones de <a href="#" onclick="openInfo('cambios');return false">Cambios y Garantías</a>.</span>
     </label>`;
 }
 
-// Formulario de datos estilo sahet.co: icono + etiqueta + input subrayado (sin caja), con los
-// MISMOS ids que formEnvioHTML() (carrito.js) — enviarWA/pagarWompi/pagarBold/leerFormEnvio los
-// leen igual sin saber qué apariencia tienen. El checkbox de consentimiento vive en el resumen
-// (bmResumenSahetHTML), no aquí — leerFormEnvio() solo busca el id, no le importa dónde está.
+// Formulario de datos estilo sahet.co: icono de línea + input con el nombre del campo como
+// placeholder (una sola fila, sin etiqueta fija arriba) — mismos ids que formEnvioHTML()
+// (carrito.js), así que enviarWA/pagarWompi/pagarBold/leerFormEnvio los leen igual sin saber
+// qué apariencia tienen. El checkbox de consentimiento vive en el resumen (bmResumenSahetHTML),
+// no aquí — leerFormEnvio() solo busca el id, no le importa dónde está.
 function formEnvioSahetHTML(){
-  const f=(id,label,ic,val,type,extra)=>`<div class="sf-fld"><span class="sf-ic">${ic}</span><div class="sf-fld-b"><label class="sf-lbl">${label}</label><input id="${id}" type="${type||'text'}" ${extra||''} value="${escHtml(val||'')}"></div></div>`;
+  const f=(id,ph,ic,val,type,extra)=>`<div class="sf-fld"><span class="sf-ic">${ic}</span><input id="${id}" type="${type||'text'}" placeholder="${ph}" ${extra||''} value="${escHtml(val||'')}"></div>`;
   return `<div class="sf-sec">
-    <div class="sf-head"><span class="sf-num">1</span>Datos de envío</div>
-    ${f('fc','Cédula','🪪',cData.cedula,'text','inputmode="numeric" autocomplete="off"')}
-    ${f('fn','Nombre completo','👤',cData.nombre,'text','autocomplete="name" autocapitalize="words"')}
-    ${f('ft','WhatsApp','💬',cData.celular,'tel','inputmode="tel" autocomplete="tel"')}
-    ${f('fem','Email','✉️',cData.email,'email','inputmode="email" autocomplete="email"')}
-    <div class="sf-fld"><span class="sf-ic">📍</span><div class="sf-fld-b"><label class="sf-lbl">Ciudad o municipio</label><input id="fci" type="text" autocomplete="address-level2" autocapitalize="words" oninput="bmRefreshTotales()" value="${escHtml(cData.ciudad||'')}"></div></div>
-    ${f('fd','Dirección','🏠',cData.direccion,'text','autocomplete="street-address"')}
-    ${f('fb','Barrio','🏘️',cData.barrio,'text','autocomplete="address-level3"')}
+    <div class="sf-head"><span class="sf-num">1</span>Datos de envío<span class="sf-chev">${BM_ICONS.chevron}</span></div>
+    ${f('fc','CÉDULA',BM_ICONS.cedula,cData.cedula,'text','inputmode="numeric" autocomplete="off"')}
+    ${f('fn','NOMBRE COMPLETO',BM_ICONS.nombre,cData.nombre,'text','autocomplete="name" autocapitalize="words"')}
+    ${f('ft','WHATSAPP',BM_ICONS.whatsapp,cData.celular,'tel','inputmode="tel" autocomplete="tel"')}
+    ${f('fem','EMAIL',BM_ICONS.email,cData.email,'email','inputmode="email" autocomplete="email"')}
+    <div class="sf-fld"><span class="sf-ic">${BM_ICONS.ciudad}</span><input id="fci" type="text" placeholder="CIUDAD O MUNICIPIO" autocomplete="address-level2" autocapitalize="words" oninput="bmRefreshTotales()" value="${escHtml(cData.ciudad||'')}"></div>
+    ${f('fd','DIRECCIÓN',BM_ICONS.direccion,cData.direccion,'text','autocomplete="street-address"')}
+    ${f('fb','BARRIO',BM_ICONS.barrio,cData.barrio,'text','autocomplete="address-level3"')}
     <div class="ferr" id="ferr">Completa todos los campos y acepta la política de datos</div>
   </div>`;
 }
