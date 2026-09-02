@@ -961,9 +961,12 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .buy-modal.on{transform:translateY(0)}
 /* ESCRITORIO: drawer lateral derecho a pantalla completa — calcado del panel real de sahet.co
    (revisado en vivo: 707px de ancho, alto 100vh, sin esquinas redondeadas, pegado al borde
-   derecho) y del mismo tratamiento que ya usa nuestro propio .csheet en escritorio. */
+   derecho) y del mismo tratamiento que ya usa nuestro propio .csheet en escritorio.
+   padding-top: el topbar (.topbar, z-index 680) queda POR ENCIMA del drawer (630) — sin este
+   padding, su propio encabezado ("Finaliza tu pedido"+✕) quedaría tapado detrás de la barra
+   fija, igual que ya le pasa a .info-modal/.photo-modal si no llevaran este mismo cálculo. */
 @media(min-width:700px){
-  .buy-modal{left:auto;right:0;top:0;bottom:0;width:430px;max-width:430px;height:100vh;max-height:none;border-radius:0;transform:translateX(100%);padding-bottom:0}
+  .buy-modal{left:auto;right:0;top:0;bottom:0;width:430px;max-width:430px;height:100vh;max-height:none;border-radius:0;transform:translateX(100%);padding-bottom:0;padding-top:calc(var(--annH) + var(--navH))}
   .buy-modal.on{transform:translateX(0)}
 }
 @media(min-width:1180px){.buy-modal{width:480px;max-width:480px}}
