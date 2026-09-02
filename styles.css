@@ -951,6 +951,23 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .ferr{font-size:11px;color:var(--red);margin-top:5px;display:none}
 .ferr.show{display:block}
 
+/* MODAL DE COMPRA RÁPIDA (compra.js) — flota SOBRE la ficha sin cerrarla (estilo
+   elenacuidadocapilar.com/"RSI COD Form"): resumen + upsell + datos + pago en una sola vista.
+   z-index 625/630: por encima de .photo-modal (620) y .cart-bar (621), por debajo de
+   .testi-modal (640) y .topbar (680) — mismo criterio ya documentado arriba (línea 13). */
+.bm-scrim{position:fixed;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(6px);z-index:625;display:none}
+.bm-scrim.on{display:block}
+.buy-modal{position:fixed;left:0;right:0;bottom:0;z-index:630;background:var(--white);border-radius:18px 18px 0 0;max-height:92vh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .34s cubic-bezier(.32,.72,0,1);padding-bottom:env(safe-area-inset-bottom)}
+.buy-modal.on{transform:translateY(0)}
+@media(min-width:700px){
+  .buy-modal{left:50%;right:auto;bottom:auto;top:50%;transform:translate(-50%,calc(-50%+24px));width:440px;max-width:calc(100vw - 32px);max-height:88vh;border-radius:18px;opacity:0;pointer-events:none;transition:transform .28s ease,opacity .28s ease}
+  .buy-modal.on{transform:translate(-50%,-50%);opacity:1;pointer-events:auto}
+}
+.bm-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 8px;flex-shrink:0}
+.bm-head span{font-size:17px;font-weight:400;letter-spacing:-.03em}
+.bm-body{overflow-y:auto;flex:1;min-height:0;-webkit-overflow-scrolling:touch;padding:0 18px}
+.bm-foot{padding:12px 18px 2px;border-top:1px solid var(--line);flex-shrink:0}
+
 
 
 /* GUÍA DE CUIDADO */

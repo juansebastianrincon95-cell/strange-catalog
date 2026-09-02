@@ -28,7 +28,7 @@ function maybeWelcome(){
   if(localStorage.getItem('ss_subscribed'))return;
   setTimeout(()=>{
     if(localStorage.getItem('ss_subscribed'))return;
-    const open=document.querySelector('.photo-modal.on,.guia-modal.on,.csheet.on,.apanel.on');
+    const open=document.querySelector('.photo-modal.on,.guia-modal.on,.csheet.on,.apanel.on,.buy-modal.on');
     if(open)return;   // no interrumpir si el usuario ya está en otra cosa (deep link, etc.)
     openWelcome();
   },7000);
@@ -803,7 +803,7 @@ function maybeWaBubble(){
   setTimeout(function intentar(){
     try{if(sessionStorage.getItem('ss_wabub'))return;}catch(e){}
     if(!(combos||[]).some(c=>c&&c.activo!==false))return;
-    const open=document.querySelector('.wm.on,.photo-modal.on,.guia-modal.on,.csheet.on,.apanel.on');
+    const open=document.querySelector('.wm.on,.photo-modal.on,.guia-modal.on,.csheet.on,.apanel.on,.buy-modal.on');
     if(open){setTimeout(intentar,8000);return;}
     const b=$('waBubble');if(b)b.classList.add('show');
   },12000);
@@ -1595,9 +1595,11 @@ function addFromModal(){
 
 // Compra rápida desde la ficha (estilo elenacuidadocapilar.com: "Agregar al carrito" +
 // "Contraentrega" + "Comprar por WhatsApp" como 3 botones independientes en el producto).
-// Agrega el par y salta DIRECTO al paso "Tus datos", saltándose la revisión del carrito — pero
-// el envío de WhatsApp o el cobro del envío contra entrega SIGUEN siendo un clic explícito del
-// cliente en el paso de pago (paso 3, ya resaltado por intención): nunca se disparan solos.
+// Agrega el par y abre el modal de compra rápida (compra.js) FLOTANDO sobre la ficha —la ficha
+// no se cierra, no hay "cambio de pantalla"— con el envío de WhatsApp o el cobro del envío
+// contra entrega SIEMPRE como un clic explícito del cliente en el propio modal: nunca se
+// disparan solos. window.BUY_MODAL_ON===false permite volver al flujo clásico (csheet) sin
+// tocar código, por si hace falta un rollback instantáneo.
 function buyNowFicha(intent){
   if(pmId===null)return;
   const list=pmType==='liq'?liqs:prods;
@@ -1605,10 +1607,14 @@ function buyNowFicha(intent){
   if(pmRequiereTalla(p))return;
   const id=pmId,t=pmType,talla=pmTalla;
   if(!cart[cartKey(id,t,talla)])addItemToCart(id,t,talla);
-  closePhotoBtn();
-  _buyIntent=intent;   // 'contra_entrega' | 'whatsapp' — rPayChoice() resalta esa tarjeta una vez
-  openCart();
-  goStep(1);
+  if(window.BUY_MODAL_ON===false){
+    closePhotoBtn();
+    _buyIntent=intent;   // 'contra_entrega' | 'whatsapp' — rPayChoice() resalta esa tarjeta una vez
+    openCart();
+    goStep(1);
+    return;
+  }
+  openBuyModal(intent);
 }
 
 function closePhotoBtn(){

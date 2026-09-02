@@ -611,6 +611,15 @@
   </div>
 </div>
 
+<!-- COMPRA RÁPIDA: modal que flota SOBRE la ficha (no la cierra) para "Comprar contra entrega" /
+     "Comprar por WhatsApp" — resumen + upsell + datos + pago en una sola vista. Ver compra.js. -->
+<div class="bm-scrim" id="bmScrim" onclick="closeBuyModal()"></div>
+<div class="buy-modal" id="buyModal">
+  <div class="bm-head"><span id="bmTitle">Finaliza tu pedido</span><button class="cx" onclick="closeBuyModal()">✕</button></div>
+  <div class="bm-body" id="bmBody"></div>
+  <div class="bm-foot" id="bmFoot"></div>
+</div>
+
 <!-- TOAST (confirmación carrito) -->
 <div class="toast" id="toast"></div>
 
@@ -628,6 +637,7 @@
 <script src="/router.js"></script>
 <script src="/tienda.js"></script>
 <script src="/carrito.js"></script>
+<script src="/compra.js"></script>
 <script src="/boot.js"></script>
 
 </body>

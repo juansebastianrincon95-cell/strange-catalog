@@ -519,20 +519,25 @@ function updDots(){[0,1,2].forEach(i=>{const d=$('cs'+i);d.className='csd'+(i===
 
 function renderStep(){updDots();[rCart,rForm,rPayChoice][step]();}
 
-function goStep(n){
-  // InitiateCheckout = el cliente realmente inicia el checkout (avanza a "Tus datos"), una vez por ciclo.
-  if(n===1&&!_icFired){
-    _icFired=true;
-    const cartVals=Object.values(cart);
-    if(cartVals.length){
-      const icTotal=cartVals.reduce((s,{p,qty})=>s+p.price*qty,0);
-      const icItems=cartVals.reduce((s,{qty})=>s+qty,0);
-      const icIds=cartVals.map(({p,type})=>pxId(type,p.id));
-      px('InitiateCheckout',{content_ids:icIds,content_type:'product',num_items:icItems,value:icTotal,currency:'COP'});
-      ga4('begin_checkout',{currency:'COP',value:icTotal,items:icIds.map(id=>({item_id:id}))});   // GA4 / Google Ads
-      trackEvent('initiate_checkout',{price:icTotal});
-    }
+// InitiateCheckout = el cliente realmente inicia el checkout, una vez por ciclo (guard _icFired).
+// Extraída para que el modal de compra rápida (compra.js) también la dispare al abrir, ya que
+// ahí el cliente entra directo a "Tus datos" sin pasar por goStep(1).
+function fireInitiateCheckout(){
+  if(_icFired)return;
+  _icFired=true;
+  const cartVals=Object.values(cart);
+  if(cartVals.length){
+    const icTotal=cartVals.reduce((s,{p,qty})=>s+p.price*qty,0);
+    const icItems=cartVals.reduce((s,{qty})=>s+qty,0);
+    const icIds=cartVals.map(({p,type})=>pxId(type,p.id));
+    px('InitiateCheckout',{content_ids:icIds,content_type:'product',num_items:icItems,value:icTotal,currency:'COP'});
+    ga4('begin_checkout',{currency:'COP',value:icTotal,items:icIds.map(id=>({item_id:id}))});   // GA4 / Google Ads
+    trackEvent('initiate_checkout',{price:icTotal});
   }
+}
+
+function goStep(n){
+  if(n===1)fireInitiateCheckout();
   // reached_payment = llegó a la pantalla de métodos de pago (paso 3) — mide la fuga datos→pago.
   if(n===2)trackEvent('reached_payment');
   step=n;renderStep();$('cbody').scrollTop=0;
@@ -640,8 +645,11 @@ function rCart(){
   foot.innerHTML=`<button class="btnmain" onclick="goStep(1)">Ir a pagar &nbsp;→</button>`;
 }
 
-function rForm(){
-  $('cbody').innerHTML=`<div class="formsec"><div class="formtit">¿A dónde enviamos tu pedido?</div>
+// Markup del formulario de envío — extraído para poder reusarlo tal cual (mismos ids `fn/fc/ft/
+// fem/fd/fb/fci/fconsent/ferr`) dentro del modal de compra rápida de la ficha (ver compra.js),
+// sin que enviarWA/pagarWompi/pagarBold/updFleteHint tengan que saber en qué contenedor viven.
+function formEnvioHTML(){
+  return `<div class="formsec"><div class="formtit">¿A dónde enviamos tu pedido?</div>
     <div class="fld"><label>Nombre completo</label><input id="fn" type="text" autocomplete="name" autocapitalize="words" placeholder="Juan García" value="${escHtml(cData.nombre||'')}"></div>
     <div class="frow"><div class="fld"><label>Cédula</label><input id="fc" type="text" inputmode="numeric" autocomplete="off" placeholder="1000000000" value="${escHtml(cData.cedula||'')}"></div><div class="fld"><label>Celular</label><input id="ft" type="tel" inputmode="tel" autocomplete="tel" placeholder="300 000 0000" value="${escHtml(cData.celular||'')}"></div></div>
     <div class="fld"><label>Correo electrónico <span style="font-weight:400;color:var(--ink2)">(para pagar a crédito con Addi)</span></label><input id="fem" type="email" inputmode="email" autocomplete="email" placeholder="tucorreo@email.com" value="${escHtml(cData.email||'')}"></div>
@@ -653,6 +661,10 @@ function rForm(){
       <span>Autorizo el tratamiento de mis datos personales según la <a href="#" onclick="openLegal('privacidad');return false" style="color:var(--ink);font-weight:700">Política de Privacidad</a> (Ley 1581 de 2012).</span>
     </label>
     <div class="ferr" id="ferr">Completa todos los campos y acepta la política de datos</div></div>`;
+}
+
+function rForm(){
+  $('cbody').innerHTML=formEnvioHTML();
   $('cfoot').innerHTML=`<button class="btnmain" onclick="saveFormAndNext()">Continuar &nbsp;→</button><button class="btnback" onclick="goStep(0)">← Volver</button>`;
   updFleteHint();
 }
@@ -669,14 +681,23 @@ function updFleteHint(){
     :`📦 Envío <b>GRATIS</b>${ciudad?` a <b>${escHtml(ciudad)}</b>`:''} en todos los métodos de pago ✓`;
 }
 
-function saveFormAndNext(){
+// Valida el formulario de envío (mismos ids que formEnvioHTML) y devuelve los datos, o null +
+// muestra #ferr si falta algo. Extraída para que el modal de compra rápida (compra.js) pueda
+// pre-validar antes de delegar a enviarWA/pagarWompi/pagarBold, sin duplicar la regla.
+function leerFormEnvio(){
   const m={nombre:'fn',cedula:'fc',celular:'ft',direccion:'fd',barrio:'fb',ciudad:'fci'};
   let ok=true;const d={};
   Object.entries(m).forEach(([k,id])=>{const v=($( id)||{}).value||'';d[k]=v.trim();if(!v.trim())ok=false;});
   d.email=(($('fem')||{}).value||'').trim();   // opcional para avanzar; obligatorio solo en el flujo Addi
   const consent=!!($('fconsent')||{}).checked;
-  if(!ok||!consent){const e=$('ferr');if(e)e.classList.add('show');return;}
+  if(!ok||!consent){const e=$('ferr');if(e)e.classList.add('show');return null;}
   d.consent=true;
+  return d;
+}
+
+function saveFormAndNext(){
+  const d=leerFormEnvio();
+  if(!d)return;
   cData=d;
   captureLead(d);   // guarda el contacto YA (antes de pagar) por si abandona → remarketing
   goStep(2);
