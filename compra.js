@@ -98,10 +98,12 @@ function bmResumenSahetHTML(){
   }).join('');
   return `<div class="sf-sec" style="margin-top:0">
     <div class="sf-head"><span class="sf-num">1</span>Productos<span class="sf-chev">${BM_ICONS.chevron}</span></div>
-    <div class="sr-badge">${totalPares} Producto${totalPares===1?'':'s'}</div>
-    <div class="sr-grid" id="srGrid"${bmDetallesVisible?'':' style="display:none"'}>${cards}</div>
-    <button type="button" class="sr-toggle" id="srToggleBtn" onclick="bmToggleDetalles()">${bmDetallesVisible?'Ocultar detalles':'Ver detalles'}</button>
-    <div class="sr-totals" id="srTotals">${bmTotalsHTML()}</div>
+    <div class="sf-body">
+      <div class="sr-badge">${totalPares} Producto${totalPares===1?'':'s'}</div>
+      <div class="sr-grid" id="srGrid"${bmDetallesVisible?'':' style="display:none"'}>${cards}</div>
+      <button type="button" class="sr-toggle" id="srToggleBtn" onclick="bmToggleDetalles()">${bmDetallesVisible?'Ocultar detalles':'Ver detalles'}</button>
+      <div class="sr-totals" id="srTotals">${bmTotalsHTML()}</div>
+    </div>
   </div>`;
 }
 
@@ -112,19 +114,19 @@ function formEnvioSahetHTML(){
   const f=(id,ph,ic,val,type,extra)=>`<div class="sf-fld"><span class="sf-ic">${ic}</span><input id="${id}" type="${type||'text'}" placeholder="${ph}" ${extra||''} value="${escHtml(val||'')}"></div>`;
   return `<div class="sf-sec">
     <div class="sf-head"><span class="sf-num">2</span>Datos de envío<span class="sf-chev">${BM_ICONS.chevron}</span></div>
-    ${f('fc','CÉDULA',BM_ICONS.cedula,cData.cedula,'text','inputmode="numeric" autocomplete="off"')}
-    ${f('fn','NOMBRE COMPLETO',BM_ICONS.nombre,cData.nombre,'text','autocomplete="name" autocapitalize="words"')}
-    ${f('ft','WHATSAPP',BM_ICONS.whatsapp,cData.celular,'tel','inputmode="tel" autocomplete="tel"')}
-    ${f('fem','EMAIL',BM_ICONS.email,cData.email,'email','inputmode="email" autocomplete="email"')}
-    <div class="sf-fld"><span class="sf-ic">${BM_ICONS.ciudad}</span><input id="fci" type="text" placeholder="CIUDAD O MUNICIPIO" autocomplete="address-level2" autocapitalize="words" oninput="bmRefreshTotales();bmRefreshMediosPago()" value="${escHtml(cData.ciudad||'')}"></div>
-    ${f('fd','DIRECCIÓN',BM_ICONS.direccion,cData.direccion,'text','autocomplete="street-address"')}
-    ${f('fb','BARRIO',BM_ICONS.barrio,cData.barrio,'text','autocomplete="address-level3"')}
-    <div class="ferr" id="ferr">Completa todos los campos y acepta la política de datos</div>
+    <div class="sf-body">
+      ${f('fc','CÉDULA',BM_ICONS.cedula,cData.cedula,'text','inputmode="numeric" autocomplete="off"')}
+      ${f('fn','NOMBRE COMPLETO',BM_ICONS.nombre,cData.nombre,'text','autocomplete="name" autocapitalize="words"')}
+      ${f('ft','WHATSAPP',BM_ICONS.whatsapp,cData.celular,'tel','inputmode="tel" autocomplete="tel"')}
+      ${f('fem','EMAIL',BM_ICONS.email,cData.email,'email','inputmode="email" autocomplete="email"')}
+      <div class="sf-fld"><span class="sf-ic">${BM_ICONS.ciudad}</span><input id="fci" type="text" placeholder="CIUDAD O MUNICIPIO" autocomplete="address-level2" autocapitalize="words" oninput="bmRefreshTotales();bmRefreshMediosPago()" value="${escHtml(cData.ciudad||'')}"></div>
+      ${f('fd','DIRECCIÓN',BM_ICONS.direccion,cData.direccion,'text','autocomplete="street-address"')}
+      ${f('fb','BARRIO',BM_ICONS.barrio,cData.barrio,'text','autocomplete="address-level3"')}
+      <div class="ferr" id="ferr">Completa todos los campos y acepta la política de datos</div>
+    </div>
   </div>`;
 }
 
-// Sección ③ Medios de pago: el método ya es el que el cliente eligió en la ficha (contra
-// entrega o WhatsApp) — no hay nada más que elegir aquí, solo el consentimiento y el botón
 // ¿Hace falta elegir pasarela para el envío? Solo aplica a contra entrega con flete>0 (si es
 // $0 o el intent es whatsapp, no hay nada que cobrar por adelantado — enviarWA basta).
 function bmNeedsGateway(){
@@ -152,10 +154,12 @@ function bmMediosPagoBodyHTML(){
   const ciudadViva=(($('fci')||{}).value)||(cData&&cData.ciudad)||'';
   const flete=calcFlete(pares,ciudadViva,sub);
   if(flete<=0)return `<div class="sf-metodo">🚚 Contra entrega</div>${bmConsentHTML()}`;
+  // Botones pequeños solo-logo, calcados de sahet.co (revisado en vivo: sus métodos de pago son
+  // botones chicos con el logo, no tarjetas grandes con título/descripción como .paychoice).
   return `<div class="sf-metodo-tx">Paga ahora <b>solo el envío: ${fmt(flete)}</b>. Los zapatos (<b>${fmt(sub)}</b>) los pagas <b>al recibir en casa</b> 📦</div>
-    <div class="paychoice-list">
-      <button class="paychoice" onclick="bmValidarYPagar('wompi')" style="--acc:#5D2D91"><span class="pc-ic" style="background:#fff"><img src="/logos/wompi.png" alt="Wompi" class="pc-logo"></span><span class="pc-main"><span class="pc-tit">Pagar el envío — Wompi</span><span class="pc-desc">Tarjeta · PSE · Nequi · Bancolombia</span><span class="pc-tot">A pagar hoy: ${fmt(flete)}</span></span><span class="pc-arrow">›</span></button>
-      <button class="paychoice" onclick="bmValidarYPagar('bold')" style="--acc:#2541B2"><span class="pc-ic" style="background:#fff"><img src="/logos/bold.png" alt="Bold" class="pc-logo"></span><span class="pc-main"><span class="pc-tit">Pagar el envío — Bold</span><span class="pc-desc">Tarjeta · PSE · Botón Bancolombia</span><span class="pc-tot">A pagar hoy: ${fmt(flete)}</span></span><span class="pc-arrow">›</span></button>
+    <div class="sf-gw-row">
+      <button class="sf-gw" onclick="bmValidarYPagar('wompi')"><img src="/logos/wompi.png" alt="Wompi" class="sf-gw-logo"><span class="sf-gw-tot">${fmt(flete)}</span></button>
+      <button class="sf-gw" onclick="bmValidarYPagar('bold')"><img src="/logos/bold.png" alt="Bold" class="sf-gw-logo"><span class="sf-gw-tot">${fmt(flete)}</span></button>
     </div>
     ${bmConsentHTML()}`;
 }
@@ -163,7 +167,7 @@ function bmMediosPagoBodyHTML(){
 function bmMediosPagoHTML(){
   return `<div class="sf-sec">
     <div class="sf-head"><span class="sf-num">3</span>Medios de pago<span class="sf-chev">${BM_ICONS.chevron}</span></div>
-    <div id="srMedios">${bmMediosPagoBodyHTML()}</div>
+    <div class="sf-body"><div id="srMedios">${bmMediosPagoBodyHTML()}</div></div>
   </div>`;
 }
 

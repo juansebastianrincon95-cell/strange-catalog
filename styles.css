@@ -1007,16 +1007,18 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    input de una sola fila cuyo placeholder ES la etiqueta (sin label fija arriba, calcado de
    CÉDULA/NOMBRE/WHATSAPP/EMAIL/DIRECCIÓN en su acordeón "① Datos de envío"). Mismos ids que el
    formulario clásico — ver formEnvioSahetHTML() en compra.js. */
-/* Línea vertical que conecta los círculos ①②③ (calcada de sahet.co: sus 3 pasos del acordeón
-   quedan unidos por una línea al costado izquierdo). Va DETRÁS de los círculos (que llevan
-   fondo blanco propio para taparla donde pasa por encima) y se extiende desde debajo de un
-   círculo hasta el siguiente, cruzando el margen entre secciones. */
+/* Línea vertical que conecta los círculos ①②③ (calcada de sahet.co: revisado en vivo, la línea
+   corre en un CARRIL VACÍO a la izquierda — nunca pasa por debajo de iconos ni texto, porque
+   todo el contenido de la sección (.sf-body) va indentado más a la derecha que la línea). Va
+   DETRÁS de los círculos (fondo blanco propio para taparla donde pasa por encima) y se extiende
+   desde debajo de uno hasta el siguiente, cruzando el margen entre secciones. */
 .sf-sec{margin-top:20px;position:relative}
 .sf-sec:not(:last-child)::before{content:'';position:absolute;left:10px;top:24px;bottom:-30px;width:1.5px;background:rgba(0,0,0,.18);z-index:0}
 .sf-head{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink);margin-bottom:14px;position:relative;z-index:1}
 .sf-num{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--ink);background:var(--white);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .sf-chev{margin-left:auto;width:15px;height:15px;color:var(--ink2)}
 .sf-chev svg{width:100%;height:100%}
+.sf-body{margin-left:32px;position:relative;z-index:1}
 .sf-fld{display:flex;align-items:center;gap:11px;padding:12px 0;border-bottom:1px solid var(--line);transition:border-color .15s}
 .sf-fld:focus-within{border-color:var(--ink)}
 .sf-ic{width:18px;height:18px;flex-shrink:0;color:var(--ink2)}
@@ -1024,6 +1026,14 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .sf-fld input{flex:1;min-width:0;border:none;background:none;font-family:var(--font);font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink);outline:none;padding:0}
 .sf-fld input::placeholder{color:var(--ink3);text-transform:uppercase}
 .sf-fld input:not(:placeholder-shown){text-transform:none;letter-spacing:0;font-weight:400;font-size:13.5px}
+/* Botones de pasarela chicos, solo logo + monto — calcados de los botones de método de pago
+   reales de sahet.co (revisado en vivo: son botones compactos con solo el logo, no tarjetas
+   grandes con título/descripción como .paychoice del carrito clásico). */
+.sf-gw-row{display:flex;gap:10px;margin-bottom:14px}
+.sf-gw{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;background:var(--white);border:1px solid var(--line);padding:10px 8px;cursor:pointer;transition:border-color .15s}
+.sf-gw:hover{border-color:var(--ink)}
+.sf-gw-logo{height:18px;object-fit:contain}
+.sf-gw-tot{font-size:10.5px;color:var(--ink2);font-variant-numeric:tabular-nums}
 
 
 
