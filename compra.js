@@ -3,7 +3,8 @@
    con grid de fotos + desglose de precio (estilo sahet.co), luego el formulario de envío con
    icono+etiqueta+input subrayado (también estilo sahet.co) y el botón final de pago — mismos
    campos de siempre (cédula/nombre/whatsapp/email/ciudad/dirección/barrio), todo en una sola
-   vista con scroll.
+   vista con scroll. Sin upsell/cross-sell entre el total y el formulario (a propósito: solo
+   distraía de terminar el pedido del zapato que ya eligió).
 
    Reusa tal cual (sin tocarlas) las funciones reales de pago de carrito.js: enviarWA/pagarWompi/
    pagarBold leen los campos del formulario por id ($('fn')...$('fci')) sin saber en qué
@@ -30,12 +31,6 @@ const BM_ICONS={
   barrio:BM_SV+'<path d="M3.5 20.5v-9l5-3.3 5 3.3v9z"/><path d="M13.5 20.5V7l5-3v16.5"/><path d="M7 20.5v-4h3v4"/></svg>',
   chevron:BM_SV+'<path d="M6 15l6-6 6 6"/></svg>'
 };
-
-function bmProduct(){
-  if(!bmCtx)return null;
-  const list=bmCtx.type==='liq'?liqs:prods;
-  return list.find(x=>x.id===bmCtx.id)||null;
-}
 
 function openBuyModal(intent){
   bmIntent=intent;
@@ -130,32 +125,6 @@ function formEnvioSahetHTML(){
   </div>`;
 }
 
-// Upsell dentro del modal: reusa fichaSugeridos() (tienda.js), igual criterio que "También te
-// puede gustar" de la ficha. Sin tallas → "+ Agregar" directo y re-render in situ. Con tallas →
-// cierra el modal y abre esa ficha (evita inventar un selector de talla inline por ahora).
-function renderBmCrossHTML(){
-  const p=bmProduct();if(!p)return '';
-  const sug=fichaSugeridos(p,bmCtx.type);
-  if(!sug.length)return '';
-  const cards=sug.map(s=>{
-    const m=s.img?`<img src="${s.img}" alt="${altProd(s)}" loading="lazy">`:`<span style="font-size:20px">👟</span>`;
-    const nom=s.modelo||(BRAND_LABELS[s.brand]||'')||(s.g==='h'?'Hombre':'Mujer');
-    const sinTallas=!tallasDe(s).length;
-    const accion=sinTallas?`bmAddSug(${s.id})`:`bmVerFicha(${s.id})`;
-    return `<button class="xs-card" onclick="${accion}"><div class="xs-img">${m}</div><div class="xs-nom">${escHtml(nom)}</div><div class="xs-precio">${fmt(s.price)}${sinTallas?' · +Agregar':''}</div></button>`;
-  }).join('');
-  return `<div class="pmx-t">También te puede gustar</div>`+crslWrap(`<div class="pmx-row" id="bmCrossRow">${cards}</div>`);
-}
-
-function bmAddSug(id){
-  if(!addItemToCart(id,'cat',null))return;
-  renderBuyModal();
-}
-function bmVerFicha(id){
-  closeBuyModal();
-  openPhoto(id,'cat');
-}
-
 function bmFooterHTML(){
   const label=bmIntent==='whatsapp'?'💬 Completar pedido por WhatsApp':'🚚 Continuar con contra entrega';
   return `<button class="btnmain" onclick="bmPagar()">${label}</button><button class="btnback" onclick="bmIrAlCarritoCompleto()">Ver todas las formas de pago (tarjeta, PSE, Addi…)</button>`;
@@ -163,9 +132,8 @@ function bmFooterHTML(){
 
 function renderBuyModal(){
   $('bmTitle').textContent=bmIntent==='whatsapp'?'Comprar por WhatsApp':'Comprar contra entrega';
-  $('bmBody').innerHTML=bmResumenSahetHTML()+renderBmCrossHTML()+formEnvioSahetHTML();
+  $('bmBody').innerHTML=bmResumenSahetHTML()+formEnvioSahetHTML();
   $('bmFoot').innerHTML=bmFooterHTML();
-  crslUpd();
 }
 
 function bmPagar(){
