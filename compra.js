@@ -37,6 +37,9 @@ function openBuyModal(intent){
 }
 
 function closeBuyModal(){
+  // Guard: si ya estaba cerrado, no vuelvas a llamar unlockScroll() — evita desincronizar
+  // _slCount con un doble-cierre (ej. doble-tap en un link que ya removió su propio botón).
+  if(!$('buyModal').classList.contains('on'))return;
   if(!_navPopping)navRemove('checkout');
   $('bmScrim').classList.remove('on');
   $('buyModal').classList.remove('on');
@@ -129,6 +132,10 @@ function bmMostrarPagoFlete(flete,sub){
 // Escape al flujo clásico completo (Addi/Sistecrédito/Wompi/Bold sin restricción de intención):
 // cierra este modal y la ficha, y abre el csheet de 3 pasos ya en "Tus datos" con cData lleno.
 function bmIrAlCarritoCompleto(){
+  // Guard: closePhotoBtn() (tienda.js) no tiene guard propio contra un doble-cierre — sin este
+  // chequeo, un doble-tap volvería a llamarla y a desincronizar _slCount aunque closeBuyModal()
+  // ya se proteja a sí mismo.
+  if(!$('buyModal').classList.contains('on'))return;
   closeBuyModal();
   closePhotoBtn();
   openCart();

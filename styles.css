@@ -2,7 +2,7 @@
 @media(min-width:700px){:root{--annH:44px;--navH:78px}}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 /* El scroll interno de los modales NO arrastra el fondo (anti scroll-chaining) */
-.pm-wrap,.pm-body,.csheet,.cbody,.catview,.apanel,.wm-card,.guia-wrap{overscroll-behavior:contain}
+.pm-wrap,.pm-body,.csheet,.cbody,.catview,.apanel,.wm-card,.guia-wrap,.bm-body{overscroll-behavior:contain}
 /* overflow-x:clip (no 'hidden') evita scroll horizontal SIN romper position:sticky del nav */
 html,body{background:var(--bg)!important;color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased;overflow-x:clip}
 body{padding-top:calc(var(--annH) + var(--navH));padding-bottom:var(--barH)}
