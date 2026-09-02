@@ -16,7 +16,7 @@
    window.BUY_MODAL_ON=false permite volver al flujo clásico (csheet) sin tocar código. */
 const BUY_MODAL_ON=true;
 
-let bmIntent=null,bmCtx=null,bmDetallesVisible=true,bmGwSelected=null;
+let bmIntent=null,bmCtx=null,bmGwSelected=null;
 
 // Iconos de línea (mismo template SVG que ya usa rPayChoice() en carrito.js: viewBox 24x24,
 // stroke=currentColor) — sahet.co usa iconos de contorno minimalistas, no emoji.
@@ -35,7 +35,6 @@ const BM_ICONS={
 function openBuyModal(intent){
   bmIntent=intent;
   bmCtx={id:pmId,type:pmType,talla:pmTalla};
-  bmDetallesVisible=true;
   bmGwSelected=null;
   // Limpia el csheet clásico: si quedó renderizado detrás (ej. el cliente había abierto el
   // carrito antes), sus inputs #fn/#fc/... duplicarían los ids del formulario de este modal y
@@ -82,30 +81,67 @@ function bmTotalsHTML(){
 function bmRefreshTotales(){
   const box=$('srTotals');if(box)box.innerHTML=bmTotalsHTML();
 }
-function bmToggleDetalles(){
-  bmDetallesVisible=!bmDetallesVisible;
-  const g=$('srGrid');if(g)g.style.display=bmDetallesVisible?'':'none';
-  const b=$('srToggleBtn');if(b)b.textContent=bmDetallesVisible?'Ocultar detalles':'Ver detalles';
-}
-// Sección ① Productos: los que el cliente ya eligió (grid de fotos + desglose de precio).
-// SIEMPRE lleva .sf-done — a diferencia de "Datos de envío" (que se valida campo por campo),
-// el producto ya quedó elegido desde antes de abrir este modal (buyNowFicha ya lo agregó al
-// carrito), así que no hay nada que "completar" aquí: el círculo y su línea nacen en negro.
-function bmResumenSahetHTML(){
-  const rows=Object.values(cart);
-  const totalPares=rows.reduce((s,{qty})=>s+qty,0);
-  const cards=rows.map(({p,qty,type,talla})=>{
-    const img=p.img?`<img src="${p.img}" alt="${altProd(p)}">`:`<span style="font-size:26px">${type==='liq'?'🔥':'👟'}</span>`;
+
+// Lista de líneas estilo "BOLSA" de sahet.co (revisado en vivo por DOM: foto grande, nombre,
+// "Talla X" con stepper −/+ y "Eliminar" — reusa .cqb/.cqv, el mismo stepper que ya usa el
+// carrito clásico, en vez de inventar uno nuevo). A diferencia de "CONFIRMACIÓN" (resumen de
+// solo lectura, ya no se usa aquí), esto sí permite editar sin salir del modal.
+function bmProductosListHTML(){
+  return Object.entries(cart).map(([key,{p,qty,type,talla}])=>{
+    const img=p.img?`<img src="${p.img}" alt="${altProd(p)}">`:`<span style="font-size:30px">${type==='liq'?'🔥':'👟'}</span>`;
     const nom=p.modelo||(type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer'));
-    const tag=talla?`<span class="crtalla">${escHtml(String(talla))}${qty>1?' · '+qty:''}</span>`:'';
-    return `<div class="sr-card"><div class="sr-ph">${img}${qty>1?`<span class="sr-qty">${qty}</span>`:''}</div><div class="sr-nom">${escHtml(nom)}</div><div class="sr-precio">${fmt(p.price*qty)}</div>${tag}</div>`;
+    return `<div class="sr-row">
+      <div class="sr-row-ph">${img}</div>
+      <div class="sr-row-info">
+        <div class="sr-row-top"><span class="sr-row-nom">${escHtml(nom)}</span><button type="button" class="sr-row-elim" onclick="bmRmItem('${key}')">Eliminar</button></div>
+        ${talla?`<div class="sr-row-talla">Talla ${escHtml(String(talla))}</div>`:''}
+        <div class="cqc"><button class="cqb" onclick="bmChQty('${key}',-1)">−</button><span class="cqv">${qty}</span><button class="cqb" onclick="bmChQty('${key}',1)">+</button></div>
+        <div class="sr-row-precio">${fmt(p.price*qty)}</div>
+      </div>
+    </div>`;
   }).join('');
+}
+function bmRefreshProductos(){
+  const totalPares=Object.values(cart).reduce((s,{qty})=>s+qty,0);
+  const badge=$('srBadge');if(badge)badge.textContent=`${totalPares} Producto${totalPares===1?'':'s'}`;
+  const list=$('srList');if(list)list.innerHTML=bmProductosListHTML();
+}
+// +/− de cantidad y "Eliminar" — mismo patrón que chQty()/rmItem() (carrito.js), pero refresca
+// las funciones propias del modal (totales/medios de pago dependen de cartPricing(), que cambia
+// con la cantidad) en vez de renderStep(). syncDot() sí es compartida: mantiene el contador del
+// carrito flotante del sitio sincronizado sin importar desde qué UI se editó.
+function bmChQty(key,d){
+  if(!cart[key])return;
+  cart[key].qty=Math.max(1,cart[key].qty+d);
+  bmGwSelected=null;
+  syncDot();
+  bmRefreshProductos();
+  bmRefreshTotales();
+  bmRefreshMediosPago();
+}
+function bmRmItem(key){
+  delete cart[key];
+  syncDot();
+  // Este modal existe SOLO porque ya había un producto elegido — si el cliente lo quita y no
+  // queda nada más, no hay nada que pagar: se cierra y listo (la ficha ya estaba abierta detrás,
+  // closeBuyModal() no la toca, así que "volver a la ficha" es simplemente no hacer nada más).
+  if(!Object.keys(cart).length){closeBuyModal();return;}
+  bmGwSelected=null;
+  bmRefreshProductos();
+  bmRefreshTotales();
+  bmRefreshMediosPago();
+}
+// Sección ① Productos: los que el cliente ya eligió, editable (foto+stepper+Eliminar) igual que
+// la "BOLSA" de sahet.co. SIEMPRE lleva .sf-done — a diferencia de "Datos de envío" (que se
+// valida campo por campo), el producto ya quedó elegido desde antes de abrir este modal
+// (buyNowFicha ya lo agregó al carrito), así que no hay nada que "completar" aquí.
+function bmResumenSahetHTML(){
+  const totalPares=Object.values(cart).reduce((s,{qty})=>s+qty,0);
   return `<div class="sf-sec sf-done" style="margin-top:0">
     <div class="sf-head"><span class="sf-num">1</span>Productos<span class="sf-chev">${BM_ICONS.chevron}</span></div>
     <div class="sf-body">
-      <div class="sr-badge">${totalPares} Producto${totalPares===1?'':'s'}</div>
-      <div class="sr-grid" id="srGrid"${bmDetallesVisible?'':' style="display:none"'}>${cards}</div>
-      <button type="button" class="sr-toggle" id="srToggleBtn" onclick="bmToggleDetalles()">${bmDetallesVisible?'Ocultar detalles':'Ver detalles'}</button>
+      <div class="sr-badge" id="srBadge">${totalPares} Producto${totalPares===1?'':'s'}</div>
+      <div id="srList">${bmProductosListHTML()}</div>
       <div class="sr-totals" id="srTotals">${bmTotalsHTML()}</div>
     </div>
   </div>`;
