@@ -16,7 +16,7 @@
    window.BUY_MODAL_ON=false permite volver al flujo clásico (csheet) sin tocar código. */
 const BUY_MODAL_ON=true;
 
-let bmIntent=null,bmCtx=null,bmDetallesVisible=true;
+let bmIntent=null,bmCtx=null,bmDetallesVisible=true,bmGwSelected=null;
 
 // Iconos de línea (mismo template SVG que ya usa rPayChoice() en carrito.js: viewBox 24x24,
 // stroke=currentColor) — sahet.co usa iconos de contorno minimalistas, no emoji.
@@ -36,6 +36,7 @@ function openBuyModal(intent){
   bmIntent=intent;
   bmCtx={id:pmId,type:pmType,talla:pmTalla};
   bmDetallesVisible=true;
+  bmGwSelected=null;
   // Limpia el csheet clásico: si quedó renderizado detrás (ej. el cliente había abierto el
   // carrito antes), sus inputs #fn/#fc/... duplicarían los ids del formulario de este modal y
   // $('fn') tomaría el primero en el DOM (el del csheet, que precede a #buyModal) — vacío o
@@ -119,7 +120,7 @@ function formEnvioSahetHTML(){
       ${f('fn','NOMBRE COMPLETO',BM_ICONS.nombre,cData.nombre,'text','autocomplete="name" autocapitalize="words"')}
       ${f('ft','WHATSAPP',BM_ICONS.whatsapp,cData.celular,'tel','inputmode="tel" autocomplete="tel"')}
       ${f('fem','EMAIL',BM_ICONS.email,cData.email,'email','inputmode="email" autocomplete="email"')}
-      <div class="sf-fld"><span class="sf-ic">${BM_ICONS.ciudad}</span><input id="fci" type="text" placeholder="CIUDAD O MUNICIPIO" autocomplete="address-level2" autocapitalize="words" oninput="bmRefreshTotales();bmRefreshMediosPago()" value="${escHtml(cData.ciudad||'')}"></div>
+      <div class="sf-fld"><span class="sf-ic">${BM_ICONS.ciudad}</span><input id="fci" type="text" placeholder="CIUDAD O MUNICIPIO" autocomplete="address-level2" autocapitalize="words" oninput="bmRefreshTotales();bmGwSelected=null;bmRefreshMediosPago()" value="${escHtml(cData.ciudad||'')}"></div>
       ${f('fd','DIRECCIÓN',BM_ICONS.direccion,cData.direccion,'text','autocomplete="street-address"')}
       ${f('fb','BARRIO',BM_ICONS.barrio,cData.barrio,'text','autocomplete="address-level3"')}
       <div class="ferr" id="ferr">Completa todos los campos y acepta la política de datos</div>
@@ -144,24 +145,29 @@ function bmConsentHTML(){
 }
 
 // Contenido de ③ Medios de pago: si no hace falta elegir pasarela, solo el método ya tocado en
-// la ficha (WhatsApp/Contra entrega). Si el envío tiene costo, las tarjetas de Wompi y Bold
-// quedan VISIBLES aquí mismo (calcado de sahet.co: su paso "Medios de pago" muestra las
-// opciones directo, no las esconde detrás de un botón) — igual mensaje y mismos onclick que
-// elegirPagoFlete() (carrito.js), pero validando el formulario antes vía bmValidarYPagar().
+// la ficha (WhatsApp/Contra entrega). Si el envío tiene costo, se elige Wompi o Bold — pero
+// igual que sahet.co (revisado en vivo: elegir un método solo lo SELECCIONA, colapsa el resto
+// y deja un link "Cambiar"; el pago real se dispara con un botón "Pagar $X" aparte, al final)
+// tocar Wompi/Bold aquí NO paga todavía — solo marca bmGwSelected. El botón del pie
+// (bmFooterHTML) es el que valida y llama a pagarWompi/pagarBold, ya con la pasarela elegida.
 function bmMediosPagoBodyHTML(){
   if(bmIntent==='whatsapp')return `<div class="sf-metodo">💬 Pago por WhatsApp</div>${bmConsentHTML()}`;
   const {pares,sub}=cartPricing();
   const ciudadViva=(($('fci')||{}).value)||(cData&&cData.ciudad)||'';
   const flete=calcFlete(pares,ciudadViva,sub);
   if(flete<=0)return `<div class="sf-metodo">🚚 Contra entrega</div>${bmConsentHTML()}`;
-  // Botones pequeños solo-logo, calcados de sahet.co (revisado en vivo: sus métodos de pago son
-  // botones chicos con el logo, no tarjetas grandes con título/descripción como .paychoice).
-  return `<div class="sf-metodo-tx">Paga ahora <b>solo el envío: ${fmt(flete)}</b>. Los zapatos (<b>${fmt(sub)}</b>) los pagas <b>al recibir en casa</b> 📦</div>
-    <div class="sf-gw-row">
-      <button class="sf-gw" onclick="bmValidarYPagar('wompi')"><img src="/logos/wompi.png" alt="Wompi" class="sf-gw-logo"><span class="sf-gw-tot">${fmt(flete)}</span></button>
-      <button class="sf-gw" onclick="bmValidarYPagar('bold')"><img src="/logos/bold.png" alt="Bold" class="sf-gw-logo"><span class="sf-gw-tot">${fmt(flete)}</span></button>
-    </div>
-    ${bmConsentHTML()}`;
+  const desc=`<div class="sf-metodo-tx">Paga ahora <b>solo el envío: ${fmt(flete)}</b>. Los zapatos (<b>${fmt(sub)}</b>) los pagas <b>al recibir en casa</b> 📦</div>`;
+  // Botones pequeños solo-logo, calcados de los métodos de pago reales de sahet.co.
+  const gws=bmGwSelected
+    ? `<div class="sf-gw-row">
+        <button class="sf-gw sf-gw-sel" disabled><img src="/logos/${bmGwSelected}.png" alt="${bmGwSelected==='wompi'?'Wompi':'Bold'}" class="sf-gw-logo"><span class="sf-gw-tot">${fmt(flete)}</span></button>
+        <button type="button" class="sf-gw-cambiar" onclick="bmSelectGw(null)">Cambiar</button>
+      </div>`
+    : `<div class="sf-gw-row">
+        <button class="sf-gw" onclick="bmSelectGw('wompi')"><img src="/logos/wompi.png" alt="Wompi" class="sf-gw-logo"><span class="sf-gw-tot">${fmt(flete)}</span></button>
+        <button class="sf-gw" onclick="bmSelectGw('bold')"><img src="/logos/bold.png" alt="Bold" class="sf-gw-logo"><span class="sf-gw-tot">${fmt(flete)}</span></button>
+      </div>`;
+  return desc+gws+bmConsentHTML();
 }
 
 function bmMediosPagoHTML(){
@@ -171,16 +177,23 @@ function bmMediosPagoHTML(){
   </div>`;
 }
 
-// Re-pinta solo la sección 3 y el pie (el botón principal se oculta cuando hace falta elegir
-// pasarela, ver bmFooterHTML) — se llama al escribir la ciudad, igual que bmRefreshTotales().
+// Marca (o des-marca, "Cambiar") la pasarela elegida — solo selecciona, no paga todavía.
+function bmSelectGw(gw){
+  bmGwSelected=gw;
+  bmRefreshMediosPago();
+}
+
+// Re-pinta solo la sección 3 y el pie (el botón principal cambia a "Pagar $X" cuando hace falta
+// elegir pasarela, ver bmFooterHTML) — se llama al escribir la ciudad y al elegir/cambiar la
+// pasarela, igual que bmRefreshTotales().
 function bmRefreshMediosPago(){
   const box=$('srMedios');if(box)box.innerHTML=bmMediosPagoBodyHTML();
   $('bmFoot').innerHTML=bmFooterHTML();
 }
 
 // Valida el formulario y captura el lead ANTES de pagar el envío por Wompi/Bold — mismo guard
-// que bmPagar(), pero llamado directo desde las tarjetas de la sección 3 en vez de un botón
-// intermedio. pagarWompi/pagarBold quedan intactas, agnósticas de quién las llama.
+// que bmPagar(), llamado desde el botón "Pagar $X" del pie una vez ya se eligió la pasarela.
+// pagarWompi/pagarBold quedan intactas, agnósticas de quién las llama.
 function bmValidarYPagar(gw){
   const d=leerFormEnvio();
   if(!d)return;
@@ -189,8 +202,19 @@ function bmValidarYPagar(gw){
   if(gw==='wompi')pagarWompi(true);else pagarBold(true);
 }
 
+function bmPagarGw(){
+  if(!bmGwSelected)return;
+  bmValidarYPagar(bmGwSelected);
+}
+
 function bmFooterHTML(){
-  if(bmNeedsGateway())return `<button class="btnback" onclick="bmIrAlCarritoCompleto()">Ver todas las formas de pago (tarjeta, PSE, Addi…)</button>`;
+  if(bmNeedsGateway()){
+    const {pares,sub}=cartPricing();
+    const ciudadViva=(($('fci')||{}).value)||(cData&&cData.ciudad)||'';
+    const flete=calcFlete(pares,ciudadViva,sub);
+    const dis=bmGwSelected?'':' disabled';
+    return `<button class="btnmain"${dis} onclick="bmPagarGw()">Pagar ${fmt(flete)}</button><button class="btnback" onclick="bmIrAlCarritoCompleto()">Ver todas las formas de pago (tarjeta, PSE, Addi…)</button>`;
+  }
   const label=bmIntent==='whatsapp'?'💬 Completar pedido por WhatsApp':'🚚 Continuar con contra entrega';
   return `<button class="btnmain" onclick="bmPagar()">${label}</button><button class="btnback" onclick="bmIrAlCarritoCompleto()">Ver todas las formas de pago (tarjeta, PSE, Addi…)</button>`;
 }

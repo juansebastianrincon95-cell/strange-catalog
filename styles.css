@@ -1029,11 +1029,15 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 /* Botones de pasarela chicos, solo logo + monto — calcados de los botones de método de pago
    reales de sahet.co (revisado en vivo: son botones compactos con solo el logo, no tarjetas
    grandes con título/descripción como .paychoice del carrito clásico). */
-.sf-gw-row{display:flex;gap:10px;margin-bottom:14px}
+.sf-gw-row{display:flex;align-items:center;gap:10px;margin-bottom:14px}
 .sf-gw{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;background:var(--white);border:1px solid var(--line);padding:10px 8px;cursor:pointer;transition:border-color .15s}
 .sf-gw:hover{border-color:var(--ink)}
 .sf-gw-logo{height:18px;object-fit:contain}
 .sf-gw-tot{font-size:10.5px;color:var(--ink2);font-variant-numeric:tabular-nums}
+/* Pasarela ya elegida (estilo sahet.co: al elegir un método, las demás opciones colapsan y
+   queda solo la elegida + un link "Cambiar" — el pago real lo dispara el botón del pie). */
+.sf-gw-sel{flex:0 0 auto;min-width:110px;border-color:var(--ink);cursor:default}
+.sf-gw-cambiar{background:none;border:none;font-family:var(--font);font-size:11.5px;color:var(--ink2);text-decoration:underline;cursor:pointer;padding:0}
 
 
 
