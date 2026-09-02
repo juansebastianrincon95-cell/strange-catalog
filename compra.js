@@ -86,6 +86,7 @@ function bmToggleDetalles(){
   const g=$('srGrid');if(g)g.style.display=bmDetallesVisible?'':'none';
   const b=$('srToggleBtn');if(b)b.textContent=bmDetallesVisible?'Ocultar detalles':'Ver detalles';
 }
+// Sección ① Productos: los que el cliente ya eligió (grid de fotos + desglose de precio).
 function bmResumenSahetHTML(){
   const rows=Object.values(cart);
   const totalPares=rows.reduce((s,{qty})=>s+qty,0);
@@ -95,25 +96,22 @@ function bmResumenSahetHTML(){
     const tag=talla?`<span class="crtalla">${escHtml(String(talla))}${qty>1?' · '+qty:''}</span>`:'';
     return `<div class="sr-card"><div class="sr-ph">${img}${qty>1?`<span class="sr-qty">${qty}</span>`:''}</div><div class="sr-nom">${escHtml(nom)}</div><div class="sr-precio">${fmt(p.price*qty)}</div>${tag}</div>`;
   }).join('');
-  return `<div class="sr-badge">${totalPares} Producto${totalPares===1?'':'s'}</div>
+  return `<div class="sf-sec" style="margin-top:0">
+    <div class="sf-head"><span class="sf-num">1</span>Productos<span class="sf-chev">${BM_ICONS.chevron}</span></div>
+    <div class="sr-badge">${totalPares} Producto${totalPares===1?'':'s'}</div>
     <div class="sr-grid" id="srGrid"${bmDetallesVisible?'':' style="display:none"'}>${cards}</div>
     <button type="button" class="sr-toggle" id="srToggleBtn" onclick="bmToggleDetalles()">${bmDetallesVisible?'Ocultar detalles':'Ver detalles'}</button>
     <div class="sr-totals" id="srTotals">${bmTotalsHTML()}</div>
-    <label class="sf-consent" for="fconsent">
-      <input id="fconsent" type="checkbox" ${cData.consent?'checked':''}>
-      <span>Al dar clic en el siguiente botón aceptas haber leído nuestra <a href="#" onclick="openLegal('privacidad');return false">Política de Datos</a> y nuestras condiciones de <a href="#" onclick="openInfo('cambios');return false">Cambios y Garantías</a>.</span>
-    </label>`;
+  </div>`;
 }
 
-// Formulario de datos estilo sahet.co: icono de línea + input con el nombre del campo como
-// placeholder (una sola fila, sin etiqueta fija arriba) — mismos ids que formEnvioHTML()
-// (carrito.js), así que enviarWA/pagarWompi/pagarBold/leerFormEnvio los leen igual sin saber
-// qué apariencia tienen. El checkbox de consentimiento vive en el resumen (bmResumenSahetHTML),
-// no aquí — leerFormEnvio() solo busca el id, no le importa dónde está.
+// Sección ② Datos de envío: icono de línea + input con el nombre del campo como placeholder
+// (una sola fila, sin etiqueta fija arriba) — mismos ids que formEnvioHTML() (carrito.js), así
+// que enviarWA/pagarWompi/pagarBold/leerFormEnvio los leen igual sin saber qué apariencia tienen.
 function formEnvioSahetHTML(){
   const f=(id,ph,ic,val,type,extra)=>`<div class="sf-fld"><span class="sf-ic">${ic}</span><input id="${id}" type="${type||'text'}" placeholder="${ph}" ${extra||''} value="${escHtml(val||'')}"></div>`;
   return `<div class="sf-sec">
-    <div class="sf-head"><span class="sf-num">1</span>Datos de envío<span class="sf-chev">${BM_ICONS.chevron}</span></div>
+    <div class="sf-head"><span class="sf-num">2</span>Datos de envío<span class="sf-chev">${BM_ICONS.chevron}</span></div>
     ${f('fc','CÉDULA',BM_ICONS.cedula,cData.cedula,'text','inputmode="numeric" autocomplete="off"')}
     ${f('fn','NOMBRE COMPLETO',BM_ICONS.nombre,cData.nombre,'text','autocomplete="name" autocapitalize="words"')}
     ${f('ft','WHATSAPP',BM_ICONS.whatsapp,cData.celular,'tel','inputmode="tel" autocomplete="tel"')}
@@ -125,6 +123,21 @@ function formEnvioSahetHTML(){
   </div>`;
 }
 
+// Sección ③ Medios de pago: el método ya es el que el cliente eligió en la ficha (contra
+// entrega o WhatsApp) — no hay nada más que elegir aquí, solo el consentimiento y el botón
+// (en el pie fijo, bmFooterHTML) que abre DIRECTO esa opción vía bmPagar().
+function bmMediosPagoHTML(){
+  const metodo=bmIntent==='whatsapp'?'💬 Pago por WhatsApp':'🚚 Contra entrega';
+  return `<div class="sf-sec">
+    <div class="sf-head"><span class="sf-num">3</span>Medios de pago<span class="sf-chev">${BM_ICONS.chevron}</span></div>
+    <div class="sf-metodo">${metodo}</div>
+    <label class="sf-consent" for="fconsent">
+      <input id="fconsent" type="checkbox" ${cData.consent?'checked':''}>
+      <span>Al dar clic en el siguiente botón aceptas haber leído nuestra <a href="#" onclick="openLegal('privacidad');return false">Política de Datos</a> y nuestras condiciones de <a href="#" onclick="openInfo('cambios');return false">Cambios y Garantías</a>.</span>
+    </label>
+  </div>`;
+}
+
 function bmFooterHTML(){
   const label=bmIntent==='whatsapp'?'💬 Completar pedido por WhatsApp':'🚚 Continuar con contra entrega';
   return `<button class="btnmain" onclick="bmPagar()">${label}</button><button class="btnback" onclick="bmIrAlCarritoCompleto()">Ver todas las formas de pago (tarjeta, PSE, Addi…)</button>`;
@@ -132,7 +145,7 @@ function bmFooterHTML(){
 
 function renderBuyModal(){
   $('bmTitle').textContent=bmIntent==='whatsapp'?'Comprar por WhatsApp':'Comprar contra entrega';
-  $('bmBody').innerHTML=bmResumenSahetHTML()+formEnvioSahetHTML();
+  $('bmBody').innerHTML=bmResumenSahetHTML()+formEnvioSahetHTML()+bmMediosPagoHTML();
   $('bmFoot').innerHTML=bmFooterHTML();
 }
 
