@@ -494,15 +494,19 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .pm-body{padding:18px 18px 26px}
 .pm-gender{font-size:12px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);margin-bottom:8px}
 .pm-ship-badge{display:inline-block;background:var(--green);color:#fff;font-size:11.5px;font-weight:400;letter-spacing:.04em;text-transform:uppercase;padding:5px 10px;border-radius:0;margin-bottom:24px}
-.pm-title{margin-top:6px;font-size:22px;font-weight:400;color:var(--ink);letter-spacing:.02em;text-transform:uppercase}
+.pm-title{margin-top:6px;font-size:16px;font-weight:400;color:var(--ink);letter-spacing:.02em;text-transform:uppercase}
 .pm-stars{font-size:15px;color:#f5a623;letter-spacing:1px}
 .pm-stars span{color:var(--ink2);font-size:13px;font-weight:400;letter-spacing:0;margin-left:5px}
 .pm-price-row{display:flex;align-items:baseline;gap:10px;margin-top:14px}
-.pm-price{font-size:24px;font-weight:400;color:var(--ink);letter-spacing:-.03em}
+.pm-price{font-size:14px;font-weight:400;color:var(--ink);letter-spacing:-.03em}
 .pm-price.sale{color:var(--red)}
-.pm-was{font-size:16px;color:var(--ink3);text-decoration:line-through}
+.pm-was{font-size:12px;color:var(--ink3);text-decoration:line-through}
 .pm-save{font-size:13px;font-weight:400;color:var(--green);margin-top:4px}
-.pm-sec{margin-top:36px}
+/* Descripción del producto — calcada de sahet.co (revisado en vivo por DOM el 2026-09-12):
+   párrafo normal de 12px/400, sin destacar. Antes genDescripcion() (tienda.js) escribía en
+   $('pmDesc') pero ese id no existía en el markup — no se veía nunca. */
+.pm-desc{font-size:12px;font-weight:400;color:var(--ink2);line-height:1.5;margin-top:10px}
+.pm-sec{margin-top:50px;border-top:1px solid var(--line);padding-top:20px}
 .pm-sec-t{font-size:11px;font-weight:400;letter-spacing:.05em;text-transform:uppercase;color:var(--ink);margin-bottom:14px}
 /* Metacampos públicos (columna meta jsonb) — tabla ligera de "Detalles del producto" */
 .pm-specs{margin-top:36px}
@@ -511,7 +515,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .pm-spec-v{color:var(--ink2);text-align:right;word-break:break-word}
 .pm-fin-desc{font-size:14px;line-height:1.5;color:var(--ink2);margin-top:14px}
 .pm-fin-desc b{color:var(--ink);font-weight:600}
-.pm-add{display:block;width:100%;margin-top:16px;background:var(--ink);color:#fff;border:none;padding:15px;border-radius:0;font-family:var(--font);font-size:15px;font-weight:400;cursor:pointer;transition:transform .12s,background .15s}
+.pm-add{display:block;width:100%;margin-top:16px;background:var(--ink);color:#fff;border:none;padding:13px;border-radius:0;font-family:var(--font);font-size:13px;font-weight:400;cursor:pointer;transition:transform .12s,background .15s}
 /* Barra sticky de compra (siempre visible, línea recta al checkout estilo Nike) */
 .pm-foot{display:none;flex:0 0 auto;background:var(--white);border-top:1px solid var(--line);padding:7px 14px max(10px,env(safe-area-inset-bottom));box-shadow:0 -4px 16px rgba(0,0,0,.07);z-index:5}
 .pm-foot-trust{display:block;width:100%;background:none;border:none;font-family:var(--font);font-size:11px;font-weight:400;color:var(--ink2);cursor:pointer;padding:3px 0 7px;text-align:center}
@@ -542,7 +546,10 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .pm-sizes-err{font-size:12px;font-weight:400;color:var(--red);opacity:0;transition:opacity .2s}
 .pm-sizes.err .pm-sizes-err{opacity:1}
 .pm-sizes-row{display:flex;flex-wrap:wrap;gap:8px}
-.pm-size{min-width:48px;height:46px;padding:0 13px;border:1.5px solid var(--line);border-radius:0;background:var(--white);font-family:var(--font);font-size:14.5px;font-weight:400;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:border-color .15s,background .15s,color .15s}
+/* Chips de talla: calcados de sahet.co (30x30/10px) pero un poco más grandes (36x36/12px) para
+   mantener un área táctil segura en móvil — es el único selector del pedido, un mal toque
+   manda la talla equivocada. */
+.pm-size{min-width:36px;height:36px;padding:0 6px;border:1px solid var(--line);border-radius:0;background:var(--white);font-family:var(--font);font-size:12px;font-weight:400;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:border-color .15s,background .15s,color .15s}
 .pm-size:hover{border-color:var(--ink2)}
 .pm-size.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .pm-size.out{color:var(--ink3);background:var(--bg);cursor:not-allowed;text-decoration:line-through;opacity:.55}
@@ -609,16 +616,18 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 /* ESCRITORIO: misma VENTANA a pantalla completa, pero el área scrolleable es 2 columnas
    (foto izq + info der). La barra superior queda fija arriba. */
 @media(min-width:700px){
+  /* Split calcado de sahet.co (revisado en vivo por DOM: foto 30.8% / panel 69.2% a 1912px) —
+     antes era al revés (60% foto / 40% panel). */
   .pm-scroll{display:flex;flex-direction:row;overflow:hidden}
-  .pm-img{width:60%;height:100%;aspect-ratio:auto;object-fit:cover;background:var(--white)}
-  .pm-gal{width:60%;height:100%;aspect-ratio:auto;flex-shrink:0;background:var(--white)}
+  .pm-img{width:35%;height:100%;aspect-ratio:auto;object-fit:cover;background:var(--white)}
+  .pm-gal{width:35%;height:100%;aspect-ratio:auto;flex-shrink:0;background:var(--white)}
   .pm-gal-track img{object-fit:cover}
-  .pm-body{width:40%;height:100%;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:26px 24px calc(34px + var(--barH))}
+  .pm-body{width:65%;height:100%;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:26px 24px calc(34px + var(--barH))}
   .pm-sizes-cta{display:flex;align-items:flex-start;gap:14px}
   .pm-sizes{flex:1;min-width:0}
-  .pm-add{width:auto;flex-shrink:0;margin-top:27px;margin-left:auto;padding:15px 28px;white-space:nowrap}
-  .pm-title{font-size:28px}
-  .pm-price{font-size:28px}
+  .pm-add{width:auto;flex-shrink:0;margin-top:27px;margin-left:auto;padding:12px 24px;white-space:nowrap}
+  .pm-title{font-size:18px}
+  .pm-price{font-size:15px}
 }
 .cart-line{display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:400;line-height:1.3;border-radius:0;padding:10px 12px;margin-top:8px;border:1px solid transparent}
 .cart-line b{font-weight:400}
