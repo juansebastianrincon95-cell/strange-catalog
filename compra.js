@@ -1,17 +1,21 @@
-/* ── MODAL DE COMPRA RÁPIDA (estilo elenacuidadocapilar.com / "RSI COD Form") ──
-   Se abre desde buyNowFicha() (tienda.js) SIN cerrar la ficha del producto: resumen del pedido +
-   upsell + formulario de envío + botón final de pago, todo en una sola vista con scroll.
+/* ── MODAL DE COMPRA RÁPIDA (contenido de elenacuidadocapilar.com, apariencia de sahet.co) ──
+   Se abre desde buyNowFicha() (tienda.js) SIN cerrar la ficha del producto: primero el resumen
+   con grid de fotos + desglose de precio (estilo sahet.co), luego el formulario de envío con
+   icono+etiqueta+input subrayado (también estilo sahet.co) y el botón final de pago — mismos
+   campos de siempre (cédula/nombre/whatsapp/email/ciudad/dirección/barrio), todo en una sola
+   vista con scroll.
 
    Reusa tal cual (sin tocarlas) las funciones reales de pago de carrito.js: enviarWA/pagarWompi/
    pagarBold leen los campos del formulario por id ($('fn')...$('fci')) sin saber en qué
-   contenedor viven — por eso este modal reusa formEnvioHTML()/leerFormEnvio() con los MISMOS ids.
+   contenedor viven ni qué apariencia tienen — por eso formEnvioSahetHTML() usa los MISMOS ids
+   que el formEnvioHTML() clásico, y leerFormEnvio() (carrito.js) se reusa sin cambios.
    rPayChoice() y el #csheet clásico NO se tocan: siguen siendo el único camino para todo lo demás
    (grid, favoritos, lanzamientos, búsqueda) vía togCard().
 
    window.BUY_MODAL_ON=false permite volver al flujo clásico (csheet) sin tocar código. */
 const BUY_MODAL_ON=true;
 
-let bmIntent=null,bmCtx=null;
+let bmIntent=null,bmCtx=null,bmDetallesVisible=true;
 
 function bmProduct(){
   if(!bmCtx)return null;
@@ -22,6 +26,7 @@ function bmProduct(){
 function openBuyModal(intent){
   bmIntent=intent;
   bmCtx={id:pmId,type:pmType,talla:pmTalla};
+  bmDetallesVisible=true;
   // Limpia el csheet clásico: si quedó renderizado detrás (ej. el cliente había abierto el
   // carrito antes), sus inputs #fn/#fc/... duplicarían los ids del formulario de este modal y
   // $('fn') tomaría el primero en el DOM (el del csheet, que precede a #buyModal) — vacío o
@@ -49,16 +54,64 @@ function closeBuyModal(){
   bmIntent=null;bmCtx=null;
 }
 
-function bmResumenHTML(){
+// Resumen estilo sahet.co: grid de fotos (con el badge de cantidad) + desglose de precio.
+// El desglose reusa las mismas clases del resumen clásico (.csum-row/.csum-total/.free) para
+// mantener la misma tipografía en todo el sitio, en vez de inventar una nueva.
+function bmTotalsHTML(){
   const rows=Object.values(cart);
   const pricing=cartPricing(rows);
-  const filas=rows.map(({p,qty,type,talla})=>{
-    const m=p.img?`<img src="${p.img}" alt="${altProd(p)}">`:`<span style="font-size:22px">${type==='liq'?'🔥':'👟'}</span>`;
-    const lbl=p.modelo||(type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer'));
-    const tallaTag=talla?`<span class="crtalla">Talla ${escHtml(String(talla))}</span>`:'';
-    return `<div class="crow"><div class="crimg">${m}</div><div class="crinfo"><div class="crname">${escHtml(lbl)}${qty>1?` ×${qty}`:''}</div>${tallaTag}<div class="crprice">${fmt(p.price*qty)}</div></div></div>`;
+  const orig=rows.reduce((s,{p,qty})=>{const act=(p.promo||promoG)&&p.was&&p.was>p.price;return s+(act?p.was:p.price)*qty;},0);
+  const ahorroTotal=orig-pricing.sub;
+  // Ciudad en vivo del input si ya existe (el cliente está escribiendo), si no la última guardada.
+  const ciudadViva=(($('fci')||{}).value)||(cData&&cData.ciudad)||'';
+  const flete=bmIntent==='contra_entrega'?calcFlete(pricing.pares,ciudadViva,pricing.sub):0;
+  const totalFinal=pricing.sub+flete;
+  const discRow=ahorroTotal>0?`<div class="csum-row disc"><span>${pricing.combo?escHtml(pricing.combo.nombre):escHtml(pricing.descTag||'Descuento')}</span><span class="v">−${fmt(ahorroTotal)}</span></div>`:'';
+  return `<div class="csum-row"><span>Productos</span><span class="v">${fmt(orig)}</span></div>${discRow}<div class="csum-row"><span>Envío</span><span class="v${flete===0?' free':''}">${flete===0?'Gratis':fmt(flete)}</span></div><div class="csum-total"><span class="l">Total</span><span class="v">${fmt(totalFinal)}</span></div>`;
+}
+function bmRefreshTotales(){
+  const box=$('srTotals');if(box)box.innerHTML=bmTotalsHTML();
+}
+function bmToggleDetalles(){
+  bmDetallesVisible=!bmDetallesVisible;
+  const g=$('srGrid');if(g)g.style.display=bmDetallesVisible?'':'none';
+  const b=$('srToggleBtn');if(b)b.textContent=bmDetallesVisible?'Ocultar detalles':'Ver detalles';
+}
+function bmResumenSahetHTML(){
+  const rows=Object.values(cart);
+  const totalPares=rows.reduce((s,{qty})=>s+qty,0);
+  const cards=rows.map(({p,qty,type,talla})=>{
+    const img=p.img?`<img src="${p.img}" alt="${altProd(p)}">`:`<span style="font-size:26px">${type==='liq'?'🔥':'👟'}</span>`;
+    const nom=p.modelo||(type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer'));
+    return `<div class="sr-card"><div class="sr-ph">${img}${qty>1?`<span class="sr-qty">${qty}</span>`:''}</div><div class="sr-nom">${escHtml(nom)}</div><div class="sr-precio">${fmt(p.price*qty)}</div>${talla?`<span class="crtalla">Talla ${escHtml(String(talla))}</span>`:''}</div>`;
   }).join('');
-  return `<div class="csum-t">Resumen del pedido</div>${filas}<div class="csum-total" style="margin-top:8px"><span class="l">Total</span><span class="v">${fmt(pricing.sub)}</span></div>`;
+  return `<div class="sr-badge">${totalPares} producto${totalPares===1?'':'s'}</div>
+    <div class="sr-grid" id="srGrid"${bmDetallesVisible?'':' style="display:none"'}>${cards}</div>
+    <button type="button" class="sr-toggle" id="srToggleBtn" onclick="bmToggleDetalles()">${bmDetallesVisible?'Ocultar detalles':'Ver detalles'}</button>
+    <div class="csum" id="srTotals">${bmTotalsHTML()}</div>
+    <label class="sf-consent" for="fconsent">
+      <input id="fconsent" type="checkbox" ${cData.consent?'checked':''}>
+      <span>Al confirmar tu pedido aceptas haber leído nuestra <a href="#" onclick="openLegal('privacidad');return false">Política de Datos</a> y nuestras condiciones de <a href="#" onclick="openInfo('cambios');return false">Cambios y Garantías</a>.</span>
+    </label>`;
+}
+
+// Formulario de datos estilo sahet.co: icono + etiqueta + input subrayado (sin caja), con los
+// MISMOS ids que formEnvioHTML() (carrito.js) — enviarWA/pagarWompi/pagarBold/leerFormEnvio los
+// leen igual sin saber qué apariencia tienen. El checkbox de consentimiento vive en el resumen
+// (bmResumenSahetHTML), no aquí — leerFormEnvio() solo busca el id, no le importa dónde está.
+function formEnvioSahetHTML(){
+  const f=(id,label,ic,val,type,extra)=>`<div class="sf-fld"><span class="sf-ic">${ic}</span><div class="sf-fld-b"><label class="sf-lbl">${label}</label><input id="${id}" type="${type||'text'}" ${extra||''} value="${escHtml(val||'')}"></div></div>`;
+  return `<div class="sf-sec">
+    <div class="sf-head"><span class="sf-num">1</span>Datos de envío</div>
+    ${f('fc','Cédula','🪪',cData.cedula,'text','inputmode="numeric" autocomplete="off"')}
+    ${f('fn','Nombre completo','👤',cData.nombre,'text','autocomplete="name" autocapitalize="words"')}
+    ${f('ft','WhatsApp','💬',cData.celular,'tel','inputmode="tel" autocomplete="tel"')}
+    ${f('fem','Email','✉️',cData.email,'email','inputmode="email" autocomplete="email"')}
+    <div class="sf-fld"><span class="sf-ic">📍</span><div class="sf-fld-b"><label class="sf-lbl">Ciudad o municipio</label><input id="fci" type="text" autocomplete="address-level2" autocapitalize="words" oninput="bmRefreshTotales()" value="${escHtml(cData.ciudad||'')}"></div></div>
+    ${f('fd','Dirección','🏠',cData.direccion,'text','autocomplete="street-address"')}
+    ${f('fb','Barrio','🏘️',cData.barrio,'text','autocomplete="address-level3"')}
+    <div class="ferr" id="ferr">Completa todos los campos y acepta la política de datos</div>
+  </div>`;
 }
 
 // Upsell dentro del modal: reusa fichaSugeridos() (tienda.js), igual criterio que "También te
@@ -94,9 +147,8 @@ function bmFooterHTML(){
 
 function renderBuyModal(){
   $('bmTitle').textContent=bmIntent==='whatsapp'?'Comprar por WhatsApp':'Comprar contra entrega';
-  $('bmBody').innerHTML=`<div class="csum" style="margin-top:10px">${bmResumenHTML()}</div>${renderBmCrossHTML()}${formEnvioHTML()}`;
+  $('bmBody').innerHTML=bmResumenSahetHTML()+renderBmCrossHTML()+formEnvioSahetHTML();
   $('bmFoot').innerHTML=bmFooterHTML();
-  updFleteHint();
   crslUpd();
 }
 
