@@ -961,17 +961,21 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .buy-modal{position:fixed;left:0;right:0;bottom:0;z-index:630;background:var(--white);border-radius:18px 18px 0 0;max-height:92vh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .34s cubic-bezier(.32,.72,0,1);padding-bottom:env(safe-area-inset-bottom)}
 .buy-modal.on{transform:translateY(0)}
 /* ESCRITORIO: drawer lateral derecho a pantalla completa — calcado del panel real de sahet.co
-   (revisado en vivo: 707px de ancho, alto 100vh, sin esquinas redondeadas, pegado al borde
-   derecho) y del mismo tratamiento que ya usa nuestro propio .csheet en escritorio.
+   (revisado en vivo por CSS, 2026-09-10: NO es un ancho fijo en px — es un % del viewport que
+   escala en 5 saltos: 90%/80%/55%/47%/37% a 601/724/941/1000/1367px. A 1920px eso da ~707px;
+   nuestro ancho fijo anterior (430-540px máx) se quedaba corto en pantallas grandes. Mismo
+   tratamiento de posición/animación que ya usa nuestro propio .csheet en escritorio.
    padding-top: el topbar (.topbar, z-index 680) queda POR ENCIMA del drawer (630) — sin este
    padding, su propio encabezado ("Finaliza tu pedido"+✕) quedaría tapado detrás de la barra
    fija, igual que ya le pasa a .info-modal/.photo-modal si no llevaran este mismo cálculo. */
 @media(min-width:700px){
-  .buy-modal{left:auto;right:0;top:0;bottom:0;width:430px;max-width:430px;height:100vh;max-height:none;border-radius:0;transform:translateX(100%);padding-bottom:0;padding-top:calc(var(--annH) + var(--navH))}
+  .buy-modal{left:auto;right:0;top:0;bottom:0;width:90%;max-width:none;height:100vh;max-height:none;border-radius:0;transform:translateX(100%);padding-bottom:0;padding-top:calc(var(--annH) + var(--navH))}
   .buy-modal.on{transform:translateX(0)}
 }
-@media(min-width:1180px){.buy-modal{width:480px;max-width:480px}}
-@media(min-width:1600px){.buy-modal{width:540px;max-width:540px}}
+@media(min-width:724px){.buy-modal{width:80%}}
+@media(min-width:941px){.buy-modal{width:55%}}
+@media(min-width:1000px){.buy-modal{width:47%}}
+@media(min-width:1367px){.buy-modal{width:37%}}
 .bm-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 0;flex-shrink:0;gap:10px}
 .bm-body{overflow-y:auto;flex:1;min-height:0;-webkit-overflow-scrolling:touch;padding:0 18px}
 .bm-foot{padding:12px 18px 2px;border-top:1px solid var(--line);flex-shrink:0}
