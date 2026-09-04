@@ -513,13 +513,44 @@ function waMayoristas(){
     bar.classList.toggle('hide',on);
     suppressUntil=performance.now()+400;
   }
+  // Red de seguridad contra un glitch real de Chrome/Edge: con bajadas/subidas MUY rápidas y
+  // seguidas, el compositor puede dejar el topbar (o su barra de anuncio, que rota mensajes con
+  // su propio transform) con el DOM/CSS correcto (visible, opacity 1, transform:none — lo
+  // confirmamos en vivo) pero SIN repintar, un hueco en blanco hasta el próximo repintado. Esto
+  // pasa AUNQUE el propio .hide no llegue a cambiar (es un glitch de la capa compuesta durante
+  // el scroll rápido en sí, no solo de nuestra transición) — por eso se nudgea en cada frame de
+  // scroll, no solo al terminar una transición. offsetHeight NO sirve (fuerza layout, no pintura);
+  // un toque de opacity sí, porque invalida la capa compuesta sin recalcular layout (barato).
+  // Probado en vivo: nudgear DENTRO del propio handler de scroll no sirve — el mal pintado lo
+  // hace el navegador en un paso de composición que ocurre DESPUÉS de que nuestro JS termina, así
+  // que nudgear ahí corrige un pintado que todavía no pasó. Lo que sí funciona (confirmado en
+  // vivo): nudgear un instante DESPUÉS de que el scroll se detiene — cuando el glitch, si va a
+  // pasar, ya pasó y quedó pegado (nadie más lo va a corregir porque no hay más eventos).
+  let nudgeT=null;
+  function nudgeNow(){
+    bar.style.opacity='.999';
+    void bar.offsetHeight;
+    bar.style.opacity='';
+  }
+  function nudgeRepaintSoon(){
+    nudgeNow();   // por si el mal pintado ya ocurrió antes de este frame
+    clearTimeout(nudgeT);
+    nudgeT=setTimeout(nudgeNow,80);   // y otra vez apenas se asienta el scroll, por si ocurre después
+  }
   function bind(getY){
     let lastY=getY(), ticking=false;
     function update(){
       const y=getY();
+      nudgeRepaintSoon();
+      // "Arriba del todo" manda SIEMPRE, incluso durante la ventana de supresión: si no, un
+      // bajón rápido (oculta la cabecera y arranca la supresión de 400ms) seguido de una subida
+      // rápida hasta el tope, con todo el gesto dentro de esos 400ms, deja el evento de "subir"
+      // silenciado por la supresión — y como el usuario ya dejó de scrollear, nadie vuelve a
+      // evaluar el estado: la cabecera queda oculta para siempre, con su espacio reservado en
+      // blanco (el bug reportado: hueco blanco tras bajar y subir rápido).
+      if(y<=2){ setHide(false); lastY=y; ticking=false; return; }
       if(performance.now()<suppressUntil){ lastY=y; ticking=false; return; }
-      if(y<=2){ setHide(false); }                                        // arriba del todo: siempre visible
-      else if(Math.abs(y-lastY)>TH){
+      if(Math.abs(y-lastY)>TH){
         if(y>lastY && y>bar.offsetHeight) setHide(true);                 // bajando → ocultar
         else setHide(false);                                             // subiendo → mostrar
       }

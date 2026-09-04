@@ -14,13 +14,17 @@ body{padding-top:calc(var(--annH) + var(--navH));padding-bottom:var(--barH)}
    desplegables (Contáctanos, el banner negro) quedan tapados por la ficha/catálogo/info, que
    ahora arrancan DEBAJO de la cabecera pero siguen ganando el pulso de apilamiento por tener
    un z-index más alto que el del propio .topbar donde viven esos paneles. */
-.topbar{position:fixed;top:0;left:0;right:0;z-index:680;transition:transform .35s cubic-bezier(.4,0,.2,1)}
+/* will-change:transform lo fija a su propia capa de GPU: sin esto, un cambio brusco de dirección
+   del scroll (bajar rápido y subir rápido) puede dejar a Chrome sin repintar este fixed a tiempo
+   — el estado (.hide) queda correcto pero la pantalla se ve en blanco un instante hasta el
+   siguiente repintado. Bug real reportado y reproducido el 2026-09-04. */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:680;transition:transform .35s cubic-bezier(.4,0,.2,1);will-change:transform}
 .topbar.hide{transform:translateY(-100%)}
 /* BARRA DE ANUNCIO — negra y compacta (calcada de adidas.co), 3 mensajes rotando verticalmente,
    se despliegan completos en .ann-panel (ese sí blanco) al tocarla. */
 .annbar{position:relative;height:var(--annH);background:var(--ink);color:#fff;cursor:pointer;overflow:hidden}
 .annbar-viewport{height:100%;overflow:hidden}
-.annbar-track{height:300%;display:flex;flex-direction:column;transition:transform .5s cubic-bezier(.4,0,.2,1)}
+.annbar-track{height:300%;display:flex;flex-direction:column;transition:transform .5s cubic-bezier(.4,0,.2,1);will-change:transform}
 .annbar-slide{flex:0 0 33.3333%;height:33.3333%;display:flex;align-items:center;justify-content:center;gap:7px;padding:0 14px;text-align:center;line-height:1}
 .annbar-ic{font-size:13px;line-height:1;flex:0 0 auto;display:flex;align-items:center}
 .annbar-tx{display:flex;align-items:center;line-height:1}
