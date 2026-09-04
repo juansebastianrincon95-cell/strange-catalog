@@ -1,7 +1,4 @@
-/* --annH más chica por default (mobile-first): 40px se veía muy gruesa la barra de anuncio en
-   móvil ("LLÉVALO HOY...", "EL ESTILO QUE TE MUEVE") — en escritorio vuelve a 40px más abajo. */
-:root{color-scheme:light;--bg:#FFFFFF;--white:#FFF;--ink:#0E0E0C;--ink2:#5a5a56;--ink3:#9a9a95;--line:rgba(0,0,0,0.08);--red:#E8200A;--blue:#0066FF;--green:#1aad49;--orange:#FF7A00;--wa:#25D366;--font:'Montserrat',system-ui,sans-serif;--annH:33px;--navH:64px;--barH:34px}
-@media(min-width:700px){:root{--annH:40px}}
+:root{color-scheme:light;--bg:#FFFFFF;--white:#FFF;--ink:#0E0E0C;--ink2:#5a5a56;--ink3:#9a9a95;--line:rgba(0,0,0,0.08);--red:#E8200A;--blue:#0066FF;--green:#1aad49;--orange:#FF7A00;--wa:#25D366;--font:'Montserrat',system-ui,sans-serif;--annH:40px;--navH:64px;--barH:34px}
 @media(min-width:700px){:root{--annH:44px;--navH:78px}}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 /* El scroll interno de los modales NO arrastra el fondo (anti scroll-chaining) */
@@ -29,9 +26,9 @@ body{padding-top:calc(var(--annH) + var(--navH));padding-bottom:var(--barH)}
 .annbar-viewport{height:100%;overflow:hidden}
 .annbar-track{height:300%;display:flex;flex-direction:column;transition:transform .5s cubic-bezier(.4,0,.2,1);will-change:transform}
 .annbar-slide{flex:0 0 33.3333%;height:33.3333%;display:flex;align-items:center;justify-content:center;gap:7px;padding:0 14px;text-align:center;line-height:1}
-.annbar-ic{font-size:11px;line-height:1;flex:0 0 auto;display:flex;align-items:center}
+.annbar-ic{font-size:13px;line-height:1;flex:0 0 auto;display:flex;align-items:center}
 .annbar-tx{display:flex;align-items:center;line-height:1}
-.annbar-tx strong{font-size:9.5px;font-weight:400;letter-spacing:.06em;text-transform:uppercase;line-height:1}
+.annbar-tx strong{font-size:10.5px;font-weight:400;letter-spacing:.06em;text-transform:uppercase;line-height:1}
 .annbar-arrow{display:flex;align-items:center;flex:0 0 auto;color:#fff}
 
 .ann-panel{position:fixed;top:var(--annH);left:0;right:0;z-index:70;background:var(--white);border-bottom:1px solid var(--line);box-shadow:0 12px 30px rgba(0,0,0,.12);display:flex;flex-direction:column;max-height:calc(100vh - var(--annH));overflow-y:auto;clip-path:inset(0 0 100% 0);pointer-events:none;transition:clip-path .42s cubic-bezier(.4,0,.2,1)}
