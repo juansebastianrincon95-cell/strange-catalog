@@ -1,4 +1,7 @@
-:root{color-scheme:light;--bg:#FFFFFF;--white:#FFF;--ink:#0E0E0C;--ink2:#5a5a56;--ink3:#9a9a95;--line:rgba(0,0,0,0.08);--red:#E8200A;--blue:#0066FF;--green:#1aad49;--orange:#FF7A00;--wa:#25D366;--font:'Montserrat',system-ui,sans-serif;--annH:40px;--navH:64px;--barH:34px}
+/* --annH más chica por default (mobile-first): 40px se veía muy gruesa la barra de anuncio en
+   móvil ("LLÉVALO HOY...", "EL ESTILO QUE TE MUEVE") — en escritorio vuelve a 40px más abajo. */
+:root{color-scheme:light;--bg:#FFFFFF;--white:#FFF;--ink:#0E0E0C;--ink2:#5a5a56;--ink3:#9a9a95;--line:rgba(0,0,0,0.08);--red:#E8200A;--blue:#0066FF;--green:#1aad49;--orange:#FF7A00;--wa:#25D366;--font:'Montserrat',system-ui,sans-serif;--annH:33px;--navH:64px;--barH:34px}
+@media(min-width:700px){:root{--annH:40px}}
 @media(min-width:700px){:root{--annH:44px;--navH:78px}}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 /* El scroll interno de los modales NO arrastra el fondo (anti scroll-chaining) */
@@ -26,9 +29,9 @@ body{padding-top:calc(var(--annH) + var(--navH));padding-bottom:var(--barH)}
 .annbar-viewport{height:100%;overflow:hidden}
 .annbar-track{height:300%;display:flex;flex-direction:column;transition:transform .5s cubic-bezier(.4,0,.2,1);will-change:transform}
 .annbar-slide{flex:0 0 33.3333%;height:33.3333%;display:flex;align-items:center;justify-content:center;gap:7px;padding:0 14px;text-align:center;line-height:1}
-.annbar-ic{font-size:13px;line-height:1;flex:0 0 auto;display:flex;align-items:center}
+.annbar-ic{font-size:11px;line-height:1;flex:0 0 auto;display:flex;align-items:center}
 .annbar-tx{display:flex;align-items:center;line-height:1}
-.annbar-tx strong{font-size:10.5px;font-weight:400;letter-spacing:.06em;text-transform:uppercase;line-height:1}
+.annbar-tx strong{font-size:9.5px;font-weight:400;letter-spacing:.06em;text-transform:uppercase;line-height:1}
 .annbar-arrow{display:flex;align-items:center;flex:0 0 auto;color:#fff}
 
 .ann-panel{position:fixed;top:var(--annH);left:0;right:0;z-index:70;background:var(--white);border-bottom:1px solid var(--line);box-shadow:0 12px 30px rgba(0,0,0,.12);display:flex;flex-direction:column;max-height:calc(100vh - var(--annH));overflow-y:auto;clip-path:inset(0 0 100% 0);pointer-events:none;transition:clip-path .42s cubic-bezier(.4,0,.2,1)}
@@ -1090,10 +1093,14 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    no un botón aparte debajo de un círculo suelto. Vive en el pie fijo (#bmFoot, no en .bm-body)
    porque acá "Pagar" se mantiene siempre visible al hacer scroll — pero visualmente queda
    pegado al número, igual que en sahet. */
-/* margin-bottom generoso a propósito: en sahet.co, aunque hagas scroll hasta el final, el botón
-   "Pagar" queda con harto espacio en blanco debajo (revisado en vivo) — no pegado al borde. Solo
-   acá (no en .bm-body) para no afectar el scroll de la pestaña BOLSA. */
-#bmInlineFoot{margin-top:20px;margin-bottom:160px}
+/* margin-bottom responsive: en escritorio, sahet.co deja harto espacio en blanco bajo "Pagar"
+   aunque hagas scroll hasta el final (revisado en vivo) — por eso 160px ahí. Pero ese mismo valor
+   fijo, en un celular real (mucho menos alto), dejaba casi un cuarto del modal vacío bajo el
+   botón (auditoría móvil 2026-09-04, medido en vivo: viewport de 810px de alto, 160px de hueco).
+   En móvil basta una separación chica + el inset seguro del notch. Solo en #bmInlineFoot (no en
+   .bm-body) para no afectar el scroll de la pestaña BOLSA. */
+#bmInlineFoot{margin-top:20px;margin-bottom:calc(32px + env(safe-area-inset-bottom))}
+@media(min-width:700px){#bmInlineFoot{margin-bottom:160px}}
 .sf-foot-row{display:flex;align-items:center;gap:10px}
 /* Botón "Pagar" calcado a tamaño real de sahet.co (medido en vivo por DOM): 184x31px, pegado a la
    izquierda junto al número — NO una barra de ancho completo. */
@@ -1140,7 +1147,11 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    reales de sahet.co (revisado en vivo: son botones compactos con solo el logo, no tarjetas
    grandes con título/descripción como .paychoice del carrito clásico). */
 .sf-gw-row{display:flex;align-items:center;gap:8px;margin-bottom:14px}
-.sf-gw{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:var(--white);border:1px solid var(--ink);border-radius:0;padding:6px 8px;max-width:100px;cursor:pointer}
+/* min-height fija: en pantallas angostas "Contra entrega" (el único con texto, no logo) puede
+   envolver a 2 líneas mientras los demás quedan en 1 — sin una altura mínima común, align-items:
+   center del .sf-gw-row los centra cada uno según SU propia altura y quedan 5px desalineados
+   entre sí (encontrado en la auditoría móvil del 2026-09-04). */
+.sf-gw{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:var(--white);border:1px solid var(--ink);border-radius:0;padding:6px 8px;max-width:100px;min-height:38px;cursor:pointer}
 .sf-gw-logo{height:14px;object-fit:contain}
 /* Etiqueta de texto para métodos sin logo de pasarela (Contra entrega, WhatsApp) — mismo tamaño
    de caja .sf-gw que los logos, usado por el selector de 6 métodos (bmMethodPickerHTML). */
@@ -1216,9 +1227,16 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    es un placeholder a propósito, esa tarjeta se reemplaza por la imagen real cuando la haya.
    Campos Nombre/WhatsApp: mismo componente .sf-fld del checkout (icono + etiqueta chica + input
    subrayado, calcado de sahet.co) SIN overrides — ya está pensado para fondo blanco. */
-.wm{position:fixed;inset:0;z-index:600;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(14,14,12,.62);backdrop-filter:blur(3px)}
+/* padding-top descuenta la cabecera fija (annbar+nav, z-index 680, por encima de este 600):
+   sin esto, en pantallas bajas la parte de arriba de la tarjeta —el botón de cerrar incluido—
+   queda pintada DETRÁS del nav y el clic no le llega. Mismo patrón que .info-modal/.photo-modal.
+   Bug real de móvil encontrado en la auditoría del 2026-09-04. */
+.wm{position:fixed;inset:0;z-index:600;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(14,14,12,.62);backdrop-filter:blur(3px);padding-top:calc(var(--annH) + var(--navH) + 18px)}
 .wm.on{display:flex}
-.wm-card{position:relative;width:100%;max-width:760px;background:var(--white);border-radius:0;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.45);animation:pmIn .34s cubic-bezier(.16,1,.3,1) both;max-height:94vh;display:flex;flex-direction:column}
+/* max-height calculado (no un % de vh plano): con el padding-top del .wm descontando la
+   cabecera fija, un 94vh se pasaría del espacio real disponible y la tarjeta se saldría por
+   abajo del viewport en pantallas bajas. */
+.wm-card{position:relative;width:100%;max-width:760px;background:var(--white);border-radius:0;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.45);animation:pmIn .34s cubic-bezier(.16,1,.3,1) both;max-height:calc(100vh - var(--annH) - var(--navH) - 36px);display:flex;flex-direction:column}
 .wm-close{position:absolute;top:10px;right:10px;width:34px;height:34px;border:1px solid var(--line);border-radius:50%;background:var(--white);color:var(--ink);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:3;box-shadow:0 2px 10px rgba(0,0,0,.14)}
 .wm-close:hover{background:var(--bg)}
 .wm-pane-content{flex:1 1 auto;min-height:0;background:var(--white);color:var(--ink);padding:28px 24px;display:flex;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch}
@@ -1263,10 +1281,10 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .wm-reopen:active{transform:scale(.95)}
 /* Desde tablet/escritorio: paneles lado a lado, MISMO ancho (calcado de .tm-card) */
 @media(min-width:700px){
-  .wm-card{flex-direction:row;max-height:86vh}
-  .wm-pane-content{flex:1 1 50%;padding:36px 34px;max-height:86vh}
+  .wm-card{flex-direction:row;max-height:calc(100vh - var(--annH) - var(--navH) - 36px)}
+  .wm-pane-content{flex:1 1 50%;padding:36px 34px;max-height:calc(100vh - var(--annH) - var(--navH) - 36px)}
   .wm-off{font-size:40px}
-  .wm-pane-img{flex:1 1 50%;max-height:86vh}
+  .wm-pane-img{flex:1 1 50%;max-height:calc(100vh - var(--annH) - var(--navH) - 36px)}
 }
 /* Popup más compacto en móvil */
 @media(max-width:480px){
