@@ -213,14 +213,13 @@ function escaleraAhorro(rows,pricing){
   const cand=tiers.find(t=>parseInt(t.pares)===tot);
   let applyBtn='';
   if(cand&&parseInt(cand.precio)<pricing.sub){
-    applyBtn=`<button class="esc-apply" onclick="aplicarComboSug('${escHtml(cand.id)}')">Aplicar ${escHtml(cand.nombre)} ${cand.bandera||''} y ahorrar ${fmt(pricing.sub-parseInt(cand.precio))}</button>`;
+    applyBtn=`<button class="esc-apply" onclick="aplicarComboSug('${escHtml(cand.id)}')">Aplicar ${escHtml(cand.nombre)} ${cand.bandera||''} y ahorrar <span class="esc-apply-monto">${fmt(pricing.sub-parseInt(cand.precio))}</span></button>`;
   }
   return `<div class="esc-wrap">
     <div class="esc-head"><span>🔥</span><span>COMPRA MÁS, AHORRA MÁS</span></div>
     <div class="esc-sub">${head}</div>
     <div class="esc-ladder">${filas}</div>
     ${applyBtn}
-    ${crossSellHTML(rows)}
   </div>`;
 }
 
@@ -418,6 +417,11 @@ function addItemToCart(id,type,talla){
   return true;
 }
 
+// El PRIMER "agregar" de cada carga de página SÍ abre la bolsa (para que el cliente vea dónde
+// quedó su par la primera vez) — de ahí en adelante, mientras no recargue, agregar más pares NO
+// vuelve a abrirla, para no interrumpirlo si sigue comprando. Es una variable en memoria (no
+// localStorage) a propósito: se resetea sola con cada recarga/entrada nueva a la página.
+let _bolsaAbiertaUnaVez=false;
 function togCard(id,type,talla,fromEl){
   const key=cartKey(id,type,talla);
   if(cart[key]){
@@ -429,10 +433,13 @@ function togCard(id,type,talla,fromEl){
     return;
   }
   if(!addItemToCart(id,type,talla))return;   // no existe o está agotado
-  // Si hay foto de origen, la vemos volar al carrito antes de abrirlo (si no, openCart()
-  // le pone .hide al instante y tapa/mueve el ícono destino a mitad de la animación).
   const voló=typeof flyToCart==='function'&&flyToCart(fromEl);
-  if(voló)setTimeout(openCart,520);else openCart();
+  if(!_bolsaAbiertaUnaVez){
+    _bolsaAbiertaUnaVez=true;
+    if(voló)setTimeout(()=>openBuyModal('full'),920);else openBuyModal('full');
+  }else if(!voló){
+    toast('Agregado a tu bolsa');
+  }
 }
 // Ítems del pedido para WhatsApp/orders (incluye la talla). Único punto de construcción.
 function cartItems(rows){return rows.map(({p,qty,type,talla})=>({label:p.modelo||(type==='liq'?'Liq':(p.g==='h'?'Hombre':'Mujer')),type,id:p.id,brand:p.brand||null,qty,precio:p.price*qty,talla:talla||null}));}

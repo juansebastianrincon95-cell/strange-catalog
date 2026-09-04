@@ -21,7 +21,7 @@
    window.BUY_MODAL_ON=false permite volver al flujo clásico (csheet) sin tocar código. */
 const BUY_MODAL_ON=true;
 
-let bmIntent=null,bmCtx=null,bmGwSelected=null,bmTab='pagar';
+let bmIntent=null,bmCtx=null,bmGwSelected=null,bmTab='pagar',bmMethod=null;
 
 // Iconos de línea (mismo template SVG que ya usa rPayChoice() en carrito.js: viewBox 24x24,
 // stroke=currentColor) — sahet.co usa iconos de contorno minimalistas, no emoji.
@@ -29,7 +29,10 @@ const BM_SV='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-w
 const BM_ICONS={
   cedula:BM_SV+'<rect x="2" y="5.5" width="20" height="13" rx="2"/><circle cx="8" cy="12" r="1.8"/><path d="M13 10.3h6M13 13.7h4"/></svg>',
   nombre:BM_SV+'<circle cx="12" cy="8" r="3.3"/><path d="M5 20c0-4 3.1-6.6 7-6.6s7 2.6 7 6.6"/></svg>',
-  whatsapp:BM_SV+'<path d="M8 10.3c.9 2 2.9 4 4.9 4.9l1.1-1.4c.3-.3.7-.4 1.1-.2.8.4 1.6.6 2.5.7.5.1.9.5.9 1v2.1c0 .6-.5 1-1 1-6.6 0-12-5.4-12-12 0-.5.4-1 1-1h2.1c.5 0 .9.4 1 .9.1.9.3 1.7.7 2.5.2.4.1.8-.2 1.1z"/></svg>',
+  // Logo real de WhatsApp (burbuja+teléfono), no un ícono de llamada genérico — extraído del
+  // sprite SVG real de sahet.co (assets/general-*.svg, icon-whatsapp-lines) y trasladado a nuestro
+  // viewBox 0-24 (coordenadas relativas intactas, solo se desplazó el punto de inicio M).
+  whatsapp:BM_SV+'<path d="M3.679,15.932c-0.772,-1.256 -1.218,-2.735 -1.218,-4.316c0,-4.557 3.7,-8.257 8.257,-8.257c4.557,0 8.257,3.7 8.257,8.257c0,4.557 -3.7,8.257 -8.257,8.257c-1.572,0 -3.042,-0.44 -4.293,-1.204l-2.917,1.361c-0.248,0.116 -0.542,0.072 -0.746,-0.111c-0.204,-0.183 -0.279,-0.47 -0.191,-0.729l1.108,-3.258Z"/><path d="M8.842,13.819c-1.172,-1.131 -1.878,-1.922 -2.3,-2.925c-0.42,-1 -0.243,-2.628 0.652,-3.472c0.895,-0.844 1.681,0.193 1.912,0.694c0.231,0.501 0.767,1.098 0.192,1.735c-0.575,0.636 -0.339,1.237 -0.089,1.677c0.25,0.44 0.934,1.035 0.934,1.035c0,0 0.632,0.676 1.08,0.91c0.449,0.235 0.953,0.349 1.569,-0.248c0.616,-0.597 1.231,-0.082 1.74,0.131c0.509,0.213 1.573,0.963 0.76,1.886c-0.812,0.924 -2.434,1.158 -3.447,0.773c-1.017,-0.386 -1.832,-1.065 -3.003,-2.196Z"/></svg>',
   email:BM_SV+'<rect x="2.5" y="5.5" width="19" height="13" rx="2"/><path d="M3 6.5l9 6.3 9-6.3"/></svg>',
   ciudad:BM_SV+'<path d="M12 21s6.5-6 6.5-10.8A6.5 6.5 0 1 0 5.5 10.2C5.5 15 12 21 12 21z"/><circle cx="12" cy="10" r="2.2"/></svg>',
   direccion:BM_SV+'<path d="M4 11.2 12 4.5l8 6.7"/><path d="M6 10v9.5h12V10"/><path d="M10 19.5v-5.8h4v5.8"/></svg>',
@@ -41,15 +44,25 @@ function openBuyModal(intent){
   bmIntent=intent;
   bmCtx={id:pmId,type:pmType,talla:pmTalla};
   bmGwSelected=null;
-  bmTab='pagar';
+  bmMethod=null;
+  // Ahora que este modal también es el destino del ícono flotante y de /carrito (bmIntent==='full'),
+  // puede abrirse con la bolsa VACÍA — en ese caso arranca en BOLSA (su estado vacío), no en PAGAR:
+  // no hay nada que pagar ni formulario que llenar todavía.
+  const hayItems=!!Object.keys(cart).length;
+  bmTab=hayItems?'pagar':'bolsa';
   // Limpia el csheet clásico: si quedó renderizado detrás (ej. el cliente había abierto el
   // carrito antes), sus inputs #fn/#fc/... duplicarían los ids del formulario de este modal y
   // $('fn') tomaría el primero en el DOM (el del csheet, que precede a #buyModal) — vacío o
   // desactualizado. openCart() ya re-renderiza siempre, así que esto es inocuo.
   {const cb=$('cbody');if(cb)cb.innerHTML='';const cf=$('cfoot');if(cf)cf.innerHTML='';}
   syncDescuentosAuto();
-  fireInitiateCheckout();
-  trackEvent('reached_payment');
+  // InitiateCheckout/reached_payment son señales de "llegó a pagar" — con la bolsa vacía (ej. tocar
+  // el ícono del carrito sin haber agregado nada) no hay checkout que iniciar, dispararlos sería un
+  // dato falso para Meta/analítica.
+  if(hayItems){
+    fireInitiateCheckout();
+    trackEvent('reached_payment');
+  }
   renderBuyModal();
   {const bm=$('buyModal');const _ya=bm.classList.contains('on');if(!_ya)lockScroll();$('bmScrim').classList.add('on');bm.classList.add('on');}
   $('cartBar').classList.add('hide');
@@ -124,7 +137,22 @@ function bmProductosListHTML(){
   }).join('');
 }
 function bmBolsaHTML(){
-  return `<div id="srList">${bmProductosListHTML()}</div>`;
+  // Bolsa vacía calcada de sahet.co (revisado en vivo por DOM): una sola línea de texto en
+  // mayúscula, alineada a la izquierda, sin ícono ni texto de ayuda — nada del emoji/mensaje
+  // centrado que usa el carrito clásico (#csheet .cempty).
+  if(!Object.keys(cart).length){
+    return `<div class="sf-empty">NO HAY ARTÍCULOS EN TU BOLSA</div>`;
+  }
+  const rows=Object.values(cart);
+  return `<div id="srList">${bmProductosListHTML()}</div><div id="srEscalera">${escaleraAhorro(rows,cartPricing(rows))}</div>`;
+}
+// Recalcula la escalera "COMPRA MÁS, AHORRA MÁS" con la cantidad ACTUAL del carrito — separada de
+// bmRefreshProductos() porque el +/- de cantidad (bmChQty) cambia cuántos pares hay en la bolsa,
+// y la escalera (niveles/ahorro) depende de ese total, no solo de la lista de productos.
+function bmRefreshEscalera(){
+  const box=$('srEscalera');if(!box)return;
+  const rows=Object.values(cart);
+  box.innerHTML=escaleraAhorro(rows,cartPricing(rows));
 }
 function bmBolsaFooterHTML(){
   return `<button class="btnmain" onclick="bmSwitchTab('pagar')">Ir a pagar ${fmt(bmMontoAPagar())}</button>`;
@@ -143,6 +171,7 @@ function bmChQty(key,d){
   bmGwSelected=null;
   syncDot();
   bmRefreshProductos();
+  bmRefreshEscalera();
   bmRefreshTotales();
   bmRefreshMediosPago();
   if($('bmFoot')&&bmTab==='bolsa')$('bmFoot').innerHTML=bmBolsaFooterHTML();
@@ -156,6 +185,7 @@ function bmRmItem(key){
   if(!Object.keys(cart).length){closeBuyModal();return;}
   bmGwSelected=null;
   bmRefreshProductos();
+  bmRefreshEscalera();
   bmRefreshTotales();
   bmRefreshMediosPago();
   if($('bmFoot')&&bmTab==='bolsa')$('bmFoot').innerHTML=bmBolsaFooterHTML();
@@ -166,8 +196,13 @@ function bmRmItem(key){
 // verdad, siempre visible, con el valor escrito debajo). Mismos ids que formEnvioHTML()
 // (carrito.js), así que enviarWA/pagarWompi/pagarBold/leerFormEnvio los leen igual. ──
 function formEnvioSahetHTML(){
-  const f=(id,ph,ic,val,type,extra,oninput)=>`<div class="sf-fld"><span class="sf-ic">${ic}</span><div class="sf-fld-b"><label class="sf-lbl" for="${id}">${ph}</label><input id="${id}" type="${type||'text'}" ${extra||''} oninput="${oninput||'bmRefreshDatosStep()'}" value="${escHtml(val||'')}"></div></div>`;
-  return `<div class="sf-sec" id="sfSecDatos" style="margin-top:0">
+  const f=(id,ph,ic,val,type,extra,oninput)=>{
+    const filled=!!String(val||'').trim();
+    const stateCls=filled?' sf-fld-ok':' sf-fld-bad';
+    const chain=`bmFieldValidate(this);${oninput||'bmRefreshDatosStep()'}`;
+    return `<div class="sf-fld${stateCls}"><span class="sf-ic">${ic}</span><div class="sf-fld-b"><label class="sf-lbl" for="${id}">${ph}</label><input id="${id}" type="${type||'text'}" ${extra||''} oninput="${chain}" value="${escHtml(val||'')}"></div></div>`;
+  };
+  return `<div class="sf-sec" id="sfSecDatos">
     <div class="sf-head"><span class="sf-num">1</span>Datos de envío<span class="sf-chev">${BM_ICONS.chevron}</span></div>
     <div class="sf-body">
       ${f('fc','CÉDULA',BM_ICONS.cedula,cData.cedula,'text','inputmode="numeric" autocomplete="off"')}
@@ -180,6 +215,17 @@ function formEnvioSahetHTML(){
       <div class="ferr" id="ferr">Completa todos los campos y acepta la política de datos</div>
     </div>
   </div>`;
+}
+
+// Verde al llenar, rojo al vaciar — por campo, calcado de sahet.co (revisado en vivo por DOM:
+// clase "validate"/"not-empty" cambia el color del border-bottom en tiempo real al escribir o
+// borrar). Puramente visual, no bloquea nada — la validación real sigue en leerFormEnvio().
+function bmFieldValidate(input){
+  const fld=input.closest('.sf-fld');
+  if(!fld)return;
+  const filled=!!input.value.trim();
+  fld.classList.toggle('sf-fld-ok',filled);
+  fld.classList.toggle('sf-fld-bad',!filled);
 }
 
 // ¿Los 6 campos requeridos de "Datos de envío" están llenos? (email es opcional, igual que en
@@ -206,9 +252,11 @@ function bmConsentHTML(){
   // pasarela o al escribir la ciudad — sin esto, cada re-render lo reconstruía desde cData.consent,
   // que sigue en false hasta pagar, y le borraba la marca al cliente que ya lo había tildado).
   const checked=$('fconsent')?$('fconsent').checked:!!cData.consent;
+  // UN solo link (calcado de sahet.co: "...las cuales puedes ver haciendo clic aquí") que abre
+  // TODA la información — antes eran 2 links a 2 sistemas distintos (openLegal + openInfo).
   return `<label class="sf-consent" for="fconsent">
     <input id="fconsent" type="checkbox" ${checked?'checked':''}>
-    <span>Al dar clic en el siguiente botón aceptas haber leído nuestra <a href="#" onclick="openLegal('privacidad');return false">Política de Datos</a> y nuestras condiciones de <a href="#" onclick="openInfo('cambios');return false">Cambios y Garantías</a>.</span>
+    <span>Al dar clic en el siguiente botón aceptas haber leído nuestras Políticas de Datos, Compras, Cambios y Garantías, las cuales puedes ver haciendo clic <a href="#" onclick="openLegal('todas');return false"><strong>aquí</strong></a>.</span>
   </label>`;
 }
 
@@ -218,7 +266,83 @@ function bmConsentHTML(){
 // link "Cambiar"; el pago real se dispara con un botón "Pagar $X" aparte, al final) tocar
 // Wompi/Bold aquí NO paga todavía — solo marca bmGwSelected. El botón del pie (bmFooterHTML) es
 // el que valida y llama a pagarWompi/pagarBold, ya con la pasarela elegida. ──
+// Botones chicos solo-logo — EXACTAMENTE el estilo que ya tenía "Contra entrega" para elegir
+// Wompi/Bold (.sf-gw), aplicado ahora también al selector de 6 métodos: mismo tamaño y forma en
+// los dos lugares del modal. contra_entrega/whatsapp no tienen logo de pasarela → usan una
+// etiqueta corta (.sf-gw-lbl) en su lugar, mismo tamaño de caja.
+function bmMetodoInner(method){
+  const logos={wompi:'Wompi',bold:'Bold',addi:'Addi',sistecredito:'Sistecrédito'};
+  if(logos[method])return `<img src="/logos/${method}.png" alt="${logos[method]}" class="sf-gw-logo">`;
+  return `<span class="sf-gw-lbl">Contra entrega</span>`;
+}
+
+// Selector de métodos — mismo componente .sf-gw que ya usaba "Contra entrega" para Wompi/Bold.
+// Calcado de la sección "MEDIOS DE PAGO" real de sahet.co: solo logos, sin monto debajo de cada
+// uno (el monto ya se ve arriba, en la pestaña "Pagar $X" y en la Confirmación). Sin WhatsApp —
+// ese método no vive en esta pantalla, solo en el botón directo de la ficha.
+// Solo aparece cuando bmIntent==='full' (camino general: grilla, ícono del carrito, /carrito) y
+// aún no se eligió método. "Contra entrega" cae en bmChooseMethod() al flujo de flete de siempre.
+function bmMethodPickerHTML(){
+  const orden=['contra_entrega','wompi','bold','addi','sistecredito'];
+  const btns=orden.map(m=>`<button class="sf-gw" onclick="bmChooseMethod('${m}')">${bmMetodoInner(m)}</button>`).join('');
+  return `<div class="sf-gw-row" style="flex-wrap:wrap">${btns}</div>`;
+}
+
+// Método ya elegido (whatsapp/wompi/bold/addi/sistecredito) — MISMO patrón sf-gw-sel + "Cambiar"
+// que ya tenía "Contra entrega" al elegir Wompi/Bold.
+function bmMetodoElegidoHTML(){
+  const {sub}=cartPricing();
+  return `<div class="sf-gw-row">
+      <button class="sf-gw sf-gw-sel" disabled>${bmMetodoInner(bmMethod)}<span class="sf-gw-tot">${fmt(sub)}</span></button>
+      <button type="button" class="sf-gw-cambiar" onclick="bmVerTodosMetodos()">Cambiar</button>
+    </div>${bmConsentHTML()}`;
+}
+
+function bmChooseMethod(method){
+  bmMethod=method;
+  if(method==='contra_entrega')bmIntent='contra_entrega';
+  renderBuyModal();
+}
+
+// Escape "ver todas las formas de pago" — a diferencia de antes, YA NO cierra este modal ni abre
+// el csheet clásico: se queda en el mismo modal, mostrando el selector de 6 métodos.
+function bmVerTodosMetodos(){
+  bmIntent='full';bmMethod=null;bmGwSelected=null;
+  renderBuyModal();
+}
+
+function bmPagarWA(){
+  const d=leerFormEnvio();if(!d)return;
+  cData=d;captureLead(d);
+  enviarWA('pago_anticipado');
+}
+function bmPagarGwFull(gw){
+  const d=leerFormEnvio();if(!d)return;
+  cData=d;captureLead(d);
+  if(gw==='wompi')pagarWompi();else pagarBold();   // SIN "true" = cobra el total, no el flete
+}
+// pagarAddi()/pagarSistecredito() reales (carrito.js), si faltan campos, hacen goStep(1) — válido
+// solo dentro del csheet clásico. Se pre-valida acá TODO lo que ellas exigen (mismo regex de email
+// que usa pagarAddi() internamente) para que ese camino de error de emergencia nunca se dispare
+// viniendo de este modal.
+function bmPagarAddiSafe(){
+  const d=leerFormEnvio();if(!d)return;
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email||'')){
+    const e=$('ferr');if(e){e.textContent='Para pagar con Addi necesitamos un correo electrónico válido';e.classList.add('show');}
+    const em=$('fem');if(em)em.focus();
+    return;
+  }
+  cData=d;captureLead(d);
+  pagarAddi();
+}
+function bmPagarSistecreditoSafe(){
+  const d=leerFormEnvio();if(!d)return;
+  cData=d;captureLead(d);
+  pagarSistecredito();
+}
+
 function bmMediosPagoBodyHTML(){
+  if(bmIntent==='full')return bmMethod?bmMetodoElegidoHTML():bmMethodPickerHTML();
   const {pares,sub}=cartPricing();
   const ciudadViva=(($('fci')||{}).value)||(cData&&cData.ciudad)||'';
   const flete=calcFlete(pares,ciudadViva,sub);
@@ -255,7 +379,7 @@ function bmSelectGw(gw){
 // pasarela, igual que bmRefreshTotales().
 function bmRefreshMediosPago(){
   const box=$('srMedios');if(box)box.innerHTML=bmMediosPagoBodyHTML();
-  if($('bmFoot')&&bmTab==='pagar')$('bmFoot').innerHTML=bmFooterHTML();
+  const foot=$('bmInlineFoot');if(foot&&bmTab==='pagar')foot.innerHTML=bmFooterHTML();
   bmRefreshTabs();
 }
 
@@ -296,15 +420,35 @@ function bmPagarGw(){
   bmValidarYPagar(bmGwSelected);
 }
 
+// El botón principal va con el número "④" en la misma fila — calcado de sahet.co (revisado en
+// vivo: el paso 4 de su lista de pasos ES el propio botón de pagar, no un botón aparte debajo).
+// Seguimos dejando "Pagar" en un pie fijo (para que nunca se pierda al hacer scroll) — lo que
+// cambia acá es que ahora el número que sigue a la línea de ①②③ vive pegado al botón real, no
+// como un círculo suelto sin nada al lado.
 function bmFooterHTML(){
-  if(bmNeedsGateway()){
+  let btn,back='';
+  if(bmIntent==='full'){
+    // Nada elegido todavía en el selector de 6 métodos: el "④" y el botón siguen presentes (como
+    // en sahet), solo que deshabilitado — nunca queda el número solo, sin nada al lado.
+    if(!bmMethod)return `<div class="sf-foot-row"><span class="sf-num">4</span><button class="btnmain" disabled>Elige arriba ↑</button></div>`;
+    const {sub}=cartPricing();
+    back=`<button class="btnback" onclick="bmVerTodosMetodos()">‹ Cambiar método de pago</button>`;
+    if(bmMethod==='whatsapp')btn=`<button class="btnmain" onclick="bmPagarWA()">Continuar por WhatsApp</button>`;
+    else if(bmMethod==='wompi'||bmMethod==='bold')btn=`<button class="btnmain" onclick="bmPagarGwFull('${bmMethod}')">Pagar ${fmt(sub)}</button>`;
+    else if(bmMethod==='addi')btn=`<button class="btnmain" onclick="bmPagarAddiSafe()">Continuar con Addi</button>`;
+    else if(bmMethod==='sistecredito')btn=`<button class="btnmain" onclick="bmPagarSistecreditoSafe()">Continuar con Sistecrédito</button>`;
+  }else if(bmNeedsGateway()){
     const {pares,sub}=cartPricing();
     const ciudadViva=(($('fci')||{}).value)||(cData&&cData.ciudad)||'';
     const flete=calcFlete(pares,ciudadViva,sub);
     const dis=bmGwSelected?'':' disabled';
-    return `<button class="btnmain"${dis} onclick="bmPagarGw()">Pagar ${fmt(flete)}</button><button class="btnback" onclick="bmIrAlCarritoCompleto()">Ver todas las formas de pago (tarjeta, PSE, Addi…)</button>`;
+    btn=`<button class="btnmain"${dis} onclick="bmPagarGw()">Pagar ${fmt(flete)}</button>`;
+    back=`<button class="btnback" onclick="bmVerTodosMetodos()">Ver todas las formas de pago (tarjeta, PSE, Addi…)</button>`;
+  }else{
+    btn=`<button class="btnmain" onclick="bmPagar()">🚚 Continuar con contra entrega</button>`;
+    back=`<button class="btnback" onclick="bmVerTodosMetodos()">Ver todas las formas de pago (tarjeta, PSE, Addi…)</button>`;
   }
-  return `<button class="btnmain" onclick="bmPagar()">🚚 Continuar con contra entrega</button><button class="btnback" onclick="bmIrAlCarritoCompleto()">Ver todas las formas de pago (tarjeta, PSE, Addi…)</button>`;
+  return `<div class="sf-foot-row"><span class="sf-num">4</span>${btn}</div>${back}`;
 }
 
 function renderBuyModal(){
@@ -312,9 +456,15 @@ function renderBuyModal(){
   if(bmTab==='bolsa'){
     $('bmBody').innerHTML=bmBolsaHTML();
     $('bmFoot').innerHTML=bmBolsaFooterHTML();
+    $('bmFoot').style.display='';
   }else{
-    $('bmBody').innerHTML=formEnvioSahetHTML()+bmMediosPagoHTML()+bmConfirmacionHTML();
-    $('bmFoot').innerHTML=bmFooterHTML();
+    // El botón "Pagar" (④) va DENTRO del scroll, no en el pie fijo — calcado de sahet.co
+    // (revisado en vivo: ahí el paso 4 se desplaza con el resto de la lista, no queda pegado
+    // abajo). #bmFoot se deja vacío/oculto en esta pestaña; bmRefreshMediosPago() actualiza
+    // #bmInlineFoot cuando cambia la ciudad o la pasarela elegida.
+    $('bmBody').innerHTML=formEnvioSahetHTML()+bmMediosPagoHTML()+bmConfirmacionHTML()+`<div id="bmInlineFoot">${bmFooterHTML()}</div>`;
+    $('bmFoot').innerHTML='';
+    $('bmFoot').style.display='none';
     bmRefreshDatosStep();
   }
 }
@@ -328,17 +478,4 @@ function bmPagar(){
   cData=d;
   captureLead(d);
   enviarWA('contra_entrega');
-}
-
-// Escape al flujo clásico completo (Addi/Sistecrédito/Wompi/Bold sin restricción de intención):
-// cierra este modal y la ficha, y abre el csheet de 3 pasos ya en "Tus datos" con cData lleno.
-function bmIrAlCarritoCompleto(){
-  // Guard: closePhotoBtn() (tienda.js) no tiene guard propio contra un doble-cierre — sin este
-  // chequeo, un doble-tap volvería a llamarla y a desincronizar _slCount aunque closeBuyModal()
-  // ya se proteja a sí mismo.
-  if(!$('buyModal').classList.contains('on'))return;
-  closeBuyModal();
-  closePhotoBtn();
-  openCart();
-  goStep(1);
 }

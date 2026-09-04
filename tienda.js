@@ -51,7 +51,7 @@ function submitWelcome(){
   const whatsapp=($('wmWa').value||'').replace(/\D/g,'');
   const err=$('wmErr');
   if(!nombre||whatsapp.length<7){
-    if(err){err.textContent='Completa tu nombre y WhatsApp 🙏';err.classList.add('show');}
+    if(err){err.textContent='Completa tu nombre y WhatsApp';err.classList.add('show');}
     return;
   }
   if(err)err.classList.remove('show');
@@ -398,61 +398,59 @@ function navGo(t){
 
 /* ── VENTANAS INFO (Mayoristas / Cambios y Garantías) ── reusan el modal .guia-modal ── */
 const INFO_MAYORISTAS=`<div class="info-pad">
-  <h2 class="info-h1">Gana hasta un <span class="big">46%</span> de rentabilidad</h2>
-  <p class="info-lead">Vende sneakers importados y genera ingresos extra con nosotros. Te acompañamos en todo el proceso.</p>
+  <h2 class="info-h1">Mayoristas</h2>
+  <p class="info-lead">Gana hasta un <b>46%</b> de rentabilidad vendiendo sneakers importados y generando ingresos extra con nosotros. Te acompañamos en todo el proceso.</p>
   <div class="info-subt">Beneficios de ser mayorista</div>
   <div class="info-benes">
-    <div class="info-bene">✅ Precios especiales de mayorista</div>
-    <div class="info-bene">✅ Material listo para publicar (fotos y videos)</div>
-    <div class="info-bene">✅ Catálogo siempre actualizado</div>
-    <div class="info-bene">✅ Asesoría directa por WhatsApp</div>
-    <div class="info-bene">✅ Envíos a toda Colombia</div>
-    <div class="info-bene">✅ Vende sin inventario (te despachamos directo a tu cliente)</div>
+    <div class="info-bene">Precios especiales de mayorista</div>
+    <div class="info-bene">Material listo para publicar (fotos y videos)</div>
+    <div class="info-bene">Catálogo siempre actualizado</div>
+    <div class="info-bene">Asesoría directa por WhatsApp</div>
+    <div class="info-bene">Envíos a toda Colombia</div>
+    <div class="info-bene">Vende sin inventario (te despachamos directo a tu cliente)</div>
   </div>
-  <button class="info-wa" onclick="waMayoristas()">💬 Más información por WhatsApp</button>
+  <button class="info-wa" onclick="waMayoristas()">Más información por WhatsApp</button>
 </div>`;
 
 const INFO_CAMBIOS=`<div class="info-pad">
-  <p class="info-lead" style="margin-top:0">Tu compra está protegida. Estas son nuestras condiciones de cambios y garantía 👇</p>
-  <div class="info-grid">
-  <div class="info-sec"><h3>👟 Solo cambios por talla</h3><p>Si te equivocaste, los costos de envío van por tu cuenta. Si es defecto de fábrica 👉 ¡nosotros lo cubrimos! ✅</p></div>
-  <div class="info-sec"><h3>⏳ Tiempo para solicitar cambio</h3><p>Tienes 2 días hábiles después de recibir tu pedido. Pasado este tiempo no podremos hacer el cambio.</p></div>
-  <div class="info-sec"><h3>📦 Condiciones del producto</h3><p>Devuélvelos en la misma bolsa. Deben estar en perfecto estado (sin manchas, ni uso).</p></div>
-  <div class="info-sec"><h3>💸 Importante</h3><p>No hacemos devoluciones de dinero, ni cancelación de créditos. Si la talla no está disponible, podrás elegir entre otros modelos.</p></div>
-  <div class="info-sec"><h3>🕐 Proceso</h3><p>El cambio puede tardar 15 días hábiles aproximadamente.</p></div>
-  <div class="info-sec"><h3>✅ Garantía</h3><p>Tu compra tiene 1 mes de garantía por defectos de costura o despegue. En este caso, el cambio será sin costo adicional.</p></div>
-  </div>
+  <h2 class="info-h1">Cambios y Garantías</h2>
+  <p class="info-lead">Tu compra está protegida. Estas son nuestras condiciones de cambios y garantía.</p>
+  <div class="info-sec"><h3>Solo cambios por talla</h3><p>Si te equivocaste, los costos de envío van por tu cuenta. Si es defecto de fábrica, nosotros lo cubrimos.</p></div>
+  <div class="info-sec"><h3>Tiempo para solicitar cambio</h3><p>Tienes 2 días hábiles después de recibir tu pedido. Pasado este tiempo no podremos hacer el cambio.</p></div>
+  <div class="info-sec"><h3>Condiciones del producto</h3><p>Devuélvelos en la misma bolsa. Deben estar en perfecto estado (sin manchas, ni uso).</p></div>
+  <div class="info-sec"><h3>Importante</h3><p>No hacemos devoluciones de dinero, ni cancelación de créditos. Si la talla no está disponible, podrás elegir entre otros modelos.</p></div>
+  <div class="info-sec"><h3>Proceso</h3><p>El cambio puede tardar 15 días hábiles aproximadamente.</p></div>
+  <div class="info-sec"><h3>Garantía</h3><p>Tu compra tiene 1 mes de garantía por defectos de costura o despegue. En este caso, el cambio será sin costo adicional.</p></div>
 </div>`;
 
 /* Condiciones del envío. Existe porque la barra superior promete "ENVÍO GRATIS" y eso es cierto
    SOLO pagando por adelantado: contra entrega cobra flete (calcFlete). Decirlo aquí, con el monto,
    es lo que exige el Estatuto del Consumidor (Ley 1480) sobre publicidad con condiciones. */
 const INFO_ENVIOS=`<div class="info-pad">
-  <p class="info-lead" style="margin-top:0">Enviamos a toda Colombia. Así funciona el costo del envío 👇</p>
-  <div class="info-grid">
-  <div class="info-sec"><h3>✅ Envío GRATIS pagando por adelantado</h3><p>Si pagas en línea (Wompi, Bold, Addi o Sistecrédito) o coordinas el pago por WhatsApp, el envío no te cuesta nada: el precio que ves es el precio final.</p></div>
-  <div class="info-sec"><h3>📦 Contra entrega: el envío se paga primero</h3><p>Si prefieres pagar los zapatos al recibirlos, el envío sí tiene costo y se paga por adelantado. El valor depende de <b>tu ciudad y el número de pares</b> — lo ves exacto en el checkout antes de confirmar tu pedido. Los zapatos los pagas cuando lleguen a tu casa.</p></div>
-  <div class="info-sec"><h3>💡 ¿Por qué cobramos el envío contra entrega?</h3><p>Para asegurar que tu pedido salga y llegue. Así evitamos los pedidos que se piden y nadie recibe, que encarecen los precios para todos.</p></div>
-  <div class="info-sec"><h3>🕐 Tiempos de entrega</h3><p>Entre 2 y 5 días hábiles según la ciudad. Te avisamos por WhatsApp cuando tu pedido salga, con el número de guía para que lo rastrees.</p></div>
-  <div class="info-sec"><h3>🏠 Hasta la puerta de tu casa</h3><p>La transportadora entrega en la dirección que nos indiques. Asegúrate de que haya alguien para recibir el pedido.</p></div>
-  </div>
+  <h2 class="info-h1">Condiciones de envío</h2>
+  <p class="info-lead">Enviamos a toda Colombia. Así funciona el costo del envío.</p>
+  <div class="info-sec"><h3>Envío GRATIS pagando por adelantado</h3><p>Si pagas en línea (Wompi, Bold, Addi o Sistecrédito) o coordinas el pago por WhatsApp, el envío no te cuesta nada: el precio que ves es el precio final.</p></div>
+  <div class="info-sec"><h3>Contra entrega: el envío se paga primero</h3><p>Si prefieres pagar los zapatos al recibirlos, el envío sí tiene costo y se paga por adelantado. El valor depende de <b>tu ciudad y el número de pares</b> — lo ves exacto en el checkout antes de confirmar tu pedido. Los zapatos los pagas cuando lleguen a tu casa.</p></div>
+  <div class="info-sec"><h3>¿Por qué cobramos el envío contra entrega?</h3><p>Para asegurar que tu pedido salga y llegue. Así evitamos los pedidos que se piden y nadie recibe, que encarecen los precios para todos.</p></div>
+  <div class="info-sec"><h3>Tiempos de entrega</h3><p>Entre 2 y 5 días hábiles según la ciudad. Te avisamos por WhatsApp cuando tu pedido salga, con el número de guía para que lo rastrees.</p></div>
+  <div class="info-sec"><h3>Hasta la puerta de tu casa</h3><p>La transportadora entrega en la dirección que nos indiques. Asegúrate de que haya alguien para recibir el pedido.</p></div>
 </div>`;
 
 const INFO_QUIENES=`<div class="info-pad">
-  <h2 class="info-h1">Somos <span class="big">Strange Sneakers</span></h2>
-  <p class="info-lead">Una tienda colombiana hecha por amantes de los sneakers. Traemos los modelos que quieres a un precio justo y, sobre todo, con la confianza de comprar sin riesgo.</p>
+  <h2 class="info-h1">Quiénes somos</h2>
+  <p class="info-lead">Somos <b>Strange Sneakers</b>, una tienda colombiana hecha por amantes de los sneakers. Traemos los modelos que quieres a un precio justo y, sobre todo, con la confianza de comprar sin riesgo.</p>
   <div class="info-subt">Por qué comprarnos</div>
   <div class="info-benes">
-    <div class="info-bene">🚚 Envío GRATIS pagando en línea</div>
-    <div class="info-bene">📦 Pago contra entrega — pagas al recibir</div>
-    <div class="info-bene">🔄 Cambios por talla fáciles</div>
-    <div class="info-bene">🛡️ 1 mes de garantía</div>
-    <div class="info-bene">💳 Paga a cuotas con Addi y Sistecrédito</div>
-    <div class="info-bene">💬 Atención real por WhatsApp</div>
+    <div class="info-bene">Envío GRATIS pagando en línea</div>
+    <div class="info-bene">Pago contra entrega — pagas al recibir</div>
+    <div class="info-bene">Cambios por talla fáciles</div>
+    <div class="info-bene">1 mes de garantía</div>
+    <div class="info-bene">Paga a cuotas con Addi y Sistecrédito</div>
+    <div class="info-bene">Atención real por WhatsApp</div>
   </div>
   <div class="info-subt">Nuestro compromiso</div>
-  <p class="info-lead">Revisamos cada par antes de enviarlo. Queremos que estrenes tranquilo: si algo no está bien, lo resolvemos. <b>Tu estilo. Tu par.</b> 👟</p>
-  <button class="info-wa" onclick="waHola()">💬 Escríbenos por WhatsApp</button>
+  <p class="info-lead" style="margin-top:0">Revisamos cada par antes de enviarlo. Queremos que estrenes tranquilo: si algo no está bien, lo resolvemos. <b>Tu estilo. Tu par.</b></p>
+  <button class="info-wa" onclick="waHola()">Escríbenos por WhatsApp</button>
 </div>`;
 function waHola(){
   try{trackEvent('lead',{});}catch(e){}
@@ -917,7 +915,7 @@ function addCardWithSize(id,btn){
     return;
   }
   const key=cartKey(id,'cat',talla);
-  if(cart[key])openCart(); else togCard(id,'cat',talla,card.querySelector('.cphoto img'));
+  if(cart[key])toast('Ya tienes este par en tu bolsa'); else togCard(id,'cat',talla,card.querySelector('.cphoto img'));
 }
 
 // prefix: 'k' en el grid, 'kl' en lanzamientos (evita IDs duplicados).
@@ -1486,9 +1484,9 @@ function pmPickSize(t,btn){
 function syncPmBtn(){
   // Con talla elegida, el botón refleja si ESA talla está en el carrito; sin talla, el estado base.
   const ic=!!cart[cartKey(pmId,pmType,pmTalla)];
-  const txt=ic?'✓ Agregado al carrito':'+ Agregar al carrito';
-  $('pmAdd').textContent=txt;
+  $('pmAdd').textContent=ic?'✓ Añadido':'Añadir';
   $('pmAdd').className='pm-add'+(ic?' in':'');
+  const txt=ic?'✓ Agregado al carrito':'+ Agregar al carrito';
   const ff=$('pmFootAdd');if(ff){ff.textContent=txt;ff.className='pm-foot-add'+(ic?' in':'');}
 }
 
@@ -1579,8 +1577,8 @@ function addFromModal(){
   const p=list.find(x=>x.id===pmId);
   if(pmRequiereTalla(p))return;
   const id=pmId,t=pmType,talla=pmTalla;
-  const ya=!!cart[cartKey(id,t,talla)];   // ya estaba en esa talla → no alternar, solo abrir carrito
-  if(ya){closePhotoBtn();openCart();}
+  const ya=!!cart[cartKey(id,t,talla)];   // ya estaba en esa talla → no alternar, solo avisar
+  if(ya){closePhotoBtn();toast('Ya tienes este par en tu bolsa');}
   else{
     // togCard()→flyToCart() lee la posición/píxeles de la foto de forma SÍNCRONA acá mismo, con
     // la ficha todavía abierta — por eso va ANTES de cerrarla (closePhotoBtn le pone display:none

@@ -132,7 +132,7 @@ function checkDeepLink(){
       if(p){enter(()=>openPhoto(id,liq?'liq':'cat'));}else home();
       return;
     }
-    if(seg[0]==='carrito'){enter(()=>openCart());return;}
+    if(seg[0]==='carrito'){enter(()=>openBuyModal('full'));return;}
     // /c/<slug> — colección curada. Si el slug no existe o está desactivada, cae al catálogo
     // completo en vez de al home: un anuncio con un link viejo sigue aterrizando en producto.
     if(seg[0]==='c'&&seg[1]){
@@ -150,7 +150,7 @@ function checkDeepLink(){
     if(seg[0]==='cambios'){enter(()=>openInfo('cambios'));return;}
     if(seg[0]==='quienes'){enter(()=>openInfo('quienes'));return;}
     if(seg[0]==='envios'){enter(()=>openInfo('envios'));return;}
-    if(seg[0]==='legal'&&['privacidad','terminos','cookies','garantias'].includes(seg[1])){const k=seg[1];enter(()=>openLegal(k));return;} // claves fijas (legalContent vive en extras.js)
+    if(seg[0]==='legal'&&['privacidad','terminos','cookies','garantias','todas'].includes(seg[1])){const k=seg[1];enter(()=>openLegal(k));return;} // claves fijas (legalContent vive en extras.js)
     home(); // ruta desconocida → home
     return;
   }

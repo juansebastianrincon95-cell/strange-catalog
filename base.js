@@ -204,7 +204,7 @@ function flyToCart(imgEl){
       clone.remove();
       bar.classList.add('bump');
       setTimeout(()=>bar.classList.remove('bump'),300);
-    },520);
+    },920);
     return true;
   }catch(e){return false;}
 }

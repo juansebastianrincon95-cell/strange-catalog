@@ -265,7 +265,7 @@
 </button>
 
 <!-- Barra fija de carrito (siempre visible, calcada de sahet.co) -->
-<a class="cart-bar" id="cartBar" href="/carrito" onclick="event.preventDefault();openCart()" aria-label="Ver carrito">
+<a class="cart-bar" id="cartBar" href="/carrito" onclick="event.preventDefault();openBuyModal('full')" aria-label="Ver carrito">
   <span class="cart-bar-total" id="cartBarTotal">$0</span>
   <span class="cart-bar-icon">
     <svg viewBox="32 1 18 21" width="18" height="21" xmlns="http://www.w3.org/2000/svg"><path d="M40.555,21.363l-8.422,0l1.138,-15.084m4.069,1.643l0,-3.62c0,0 -0.069,-2.255 2.662,-2.255l0.942,0m-7.673,4.232l7.284,0m0.389,15.084l8.422,0l-1.138,-15.084m-4.069,1.643l0,-3.62c0,0 0.069,-2.255 -2.662,-2.255l-0.942,0m7.673,4.232l-7.284,0" fill="none" stroke="currentColor" stroke-width="0.9" stroke-linejoin="round" stroke-linecap="round"/></svg>
@@ -454,52 +454,54 @@
 </div>
 
 <!-- TAG ANCLADO: reabre el popup de descuento si el visitante lo cerró sin registrarse -->
-<button class="wm-reopen" id="wmReopen" onclick="openWelcome()">🎁 ¡Tu descuento!</button>
+<button class="wm-reopen" id="wmReopen" onclick="openWelcome()">¡Tu descuento!</button>
 
-<!-- POPUP DE BIENVENIDA -->
+<!-- POPUP DE BIENVENIDA: tarjeta dividida en dos — TODO el contenido va en el panel negro;
+     el panel blanco queda vacío, reservado para una imagen (id="wmImgPane", la pone el negocio). -->
 <div class="wm" id="welcomeModal">
   <div class="wm-card">
     <button class="wm-close" onclick="closeWelcome()" aria-label="Cerrar">✕</button>
-    <div class="wm-head">
+    <div class="wm-pane-content">
       <div class="wm-kick">Regalo de bienvenida</div>
       <div class="wm-off"><span>$20.000</span> OFF</div>
       <div class="wm-sub">en tu primera compra · válido por 7 días</div>
-    </div>
-    <div class="wm-body" id="wmForm">
-      <div class="wm-intro">Déjanos tu nombre y WhatsApp y te damos el código al instante.</div>
-      <div class="wm-fld"><label>Nombre</label><input id="wmNombre" type="text" placeholder="Juan García" autocomplete="name"></div>
-      <div class="wm-fld"><label>WhatsApp</label><input id="wmWa" type="tel" inputmode="numeric" placeholder="300 000 0000" autocomplete="tel"></div>
-      <div class="wm-err" id="wmErr">Completa tu nombre y WhatsApp 🙏</div>
-      <button class="wm-btn" id="wmBtn" onclick="submitWelcome()">Quiero mi descuento</button>
-      <div class="wm-fine">Al registrarte aceptas el tratamiento de tus datos según nuestra <a href="#" onclick="openLegal('privacidad');return false" style="color:inherit;font-weight:700;text-decoration:underline">Política de Privacidad</a> (Ley 1581). Sin spam.</div>
-    </div>
-    <div class="wm-body wm-ok" id="wmOk" style="display:none">
-      <div class="wm-ok-ico">🎉</div>
-      <div class="wm-ok-t">¡Tu descuento está listo!</div>
-      <div class="wm-ok-d">Usa este código en el carrito y descuenta <b>$20.000</b> de tu primera compra.</div>
-      <div class="wm-code"><b id="wmCode">BIENVENIDO20</b><button class="wm-copy" onclick="copyWelcomeCode()">Copiar</button></div>
-      <div class="wm-badge">⏳ Válido por 7 días — no lo dejes vencer</div>
-      <div class="wm-fine">El código se aplica solo sobre el valor del producto.</div>
-      <div class="wm-q">¿Qué talla calzas? <small>(te avisamos cuando llegue algo en tu talla)</small></div>
-      <div class="wm-chips">
-        <button class="wm-chip" onclick="wmPref('talla','35',this)">35</button>
-        <button class="wm-chip" onclick="wmPref('talla','36',this)">36</button>
-        <button class="wm-chip" onclick="wmPref('talla','37',this)">37</button>
-        <button class="wm-chip" onclick="wmPref('talla','38',this)">38</button>
-        <button class="wm-chip" onclick="wmPref('talla','39',this)">39</button>
-        <button class="wm-chip" onclick="wmPref('talla','40',this)">40</button>
-        <button class="wm-chip" onclick="wmPref('talla','41',this)">41</button>
-        <button class="wm-chip" onclick="wmPref('talla','42',this)">42</button>
-        <button class="wm-chip" onclick="wmPref('talla','43',this)">43</button>
-        <button class="wm-chip" onclick="wmPref('talla','otra',this)">Otra</button>
+      <div class="wm-body" id="wmForm">
+        <div class="wm-intro">Déjanos tu nombre y WhatsApp y te damos el código al instante.</div>
+        <div class="sf-fld sf-fld-bad"><span class="sf-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.3"/><path d="M5 20c0-4 3.1-6.6 7-6.6s7 2.6 7 6.6"/></svg></span><div class="sf-fld-b"><label class="sf-lbl" for="wmNombre">Nombre</label><input id="wmNombre" type="text" placeholder="Juan García" autocomplete="name" oninput="bmFieldValidate(this)"></div></div>
+        <div class="sf-fld sf-fld-bad"><span class="sf-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.679,15.932c-0.772,-1.256 -1.218,-2.735 -1.218,-4.316c0,-4.557 3.7,-8.257 8.257,-8.257c4.557,0 8.257,3.7 8.257,8.257c0,4.557 -3.7,8.257 -8.257,8.257c-1.572,0 -3.042,-0.44 -4.293,-1.204l-2.917,1.361c-0.248,0.116 -0.542,0.072 -0.746,-0.111c-0.204,-0.183 -0.279,-0.47 -0.191,-0.729l1.108,-3.258Z"/><path d="M8.842,13.819c-1.172,-1.131 -1.878,-1.922 -2.3,-2.925c-0.42,-1 -0.243,-2.628 0.652,-3.472c0.895,-0.844 1.681,0.193 1.912,0.694c0.231,0.501 0.767,1.098 0.192,1.735c-0.575,0.636 -0.339,1.237 -0.089,1.677c0.25,0.44 0.934,1.035 0.934,1.035c0,0 0.632,0.676 1.08,0.91c0.449,0.235 0.953,0.349 1.569,-0.248c0.616,-0.597 1.231,-0.082 1.74,0.131c0.509,0.213 1.573,0.963 0.76,1.886c-0.812,0.924 -2.434,1.158 -3.447,0.773c-1.017,-0.386 -1.832,-1.065 -3.003,-2.196Z"/></svg></span><div class="sf-fld-b"><label class="sf-lbl" for="wmWa">WhatsApp</label><input id="wmWa" type="tel" inputmode="numeric" placeholder="300 000 0000" autocomplete="tel" oninput="bmFieldValidate(this)"></div></div>
+        <div class="wm-err" id="wmErr">Completa tu nombre y WhatsApp</div>
+        <button class="wm-btn" id="wmBtn" onclick="submitWelcome()">Quiero mi descuento</button>
+        <div class="wm-fine">Al registrarte aceptas el tratamiento de tus datos según nuestra <a href="#" onclick="openLegal('privacidad');return false" style="color:inherit;font-weight:700;text-decoration:underline">Política de Privacidad</a> (Ley 1581). Sin spam.</div>
       </div>
-      <div class="wm-q">¿Para quién buscas?</div>
-      <div class="wm-chips">
-        <button class="wm-chip" onclick="wmPref('genero','m',this)">Para ella</button>
-        <button class="wm-chip" onclick="wmPref('genero','h',this)">Para él</button>
+      <div class="wm-body wm-ok" id="wmOk" style="display:none">
+        <div class="wm-ok-ico">✓</div>
+        <div class="wm-ok-t">¡Tu descuento está listo!</div>
+        <div class="wm-ok-d">Usa este código en el carrito y descuenta <b>$20.000</b> de tu primera compra.</div>
+        <div class="wm-code"><b id="wmCode">BIENVENIDO20</b><button class="wm-copy" onclick="copyWelcomeCode()">Copiar</button></div>
+        <div class="wm-badge">Válido por 7 días — no lo dejes vencer</div>
+        <div class="wm-fine">El código se aplica solo sobre el valor del producto.</div>
+        <div class="wm-q">¿Qué talla calzas? <small>(te avisamos cuando llegue algo en tu talla)</small></div>
+        <div class="wm-chips">
+          <button class="wm-chip" onclick="wmPref('talla','35',this)">35</button>
+          <button class="wm-chip" onclick="wmPref('talla','36',this)">36</button>
+          <button class="wm-chip" onclick="wmPref('talla','37',this)">37</button>
+          <button class="wm-chip" onclick="wmPref('talla','38',this)">38</button>
+          <button class="wm-chip" onclick="wmPref('talla','39',this)">39</button>
+          <button class="wm-chip" onclick="wmPref('talla','40',this)">40</button>
+          <button class="wm-chip" onclick="wmPref('talla','41',this)">41</button>
+          <button class="wm-chip" onclick="wmPref('talla','42',this)">42</button>
+          <button class="wm-chip" onclick="wmPref('talla','43',this)">43</button>
+          <button class="wm-chip" onclick="wmPref('talla','otra',this)">Otra</button>
+        </div>
+        <div class="wm-q">¿Para quién buscas?</div>
+        <div class="wm-chips">
+          <button class="wm-chip" onclick="wmPref('genero','m',this)">Para ella</button>
+          <button class="wm-chip" onclick="wmPref('genero','h',this)">Para él</button>
+        </div>
+        <button class="wm-btn" style="margin-top:14px" onclick="closeWelcome()">Ver el catálogo</button>
       </div>
-      <button class="wm-btn" style="margin-top:14px" onclick="closeWelcome()">Ver el catálogo</button>
     </div>
+    <div class="wm-pane-img" id="wmImgPane"><img src="/promociones/wm-popup.jpg" alt="" loading="lazy"></div>
   </div>
 </div>
 
@@ -535,9 +537,6 @@
       <div class="pm-title" id="pmTitle">Sneakers</div>
       <div class="pm-price-row"><span class="pm-price" id="pmPrice">$180.000</span><span class="pm-was" id="pmWas" style="display:none"></span></div>
       <div class="pm-save" id="pmSave" style="display:none"></div>
-      <!-- Descripción del producto (genDescripcion(), tienda.js) — calcada de sahet.co: un
-           párrafo simple bajo el precio. Antes el JS la escribía pero este id no existía. -->
-      <div class="pm-desc" id="pmDesc"></div>
       <div class="pm-fin-desc">Paga a cuotas con <b>Addi</b> o <b>Sistecrédito</b> — crédito 100% en línea, aprobación en minutos con solo tu cédula y celular.</div>
       <button type="button" class="pm-guia-toggle" onclick="togglePmFin()">Ver más</button>
       <div class="pm-guia-box" id="pmFinBox" style="display:none">
@@ -546,14 +545,14 @@
       </div>
       <div class="pm-sizes-cta">
         <div class="pm-sizes" id="pmSizes" style="display:none">
-          <div class="pm-sizes-top"><span class="pm-sizes-lbl">Elige tu talla <span class="pm-sizes-unit">(EUR)</span></span><span class="pm-sizes-err" id="pmSizesErr">Selecciona una talla 👆</span></div>
-          <div class="pm-sizes-row" id="pmSizesRow"></div>
+          <div class="pm-sizes-top"><span class="pm-sizes-lbl">Elige tu talla <span class="pm-sizes-unit">(EUR)</span></span></div>
+          <div class="pm-sizes-row-wrap"><div class="pm-sizes-row" id="pmSizesRow"></div><span class="pm-sizes-err" id="pmSizesErr">Selecciona una talla</span></div>
           <!-- Aviso que aparece AL ESCOGER la talla, con la foto de la marquilla a la vista.
                Antes el ejemplo vivía detrás del botón "¿Cómo sé mi talla?", y quien cree saber su
                talla nunca lo abre — de ahí los cambios por talla. Se rellena en pmPickSize(). -->
           <div class="pm-talla-check" id="pmTallaCheck" style="display:none"></div>
         </div>
-        <button class="pm-add" id="pmAdd" onclick="addFromModal()">+ Agregar al carrito</button>
+        <button class="pm-add" id="pmAdd" onclick="addFromModal()">Añadir</button>
       </div>
       <div class="pm-guia" id="pmGuia" style="display:none">
         <button type="button" class="pm-guia-toggle" onclick="toggleGuiaTallas()">📏 ¿Cómo sé mi talla?</button>
@@ -563,8 +562,8 @@
         </div>
       </div>
       <div class="pm-buyrow">
-        <button type="button" class="pm-buy pm-buy-cod" onclick="buyNowFicha('contra_entrega')"><span class="pm-buy-ic">🚚</span>Comprar contra entrega</button>
-        <button type="button" class="pm-buy pm-buy-wa" onclick="buyNowFicha('whatsapp')"><span class="pm-buy-ic">💬</span>Comprar por WhatsApp</button>
+        <button type="button" class="pm-buy pm-buy-cod" onclick="buyNowFicha('contra_entrega')"><span class="pm-buy-cart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3h2l2.4 12.2a2 2 0 0 0 2 1.6h8.4a2 2 0 0 0 2-1.6L21 7H6"/></svg></span><span class="pm-buy-txt">Comprar contra entrega</span></button>
+        <button type="button" class="pm-buy pm-buy-wa" onclick="buyNowFicha('whatsapp')"><span class="pm-buy-cart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.679,15.932c-0.772,-1.256 -1.218,-2.735 -1.218,-4.316c0,-4.557 3.7,-8.257 8.257,-8.257c4.557,0 8.257,3.7 8.257,8.257c0,4.557 -3.7,8.257 -8.257,8.257c-1.572,0 -3.042,-0.44 -4.293,-1.204l-2.917,1.361c-0.248,0.116 -0.542,0.072 -0.746,-0.111c-0.204,-0.183 -0.279,-0.47 -0.191,-0.729l1.108,-3.258Z"/><path d="M8.842,13.819c-1.172,-1.131 -1.878,-1.922 -2.3,-2.925c-0.42,-1 -0.243,-2.628 0.652,-3.472c0.895,-0.844 1.681,0.193 1.912,0.694c0.231,0.501 0.767,1.098 0.192,1.735c-0.575,0.636 -0.339,1.237 -0.089,1.677c0.25,0.44 0.934,1.035 0.934,1.035c0,0 0.632,0.676 1.08,0.91c0.449,0.235 0.953,0.349 1.569,-0.248c0.616,-0.597 1.231,-0.082 1.74,0.131c0.509,0.213 1.573,0.963 0.76,1.886c-0.812,0.924 -2.434,1.158 -3.447,0.773c-1.017,-0.386 -1.832,-1.065 -3.003,-2.196Z"/></svg></span><span class="pm-buy-txt">Comprar por WhatsApp</span></button>
       </div>
       <!-- Metacampos públicos del producto (columna meta jsonb): material, temporada, cuidado…
            Se rellena en renderPmSpecs(); oculto si el producto no tiene metacampos. -->
@@ -581,9 +580,6 @@
           <img src="/logos/addi.png" alt="Addi" onerror="this.remove()">
           <img src="/logos/sistecredito.png" alt="Sistecrédito" onerror="this.remove()">
         </div>
-      </div>
-      <div class="pm-meta">
-        <div class="pm-chip gift"><span class="pm-chip-ic">🎁</span><span>Tu compra incluye <b>guía de cuidado</b> + <b>5%</b> en tu próximo par</span></div>
       </div>
       <div class="pm-sec">
         <div class="pm-sec-t">Devoluciones y garantías</div>
