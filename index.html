@@ -203,6 +203,12 @@
   <button class="nav-burger" onclick="openMenu()" aria-label="Abrir menú">
     <svg viewBox="0 0 24 24" fill="none"><line x1="3" y1="8" x2="21" y2="8"/><line x1="3" y1="16" x2="21" y2="16"/></svg>
   </button>
+  <!-- Lupa (solo móvil, al lado de la hamburguesa, calcado de sahet.co): abre el catálogo
+       completo y enfoca su buscador ya existente (buscarProductos/toggleCatSearch, antes solo
+       accesible DENTRO del catálogo) — no duplica lógica de búsqueda, solo la expone desde acá. -->
+  <button class="nav-search" onclick="openNavSearch()" aria-label="Buscar">
+    <svg viewBox="0 0 24 24" fill="none"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="20" y1="20" x2="15.3" y2="15.3"/></svg>
+  </button>
   <!-- Logo vectorizado del diseño del cliente (mismo criterio que adidas.co: SVG inline,
        fill="currentColor" para heredar el color del texto, un solo <path>). Reemplaza el
        wordmark de texto "CATALOGO SNEAKERS" que estaba acá antes. -->
@@ -273,14 +279,6 @@
   </span>
 </a>
 
-<!-- ACCESOS POR GÉNERO — en la portada NO había ninguna entrada visible a Hombre/Mujer: estaban
-     solo dentro del menú de hamburguesa. El que llega de un anuncio de tenis de mujer entra y ve
-     su sección de una, sin abrir nada. -->
-<section class="gsec" aria-label="Comprar por sección">
-  <button class="gsec-b" onclick="openCatalog({gender:'m'})">Mujer</button>
-  <button class="gsec-b" onclick="openCatalog({gender:'h'})">Hombre</button>
-  <button class="gsec-b" onclick="openCatalog({gender:'u'})">Unisex</button>
-</section>
 
 <!-- HERO CARRUSEL (se llena desde settings.hero_slides; si no hay, queda oculto y se muestra .hdr) -->
 <section class="hero" id="hero" aria-label="Destacados">

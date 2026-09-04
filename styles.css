@@ -1,4 +1,6 @@
-:root{color-scheme:light;--bg:#FFFFFF;--white:#FFF;--ink:#0E0E0C;--ink2:#5a5a56;--ink3:#9a9a95;--line:rgba(0,0,0,0.08);--red:#E8200A;--blue:#0066FF;--green:#1aad49;--orange:#FF7A00;--wa:#25D366;--font:'Montserrat',system-ui,sans-serif;--annH:40px;--navH:64px;--barH:34px}
+/* --annH mobile más chica (33px, la altura de escritorio 44px la restaura la media query de
+   abajo — ya existía, no la toco). */
+:root{color-scheme:light;--bg:#FFFFFF;--white:#FFF;--ink:#0E0E0C;--ink2:#5a5a56;--ink3:#9a9a95;--line:rgba(0,0,0,0.08);--red:#E8200A;--blue:#0066FF;--green:#1aad49;--orange:#FF7A00;--wa:#25D366;--font:'Montserrat',system-ui,sans-serif;--annH:33px;--navH:64px;--barH:34px}
 @media(min-width:700px){:root{--annH:44px;--navH:78px}}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 /* El scroll interno de los modales NO arrastra el fondo (anti scroll-chaining) */
@@ -26,9 +28,9 @@ body{padding-top:calc(var(--annH) + var(--navH));padding-bottom:var(--barH)}
 .annbar-viewport{height:100%;overflow:hidden}
 .annbar-track{height:300%;display:flex;flex-direction:column;transition:transform .5s cubic-bezier(.4,0,.2,1);will-change:transform}
 .annbar-slide{flex:0 0 33.3333%;height:33.3333%;display:flex;align-items:center;justify-content:center;gap:7px;padding:0 14px;text-align:center;line-height:1}
-.annbar-ic{font-size:13px;line-height:1;flex:0 0 auto;display:flex;align-items:center}
+.annbar-ic{font-size:11px;line-height:1;flex:0 0 auto;display:flex;align-items:center}
 .annbar-tx{display:flex;align-items:center;line-height:1}
-.annbar-tx strong{font-size:10.5px;font-weight:400;letter-spacing:.06em;text-transform:uppercase;line-height:1}
+.annbar-tx strong{font-size:9.5px;font-weight:400;letter-spacing:.06em;text-transform:uppercase;line-height:1}
 .annbar-arrow{display:flex;align-items:center;flex:0 0 auto;color:#fff}
 
 .ann-panel{position:fixed;top:var(--annH);left:0;right:0;z-index:70;background:var(--white);border-bottom:1px solid var(--line);box-shadow:0 12px 30px rgba(0,0,0,.12);display:flex;flex-direction:column;max-height:calc(100vh - var(--annH));overflow-y:auto;clip-path:inset(0 0 100% 0);pointer-events:none;transition:clip-path .42s cubic-bezier(.4,0,.2,1)}
@@ -76,6 +78,11 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .nav-burger{width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:none;border:none;color:var(--ink);cursor:pointer;padding:0}
 .nav-burger svg{width:24px;height:24px;stroke:currentColor;stroke-width:2;stroke-linecap:round}
 .nav-burger:active{transform:scale(.9)}
+/* 🔍 lupa (solo móvil, al lado de la hamburguesa) */
+.nav-search{width:40px;height:40px;display:none;align-items:center;justify-content:center;background:none;border:none;color:var(--ink);cursor:pointer;padding:0}
+.nav-search svg{width:24px;height:24px;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.nav-search:active{transform:scale(.9)}
+@media(max-width:1179px){.nav-search{display:flex}}
 /* grupo derecho: carrito. Antes vivía en position:absolute (no reservaba espacio real), lo que
    causaba que .brand (centrado sobre TODO el ancho) se encimara con este grupo al crecer de 1
    botón a 3 (SALE+Contáctanos+♥). Ahora es una columna real del grid del nav → nunca se solapan. */
@@ -91,8 +98,41 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .contact-panel a{display:flex;align-items:center;gap:10px;padding:11px 14px;font-family:var(--font);font-size:13px;font-weight:400;color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line)}
 .contact-panel a:last-child{border-bottom:none}
 .contact-panel a svg{width:18px;height:18px;flex:0 0 auto;fill:currentColor}
+/* Móvil: calcado del panel que abre sahet.co al tocar su ícono de chat (mismo lugar/función que
+   nuestro Contáctanos) — medido en vivo: tarjeta con padding propio y gap entre filas en vez de
+   líneas separadoras, íconos 16px, letra 10px. Solo <700px. */
+@media(max-width:699px){
+  .contact-panel{padding:10px;gap:15px;min-width:170px}
+  .contact-panel a{padding:0;gap:8px;border-bottom:none;font-size:10px}
+  .contact-panel a svg{width:16px;height:16px}
+  /* El ancla de "right:0" pasa de .contact-wrap (el borde del botón Contáctanos) a .nav-right
+     (el borde derecho de TODA la fila, donde termina el corazón) — para que la tarjeta quede
+     alineada con el margen derecho real de la fila, no con el botón que la abre. */
+  .nav-right{position:relative}
+  .contact-wrap{position:static}
+}
 .contact-empty{font-size:11px;color:var(--ink3);padding:11px 14px;display:block}
-@media(max-width:380px){.sale-nav,.contact-nav{font-size:10px;padding:0 7px}}
+/* Fila del nav (hamburguesa+logo+SALE+Contáctanos+♥) al mismo tamaño que sahet.co en móvil:
+   medido en vivo, su header completo mide 34px de alto — el nuestro medía 64px. Todo el
+   contenido de la fila se achica en proporción para caber sin desbordar ese alto. Solo <700px:
+   escritorio/tablet (≥700px) no se toca. */
+@media(max-width:699px){
+  :root{--navH:34px}
+  nav{padding:3px 10px;grid-template-columns:auto auto auto 1fr}
+  .brand{justify-content:flex-start}
+  .brand-mark{height:16px}
+  .nav-burger{width:22px;height:22px}
+  .nav-search{width:22px;height:22px}
+  .nav-search svg{width:16px;height:16px;stroke-width:1.5}
+  .nav-burger svg{width:16px;height:16px;stroke-width:1.5}
+  /* SALE al tamaño real de sahet (medido en vivo: 37.9x19px, padding 2px 5px, 10px) — el borde
+     se queda oscuro/sólido nuestro a propósito (sahet lo usa semitransparente, no lo copiamos). */
+  .sale-nav{height:19px;font-size:10px;padding:2px 5px;letter-spacing:normal}
+  .contact-nav{height:19px;font-size:10px;padding:2px 5px}
+  /* .fav-nav (el corazón) se achica más abajo, junto a su regla base — si se pone acá pierde
+     contra la definición base de .fav-nav (viene después en el archivo, misma especificidad). */
+}
+@media(max-width:380px){.sale-nav,.contact-nav{font-size:8.5px;padding:2px 6px}}
 /* menú horizontal (solo escritorio) */
 .nav-menu{display:none}
 @media(min-width:1180px){
@@ -120,6 +160,15 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .nd-links{display:flex;flex-direction:column;padding:6px 0}
 .nd-links button{text-align:left;background:none;border:none;border-bottom:1px solid var(--line);font-family:var(--font);font-size:16px;font-weight:400;color:var(--ink);padding:15px 20px;cursor:pointer;transition:background .12s}
 .nd-links button:active{background:var(--bg)}
+/* Móvil: el menú se abre a pantalla COMPLETA (calcado del panel de filtros de sahet.co, que
+   reemplaza toda la pantalla en vez de un drawer angosto) — adaptado a nuestra información
+   (nuestros links de navegación, no sus categorías de filtro). Letra al tamaño real de sahet
+   (medido en vivo: 11px, weight 600, en sus encabezados de sección tipo "PRODUCTO"). Solo <700px
+   — tablet/escritorio conservan el drawer angosto de 82vw de siempre. */
+@media(max-width:699px){
+  .nd-panel{width:100%;box-shadow:none}
+  .nd-links button{font-size:11px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;padding:13px 18px}
+}
 @media(min-width:1180px){.navdrawer{display:none!important}}
 
 /* VENTANAS INFO (Mayoristas / Cambios) — mismo flujo que #catView: la cabecera se queda
@@ -183,8 +232,10 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .cart-bar.hide{transform:translateY(100%)}
 .cart-bar-total{font-size:12px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
 .cart-bar-icon{position:relative;display:flex;align-items:center;justify-content:center;width:18px;height:21px}
-.cart-bar-dot{position:absolute;top:-3px;right:-5px;min-width:15px;height:15px;padding:0 3px;background:var(--ink);color:#fff;font-size:9px;font-weight:700;border-radius:50%;display:flex;align-items:center;justify-content:center;opacity:0;transform:scale(.5);transition:opacity .2s,transform .35s cubic-bezier(.34,1.56,.64,1)}
-.cart-bar-dot.show{opacity:1;transform:scale(1)}
+/* Calcado de sahet.co (medido en vivo): NO es un badge circular relleno en la esquina — es un
+   número negro plano, sin fondo, superpuesto sobre el propio ícono de la bolsa. */
+.cart-bar-dot{position:absolute;top:9px;left:50%;min-width:auto;height:auto;padding:0;background:transparent;color:var(--ink);font-size:9px;font-weight:700;border-radius:0;display:flex;align-items:center;justify-content:center;opacity:0;transform:translateX(-50%) scale(.5);transition:opacity .2s,transform .35s cubic-bezier(.34,1.56,.64,1)}
+.cart-bar-dot.show{opacity:1;transform:translateX(-50%) scale(1)}
 /* Animación "vuela al carrito" (flyToCart en base.js): clon fixed de la foto de la tarjeta que
    viaja hasta el ícono del carrito y se achica/desvanece. transform+opacity nada más (compositor,
    sin reflow) para que ande fluido aunque haya muchas tarjetas en pantalla. */
@@ -387,11 +438,13 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .ctallas-row::-webkit-scrollbar{display:none}
 .ctallas.err .ctallas-row{animation:pmShake .4s}
 .card.sold .ctallas{pointer-events:none}
-.ctalla-chip{flex:0 0 auto;min-width:34px;height:34px;padding:0 7px;border:1.5px solid var(--line);border-radius:0;background:var(--white);font-family:var(--font);font-size:11px;font-weight:400;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:border-color .15s,background .15s,color .15s,transform .1s}
+/* Talla y botón Añadir al tamaño real de sahet.co (medido en vivo): chip 30x30 SIN caja (texto
+   plano, sin borde ni fondo — antes 34x34 con borde+fondo blanco), botón 120x31 (antes 132x35). */
+.ctalla-chip{flex:0 0 auto;min-width:30px;height:30px;padding:0 7px;border:none;border-radius:0;background:transparent;font-family:var(--font);font-size:10px;font-weight:400;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s,transform .1s}
 .ctalla-chip:active{transform:scale(.92)}
-.ctalla-chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.ctalla-chip.on{background:var(--ink);color:#fff}
 .ctalla-chip.out{color:var(--ink3);background:var(--bg);cursor:not-allowed;text-decoration:line-through;opacity:.55}
-.cadd-btn{flex:0 0 132px;width:132px;white-space:nowrap;background:var(--ink);color:#fff;border:none;height:35px;padding:0 16px;border-radius:0;font-family:var(--font);font-size:11px;font-weight:400;cursor:pointer;transition:transform .12s}
+.cadd-btn{flex:0 0 120px;width:120px;white-space:nowrap;background:var(--ink);color:#fff;border:none;height:31px;padding:0 16px;border-radius:0;font-family:var(--font);font-size:10px;font-weight:400;cursor:pointer;transition:transform .12s}
 .cadd-btn:active{transform:scale(.96)}
 /* "Ver más" — abre la ficha completa del producto (mismo destino que tocar la foto). */
 .cvermas{flex:0 0 auto;font-size:10px;font-weight:400;color:var(--ink);cursor:pointer;border-bottom:1px solid rgba(0,0,0,.5);width:fit-content;line-height:1.3}
@@ -451,7 +504,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
   transition:opacity .2s,transform .35s cubic-bezier(.34,1.56,.64,1);
 }
 .fav-dot.show{opacity:1; transform:scale(1)}
-@media(max-width:699px){.fav-nav{font-size:16px}.fav-dot{min-width:14px;height:14px;font-size:8px}}   /* móvil: corazón más pequeño + contador proporcional */
+@media(max-width:699px){.fav-nav{width:28px;height:28px;font-size:16px}.fav-dot{min-width:14px;height:14px;font-size:8px}}   /* móvil: corazón más pequeño + contador proporcional (width/height acá y no en la fila del nav de arriba porque ESTA regla es la que corre después de la definición base — .fav-nav de acá abajo, si no, gana la base 40x40 por orden de cascada) */
 
 /* MODAL FOTO — display:none por defecto (fix del bug principal) */
 /* Mismo motivo que .info-modal (ver comentario ahí): top:0 + padding-top en vez de
@@ -1299,7 +1352,10 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 }
 
 /* HERO CARRUSEL */
-.hero{position:relative;width:100%;height:calc(100vh - var(--annH) - var(--navH));overflow:hidden;background:var(--ink);display:none;touch-action:pan-y}
+/* Se descuenta también --barH (la barra fija de precio+bolsa): sin esto, el hero se extendía
+   justo hasta donde esa barra flota encima, y el CTA "COMPRAR YA" (pegado al fondo del hero)
+   quedaba tapado/pegado a ella. Recorte mínimo, a propósito. */
+.hero{position:relative;width:100%;height:calc(100vh - var(--annH) - var(--navH) - var(--barH));overflow:hidden;background:var(--ink);display:none;touch-action:pan-y}
 .hero.on{display:block}
 .hero-track{display:flex;height:100%;transition:transform .5s cubic-bezier(.16,1,.3,1)}
 .hero-slide{position:relative;min-width:100%;height:100%}
@@ -1338,6 +1394,14 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 /* Tarjetas IGUALES en las 3 filas (lanzamientos + colección Mujer/Hombre) = mismo tamaño que "Nuestros modelos": 2 por pantalla en móvil, 4 en escritorio. */
 .lanz-row .card{flex:0 0 calc(50% - 4px);max-width:none;scroll-snap-align:start}
 @media(min-width:700px){.lanz-row{gap:10px}.lanz-row .card{flex:0 0 calc(25% - 7.5px)}}
+/* Excepción SOLO para "Últimos lanzamientos" (#lanzRow) en móvil: tarjeta grande, CENTRADA, una
+   sola a la vez, con el mismo asomo de la vecina a izquierda y a derecha (padding del row = mitad
+   del espacio sobrante de la tarjeta, así el margen izquierdo y el derecho quedan iguales incluso
+   en la primera/última tarjeta) — no las 2 chicas parejas de las demás filas. */
+@media(max-width:699px){
+  #lanzRow.lanz-row{padding-left:5%;padding-right:5%}
+  #lanzRow.lanz-row .card{flex:0 0 90%;scroll-snap-align:center}
+}
 .lanz-nav{position:absolute;top:55%;transform:translateY(-50%);width:38px;height:38px;border-radius:50%;background:var(--white);border:1px solid var(--line);box-shadow:0 3px 12px rgba(0,0,0,.14);font-size:21px;font-weight:400;line-height:1;color:var(--ink);display:none;align-items:center;justify-content:center;cursor:pointer;z-index:5;padding:0 0 2px;font-family:var(--font);transition:transform .15s}
 .lanz-nav:active{transform:translateY(-50%) scale(.9)}
 .lanz-nav.prev{left:6px}
@@ -1413,15 +1477,6 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:0;font-size:13px;font-weight:400;z-index:700;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;box-shadow:0 6px 24px rgba(0,0,0,.32);max-width:90vw;text-align:center}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
-/* ACCESOS POR GÉNERO en la portada. Mujer va primero: es la sección con más catálogo y la que
-   más se pauta. Van justo debajo del banner, que es donde cae el ojo tras el hero. */
-.gsec{display:flex;gap:8px;padding:14px 14px 2px;background:var(--bg)}
-.gsec-b{flex:1;min-width:0;padding:13px 6px;background:var(--white);border:1.5px solid var(--line);border-radius:0;font-family:var(--font);font-size:13.5px;font-weight:400;color:var(--ink);letter-spacing:.01em;cursor:pointer;transition:border-color .15s,transform .12s}
-.gsec-b:hover{border-color:var(--ink)}
-.gsec-b:active{transform:scale(.97)}
-/* En escritorio el menú de arriba (.nav-menu) ya muestra Hombre/Mujer/Unisex en texto —
-   estos botones grandes solo hacían falta en móvil, donde .nav-menu está en display:none. */
-@media(min-width:1180px){.gsec{display:none}}
 
 /* CLIENTES FELICES (testimonios) */
 .testi{padding:24px 0 14px;background:var(--bg)}

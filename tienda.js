@@ -348,6 +348,9 @@ function limpiarBusqueda(){
   _searchQ='';const x=$('catSearchX');if(x)x.style.display='none';
   if(typeof renderGrid==='function')renderGrid();
 }
+// Lupa del nav (☰🔍logo, solo móvil): abre el catálogo completo y enfoca el buscador que ya
+// vive dentro de él, en vez de duplicar la lógica de búsqueda en el nav.
+function openNavSearch(){openCatalog({gender:'all'});toggleCatSearch();}
 function toggleCatSearch(){
   const b=$('catSearchBar');if(!b)return;
   const show=b.style.display==='none';
@@ -361,7 +364,10 @@ function toggleCatSearch(){
   }
 }
 function closeCatSearchOutside(e){
-  if(!e.target.closest('.secsearch-wrap')){
+  // .nav-search (la lupa del nav, fuera del catálogo) también abre esta misma búsqueda — sin
+  // esta excepción, el propio clic que la abre sigue burbujeando hacia este listener y la cierra
+  // en el acto (confirmado en vivo).
+  if(!e.target.closest('.secsearch-wrap')&&!e.target.closest('.nav-search')){
     const b=$('catSearchBar');if(b)b.style.display='none';
     limpiarBusqueda();
     document.removeEventListener('click',closeCatSearchOutside);
