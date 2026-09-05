@@ -117,18 +117,19 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    contenido de la fila se achica en proporción para caber sin desbordar ese alto. Solo <700px:
    escritorio/tablet (≥700px) no se toca. */
 @media(max-width:699px){
-  :root{--navH:34px}
-  nav{padding:3px 10px;grid-template-columns:auto auto auto 1fr}
+  :root{--navH:44px}
+  nav{padding:4px 10px;grid-template-columns:auto auto auto 1fr}
   .brand{justify-content:flex-start}
-  .brand-mark{height:16px}
-  .nav-burger{width:22px;height:22px}
-  .nav-search{width:22px;height:22px}
-  .nav-search svg{width:16px;height:16px;stroke-width:1.5}
-  .nav-burger svg{width:16px;height:16px;stroke-width:1.5}
+  .brand-mark{height:20px}
+  .nav-burger{width:28px;height:28px}
+  .nav-search{width:28px;height:28px}
+  .nav-search svg{width:20px;height:20px;stroke-width:1.75}
+  .nav-burger svg{width:20px;height:20px;stroke-width:1.75}
   /* SALE al tamaño real de sahet (medido en vivo: 37.9x19px, padding 2px 5px, 10px) — el borde
-     se queda oscuro/sólido nuestro a propósito (sahet lo usa semitransparente, no lo copiamos). */
-  .sale-nav{height:19px;font-size:10px;padding:2px 5px;letter-spacing:normal}
-  .contact-nav{height:19px;font-size:10px;padding:2px 5px}
+     se queda oscuro/sólido nuestro a propósito (sahet lo usa semitransparente, no lo copiamos).
+     Subido un poco más grande que la medida exacta de sahet a pedido del usuario. */
+  .sale-nav{height:24px;font-size:12px;padding:3px 6px;letter-spacing:normal}
+  .contact-nav{height:24px;font-size:12px;padding:3px 6px}
   /* .fav-nav (el corazón) se achica más abajo, junto a su regla base — si se pone acá pierde
      contra la definición base de .fav-nav (viene después en el archivo, misma especificidad). */
 }
@@ -438,9 +439,10 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .ctallas-row::-webkit-scrollbar{display:none}
 .ctallas.err .ctallas-row{animation:pmShake .4s}
 .card.sold .ctallas{pointer-events:none}
-/* Talla y botón Añadir al tamaño real de sahet.co (medido en vivo): chip 30x30 SIN caja (texto
-   plano, sin borde ni fondo — antes 34x34 con borde+fondo blanco), botón 120x31 (antes 132x35). */
-.ctalla-chip{flex:0 0 auto;min-width:30px;height:30px;padding:0 7px;border:none;border-radius:0;background:transparent;font-family:var(--font);font-size:10px;font-weight:400;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s,transform .1s}
+/* Talla y botón Añadir al tamaño real de sahet.co (medido en vivo): chip 30x30, botón 120x31
+   (antes 132x35). El chip SÍ lleva contorno (sahet también lo tiene) — sin borde no se distinguía
+   del fondo blanco de la tarjeta. */
+.ctalla-chip{flex:0 0 auto;min-width:30px;height:30px;padding:0 7px;border:1px solid var(--line);border-radius:0;background:transparent;font-family:var(--font);font-size:10px;font-weight:400;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s,transform .1s}
 .ctalla-chip:active{transform:scale(.92)}
 .ctalla-chip.on{background:var(--ink);color:#fff}
 .ctalla-chip.out{color:var(--ink3);background:var(--bg);cursor:not-allowed;text-decoration:line-through;opacity:.55}
@@ -504,7 +506,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
   transition:opacity .2s,transform .35s cubic-bezier(.34,1.56,.64,1);
 }
 .fav-dot.show{opacity:1; transform:scale(1)}
-@media(max-width:699px){.fav-nav{width:28px;height:28px;font-size:16px}.fav-dot{min-width:14px;height:14px;font-size:8px}}   /* móvil: corazón más pequeño + contador proporcional (width/height acá y no en la fila del nav de arriba porque ESTA regla es la que corre después de la definición base — .fav-nav de acá abajo, si no, gana la base 40x40 por orden de cascada) */
+@media(max-width:699px){.fav-nav{width:36px;height:36px;font-size:20px}.fav-dot{min-width:18px;height:18px;font-size:10px}}   /* móvil: corazón más pequeño + contador proporcional (width/height acá y no en la fila del nav de arriba porque ESTA regla es la que corre después de la definición base — .fav-nav de acá abajo, si no, gana la base 40x40 por orden de cascada) */
 
 /* MODAL FOTO — display:none por defecto (fix del bug principal) */
 /* Mismo motivo que .info-modal (ver comentario ahí): top:0 + padding-top en vez de
@@ -1356,6 +1358,11 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    justo hasta donde esa barra flota encima, y el CTA "COMPRAR YA" (pegado al fondo del hero)
    quedaba tapado/pegado a ella. Recorte mínimo, a propósito. */
 .hero{position:relative;width:100%;height:calc(100vh - var(--annH) - var(--navH) - var(--barH));overflow:hidden;background:var(--ink);display:none;touch-action:pan-y}
+/* Safari iOS: 100vh se calcula con la barra de direcciones OCULTA (el viewport más grande
+   posible), no con lo que se ve al cargar la página — el hero quedaba más alto que la pantalla
+   real y el CTA "COMPRAR YA" (pegado abajo) se iba fuera de la vista hasta hacer scroll. 100dvh
+   sí se ajusta al tamaño visible real. Fallback 100vh arriba para navegadores sin soporte. */
+@supports (height:100dvh){.hero{height:calc(100dvh - var(--annH) - var(--navH) - var(--barH))}}
 .hero.on{display:block}
 .hero-track{display:flex;height:100%;transition:transform .5s cubic-bezier(.16,1,.3,1)}
 .hero-slide{position:relative;min-width:100%;height:100%}
