@@ -289,7 +289,15 @@ function colCTA(g){ openCatalog({gender: g==='m'?'m' : g==='h'?'h' : g==='u'?'u'
    e info lo necesitan fijo mientras están abiertos, así que lo "pinnean" al entrar. Contador (no
    booleano) porque hay más de un punto de salida por vista (su propio close y closeHigherLayers). */
 let _pinCount=0;
-function pinHeader(){_pinCount++;const tb=$('topbar');if(tb){tb.classList.remove('hide');tb.classList.add('pinned');}}
+/* yaAbierta: MISMA guarda que lockScroll() en cada punto de llamada. Reabrir una capa que ya
+   estaba abierta (cambiar de Hombre a Mujer en el catálogo, abrir otra ficha desde el cross-sell)
+   NO crea una capa nueva y por tanto tampoco cierra dos veces — sin esta guarda el contador subía
+   2 y bajaba 1, y el header se quedaba fijo para siempre en el inicio (el hero le pasaba por
+   debajo). Mismo bug que ya se documentó abajo para lockScroll en la ficha. */
+function pinHeader(yaAbierta){
+  if(!yaAbierta)_pinCount++;
+  const tb=$('topbar');if(tb){tb.classList.remove('hide');tb.classList.add('pinned');}
+}
 function unpinHeader(){if(_pinCount>0)_pinCount--;if(_pinCount===0){const tb=$('topbar');if(tb)tb.classList.remove('pinned');}}
 
 /* La ficha (#photoModal) y la ventana de info (#infoModal) tienen z-index más alto que el
@@ -309,8 +317,7 @@ function openCatalog(opts){
   _sortBy='';{const _so=$('catSort');if(_so)_so.value='';}
   const v=$('catView');if(!v)return;
   // Mismo motivo que en la ficha: navPush('cat') deduplica, así que un bloqueo por capa.
-  {const _ya=v.classList.contains('on');if(!_ya)lockScroll();v.classList.add('on');}
-  pinHeader();   // la cabecera siempre visible y fija al ver Hombre/Mujer/Unisex (estilo adidas)
+  {const _ya=v.classList.contains('on');if(!_ya)lockScroll();pinHeader(_ya);v.classList.add('on');}   // cabecera visible y fija al ver Hombre/Mujer/Unisex (estilo adidas)
   const tabs=document.querySelectorAll('#catView .tabs .tab');
   if(opts.coleccion&&coleccionDe(opts.coleccion)){
     gSel='all';brandSel='all';colSel=opts.coleccion;
@@ -479,8 +486,7 @@ function openInfo(which){
   const INFO={mayoristas:[INFO_MAYORISTAS,'Mayoristas','/mayoristas'],cambios:[INFO_CAMBIOS,'Cambios y Garantías','/cambios'],quienes:[INFO_QUIENES,'Quiénes somos','/quienes'],envios:[INFO_ENVIOS,'Condiciones de envío','/envios']};
   const cfg=INFO[which]||INFO.cambios;
   b.innerHTML=cfg[0];
-  const m=$('infoModal');{const _ya=m.classList.contains('on');if(!_ya)lockScroll();m.classList.add('on');}   // un bloqueo por capa (navPush deduplica)
-  pinHeader();   // la cabecera siempre visible y fija (mismo flujo que Productos/Hombre/Mujer/Unisex/Ofertas)
+  const m=$('infoModal');{const _ya=m.classList.contains('on');if(!_ya)lockScroll();pinHeader(_ya);m.classList.add('on');}   // un bloqueo/pin por capa (navPush deduplica)
   const sc=m.querySelector('.info-scroll');if(sc)sc.scrollTop=0;
   navPush('info',cfg[2],cfg[1]+' — '+STORE_NAME,closeInfo);
 }
@@ -1259,8 +1265,7 @@ function openPhoto(id,type){
   // estando ya en otra (cross-sell / "también te puede gustar") NO crea una capa nueva, así que
   // un solo atrás la cierra y solo desbloquea una vez. Sin esta guarda el contador quedaba en 1
   // y el body se quedaba en position:fixed → la página se congelaba y solo salía recargando.
-  {const _pm=$('photoModal');const _yaAbierta=_pm.classList.contains('on');if(!_yaAbierta)lockScroll();_pm.classList.add('on');}
-  pinHeader();   // la cabecera siempre visible y fija al abrir un producto (estilo adidas)
+  {const _pm=$('photoModal');const _yaAbierta=_pm.classList.contains('on');if(!_yaAbierta)lockScroll();pinHeader(_yaAbierta);_pm.classList.add('on');}   // cabecera visible y fija al abrir un producto (estilo adidas)
   // SEO por producto: título de página y metadescripción propios cuando existen (meta.seo);
   // sin ellos, el título de siempre y la descripción global (setMetaDesc(null) restaura).
   const _seo=seoFicha(p);
