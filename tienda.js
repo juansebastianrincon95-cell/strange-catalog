@@ -285,14 +285,21 @@ function renderColBanners(){
 // Los banners abren el catálogo (vista aparte) filtrado por su género.
 function colCTA(g){ openCatalog({gender: g==='m'?'m' : g==='h'?'h' : g==='u'?'u' : 'all'}); }
 
+/* En móvil el header deja de ser fijo en el inicio (ver .topbar en styles.css) — catálogo, ficha
+   e info lo necesitan fijo mientras están abiertos, así que lo "pinnean" al entrar. Contador (no
+   booleano) porque hay más de un punto de salida por vista (su propio close y closeHigherLayers). */
+let _pinCount=0;
+function pinHeader(){_pinCount++;const tb=$('topbar');if(tb){tb.classList.remove('hide');tb.classList.add('pinned');}}
+function unpinHeader(){if(_pinCount>0)_pinCount--;if(_pinCount===0){const tb=$('topbar');if(tb)tb.classList.remove('pinned');}}
+
 /* La ficha (#photoModal) y la ventana de info (#infoModal) tienen z-index más alto que el
    catálogo, el menú móvil, favoritos y el carrito — si esos dos quedan abiertos detrás sin
    cerrarse, se quedan tapando la pantalla y el nav/carrito/favoritos parecen no responder al
    hacer clic. Se cierran a mano (sin pasar por navRemove+history.go) para no disparar una
    navegación real: el layer nuevo que se abre justo después ya deja el historial consistente. */
 function closeHigherLayers(){
-  {const pm=$('photoModal');if(pm&&pm.classList.contains('on')){pm.classList.remove('on');unlockScroll();navRemove('ficha');}}
-  {const im=$('infoModal');if(im&&im.classList.contains('on')){im.classList.remove('on');unlockScroll();navRemove('info');}}
+  {const pm=$('photoModal');if(pm&&pm.classList.contains('on')){pm.classList.remove('on');unlockScroll();unpinHeader();navRemove('ficha');}}
+  {const im=$('infoModal');if(im&&im.classList.contains('on')){im.classList.remove('on');unlockScroll();unpinHeader();navRemove('info');}}
 }
 
 function openCatalog(opts){
@@ -303,7 +310,7 @@ function openCatalog(opts){
   const v=$('catView');if(!v)return;
   // Mismo motivo que en la ficha: navPush('cat') deduplica, así que un bloqueo por capa.
   {const _ya=v.classList.contains('on');if(!_ya)lockScroll();v.classList.add('on');}
-  {const tb=$('topbar');if(tb)tb.classList.remove('hide');}   // la cabecera siempre visible al ver Hombre/Mujer/Unisex (estilo adidas)
+  pinHeader();   // la cabecera siempre visible y fija al ver Hombre/Mujer/Unisex (estilo adidas)
   const tabs=document.querySelectorAll('#catView .tabs .tab');
   if(opts.coleccion&&coleccionDe(opts.coleccion)){
     gSel='all';brandSel='all';colSel=opts.coleccion;
@@ -330,7 +337,7 @@ function openCatalog(opts){
   navPush('cat',navCatUrl(),_ct+' — '+STORE_NAME,closeCatalog);
 }
 
-function closeCatalog(){if(!_navPopping)navRemove('cat');const v=$('catView');if(v)v.classList.remove('on');unlockScroll();}
+function closeCatalog(){if(!_navPopping)navRemove('cat');const v=$('catView');if(v)v.classList.remove('on');unlockScroll();unpinHeader();}
 
 /* ── ORDENAR POR (catálogo) ── '' = relevancia (orden actual), price_asc, price_desc, new, views ── */
 let _sortBy='';
@@ -473,12 +480,12 @@ function openInfo(which){
   const cfg=INFO[which]||INFO.cambios;
   b.innerHTML=cfg[0];
   const m=$('infoModal');{const _ya=m.classList.contains('on');if(!_ya)lockScroll();m.classList.add('on');}   // un bloqueo por capa (navPush deduplica)
-  {const tb=$('topbar');if(tb)tb.classList.remove('hide');}   // la cabecera siempre visible (mismo flujo que Productos/Hombre/Mujer/Unisex/Ofertas)
+  pinHeader();   // la cabecera siempre visible y fija (mismo flujo que Productos/Hombre/Mujer/Unisex/Ofertas)
   const sc=m.querySelector('.info-scroll');if(sc)sc.scrollTop=0;
   navPush('info',cfg[2],cfg[1]+' — '+STORE_NAME,closeInfo);
 }
 
-function closeInfo(){if(!_navPopping)navRemove('info');const m=$('infoModal');if(m)m.classList.remove('on');unlockScroll();}
+function closeInfo(){if(!_navPopping)navRemove('info');const m=$('infoModal');if(m)m.classList.remove('on');unlockScroll();unpinHeader();}
 
 // "Ver política completa" en la ficha: despliega el resto del texto AHÍ MISMO. Antes abría
 // openInfo('cambios') en un overlay de pantalla completa sin botón de cerrar (solo "atrás" del
@@ -1253,7 +1260,7 @@ function openPhoto(id,type){
   // un solo atrás la cierra y solo desbloquea una vez. Sin esta guarda el contador quedaba en 1
   // y el body se quedaba en position:fixed → la página se congelaba y solo salía recargando.
   {const _pm=$('photoModal');const _yaAbierta=_pm.classList.contains('on');if(!_yaAbierta)lockScroll();_pm.classList.add('on');}
-  {const tb=$('topbar');if(tb)tb.classList.remove('hide');}   // la cabecera siempre visible al abrir un producto (estilo adidas)
+  pinHeader();   // la cabecera siempre visible y fija al abrir un producto (estilo adidas)
   // SEO por producto: título de página y metadescripción propios cuando existen (meta.seo);
   // sin ellos, el título de siempre y la descripción global (setMetaDesc(null) restaura).
   const _seo=seoFicha(p);
@@ -1662,6 +1669,7 @@ function closePhotoBtn(){
   setMetaDesc(null);   // al salir de la ficha vuelve la metadescripción global
   $('photoModal').classList.remove('on');
   unlockScroll();
+  unpinHeader();
   setTimeout(()=>{const tr=$('pmGalTrack');if(tr)tr.innerHTML='';pmId=null;pmType=null;pmTalla=null;},300);
 }
 

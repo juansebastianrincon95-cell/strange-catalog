@@ -8,6 +8,9 @@
 /* overflow-x:clip (no 'hidden') evita scroll horizontal SIN romper position:sticky del nav */
 html,body{background:var(--bg)!important;color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased;overflow-x:clip}
 body{padding-top:calc(var(--annH) + var(--navH));padding-bottom:var(--barH)}
+/* Móvil: el header deja de estar fuera de flujo (ver .topbar más abajo) — sin este padding
+   quedaría un hueco doble (el propio alto del header en flujo + este padding de más). */
+@media(max-width:699px){body{padding-top:0}}
 
 /* CABECERA (barra de envío + nav) — estilo Adidas: FIJA arriba (inmune al truco de lockScroll
    que pone body{position:fixed}), se OCULTA al bajar y REAPARECE al subir (clase .hide la sube
@@ -22,6 +25,16 @@ body{padding-top:calc(var(--annH) + var(--navH));padding-bottom:var(--barH)}
    siguiente repintado. Bug real reportado y reproducido el 2026-09-04. */
 .topbar{position:fixed;top:0;left:0;right:0;z-index:680;transition:transform .35s cubic-bezier(.4,0,.2,1);will-change:transform}
 .topbar.hide{transform:translateY(-100%)}
+/* Móvil, SOLO en el inicio: el header deja de ser fijo y se va con el scroll (como
+   elenacuidadocapilar.com) en vez de autoocultarse. Al entrar a catálogo/ficha/info, JS le agrega
+   .pinned (pinHeader() en tienda.js) y vuelve a comportarse exactamente como hoy — fijo, con su
+   auto-ocultar de siempre. El transform:none cubre una .hide residual de una sesión previa en
+   catálogo/ficha que, sin esto, movería el header en flujo (no fijo) y dejaría un hueco. */
+@media(max-width:699px){
+  .topbar{position:static}
+  .topbar.pinned{position:fixed;top:0;left:0;right:0}
+  .topbar:not(.pinned){transform:none}
+}
 /* BARRA DE ANUNCIO — negra y compacta (calcada de adidas.co), 3 mensajes rotando verticalmente,
    se despliegan completos en .ann-panel (ese sí blanco) al tocarla. */
 .annbar{position:relative;height:var(--annH);background:var(--ink);color:#fff;cursor:pointer;overflow:hidden}
