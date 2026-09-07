@@ -1402,11 +1402,16 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    justo hasta donde esa barra flota encima, y el CTA "COMPRAR YA" (pegado al fondo del hero)
    quedaba tapado/pegado a ella. Recorte mínimo, a propósito. */
 .hero{position:relative;width:100%;height:calc(100vh - var(--annH) - var(--navH) - var(--barH));overflow:hidden;background:var(--ink);display:none;touch-action:pan-y}
-/* Safari iOS: 100vh se calcula con la barra de direcciones OCULTA (el viewport más grande
-   posible), no con lo que se ve al cargar la página — el hero quedaba más alto que la pantalla
-   real y el CTA "COMPRAR YA" (pegado abajo) se iba fuera de la vista hasta hacer scroll. 100dvh
-   sí se ajusta al tamaño visible real. Fallback 100vh arriba para navegadores sin soporte. */
-@supports (height:100dvh){.hero{height:calc(100dvh - var(--annH) - var(--navH) - var(--barH))}}
+/* Safari iOS y las tres unidades de viewport:
+     vh  = pantalla con la barra de direcciones OCULTA (844 en un 12 Pro) → el hero quedaba más
+           alto que lo que se ve y el CTA "COMPRAR YA" se salía de pantalla al cargar.
+     dvh = DINÁMICA: cambia en vivo al recogerse la barra (745 → 844). Arreglaba el CTA pero
+           estiraba el hero 99px en pleno scroll: el contenido se movía bajo el dedo y el
+           recorte de la foto cambiaba a mitad del gesto. Reportado el 2026-09-07.
+     svh = pantalla con la barra VISIBLE (745) y es FIJA, no cambia nunca durante el scroll.
+   svh da las dos cosas: el CTA visible al cargar y cero movimiento al deslizar.
+   Fallback 100vh en la regla de arriba para navegadores sin soporte. */
+@supports (height:100svh){.hero{height:calc(100svh - var(--annH) - var(--navH) - var(--barH))}}
 .hero.on{display:block}
 .hero-track{display:flex;height:100%;transition:transform .5s cubic-bezier(.16,1,.3,1)}
 .hero-slide{position:relative;min-width:100%;height:100%}
