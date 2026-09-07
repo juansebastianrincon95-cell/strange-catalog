@@ -106,6 +106,8 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .contact-wrap{position:relative}
 .contact-nav{height:28px;padding:0 10px;background:none;border:1.5px solid var(--line);border-radius:0;color:var(--ink);font-family:var(--font);font-size:11px;font-weight:400;cursor:pointer;white-space:nowrap;transition:transform .14s}
 .contact-nav:active{transform:scale(.93)}
+/* El icono solo se muestra en móvil (ver bloque <700px); en escritorio manda el texto. */
+.contact-ic{display:none;stroke:currentColor;stroke-width:1.3;stroke-linecap:butt;stroke-linejoin:round}
 .contact-panel{position:absolute;top:calc(100% + 8px);right:0;min-width:190px;background:var(--white);border:1px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,.14);display:none;flex-direction:column;z-index:70}
 .contact-panel.show{display:flex}
 .contact-panel a{display:flex;align-items:center;gap:10px;padding:11px 14px;font-family:var(--font);font-size:13px;font-weight:400;color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line)}
@@ -133,20 +135,29 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
   :root{--navH:44px}
   nav{padding:4px 10px;grid-template-columns:auto auto auto 1fr}
   .brand{justify-content:flex-start}
-  .brand-mark{height:20px}
+  /* Logo al ancho real de sahet (55px). El SVG es 1065x478, así que 25px de alto → ~55.7px de
+     ancho. Antes 20px de alto = 44.6px, un 18% más angosto que el suyo. */
+  .brand-mark{height:25px}
+  /* Los iconos conservan zona táctil de 28px (más cómoda que los 21px de sahet), pero el trazo
+     visible se calca del suyo: fino y con puntas CUADRADAS (butt), no redondeadas. */
   .nav-burger{width:28px;height:28px}
   .nav-search{width:28px;height:28px}
-  .nav-search svg{width:20px;height:20px;stroke-width:1.75}
-  .nav-burger svg{width:20px;height:20px;stroke-width:1.75}
-  /* SALE al tamaño real de sahet (medido en vivo: 37.9x19px, padding 2px 5px, 10px) — el borde
-     se queda oscuro/sólido nuestro a propósito (sahet lo usa semitransparente, no lo copiamos).
-     Subido un poco más grande que la medida exacta de sahet a pedido del usuario. */
-  .sale-nav{height:24px;font-size:12px;padding:3px 6px;letter-spacing:normal}
-  .contact-nav{height:24px;font-size:12px;padding:3px 6px}
-  /* .fav-nav (el corazón) se achica más abajo, junto a su regla base — si se pone acá pierde
-     contra la definición base de .fav-nav (viene después en el archivo, misma especificidad). */
+  .nav-search svg{width:20px;height:20px;stroke-width:1.3;stroke-linecap:butt}
+  .nav-burger svg{width:20px;height:20px;stroke-width:1.3;stroke-linecap:butt}
+  /* SALE calcado de sahet, medido en vivo: 38x19, letra 10px, padding 2px 5px y borde negro al
+     60% (no sólido) — ese 60% es justo lo que hacía que el nuestro se viera más pesado al mismo
+     tamaño. */
+  .sale-nav{height:19px;font-size:10px;padding:2px 5px;letter-spacing:normal;border:1px solid rgba(0,0,0,.6)}
+  /* Contáctanos pasa de texto (90px de ancho) a icono de burbuja de 23px, como sahet: libera
+     ~67px de la fila, que es el 17% del ancho de pantalla. */
+  .contact-nav{width:23px;height:23px;padding:0;border:none;display:flex;align-items:center;justify-content:center}
+  .contact-ic{display:block;width:21px;height:20px}
+  .contact-tx{display:none}
+  /* .fav-nav (el corazón, que se conserva) se achica más abajo, junto a su regla base — si se
+     pone acá pierde contra la definición base de .fav-nav (viene después en el archivo, misma
+     especificidad). */
 }
-@media(max-width:380px){.sale-nav,.contact-nav{font-size:8.5px;padding:2px 6px}}
+@media(max-width:380px){.sale-nav{font-size:8.5px;padding:2px 4px}}
 /* menú horizontal (solo escritorio) */
 .nav-menu{display:none}
 @media(min-width:1180px){
