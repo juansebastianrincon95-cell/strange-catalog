@@ -1441,10 +1441,15 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    especificidad (0,2,0) y las media queries no suman, así que gana la que va última en el
    archivo. Puesto antes, el background:none no se aplicaba y se pintaban los DOS degradados. */
 @media(max-width:699px){
-  /* padding-bottom 16 (no 38): al pasar el hero a proporción, la imagen sigue por debajo del
-     pliegue y el botón quedaba flotando a media altura en vez de asentado abajo. Con 16px cae a
-     ~15px de la barra de la bolsa, centrado, que es donde se lee como parte de la composición. */
-  .hero .hero-ov{bottom:auto;height:min(100%, calc(100svh - var(--annH) - var(--navH) - var(--barH)));background:none;padding-bottom:16px}
+  /* El CTA es PEGAJOSO: se queda sobre la barra de la bolsa mientras la foto siga por debajo del
+     pliegue (así se ve al cargar), y en cuanto el borde inferior de la foto entra en pantalla se
+     asienta a 16px de ese borde y baja con ella. Antes estaba clavado a la zona visible: al
+     scrollear se quedaba flotando a media foto, que es lo que se veía feo.
+     ⚠️ overflow-x:clip y NO hidden: 'hidden' convierte al .hero en contenedor de scroll y eso
+     ANULA position:sticky (probado). 'clip' recorta igual el carrusel sin crear ese contenedor. */
+  .hero{overflow-x:clip;overflow-y:visible}
+  .hero .hero-ov{inset:0;height:auto;background:none;padding-bottom:16px}
+  .hero .hero-cta{position:sticky;bottom:calc(var(--barH) + 16px)}
   .hero .hero-slide::after{content:'';position:absolute;inset:0;pointer-events:none;
     background:linear-gradient(to top,rgba(0,0,0,.35) 0%,rgba(0,0,0,.08) 30%,transparent 55%)}
 }
