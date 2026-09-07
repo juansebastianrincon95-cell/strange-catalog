@@ -1421,7 +1421,12 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    .hero-ov —donde vive el CTA— se limita a la zona VISIBLE en vez de al alto del hero: si no,
    "COMPRAR YA" quedaba fuera de pantalla al cargar en los celulares pequeños. */
 @media(max-width:699px){
-  .hero{height:auto;aspect-ratio:1080/1920}
+  /* 1822 y no 1920: recorta ~35px del FONDO de la foto (object-position:top en la img de abajo
+     hace que el recorte salga todo por abajo, no repartido). Ese recorte es lo que permite que el
+     botón quede a 40px del margen —igual que los banners M/H/U— y aun así con 15px de aire sobre
+     la barra de la bolsa. Con el 1920 completo el botón se metía debajo de la barra. */
+  .hero{height:auto;aspect-ratio:1080/1822}
+  .hero .hero-slide img{object-position:center top}
 }
 .hero.on{display:block}
 .hero-track{display:flex;height:100%;transition:transform .5s cubic-bezier(.16,1,.3,1)}
@@ -1448,7 +1453,12 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
      proporción y se sale por debajo del pliegue, anclarlo al borde real de la foto lo dejaba
      tapado por la barra de la bolsa. Así aparece a 16px de la barra al cargar, en cualquier
      celular, sin depender de cuánto sobresalga la imagen. */
-  .hero .hero-ov{bottom:auto;height:min(100%, calc(100svh - var(--annH) - var(--navH) - var(--barH)));background:none;padding-bottom:16px}
+  /* 40px del margen inferior de la foto, igual que los banners M/H/U. El max() es un seguro para
+     pantallas cortas (iPhone SE): ahí la foto se sale tanto que 40px dejaría el botón 148px bajo
+     el pliegue, así que el cálculo lo sube lo justo para que quede sobre la barra de la bolsa.
+     En un celular normal el cálculo da exactamente 40 y el max() no hace nada. */
+  .hero .hero-ov{inset:0;height:auto;background:none;
+    padding-bottom:max(40px, calc(100vw * 1822 / 1080 - (100svh - var(--annH) - var(--navH) - var(--barH)) + 16px))}
   .hero .hero-slide::after{content:'';position:absolute;inset:0;pointer-events:none;
     background:linear-gradient(to top,rgba(0,0,0,.35) 0%,rgba(0,0,0,.08) 30%,transparent 55%)}
 }
@@ -1504,7 +1514,9 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 /* Mujer, Hombre y Unisex: banner a PANTALLA COMPLETA en escritorio (los tres iguales) */
 @media(min-width:700px){#bannerM,#bannerH,#bannerU{height:100vh;max-height:100vh}}
 /* Banners de colección: título + botón ABAJO (no centrado como el hero) */
-.cbanner .hero-ov{justify-content:flex-end;padding:0 22px 30px;background:linear-gradient(to top,rgba(0,0,0,.8) 6%,rgba(0,0,0,.32) 50%,transparent)}
+/* padding-bottom 40 (antes 30): sube el bloque completo — título "Colección Mujer" y botón suben
+   juntos, así que la distancia ENTRE ellos no cambia (la da el margin-top del .hero-cta). */
+.cbanner .hero-ov{justify-content:flex-end;padding:0 22px 40px;background:linear-gradient(to top,rgba(0,0,0,.8) 6%,rgba(0,0,0,.32) 50%,transparent)}
 
 /* PREVIEW (inicio): 2 columnas + "Ver todo" */
 /* padding-top igual al de las filas de colección (50px móvil / 99px escritorio) → mismo espacio
