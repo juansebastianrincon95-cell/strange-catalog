@@ -133,9 +133,12 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    escritorio/tablet (≥700px) no se toca. */
 @media(max-width:699px){
   :root{--navH:44px}
-  /* gap 10px = el mismo separador entre iconos que usa sahet (su .left-container va a 10px). */
-  nav{padding:4px 10px;gap:10px;grid-template-columns:auto auto auto 1fr}
-  .brand{justify-content:flex-start}
+  /* gap 4px (no 10) porque el hueco que se VE no es el de las cajas: nuestros botones son de
+     28px (zona táctil) con el dibujo dentro, así que cada uno aporta ~3px muertos por lado. Con
+     gap 4 el hueco visible entre trazos queda en ~10px, que es justo el de sahet. El margen del
+     logo compensa lo mismo del lado de la lupa. Medido con el bounding box del trazo, no de la caja. */
+  nav{padding:4px 10px;gap:4px;grid-template-columns:auto auto auto 1fr}
+  .brand{justify-content:flex-start;margin-left:3px}
   /* Logo al ancho real de sahet (55px). El SVG es 1065x478, así que 25px de alto → ~55.7px de
      ancho. Antes 20px de alto = 44.6px, un 18% más angosto que el suyo. */
   .brand-mark{height:25px}
@@ -143,8 +146,10 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
      visible se calca del suyo: fino y con puntas CUADRADAS (butt), no redondeadas. */
   .nav-burger{width:28px;height:28px}
   .nav-search{width:28px;height:28px}
-  .nav-search svg{width:20px;height:20px;stroke-width:1.3;stroke-linecap:butt}
-  .nav-burger svg{width:20px;height:20px;stroke-width:1.3;stroke-linecap:butt}
+  /* 26px (no 20): el trazo dibujado medía solo 15px de ancho contra los 21px del icono de sahet
+     — se veían más pequeños Y más separados. Con 26px el trazo visible queda en 21.7px. */
+  .nav-search svg{width:26px;height:26px;stroke-width:1.3;stroke-linecap:butt}
+  .nav-burger svg{width:26px;height:26px;stroke-width:1.3;stroke-linecap:butt}
   /* SALE calcado de sahet, medido en vivo: 38x19, letra 10px, padding 2px 5px y borde negro al
      60% (no sólido) — ese 60% es justo lo que hacía que el nuestro se viera más pesado al mismo
      tamaño. */
