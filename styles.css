@@ -133,7 +133,8 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    escritorio/tablet (≥700px) no se toca. */
 @media(max-width:699px){
   :root{--navH:44px}
-  nav{padding:4px 10px;grid-template-columns:auto auto auto 1fr}
+  /* gap 10px = el mismo separador entre iconos que usa sahet (su .left-container va a 10px). */
+  nav{padding:4px 10px;gap:10px;grid-template-columns:auto auto auto 1fr}
   .brand{justify-content:flex-start}
   /* Logo al ancho real de sahet (55px). El SVG es 1065x478, así que 25px de alto → ~55.7px de
      ancho. Antes 20px de alto = 44.6px, un 18% más angosto que el suyo. */
@@ -530,7 +531,12 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
   transition:opacity .2s,transform .35s cubic-bezier(.34,1.56,.64,1);
 }
 .fav-dot.show{opacity:1; transform:scale(1)}
-@media(max-width:699px){.fav-nav{width:36px;height:36px;font-size:20px}.fav-dot{min-width:18px;height:18px;font-size:10px}}   /* móvil: corazón más pequeño + contador proporcional (width/height acá y no en la fila del nav de arriba porque ESTA regla es la que corre después de la definición base — .fav-nav de acá abajo, si no, gana la base 40x40 por orden de cascada) */
+/* móvil: caja de 26px (no 36) — el glifo ♥ solo dibuja 12px de ancho, así que una caja de 36
+   dejaba 12px de aire muerto a cada lado e inflaba el bloque derecho sin motivo. 26px deja 7px
+   por lado, en línea con el icono de perfil de sahet (20px). El width/height va acá y no en el
+   bloque del nav de arriba porque ESTA regla corre después de la definición base de .fav-nav;
+   si no, gana la base de 40x40 por orden de cascada. */
+@media(max-width:699px){.fav-nav{width:26px;height:26px;font-size:20px}.fav-dot{min-width:16px;height:16px;font-size:9px}}
 
 /* MODAL FOTO — display:none por defecto (fix del bug principal) */
 /* Mismo motivo que .info-modal (ver comentario ahí): top:0 + padding-top en vez de
