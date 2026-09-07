@@ -10,7 +10,7 @@
    - cross-origin      → passthrough sin tocar (supabase, GA, fbq, etc.).
 
    Sube el numero de version (v1 → v2 …) en cada deploy que cambie el app-shell. */
-const CACHE = 'strange-admin-v37';   // v37: accesos por genero ocultos en escritorio (duplicaban el nav-menu)
+const CACHE = 'strange-admin-v38';   // v38: header calcado de sahet, hero por proporcion (sin recorte) y CTA a 40px
 
 const SHELL = [
   '/',
