@@ -1422,13 +1422,6 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    "COMPRAR YA" quedaba fuera de pantalla al cargar en los celulares pequeños. */
 @media(max-width:699px){
   .hero{height:auto;aspect-ratio:1080/1920}
-  /* .hero-ov se limita a la zona visible SOLO para colocar el CTA. Su degradado se muda a una
-     capa propia que cubre el hero entero: si el degradado se corta donde acaba .hero-ov, la foto
-     recupera su brillo de golpe y se ve una LÍNEA horizontal 38px bajo el botón. Reportado el
-     2026-09-07, causado por el cambio de aspect-ratio del mismo día. */
-  .hero .hero-ov{bottom:auto;height:min(100%, calc(100svh - var(--annH) - var(--navH) - var(--barH)));background:none}
-  .hero .hero-slide::after{content:'';position:absolute;inset:0;pointer-events:none;
-    background:linear-gradient(to top,rgba(0,0,0,.35) 0%,rgba(0,0,0,.08) 30%,transparent 55%)}
 }
 .hero.on{display:block}
 .hero-track{display:flex;height:100%;transition:transform .5s cubic-bezier(.16,1,.3,1)}
@@ -1439,6 +1432,19 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 /* HERO: el botón va ABAJO — centrado en móvil, abajo a la DERECHA en escritorio (no tapa el
    arte de la imagen). Solo aplica al hero: los banners M/H/U conservan su propio layout. */
 .hero .hero-ov{justify-content:flex-end;padding:0 24px 38px;background:linear-gradient(to top,rgba(0,0,0,.35) 0%,rgba(0,0,0,.08) 30%,transparent 55%)}
+/* Móvil: como el hero ahora va por proporción, se sale de la pantalla por abajo. .hero-ov se
+   recorta a la zona VISIBLE para que el CTA no se vaya fuera de vista — pero entonces su
+   degradado quedaba cortado y la foto recuperaba el brillo de golpe: una LÍNEA horizontal 38px
+   bajo el botón. Por eso el degradado se muda a .hero-slide::after (cubre el hero entero) y
+   .hero-ov se queda solo con el posicionamiento.
+   ⚠️ Este bloque va DESPUÉS de la regla base de .hero .hero-ov a propósito: tienen la misma
+   especificidad (0,2,0) y las media queries no suman, así que gana la que va última en el
+   archivo. Puesto antes, el background:none no se aplicaba y se pintaban los DOS degradados. */
+@media(max-width:699px){
+  .hero .hero-ov{bottom:auto;height:min(100%, calc(100svh - var(--annH) - var(--navH) - var(--barH)));background:none}
+  .hero .hero-slide::after{content:'';position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(to top,rgba(0,0,0,.35) 0%,rgba(0,0,0,.08) 30%,transparent 55%)}
+}
 .hero-tit{font-size:24px;font-weight:400;line-height:1.1;letter-spacing:.02em;text-transform:uppercase;text-shadow:0 2px 16px rgba(0,0,0,.5)}
 .hero-sub{font-size:11px;font-weight:400;letter-spacing:.16em;text-transform:uppercase;opacity:.92;margin-top:8px;text-shadow:0 1px 10px rgba(0,0,0,.45)}
 .hero-cta{margin-top:18px;display:inline-block;background:rgba(0,0,0,.14);color:#fff;border:1.5px solid #fff;border-radius:0;padding:10px 24px;font-family:var(--font);font-size:12px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:transform .12s,background .15s}
