@@ -31,7 +31,12 @@ body{padding-top:calc(var(--annH) + var(--navH));padding-bottom:var(--barH)}
    auto-ocultar de siempre. El transform:none cubre una .hide residual de una sesión previa en
    catálogo/ficha que, sin esto, movería el header en flujo (no fijo) y dejaría un hueco. */
 @media(max-width:699px){
-  .topbar{position:static}
+  /* 'relative' y NO 'static': el z-index:680 de arriba solo surte efecto en elementos
+     posicionados. Con static, el header perdía su capa y el hero (que va después en el HTML) se
+     dibujaba ENCIMA del panel de Contáctanos — parecía que el botón no abría nada. Relative se
+     comporta igual que static para el flujo (el header se va con el scroll, como Elena) pero
+     conserva el apilamiento. Bug reportado y reproducido el 2026-09-07. */
+  .topbar{position:relative}
   .topbar.pinned{position:fixed;top:0;left:0;right:0}
   .topbar:not(.pinned){transform:none}
 }
