@@ -141,7 +141,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
   .brand{justify-content:flex-start;margin-left:3px}
   /* Logo al ancho real de sahet (55px). El SVG es 1065x478, así que 25px de alto → ~55.7px de
      ancho. Antes 20px de alto = 44.6px, un 18% más angosto que el suyo. */
-  .brand-mark{height:25px}
+  .brand-mark{height:21px}
   /* Los iconos conservan zona táctil de 28px (más cómoda que los 21px de sahet), pero el trazo
      visible se calca del suyo: fino y con puntas CUADRADAS (butt), no redondeadas. */
   .nav-burger{width:28px;height:28px}
@@ -156,8 +156,12 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
   .sale-nav{height:19px;font-size:10px;padding:2px 5px;letter-spacing:normal;border:1px solid rgba(0,0,0,.6)}
   /* Contáctanos pasa de texto (90px de ancho) a icono de burbuja de 23px, como sahet: libera
      ~67px de la fila, que es el 17% del ancho de pantalla. */
-  .contact-nav{width:23px;height:23px;padding:0;border:none;display:flex;align-items:center;justify-content:center}
-  .contact-ic{display:block;width:21px;height:20px}
+  /* Mismo criterio que la hamburguesa y la lupa: caja de 28px para el dedo, dibujo de 26px, y un
+     margen negativo que cancela el aire muerto de la caja para que el hueco que se VE entre
+     iconos sea de 10px (el de sahet) y no el de las cajas. gap 10 en .nav-right + estos márgenes. */
+  .nav-right{gap:10px}
+  .contact-nav{width:28px;height:28px;margin:0 -3px;padding:0;border:none;display:flex;align-items:center;justify-content:center}
+  .contact-ic{display:block;width:26px;height:26px}
   .contact-tx{display:none}
   /* .fav-nav (el corazón, que se conserva) se achica más abajo, junto a su regla base — si se
      pone acá pierde contra la definición base de .fav-nav (viene después en el archivo, misma
@@ -541,7 +545,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    por lado, en línea con el icono de perfil de sahet (20px). El width/height va acá y no en el
    bloque del nav de arriba porque ESTA regla corre después de la definición base de .fav-nav;
    si no, gana la base de 40x40 por orden de cascada. */
-@media(max-width:699px){.fav-nav{width:26px;height:26px;font-size:20px}.fav-dot{min-width:16px;height:16px;font-size:9px}}
+@media(max-width:699px){.fav-nav{width:26px;height:26px;font-size:28px;margin:0 -5px}.fav-dot{min-width:16px;height:16px;font-size:9px}}
 
 /* MODAL FOTO — display:none por defecto (fix del bug principal) */
 /* Mismo motivo que .info-modal (ver comentario ahí): top:0 + padding-top en vez de
