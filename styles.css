@@ -1484,7 +1484,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .lanz{padding:50px 0 50px;background:var(--bg);position:relative}
 @media(min-width:700px){.lanz{padding:99px 0 99px}}
 .lanz-hdr{padding:0 16px 12px}
-.lanz-t{font-size:18px;font-weight:400;letter-spacing:-.01em;color:var(--ink)}
+.lanz-t{font-size:15px;font-weight:400;letter-spacing:-.01em;color:var(--ink)}
 .lanz-row{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding:0 16px 6px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .lanz-row::-webkit-scrollbar{display:none}
 .lanz-row.centered{justify-content:center}
