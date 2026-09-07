@@ -1441,7 +1441,10 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    especificidad (0,2,0) y las media queries no suman, así que gana la que va última en el
    archivo. Puesto antes, el background:none no se aplicaba y se pintaban los DOS degradados. */
 @media(max-width:699px){
-  .hero .hero-ov{bottom:auto;height:min(100%, calc(100svh - var(--annH) - var(--navH) - var(--barH)));background:none}
+  /* padding-bottom 16 (no 38): al pasar el hero a proporción, la imagen sigue por debajo del
+     pliegue y el botón quedaba flotando a media altura en vez de asentado abajo. Con 16px cae a
+     ~15px de la barra de la bolsa, centrado, que es donde se lee como parte de la composición. */
+  .hero .hero-ov{bottom:auto;height:min(100%, calc(100svh - var(--annH) - var(--navH) - var(--barH)));background:none;padding-bottom:16px}
   .hero .hero-slide::after{content:'';position:absolute;inset:0;pointer-events:none;
     background:linear-gradient(to top,rgba(0,0,0,.35) 0%,rgba(0,0,0,.08) 30%,transparent 55%)}
 }
