@@ -1412,6 +1412,18 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    svh da las dos cosas: el CTA visible al cargar y cero movimiento al deslizar.
    Fallback 100vh en la regla de arriba para navegadores sin soporte. */
 @supports (height:100svh){.hero{height:calc(100svh - var(--annH) - var(--navH) - var(--barH))}}
+/* MÓVIL: el alto lo manda la PROPORCIÓN de la foto (1080:1920), no lo que sobre de pantalla.
+   Con altura fija, `cover` recortaba para llenar el hueco, y cuánto recortaba dependía del
+   celular: 9% en un 12 Pro pero 33% en un iPhone SE (el sello "GRATIS OBSEQUIO" quedaba mordido).
+   Atando el alto a la proporción, la foto se ve COMPLETA en cualquier teléfono — verificado con
+   recorte 0 en SE (375x557), 12 Pro (390x745) y 14 Pro Max (430x830).
+   El costo es que el hero se sale un poco por abajo (43-160px según el celular), así que el
+   .hero-ov —donde vive el CTA— se limita a la zona VISIBLE en vez de al alto del hero: si no,
+   "COMPRAR YA" quedaba fuera de pantalla al cargar en los celulares pequeños. */
+@media(max-width:699px){
+  .hero{height:auto;aspect-ratio:1080/1920}
+  .hero .hero-ov{bottom:auto;height:min(100%, calc(100svh - var(--annH) - var(--navH) - var(--barH)))}
+}
 .hero.on{display:block}
 .hero-track{display:flex;height:100%;transition:transform .5s cubic-bezier(.16,1,.3,1)}
 .hero-slide{position:relative;min-width:100%;height:100%}
