@@ -10,7 +10,7 @@
    - cross-origin      → passthrough sin tocar (supabase, GA, fbq, etc.).
 
    Sube el numero de version (v1 → v2 …) en cada deploy que cambie el app-shell. */
-const CACHE = 'strange-admin-v42';   // v42: Envio gratis pasa a ir entre el precio y las tallas
+const CACHE = 'strange-admin-v43';   // v43: nombre y precio de la tarjeta pegados (como sahet)
 
 const SHELL = [
   '/',

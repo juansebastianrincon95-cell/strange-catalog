@@ -388,7 +388,9 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 /* Tipografía calcada de la tarjeta de sahet.co: nombre 12px/400 uppercase, precio 12px (tachado
    400 negro + vigente 600, mismo color que el resto salvo en promo), "Ver más" 10px/400 al costado
    del nombre (fila con justify-content:space-between), todo en la misma línea de base. */
-.ctitle-row{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:7px}
+/* margin-bottom 1 (antes 7): en sahet el precio arranca donde termina el nombre, sin separación,
+   y se leen como un bloque. Con 7px quedaban dos líneas sueltas y el pie de tarjeta 6px más alto. */
+.ctitle-row{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:1px}
 .cmodel{font-size:12px;font-weight:400;letter-spacing:normal;text-transform:uppercase;color:var(--ink);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cprice-row{display:flex;align-items:center;gap:5px}
 .cprice{font-size:12px;font-weight:400;letter-spacing:normal;color:var(--ink);line-height:normal}
