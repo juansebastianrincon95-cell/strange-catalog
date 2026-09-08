@@ -1421,6 +1421,12 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    ⚠️ Va DESPUÉS del bloque de 480px de arriba: ese fija min-height:110px en la foto y, con la
    misma especificidad, gana el que va último en el archivo. */
 @media(max-width:699px){
+  /* Padding parejo y alto medido contra la pantalla completa. El padding-top de 95px del .wm
+     (annH+navH+18) existía para librar la cabecera FIJA — pero en móvil el header dejó de ser fijo
+     y se va con el scroll, así que ese hueco solo empujaba la tarjeta hacia abajo: quedaba con
+     129px arriba y 52 abajo. Ahora 91 y 91. */
+  .wm{padding:18px}
+  .wm-card{max-height:calc(100svh - 36px)}
   .wm-pane-content{flex:0 0 auto}
   /* Banda fija de 130px (antes crecía hasta 199 y dejaba la tarjeta en 632px = 85% de la pantalla).
      object-position 62%: la foto es vertical (1080x1620) dentro de una banda apaisada, así que
