@@ -1412,6 +1412,18 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
   .wm-chip{font-size:11.5px;padding:7px 11px}
   .wm-q{margin:11px 0 6px}
 }
+/* 🔴 BUG CORREGIDO 2026-09-08 — el botón "Quiero mi descuento" no se veía en móvil.
+   Los dos paneles tenían flex:1 1 auto, así que se REPARTÍAN la altura en vez de priorizar el
+   formulario: la foto (min-height 140) se quedaba con 333px de los 632 de la tarjeta y al panel
+   de texto le sobraban 134px de contenido, que quedaban tras un scroll interno que nadie
+   descubre. El popup pedía nombre y WhatsApp con el botón de enviar oculto.
+   Ahora el formulario toma su altura natural y la foto se queda con lo que sobre.
+   ⚠️ Va DESPUÉS del bloque de 480px de arriba: ese fija min-height:110px en la foto y, con la
+   misma especificidad, gana el que va último en el archivo. */
+@media(max-width:699px){
+  .wm-pane-content{flex:0 0 auto}
+  .wm-pane-img{flex:1 1 auto;min-height:0}
+}
 
 /* HERO CARRUSEL */
 /* Se descuenta también --barH (la barra fija de precio+bolsa): sin esto, el hero se extendía
