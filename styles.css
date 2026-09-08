@@ -1352,7 +1352,9 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .wm-close{position:absolute;top:10px;right:10px;width:34px;height:34px;border:1px solid var(--line);border-radius:50%;background:var(--white);color:var(--ink);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:3;box-shadow:0 2px 10px rgba(0,0,0,.14)}
 .wm-close:hover{background:var(--bg)}
 .wm-pane-content{flex:1 1 auto;min-height:0;background:var(--white);color:var(--ink);padding:28px 24px;display:flex;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch}
-.wm-kick{display:inline-block;align-self:center;font-size:11.5px;font-weight:400;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);border:1px solid var(--line);border-radius:0;padding:6px 14px;margin-bottom:18px}
+/* Pastilla con relleno gris (antes transparente con un borde fino apenas visible). El texto ya
+   era gris --ink2; lo que se pedía era el fondo. Contraste texto/fondo 6:1, holgado. */
+.wm-kick{display:inline-block;align-self:center;font-size:11.5px;font-weight:400;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);background:#EFEFED;border:1px solid transparent;border-radius:0;padding:6px 14px;margin-bottom:18px}
 .wm-off{font-size:44px;font-weight:400;line-height:1;letter-spacing:-.02em;color:var(--ink);text-align:center}
 .wm-off span{font-weight:600}
 .wm-sub{font-size:14px;font-weight:400;color:var(--ink2);margin-top:12px;line-height:1.5;text-align:center}
