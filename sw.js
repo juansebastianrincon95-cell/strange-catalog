@@ -10,7 +10,7 @@
    - cross-origin      → passthrough sin tocar (supabase, GA, fbq, etc.).
 
    Sube el numero de version (v1 → v2 …) en cada deploy que cambie el app-shell. */
-const CACHE = 'strange-admin-v47';   // v47: popup de bienvenida centrado (margenes parejos)
+const CACHE = 'strange-admin-v48';   // v48: popup de bienvenida sin foto en movil (se veia cortada)
 
 const SHELL = [
   '/',

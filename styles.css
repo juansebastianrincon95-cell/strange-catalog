@@ -1428,12 +1428,13 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
   .wm{padding:18px}
   .wm-card{max-height:calc(100svh - 36px)}
   .wm-pane-content{flex:0 0 auto}
-  /* Banda fija de 130px (antes crecía hasta 199 y dejaba la tarjeta en 632px = 85% de la pantalla).
-     object-position 62%: la foto es vertical (1080x1620) dentro de una banda apaisada, así que
-     `cover` solo deja ver una franja. Centrada mostraba pared gris vacía con la punta de un zapato;
-     al 62% la franja cae sobre los tenis, que es lo que vale la pena enseñar. */
-  .wm-pane-img{flex:0 0 130px;min-height:0}
-  .wm-pane-img img{object-position:center 62%}
+  /* Sin foto en móvil. La imagen es VERTICAL (1080x1620) y aquí la banda es apaisada, así que
+     `cover` solo dejaba ver una franja: se veían un brazo, medio zapato y unos cordones sueltos —
+     fragmentos sin contexto. Para que entrara completa necesitaba 510px de alto, que es justo lo
+     que hacía el popup interminable. No hay altura de banda que resuelva las dos cosas.
+     En ESCRITORIO la foto se conserva: allá va al lado del formulario (flex-direction:row) y se
+     ve entera, así que el problema no existe. Decidido con el dueño el 2026-09-08. */
+  .wm-pane-img{display:none}
 }
 
 /* HERO CARRUSEL */
