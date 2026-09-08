@@ -369,13 +369,19 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .cphoto img,.lphoto img,.pm-gal-track img,.hero-slide img,.cbanner img{pointer-events:none}
 /* Medidas calcadas del SALE del header de sahet.co (10px, alto 19). El alto va explícito porque
    el suyo llega a 19 gracias a su borde de 1px, que acá no aplica (este badge es de fondo lleno). */
-.bdsc{position:absolute;top:8px;left:8px;background:var(--red);color:#fff;font-size:10px;font-weight:400;padding:0 5px;height:19px;display:inline-flex;align-items:center;line-height:1;border-radius:0}
+/* #D54E52 es el rojo exacto de sahet.co (su --color-red, el que pinta el SALE al tocarlo): mismo
+   tono pero mucho menos saturado que nuestro --red #E8200A, así el badge deja de competir con la
+   foto del producto. NO se toca la variable --red porque también pinta los precios en oferta. */
+.bdsc{position:absolute;top:8px;left:8px;background:#D54E52;color:#fff;font-size:10px;font-weight:400;padding:0 5px;height:19px;display:inline-flex;align-items:center;line-height:1;border-radius:0}
 .bsold{position:absolute;inset:0;background:rgba(255,255,255,.82);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:400;color:var(--ink3);letter-spacing:.08em;text-transform:uppercase;pointer-events:none}
 /* Mismas medidas que .bdsc: van en la misma línea de la tarjeta (esquinas opuestas), así que si
    uno se achica y el otro no, la fila queda despareja. */
 .bnew,.bviews{position:absolute;top:8px;right:8px;z-index:3;font-size:10px;font-weight:400;letter-spacing:.02em;padding:0 5px;height:19px;display:inline-flex;align-items:center;border-radius:0;line-height:1;pointer-events:none}
-.bnew{background:var(--ink);color:#fff;text-transform:uppercase}
-.bviews{background:#137a3a;color:#fff}
+/* Apagados en la misma línea que el rojo de sahet: bajan saturación y suben luminosidad, pero
+   conservan contraste suficiente con el texto blanco (8.9:1 el gris, 4.0:1 el verde). El negro
+   puro y el verde oscuro de antes pesaban demasiado al lado del nuevo rojo suave. */
+.bnew{background:#4A4A47;color:#fff;text-transform:uppercase}
+.bviews{background:#4A8C62;color:#fff}
 .bchk{position:absolute;top:6px;right:6px;width:22px;height:22px;background:var(--blue);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;opacity:0;transform:scale(.2);transition:all .26s cubic-bezier(.34,1.56,.64,1)}
 .card.picked .bchk{opacity:1;transform:scale(1)}
 .cbrand{font-size:10.5px;font-weight:400;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
