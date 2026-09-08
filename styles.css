@@ -1422,7 +1422,12 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    misma especificidad, gana el que va último en el archivo. */
 @media(max-width:699px){
   .wm-pane-content{flex:0 0 auto}
-  .wm-pane-img{flex:1 1 auto;min-height:0}
+  /* Banda fija de 130px (antes crecía hasta 199 y dejaba la tarjeta en 632px = 85% de la pantalla).
+     object-position 62%: la foto es vertical (1080x1620) dentro de una banda apaisada, así que
+     `cover` solo deja ver una franja. Centrada mostraba pared gris vacía con la punta de un zapato;
+     al 62% la franja cae sobre los tenis, que es lo que vale la pena enseñar. */
+  .wm-pane-img{flex:0 0 130px;min-height:0}
+  .wm-pane-img img{object-position:center 62%}
 }
 
 /* HERO CARRUSEL */
