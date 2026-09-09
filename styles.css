@@ -988,8 +988,21 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .cqc{display:flex;align-items:center;gap:7px}
 /* Stepper +/− calcado de sahet.co (revisado en vivo por DOM el 2026-09-08: .minus-container/
    .plus-container, 21x21px, sin fondo ni borde ni círculo — solo el glifo). */
-.cqb{width:21px;height:21px;background:none;border:none;border-radius:0;font-size:14px;color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer}
-.cqv{font-size:12px;font-weight:400;min-width:12px;text-align:center}
+/* Stepper calcado del de sahet.co (.minus-container/.plus-container, medido en vivo): caja de
+   21x21 —que ya teníamos igual— con el signo en 12px, no 14. El suyo es un icono de 12x12; con
+   nuestra letra a 14 el − y el + pesaban más que su número de 12px, que es al revés de como debe
+   leerse: manda la cantidad, no los controles. */
+.cqb{width:21px;height:21px;background:none;border:none;border-radius:0;font-size:12px;color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer}
+/* Reacción al toque: el botón se HUNDE 1px, no cambia de tamaño. Es exactamente lo que hace sahet
+   (`position:relative; top:1px` en :active) y sin esto el nuestro no daba ninguna señal de haber
+   sido presionado — en móvil, donde no hay hover, esa es la única confirmación que recibe el dedo.
+   Se descarta un scale() a propósito: encogería la caja y en un control de 21px eso se percibe
+   como que el botón se movió de sitio. */
+.cqb:active{position:relative;top:1px}
+/* min-width 18px (1.5em de sahet): el número necesita reservar el ancho de DOS cifras. Con 12px,
+   al pasar de 9 a 10 unidades el número se ensanchaba y empujaba el + hacia la derecha; el dedo
+   quedaba fuera del botón justo cuando el cliente está tocando repetido para subir la cantidad. */
+.cqv{font-size:12px;font-weight:400;min-width:18px;text-align:center}
 .crm{background:none;border:none;font-size:12px;color:var(--ink3);cursor:pointer;padding:5px;transition:color .14s}
 .crm:hover{color:var(--red)}
 .cempty{padding:52px 20px;text-align:center}
