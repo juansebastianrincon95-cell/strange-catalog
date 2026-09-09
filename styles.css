@@ -1423,6 +1423,9 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 /* Pasarela ya elegida (estilo sahet.co: al elegir un método, las demás opciones colapsan y
    queda solo la elegida + un link "Cambiar" — el pago real lo dispara el botón del pie). */
 .sf-gw-sel{flex:0 0 auto;min-width:90px;cursor:default}
+/* Dentro del selector estilo sahet la ficha ya elegida también se ajusta a su logo: el min-width
+   de 90px existía para dejarle sitio al monto que iba debajo, y ese monto ya no está. */
+.sf-gw-pick .sf-gw-sel{min-width:0}
 .sf-gw-cambiar{background:none;border:none;font-family:var(--font);font-size:11.5px;color:var(--ink2);text-decoration:underline;cursor:pointer;padding:0}
 
 

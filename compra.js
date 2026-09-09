@@ -395,11 +395,11 @@ function bmMediosPagoBodyHTML(){
   // envío: $X" y repetirlo bajo cada ficha hacía leer el mismo número tres veces en la misma
   // pantalla. Sahet tampoco lo pone: sus fichas de pasarela son solo el logo.
   const gws=bmGwSelected
-    ? `<div class="sf-gw-row">
+    ? `<div class="sf-gw-row sf-gw-pick">
         <button class="sf-gw sf-gw-sel" disabled><img src="/logos/${bmGwSelected}.png" alt="${bmGwSelected==='wompi'?'Wompi':'Bold'}" class="sf-gw-logo"></button>
         <button type="button" class="sf-gw-cambiar" onclick="bmSelectGw(null)">Cambiar</button>
       </div>`
-    : `<div class="sf-gw-row">
+    : `<div class="sf-gw-row sf-gw-pick">
         <button class="sf-gw" onclick="bmSelectGw('wompi')"><img src="/logos/wompi.png" alt="Wompi" class="sf-gw-logo"></button>
         <button class="sf-gw" onclick="bmSelectGw('bold')"><img src="/logos/bold.png" alt="Bold" class="sf-gw-logo"></button>
       </div>`;
