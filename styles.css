@@ -340,12 +340,22 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .secn{font-size:11px;font-weight:400;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3)}
 .seccn{font-size:11px;color:var(--ink3)}
 .secright{position:relative;display:flex;align-items:center;gap:10px;min-width:0}
-.secsort-col{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+/* gap:0 (antes 6px): al quitar la lupa, el único hijo con alto es el select — .secsearch-wrap solo
+   contiene la barra de búsqueda, que es position:absolute y no ocupa lugar. Con el gap quedaban
+   6px muertos encima del select que descuadraban la fila. */
+.secsort-col{display:flex;flex-direction:column;align-items:flex-end;gap:0}
 .secsearch-wrap{flex-shrink:0}
-.secsearch-ic{flex-shrink:0;width:32px;height:32px;border:1px solid var(--line);background:var(--white);border-radius:0;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.catsort{flex:0 0 auto;max-width:180px;border:1px solid var(--line);background:var(--white);border-radius:0;padding:7px 10px;font-family:var(--font);font-size:14px;color:var(--ink);cursor:pointer;outline:none}
+/* (.secsearch-ic eliminada — era la lupa duplicada de esta barra; la del nav cumple la función) */
+/* Alto 31px y letra de 12: las medidas del resto de la interfaz (fichas de pago, botón "Ir a
+   pagar", chips). Antes iba en 39px de alto con letra de 16 y era, de lejos, el control más grande
+   de la pantalla, al lado de "197 modelos" en 11px.
+   ⚠️ El 16px de móvil que había acá NO era un descuido: es el truco para que iOS no haga zoom al
+   enfocar un campo. Se puede bajar en este caso concreto porque es un <select>: iOS le abre su
+   rueda nativa y no acerca la página. En .catsearch input, que sí es de escritura, el 16px SE
+   MANTIENE — ahí bajarlo sí dispararía el zoom. */
+.catsort{flex:0 0 auto;max-width:180px;height:31px;border:1px solid var(--line);background:var(--white);border-radius:0;padding:0 10px;font-family:var(--font);font-size:12px;color:var(--ink);cursor:pointer;outline:none}
 .catsort:focus{border-color:var(--ink)}
-@media(max-width:600px){.catsort{font-size:16px;max-width:150px;padding:8px 10px}}
+@media(max-width:600px){.catsort{max-width:150px}}
 
 /* GRID */
 .catsearch{position:absolute;top:calc(100% + 10px);right:0;z-index:40;width:min(300px,85vw);display:flex;align-items:center;gap:8px;padding:12px;background:var(--white);border:1px solid var(--line);box-shadow:0 12px 30px rgba(0,0,0,.15)}

@@ -427,8 +427,12 @@
     <div class="secright">
       <span class="seccn" id="secCt"></span>
       <div class="secsort-col">
+        <!-- La lupa de esta barra se eliminó: la del nav (openNavSearch) hace lo mismo y tenerlas
+             las dos duplicaba el control en la misma pantalla.
+             ⚠️ El contenedor y #catSearchBar se CONSERVAN: openNavSearch() no tiene buscador
+             propio — abre el catálogo y llama a toggleCatSearch(), que muestra este mismo input.
+             Borrar el bloque dejaría la lupa del header sin nada que abrir. -->
         <div class="secsearch-wrap">
-          <button type="button" class="secsearch-ic" onclick="toggleCatSearch()" aria-label="Buscar">🔍</button>
           <div class="catsearch" id="catSearchBar" style="display:none">
             <span class="catsearch-ic">🔍</span>
             <input id="catSearchInput" type="search" inputmode="search" autocomplete="off" placeholder="Buscar marca o modelo…" oninput="buscarProductos(this.value)">
