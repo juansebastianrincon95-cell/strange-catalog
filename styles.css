@@ -501,20 +501,21 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 /* El icono de bolsa solo se usa en móvil (el bloque <700px lo muestra); en escritorio manda el texto. */
 .cadd-btn svg{display:none}
 .cadd-btn:active{transform:scale(.96)}
-/* MÓVIL: todo en UNA fila, con el botón reducido a un icono de bolsa. Con la palabra "Añadir" el
-   botón ocupaba 120px fijos y en las tarjetas de 175px (Colección Mujer/Hombre) dejaba apenas 49px
-   para las tallas: se veía una talla y media y el resto quedaba tras un scroll horizontal que nadie
-   descubre. Con el icono de 30px quedan 139px para los chips y, a 24px cada uno, entran las 5
-   tallas de hombre (136px).
-   ⚠️ Este bloque va DESPUÉS de las reglas base de .ctalla-chip y .cadd-btn: misma especificidad y
-   las media queries no desempatan, así que gana la última del archivo. Puesto antes, solo se
-   aplicaba .cadd-txt (la única sin regla base) y el resto quedaba en los valores viejos. */
+/* MÓVIL, SOLO EN LAS REJILLAS DE 2 COLUMNAS (catálogo, ofertas, "Nuestros modelos", favoritos):
+   todo en UNA fila, con el botón reducido a un icono de bolsa. Ahí la tarjeta mide 175px y con la
+   palabra "Añadir" el botón se come 120px fijos, dejando 49px para las tallas: se veía una talla y
+   media y el resto quedaba tras un scroll horizontal que nadie descubre. Con el icono de 30px
+   quedan 139px para los chips y, a 24px cada uno, entran las 5 tallas de hombre (136px).
+   Los carruseles del inicio (.lanz-row) NO entran aquí a propósito: su tarjeta mide 316px y ahí el
+   botón negro con "Añadir" cabe de sobra junto a las tallas completas.
+   Los selectores llevan el contenedor por delante (0,2,0) para ganarle a las reglas base (0,1,0)
+   sin depender del orden del archivo: las media queries no aportan especificidad. */
 @media(max-width:699px){
-  .ctallas-row{gap:4px;mask-image:none;-webkit-mask-image:none}
-  .ctalla-chip{min-width:24px;height:24px;padding:0 3px;font-size:9px}
-  .cadd-btn{flex:0 0 30px;width:30px;height:30px;padding:0;display:flex;align-items:center;justify-content:center}
-  .cadd-btn svg{display:block;width:17px;height:17px}
-  .cadd-txt{display:none}
+  .grid .ctallas-row,.liq-grid .ctallas-row,.preview-grid .ctallas-row{gap:4px;mask-image:none;-webkit-mask-image:none}
+  .grid .ctalla-chip,.liq-grid .ctalla-chip,.preview-grid .ctalla-chip{min-width:24px;height:24px;padding:0 3px;font-size:9px}
+  .grid .cadd-btn,.liq-grid .cadd-btn,.preview-grid .cadd-btn{flex:0 0 30px;width:30px;height:30px;padding:0;display:flex;align-items:center;justify-content:center}
+  .grid .cadd-btn svg,.liq-grid .cadd-btn svg,.preview-grid .cadd-btn svg{display:block;width:17px;height:17px}
+  .grid .cadd-txt,.liq-grid .cadd-txt,.preview-grid .cadd-txt{display:none}
 }
 /* "Ver más" — abre la ficha completa del producto (mismo destino que tocar la foto). */
 /* .cvermas ("Ver más") se retiró de la tarjeta el 2026-09-08: hacía openPhoto(id), exactamente lo
@@ -1550,14 +1551,16 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 /* Tarjetas IGUALES en las 3 filas (lanzamientos + colección Mujer/Hombre) = mismo tamaño que "Nuestros modelos": 2 por pantalla en móvil, 4 en escritorio. */
 .lanz-row .card{flex:0 0 calc(50% - 4px);max-width:none;scroll-snap-align:start}
 @media(min-width:700px){.lanz-row{gap:10px}.lanz-row .card{flex:0 0 calc(25% - 7.5px)}}
-/* Excepción para "Últimos lanzamientos" (#lanzRow) y "Colección Mujer" (#genMRow) en móvil: tarjeta
-   grande, CENTRADA, una sola a la vez, con el mismo asomo de la vecina a izquierda y a derecha
-   (padding del row = mitad del espacio sobrante de la tarjeta, así el margen izquierdo y el derecho
-   quedan iguales incluso en la primera/última tarjeta) — no las 2 chicas parejas de las demás filas.
-   Colección HOMBRE (#genHRow) se queda a 2 tarjetas a propósito: solo se pidió igualar Mujer. */
+/* Los TRES carruseles del inicio (Últimos lanzamientos, Colección Mujer, Colección Hombre) van en
+   móvil con tarjeta grande, CENTRADA, una sola a la vez, con el mismo asomo de la vecina a izquierda
+   y a derecha (padding del row = mitad del espacio sobrante de la tarjeta, así el margen izquierdo y
+   el derecho quedan iguales incluso en la primera/última tarjeta).
+   El tamaño no es solo estético: a 316px la fila de tallas completa (5 chips de hombre = 170px) más
+   el botón negro "Añadir" (120px) caben sin scroll horizontal. A 175px no cabían y por eso las
+   tallas quedaban escondidas. */
 @media(max-width:699px){
-  #lanzRow.lanz-row,#genMRow.lanz-row{padding-left:5%;padding-right:5%}
-  #lanzRow.lanz-row .card,#genMRow.lanz-row .card{flex:0 0 90%;scroll-snap-align:center}
+  #lanzRow.lanz-row,#genMRow.lanz-row,#genHRow.lanz-row{padding-left:5%;padding-right:5%}
+  #lanzRow.lanz-row .card,#genMRow.lanz-row .card,#genHRow.lanz-row .card{flex:0 0 90%;scroll-snap-align:center}
 }
 .lanz-nav{position:absolute;top:55%;transform:translateY(-50%);width:38px;height:38px;border-radius:50%;background:var(--white);border:1px solid var(--line);box-shadow:0 3px 12px rgba(0,0,0,.14);font-size:21px;font-weight:400;line-height:1;color:var(--ink);display:none;align-items:center;justify-content:center;cursor:pointer;z-index:5;padding:0 0 2px;font-family:var(--font);transition:transform .15s}
 .lanz-nav:active{transform:translateY(-50%) scale(.9)}
