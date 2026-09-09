@@ -740,8 +740,8 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    todo el ancho. margin-left:auto es lo que lo empuja al filo derecho siendo un bloque.
    Las negritas (600/700) de la financiación se van: en esta interfaz no hay negritas. */
 @media(max-width:699px){
-  .pm-stars{font-size:13px}
-  .pm-stars span{font-size:11px}
+  .pm-stars{font-size:11px}
+  .pm-stars span{font-size:10px}
   .pm-title{font-size:14px}
   .pm-price{font-size:12px}
   .pm-was{font-size:11px}
@@ -814,7 +814,22 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    La caja de 36px NO se toca: es el área de toque para elegir talla. */
 @media(max-width:699px){
   .pm-sizes-unit{font-size:11px}
-  .pm-size{font-size:11px}
+  /* Caja de 31px, la misma del botón "Añadir" y la del resto del sistema (fichas de pago, chips
+     de la tarjeta). Con 36px y la letra ya en 11 el cuadro quedaba desproporcionado respecto a su
+     contenido. */
+  .pm-size{min-width:31px;height:31px;font-size:11px}
+  /* Tallas y "Añadir" en la MISMA fila, alineados por abajo: las tallas a la izquierda ocupando
+     el espacio libre y el botón pegado a la derecha. Es como ya funciona en escritorio (línea 894)
+     y como lo tiene sahet en su tarjeta. Antes en móvil iban apilados, con el botón en su propio
+     renglón.
+     align-items:flex-end y no center: el bloque de tallas incluye su rótulo "TALLA (EUR)" encima,
+     así que centrado por la caja el botón quedaría a media altura del rótulo en vez de a ras de
+     los cuadros. .pm-sizes-row ya trae flex-wrap, así que con 9 tallas (unisex) los cuadros bajan
+     a un segundo renglón sin empujar al botón.
+     margin-top:0 anula el de 16px que lleva el botón cuando va suelto en su propio renglón. */
+  .pm-sizes-cta{display:flex;align-items:flex-end;gap:12px}
+  .pm-sizes{flex:1;min-width:0}
+  .pm-add{margin-top:0;flex-shrink:0}
 }
 .pm-size:hover{border-color:var(--ink2)}
 .pm-size.on{background:var(--ink);color:#fff;border-color:var(--ink)}
