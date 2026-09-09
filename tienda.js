@@ -1573,9 +1573,10 @@ function pmAvisoTalla(t){
   const box=$('pmTallaCheck'); if(!box)return;
   const foto=sizeGuide&&sizeGuide.img1;
   if(!t||!foto){box.style.display='none';box.innerHTML='';return;}
-  // Sin la miniatura de la marquilla (ocupaba mucho espacio en la ficha): queda solo el aviso
-  // de texto con el link a la foto ampliada — misma zoomImg() que ya usaba el thumbnail.
-  box.innerHTML=`<div class="pm-talla-check-tx"><b>Elegiste la talla ${escHtml(String(t))}.</b> Compárala con la marquilla dentro de un zapato tuyo antes de seguir. <span class="pm-talla-check-a" onclick="zoomImg('${escHtml(foto)}')">Ver el ejemplo ampliado</span></div>`;
+  // Sin la miniatura de la marquilla (ocupaba mucho espacio en la ficha) y sin el enlace "Ver el
+  // ejemplo ampliado": justo debajo está "¿Cómo sé mi talla?", que abre esa misma foto. Eran dos
+  // accesos a lo mismo separados por unos pocos píxeles.
+  box.innerHTML=`<div class="pm-talla-check-tx"><b>Elegiste la talla ${escHtml(String(t))}.</b> Compárala con la marquilla dentro de un zapato tuyo antes de seguir.</div>`;
   box.style.display='';
 }
 
