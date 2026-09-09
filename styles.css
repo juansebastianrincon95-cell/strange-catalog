@@ -748,8 +748,6 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
   .pm-save{font-size:11px}
   .pm-fin-desc{font-size:11px}
   .pm-fin-desc b{font-weight:400}
-  .pm-sizes-unit{font-size:11px}
-  .pm-size{font-size:11px}
   .pm-add{display:flex;align-items:center;justify-content:center;width:120px;height:31px;margin-left:auto;padding:0 16px;font-size:10px}
 }
 /* Barra sticky de compra (siempre visible, línea recta al checkout estilo Nike) */
@@ -810,6 +808,14 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    mantener un área táctil segura en móvil — es el único selector del pedido, un mal toque
    manda la talla equivocada. */
 .pm-size{min-width:36px;height:36px;padding:0 6px;border:1px solid var(--line);border-radius:0;background:var(--white);font-family:var(--font);font-size:12px;font-weight:400;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:border-color .15s,background .15s,color .15s}
+/* ⚠️ Estos dos van ACÁ y no arriba con el resto del bloque móvil de la ficha: sus reglas base
+   están en esta zona del archivo, o sea DESPUÉS de aquel bloque. A igual especificidad manda la
+   última del archivo, así que allá arriba no se aplicaban (medido: la talla seguía en 12px).
+   La caja de 36px NO se toca: es el área de toque para elegir talla. */
+@media(max-width:699px){
+  .pm-sizes-unit{font-size:11px}
+  .pm-size{font-size:11px}
+}
 .pm-size:hover{border-color:var(--ink2)}
 .pm-size.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .pm-size.out{color:var(--ink3);background:var(--bg);cursor:not-allowed;text-decoration:line-through;opacity:.55}
