@@ -643,7 +643,11 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 @media(max-width:699px){
   /* Con el id por delante (1,1,0): las reglas base de .photo-modal y .pm-wrap están MÁS ABAJO en
      el archivo y a igual especificidad ganarían por orden. */
-  #photoModal.photo-modal{padding-top:0;z-index:685}
+  /* La ficha se detiene ANTES de la barra de la bolsa en vez de taparla — es lo que hace sahet
+     con `bottom: var(--app-footer-height)` en su .product-details-container. Es lo que permite
+     quedarse dentro de la ficha al añadir: el cliente ve subir el total sin salir de la pantalla.
+     Tapándola, quedarse adentro dejaría el carrito invisible y sin salida a la vista. */
+  #photoModal.photo-modal{padding-top:0;z-index:685;bottom:calc(var(--barH) + env(safe-area-inset-bottom))}
   #photoModal .pm-wrap{padding-top:0}
   /* top y right en 10px: la posición exacta del .product-header-back de sahet (medido: top 10,
      borde derecho a 10 del viewport, caja de 24 con la ✕ de 20). */

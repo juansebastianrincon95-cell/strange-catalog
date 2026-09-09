@@ -1685,15 +1685,16 @@ function addFromModal(){
   if(pmRequiereTalla(p))return;
   const id=pmId,t=pmType,talla=pmTalla;
   const ya=!!cart[cartKey(id,t,talla)];   // ya estaba en esa talla → no alternar, solo avisar
-  if(ya){closePhotoBtn();toast('Ya tienes este par en tu bolsa');}
-  else{
-    // togCard()→flyToCart() lee la posición/píxeles de la foto de forma SÍNCRONA acá mismo, con
-    // la ficha todavía abierta — por eso va ANTES de cerrarla (closePhotoBtn le pone display:none
-    // al instante, y ahí ya no queda foto visible de la cual "volar").
-    const tr=$('pmGalTrack');
-    togCard(id,t,talla,tr?tr.children[_galIdx]:null);
-    closePhotoBtn();
-  }
+  /* La ficha NO se cierra al añadir — igual que sahet (comprobado en vivo en su /product/hk39:
+     tras tocar AÑADIR la ficha sigue abierta, la talla sigue marcada y solo sube el contador de
+     la bolsa de 3 a 4). Cerrarla expulsaba al cliente de lo que estaba mirando y le costaba
+     volver si quería otra talla o seguir leyendo la descripción.
+     El aviso de "añadido" lo da togCard() con su toast, el vuelo de la foto al carrito, el
+     contador de la barra inferior y syncPmBtn(), que deja el botón en "✓ Añadido" verde. */
+  if(ya){toast('Ya tienes este par en tu bolsa');return;}
+  const tr=$('pmGalTrack');
+  togCard(id,t,talla,tr?tr.children[_galIdx]:null);
+  syncPmBtn();
 }
 
 // Compra rápida desde la ficha (estilo elenacuidadocapilar.com: "Agregar al carrito" +
