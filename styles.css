@@ -626,6 +626,24 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 }
 .pm-back-float{position:absolute;top:12px;left:12px;z-index:3;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.92);border:none;color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.18);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);transition:transform .2s cubic-bezier(.34,1.56,.64,1)}
 .pm-back-float:active{transform:scale(.85)}
+/* MÓVIL — modelo de la ficha de sahet (/product/…, medido en vivo): capa fija a pantalla completa
+   POR ENCIMA de la cabecera, sin reservarle espacio, y la ✕ de cierre arriba a la DERECHA.
+     · z-index 685: encima del topbar (680) y debajo del modal de compra (690), que se abre sobre
+       esta ficha y tiene que seguir ganándole.
+     · padding-top:0 en .photo-modal y .pm-wrap: ese padding existía solo para no quedar debajo de
+       una cabecera fija que ahora queda tapada. Es además el que producía la banda blanca de 77px,
+       que así deja de ser posible por construcción y no por una regla que la compense.
+   ⚠️ El ♥ de favoritos se muda a la IZQUIERDA: la ✕ ocupa ahora la esquina derecha y los dos
+   estaban en el mismo punto. No es un cambio de gusto, es que no caben los dos. */
+@media(max-width:699px){
+  /* Con el id por delante (1,1,0): las reglas base de .photo-modal y .pm-wrap están MÁS ABAJO en
+     el archivo y a igual especificidad ganarían por orden. */
+  #photoModal.photo-modal{padding-top:0;z-index:685}
+  #photoModal .pm-wrap{padding-top:0}
+  .pm-back-float{left:auto;right:12px;width:24px;height:24px;border-radius:0;background:none;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+  .pm-back-float svg{width:20px;height:20px}
+  .pm-gal .fav-btn{left:12px;right:auto}
+}
 
 /* corazón del nav con contador (imita .nav-bag / .bdot) */
 .fav-nav{
