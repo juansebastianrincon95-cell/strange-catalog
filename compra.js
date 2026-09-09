@@ -285,7 +285,9 @@ function bmMetodoInner(method){
 function bmMethodPickerHTML(){
   const orden=['contra_entrega','wompi','bold','addi','sistecredito'];
   const btns=orden.map(m=>`<button class="sf-gw" onclick="bmChooseMethod('${m}')">${bmMetodoInner(m)}</button>`).join('');
-  return `<div class="sf-gw-row" style="flex-wrap:wrap">${btns}</div>`;
+  // .sf-gw-grid: rejilla de 3 columnas iguales (ver styles.css). Reemplaza al flex-wrap inline,
+  // que dejaba los 5 botones con cinco anchos distintos.
+  return `<div class="sf-gw-row sf-gw-grid">${btns}</div>`;
 }
 
 // Método ya elegido (whatsapp/wompi/bold/addi/sistecredito) — MISMO patrón sf-gw-sel + "Cambiar"

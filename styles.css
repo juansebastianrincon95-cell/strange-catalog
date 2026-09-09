@@ -1173,6 +1173,13 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .bm-scrim{position:fixed;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(6px);z-index:625;display:none}
 .bm-scrim.on{display:block}
 .buy-modal{position:fixed;left:0;right:0;bottom:0;z-index:630;background:var(--white);border-radius:18px 18px 0 0;max-height:92vh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .34s cubic-bezier(.32,.72,0,1);padding-bottom:env(safe-area-inset-bottom)}
+/* ⚠️ svh, NO vh — mismo problema que ya arreglamos en el hero. En iOS, 100vh mide la pantalla CON
+   la barra de direcciones OCULTA (844px en un iPhone 12 Pro), pero el área realmente visible al
+   abrir la hoja son ~664px. Con max-height:92vh la hoja pedía 776px y, anclada a bottom:0, su
+   borde superior caía en -112px: las pestañas BOLSA/PAGAR quedaban fuera de pantalla por arriba y
+   no había forma de llegar a ellas. svh mide el viewport CHICO (barra visible), que es el mínimo
+   garantizado: 92svh = 611px y la hoja arranca en 53px. Verificado por simulación. */
+@supports (max-height:92svh){.buy-modal{max-height:92svh}}
 .buy-modal.on{transform:translateY(0)}
 /* ESCRITORIO: drawer lateral derecho a pantalla completa — calcado del panel real de sahet.co
    (revisado en vivo por CSS, 2026-09-10: NO es un ancho fijo en px — es un % del viewport que
@@ -1234,7 +1241,14 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 /* Grid de solo lectura de "③ Confirmación" (calcado de sahet.co: 3 columnas, foto chica con
    badge de cantidad en la esquina, etiqueta de talla debajo) — NO editable, sin stepper ni
    "Eliminar", distinto a .sr-row (la BOLSA sí editable). Ver bmConfirmacionHTML() en compra.js. */
-.sc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0 4px}
+/* ⚠️ minmax(0,1fr), NO 1fr. `1fr` equivale a `minmax(auto,1fr)` y ese mínimo `auto` es el
+   min-content de la columna. Como .sc-nom lleva white-space:nowrap, el min-content de cada tarjeta
+   es el nombre COMPLETO del zapato — así que cada columna se estiraba hasta el nombre más largo
+   que le tocara: medido 230 / 212 / 199px dentro de un contenedor de 311px (o sea, además se
+   desbordaban). Por eso las tarjetas se veían de tamaños distintos entre sí.
+   Con minmax(0,1fr) las tres columnas pueden encogerse por debajo del min-content, quedan
+   exactamente iguales (~97px) y el text-overflow:ellipsis de .sc-nom por fin recorta. */
+.sc-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:10px 0 4px}
 .sc-card{display:flex;flex-direction:column;gap:2px}
 .sc-ph{position:relative;aspect-ratio:1;background:var(--bg);overflow:hidden;display:flex;align-items:center;justify-content:center}
 .sc-ph img{width:100%;height:100%;object-fit:cover}
@@ -1326,6 +1340,17 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    entre sí (encontrado en la auditoría móvil del 2026-09-04). */
 .sf-gw{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:var(--white);border:1px solid var(--ink);border-radius:0;padding:6px 8px;max-width:100px;min-height:38px;cursor:pointer}
 .sf-gw-logo{height:14px;object-fit:contain}
+/* SELECTOR de los 5 métodos (bmMethodPickerHTML): rejilla de 3 columnas IGUALES en vez del flex
+   con max-width. Con `flex:1 + max-width:100px` cada botón partía de su propio contenido y el tope
+   solo frenaba a los anchos: medido 62 / 64 / 100 / 62 / 100px, cinco tamaños distintos repartidos
+   en un 4+1 dentado. Como rejilla los cinco miden lo mismo (~98px) en un 3+2 parejo.
+   Alto de 38 a 34 y logo de 14 a 12: las fichas pesaban demasiado para ser un selector de logos,
+   que es como las tiene sahet. Esto NO toca .sf-gw-row a secas, que sigue en flex porque el estado
+   "método ya elegido" mete ahí una ficha + el link "Cambiar", dos cosas de naturaleza distinta que
+   en una rejilla de columnas iguales quedarían mal. */
+.sf-gw-row.sf-gw-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.sf-gw-grid .sf-gw{max-width:none;min-height:34px;padding:5px 6px}
+.sf-gw-grid .sf-gw-logo{height:12px}
 /* Etiqueta de texto para métodos sin logo de pasarela (Contra entrega, WhatsApp) — mismo tamaño
    de caja .sf-gw que los logos, usado por el selector de 6 métodos (bmMethodPickerHTML). */
 .sf-gw-lbl{font-size:10px;font-weight:400;color:var(--ink);text-align:center;line-height:1.2}
