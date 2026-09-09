@@ -1693,7 +1693,7 @@ function addFromModal(){
      contador de la barra inferior y syncPmBtn(), que deja el botón en "✓ Añadido" verde. */
   if(ya){toast('Ya tienes este par en tu bolsa');return;}
   const tr=$('pmGalTrack');
-  togCard(id,t,talla,tr?tr.children[_galIdx]:null);
+  togCard(id,t,talla,tr?tr.children[_galIdx]:null,true);   // true = no abras la bolsa encima
   syncPmBtn();
 }
 

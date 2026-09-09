@@ -422,7 +422,14 @@ function addItemToCart(id,type,talla){
 // vuelve a abrirla, para no interrumpirlo si sigue comprando. Es una variable en memoria (no
 // localStorage) a propósito: se resetea sola con cada recarga/entrada nueva a la página.
 let _bolsaAbiertaUnaVez=false;
-function togCard(id,type,talla,fromEl){
+/* sinAbrirBolsa: no dispares la apertura automática de la bolsa aunque sea el primer añadido de
+   la visita. Lo usa la ficha de producto (addFromModal), donde el cliente está metido dentro de
+   un producto y abrirle la bolsa encima lo expulsa de lo que estaba mirando — que es justo lo
+   que sahet no hace: allá AÑADIR solo sube el contador. Desde las tarjetas de la grilla se
+   conserva, ahí sí sirve para que descubra dónde quedó lo que agregó.
+   El flag _bolsaAbiertaUnaVez NO se marca en ese caso: si más tarde añade desde una tarjeta, la
+   bolsa se le abre esa vez como siempre. */
+function togCard(id,type,talla,fromEl,sinAbrirBolsa){
   const key=cartKey(id,type,talla);
   if(cart[key]){
     delete cart[key];
@@ -434,7 +441,7 @@ function togCard(id,type,talla,fromEl){
   }
   if(!addItemToCart(id,type,talla))return;   // no existe o está agotado
   const voló=typeof flyToCart==='function'&&flyToCart(fromEl);
-  if(!_bolsaAbiertaUnaVez){
+  if(!_bolsaAbiertaUnaVez&&!sinAbrirBolsa){
     _bolsaAbiertaUnaVez=true;
     if(voló)setTimeout(()=>openBuyModal('full'),920);else openBuyModal('full');
   }else if(!voló){
