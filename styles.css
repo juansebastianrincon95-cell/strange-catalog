@@ -1285,13 +1285,17 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .sc-qty{position:absolute;top:3px;right:3px;min-width:16px;height:16px;padding:0 4px;border-radius:50%;background:var(--ink);color:#fff;font-size:9.5px;font-weight:700;display:flex;align-items:center;justify-content:center}
 .sc-nom{font-size:10px;color:var(--ink2);line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* Precio y talla en la MISMA fila: precio a la izquierda, talla al filo derecho de la tarjeta.
-   align-items:baseline y no center porque tienen tamaños distintos (10,5 vs 9,5): centrados por la
-   caja, la talla queda un pelo alta y se nota en una tarjeta de 97px.
-   La talla conserva flex-shrink:0 aunque ahora sea solo un número: es el elemento que debe quedar
-   pegado al filo derecho pase lo que pase, y es el precio el que tiene que ceder si crece. */
+   ⚠️ La talla va al MISMO tamaño que el precio (10,5px, antes 9,5). Compartir la línea base no
+   basta para que se vean alineados: con un punto de diferencia los dígitos de la talla son más
+   bajos, su altura de x no coincide con la del precio y el ojo lee eso como "está más arriba",
+   aunque la medición diga que están a la misma altura. Igualando el tamaño, las dos cifras tienen
+   exactamente las mismas métricas y la línea queda pareja de verdad.
+   Se conserva align-items:baseline por si el precio crece (ej. $2.399.000 con varias unidades).
+   flex-shrink:0 en la talla: es la que debe quedar pegada al filo derecho pase lo que pase; si el
+   precio se alarga, cede el precio. */
 .sc-precio-row{display:flex;align-items:baseline;justify-content:space-between;gap:6px}
 .sc-precio{font-size:10.5px;color:var(--ink);font-variant-numeric:tabular-nums}
-.sc-talla{font-size:9.5px;color:var(--ink2);flex-shrink:0;white-space:nowrap}
+.sc-talla{font-size:10.5px;color:var(--ink2);flex-shrink:0;white-space:nowrap}
 /* Checkbox de consentimiento — mismo estilo inline que usaba el formulario clásico, ahora junto
    al resumen (posición calcada del aviso legal de sahet, justo después del total). */
 .sf-metodo{display:inline-block;font-size:13px;font-weight:600;color:var(--ink);background:var(--bg);border:1px solid var(--line);padding:8px 12px}
