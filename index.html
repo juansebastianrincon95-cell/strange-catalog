@@ -547,12 +547,11 @@
       <div class="pm-title" id="pmTitle">Sneakers</div>
       <div class="pm-price-row"><span class="pm-price" id="pmPrice">$180.000</span><span class="pm-was" id="pmWas" style="display:none"></span></div>
       <div class="pm-save" id="pmSave" style="display:none"></div>
-      <div class="pm-fin-desc">Paga a cuotas con <b>Addi</b> o <b>Sistecrédito</b> — crédito 100% en línea, aprobación en minutos con solo tu cédula y celular.</div>
-      <button type="button" class="pm-guia-toggle" onclick="togglePmFin()">Ver más</button>
-      <div class="pm-guia-box" id="pmFinBox" style="display:none">
-        <div class="pm-guia-tx"><b>Addi</b> — aprobación en minutos con solo cédula y celular. Envío gratis incluido.</div>
-        <div class="pm-guia-tx" style="margin-bottom:0"><b>Sistecrédito</b> — aprobación en minutos con solo tu cédula. Envío gratis incluido.</div>
-      </div>
+      <!-- Solo la línea de financiación. Se quitaron el remate ("crédito 100% en línea, aprobación
+           en minutos…"), el "Ver más" y el panel #pmFinBox que abría: repetían lo mismo con otras
+           palabras justo encima del selector de talla, que es donde el cliente tiene que decidir.
+           togglePmFin() queda en tienda.js sin quien la llame; se deja por si el panel vuelve. -->
+      <div class="pm-fin-desc">Paga a cuotas con <b>Addi</b> o <b>Sistecrédito</b>.</div>
       <div class="pm-sizes-cta">
         <div class="pm-sizes" id="pmSizes" style="display:none">
           <div class="pm-sizes-top"><span class="pm-sizes-lbl">Elige tu talla <span class="pm-sizes-unit">(EUR)</span></span></div>
