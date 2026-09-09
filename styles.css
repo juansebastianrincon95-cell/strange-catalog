@@ -498,7 +498,24 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .ctalla-chip.on{background:var(--ink);color:#fff}
 .ctalla-chip.out{color:var(--ink3);background:var(--bg);cursor:not-allowed;text-decoration:line-through;opacity:.55}
 .cadd-btn{flex:0 0 120px;width:120px;white-space:nowrap;background:var(--ink);color:#fff;border:none;height:31px;padding:0 16px;border-radius:0;font-family:var(--font);font-size:10px;font-weight:400;cursor:pointer;transition:transform .12s}
+/* El icono de bolsa solo se usa en móvil (el bloque <700px lo muestra); en escritorio manda el texto. */
+.cadd-btn svg{display:none}
 .cadd-btn:active{transform:scale(.96)}
+/* MÓVIL: todo en UNA fila, con el botón reducido a un icono de bolsa. Con la palabra "Añadir" el
+   botón ocupaba 120px fijos y en las tarjetas de 175px (Colección Mujer/Hombre) dejaba apenas 49px
+   para las tallas: se veía una talla y media y el resto quedaba tras un scroll horizontal que nadie
+   descubre. Con el icono de 30px quedan 139px para los chips y, a 24px cada uno, entran las 5
+   tallas de hombre (136px).
+   ⚠️ Este bloque va DESPUÉS de las reglas base de .ctalla-chip y .cadd-btn: misma especificidad y
+   las media queries no desempatan, así que gana la última del archivo. Puesto antes, solo se
+   aplicaba .cadd-txt (la única sin regla base) y el resto quedaba en los valores viejos. */
+@media(max-width:699px){
+  .ctallas-row{gap:4px;mask-image:none;-webkit-mask-image:none}
+  .ctalla-chip{min-width:24px;height:24px;padding:0 3px;font-size:9px}
+  .cadd-btn{flex:0 0 30px;width:30px;height:30px;padding:0;display:flex;align-items:center;justify-content:center}
+  .cadd-btn svg{display:block;width:17px;height:17px}
+  .cadd-txt{display:none}
+}
 /* "Ver más" — abre la ficha completa del producto (mismo destino que tocar la foto). */
 /* .cvermas ("Ver más") se retiró de la tarjeta el 2026-09-08: hacía openPhoto(id), exactamente lo
    mismo que el clic en la tarjeta completa, así que era un enlace redundante que solo le restaba
@@ -1533,13 +1550,14 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 /* Tarjetas IGUALES en las 3 filas (lanzamientos + colección Mujer/Hombre) = mismo tamaño que "Nuestros modelos": 2 por pantalla en móvil, 4 en escritorio. */
 .lanz-row .card{flex:0 0 calc(50% - 4px);max-width:none;scroll-snap-align:start}
 @media(min-width:700px){.lanz-row{gap:10px}.lanz-row .card{flex:0 0 calc(25% - 7.5px)}}
-/* Excepción SOLO para "Últimos lanzamientos" (#lanzRow) en móvil: tarjeta grande, CENTRADA, una
-   sola a la vez, con el mismo asomo de la vecina a izquierda y a derecha (padding del row = mitad
-   del espacio sobrante de la tarjeta, así el margen izquierdo y el derecho quedan iguales incluso
-   en la primera/última tarjeta) — no las 2 chicas parejas de las demás filas. */
+/* Excepción para "Últimos lanzamientos" (#lanzRow) y "Colección Mujer" (#genMRow) en móvil: tarjeta
+   grande, CENTRADA, una sola a la vez, con el mismo asomo de la vecina a izquierda y a derecha
+   (padding del row = mitad del espacio sobrante de la tarjeta, así el margen izquierdo y el derecho
+   quedan iguales incluso en la primera/última tarjeta) — no las 2 chicas parejas de las demás filas.
+   Colección HOMBRE (#genHRow) se queda a 2 tarjetas a propósito: solo se pidió igualar Mujer. */
 @media(max-width:699px){
-  #lanzRow.lanz-row{padding-left:5%;padding-right:5%}
-  #lanzRow.lanz-row .card{flex:0 0 90%;scroll-snap-align:center}
+  #lanzRow.lanz-row,#genMRow.lanz-row{padding-left:5%;padding-right:5%}
+  #lanzRow.lanz-row .card,#genMRow.lanz-row .card{flex:0 0 90%;scroll-snap-align:center}
 }
 .lanz-nav{position:absolute;top:55%;transform:translateY(-50%);width:38px;height:38px;border-radius:50%;background:var(--white);border:1px solid var(--line);box-shadow:0 3px 12px rgba(0,0,0,.14);font-size:21px;font-weight:400;line-height:1;color:var(--ink);display:none;align-items:center;justify-content:center;cursor:pointer;z-index:5;padding:0 0 2px;font-family:var(--font);transition:transform .15s}
 .lanz-nav:active{transform:translateY(-50%) scale(.9)}

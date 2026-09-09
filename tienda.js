@@ -990,7 +990,9 @@ function cardHTML(p,i,prefix,toFicha){
   const _modelTxt=p.modelo||_bl||(genLabel(p.g));
   const _showBrand=!!(p.modelo&&_bl);
   const _tallasHtml=conTalla?tallasChipsHtml(p.id,_tallas,_stock):'';
-  const _addBtn=conTalla?`<button type="button" class="cadd-btn" onclick="event.stopPropagation();addCardWithSize(${p.id},this)">Añadir</button>`:'';
+  // Móvil: se ve solo el icono de bolsa (el CSS oculta .cadd-txt) para dejarle el ancho a las
+  // tallas. Escritorio: sigue la palabra "Añadir". El aria-label cubre los dos casos.
+  const _addBtn=conTalla?`<button type="button" class="cadd-btn" aria-label="Añadir al carrito" onclick="event.stopPropagation();addCardWithSize(${p.id},this)"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5.5 8h13l-1 11.5H6.5L5.5 8z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 8V6.2a3 3 0 0 1 6 0V8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span class="cadd-txt">Añadir</span></button>`:'';
   // Precio: tachado + vigente EN LA MISMA FILA (calcado de sahet: was primero, luego el vigente).
   const _priceRow=(sp&&p.was)
     ? `<div class="cprice-row"><div class="cwas">${fmt(p.was)}</div><div class="cprice sale">${fmt(p.price)}</div></div>`
