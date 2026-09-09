@@ -299,9 +299,9 @@ function bmMetodoInner(method){
 function bmMethodPickerHTML(){
   const orden=['contra_entrega','wompi','bold','addi','sistecredito'];
   const btns=orden.map(m=>`<button class="sf-gw" onclick="bmChooseMethod('${m}')">${bmMetodoInner(m)}</button>`).join('');
-  // .sf-gw-grid: rejilla de 3 columnas iguales (ver styles.css). Reemplaza al flex-wrap inline,
-  // que dejaba los 5 botones con cinco anchos distintos.
-  return `<div class="sf-gw-row sf-gw-grid">${btns}</div>`;
+  // .sf-gw-pick: fichas que se ajustan a su logo, con alto y filete comunes — el patrón real de
+  // sahet (ver styles.css). El ancho lo pone el contenido, no el espacio libre.
+  return `<div class="sf-gw-row sf-gw-pick">${btns}</div>`;
 }
 
 // Método ya elegido (whatsapp/wompi/bold/addi/sistecredito) — MISMO patrón sf-gw-sel + "Cambiar"

@@ -1251,7 +1251,11 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .sr-row-ph img{width:100%;height:100%;object-fit:cover}
 .sr-row-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;padding-top:1px}
 .sr-row-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
-.sr-row-nom{font-size:11px;color:var(--blue);font-weight:600;line-height:1.3}
+/* Negro y peso 400, no azul en 600. En la bolsa de sahet TODO el texto de la fila es
+   rgb(0,0,0) peso 400 (verificado en vivo: título, "Eliminar", talla, cantidad y precio).
+   El azul --blue lo hacía leer como un enlace clicable, que no lo es, y era la única cosa de
+   color en toda la pantalla. Versalitas para igualar su .title.uppercase. */
+.sr-row-nom{font-size:11px;color:var(--ink);font-weight:400;line-height:1.3;text-transform:uppercase}
 .sr-row-elim{background:none;border:none;font-family:var(--font);font-size:10px;color:var(--ink);cursor:pointer;padding:0;flex-shrink:0}
 .sr-row-elim:hover{color:var(--red)}
 .sr-row-talla{font-size:11px;color:var(--ink2)}
@@ -1318,6 +1322,12 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 /* Botón "Pagar" calcado a tamaño real de sahet.co (medido en vivo por DOM): 184x31px, pegado a la
    izquierda junto al número — NO una barra de ancho completo. */
 .sf-foot-row .btnmain{width:auto;flex:0 0 auto;height:31px;padding:0 22px;font-size:10px;text-transform:uppercase;white-space:nowrap}
+/* "Ir a pagar $X" del pie de la pestaña BOLSA con las medidas del "IR A PAGAR" de sahet: 31px de
+   alto y 10px en versalitas (el nuestro iba en 48px y 14px, 55% más alto). Queda igual que el
+   botón del paso ④ de la pestaña PAGAR, que ya usaba estas medidas.
+   Va scopeado a #bmFoot: .btnmain a secas la usan también el carrito clásico y la ficha del
+   producto, donde 31px sería un botón principal demasiado chico. */
+#bmFoot .btnmain{height:31px;padding:0 22px;font-size:10px;text-transform:uppercase}
 /* Medidas calcadas de sahet.co (revisado en vivo por DOM el 2026-09-03): título 12px SIN
    negrita, círculo de 16px sin borde con fondo gris claro (no blanco+contorno) — todo el
    acordeón de sahet es peso 400, nunca bold. */
@@ -1375,17 +1385,19 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    entre sí (encontrado en la auditoría móvil del 2026-09-04). */
 .sf-gw{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:var(--white);border:1px solid var(--ink);border-radius:0;padding:6px 8px;max-width:100px;min-height:38px;cursor:pointer}
 .sf-gw-logo{height:14px;object-fit:contain}
-/* SELECTOR de los 5 métodos (bmMethodPickerHTML): rejilla de 3 columnas IGUALES en vez del flex
-   con max-width. Con `flex:1 + max-width:100px` cada botón partía de su propio contenido y el tope
-   solo frenaba a los anchos: medido 62 / 64 / 100 / 62 / 100px, cinco tamaños distintos repartidos
-   en un 4+1 dentado. Como rejilla los cinco miden lo mismo (~98px) en un 3+2 parejo.
-   Alto de 38 a 34 y logo de 14 a 12: las fichas pesaban demasiado para ser un selector de logos,
-   que es como las tiene sahet. Esto NO toca .sf-gw-row a secas, que sigue en flex porque el estado
-   "método ya elegido" mete ahí una ficha + el link "Cambiar", dos cosas de naturaleza distinta que
-   en una rejilla de columnas iguales quedarían mal. */
-.sf-gw-row.sf-gw-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.sf-gw-grid .sf-gw{max-width:none;min-height:34px;padding:5px 6px}
-.sf-gw-grid .sf-gw-logo{height:12px}
+/* SELECTOR de los 5 métodos (bmMethodPickerHTML) con el patrón REAL de sahet.co, medido en vivo:
+   sus fichas .button-method NO son de ancho igual — cada una se ajusta a su logo (38, 46, 49, 54,
+   60, 81, 91px) con 7px de aire a cada lado. Lo que las hace ver parejas es lo OTRO: mismo alto de
+   31px, mismo filete negro de 1px, mismo radio 0 y el mismo padding. Fluyen y envuelven.
+   Corrige mi versión anterior, que las igualaba a 98px en una rejilla de 3: quitaba lo dentado
+   pero deformaba los logos y se alejaba de sahet.
+   Lo dentado original venía de `flex:1 + max-width:100px`, que las estiraba según el espacio libre
+   (62/64/100/62/100) en vez de según su contenido; con flex:0 0 auto cada una pide lo suyo.
+   NO toca .sf-gw-row a secas: el estado "método ya elegido" mete ahí una ficha + el link
+   "Cambiar", y ese sí necesita el reparto flexible. */
+.sf-gw-row.sf-gw-pick{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.sf-gw-pick .sf-gw{flex:0 0 auto;max-width:none;height:31px;min-height:31px;padding:0 7px}
+.sf-gw-pick .sf-gw-logo{height:16px}
 /* Etiqueta de texto para métodos sin logo de pasarela (Contra entrega, WhatsApp) — mismo tamaño
    de caja .sf-gw que los logos, usado por el selector de 6 métodos (bmMethodPickerHTML). */
 .sf-gw-lbl{font-size:10px;font-weight:400;color:var(--ink);text-align:center;line-height:1.2}
