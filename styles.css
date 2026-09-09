@@ -691,7 +691,11 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    se queda: es la salida a pantalla completa, y apagarlo dejaría un botón invisible pero clicable. */
 .pm-gal.lupa .pm-gal-dots,.pm-gal.pellizcada .pm-gal-dots{opacity:0;transition:opacity .15s;pointer-events:none}
 /* Pista visible de que la foto se puede ampliar: sin esto nadie descubre el zoom. */
-.pm-gal-zoom{position:absolute;right:10px;bottom:10px;z-index:3;display:flex;align-items:center;gap:5px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:0;padding:7px 11px;font-family:var(--font);font-size:11px;font-weight:400;cursor:zoom-in}
+/* Solo la lupa, sin la palabra "Ampliar": el icono ya dice qué hace y la pastilla de 84px tapaba
+   una esquina de la foto, que es lo que el cliente vino a mirar. Queda cuadrada de 28px con el
+   ícono centrado (el gap deja de aplicar al no haber texto al lado). El aria-label del botón sigue
+   diciendo "Ampliar la foto", así que el lector de pantalla no pierde nada. */
+.pm-gal-zoom{position:absolute;right:10px;bottom:10px;z-index:3;width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:0;padding:0;font-family:var(--font);cursor:zoom-in}
 .pm-gal-zoom:active{transform:scale(.94)}
 .pm-gal-arr{display:none;position:absolute;top:50%;transform:translateY(-50%);width:38px;height:38px;border:none;border-radius:50%;background:rgba(255,255,255,.88);color:var(--ink);font-size:22px;line-height:1;cursor:pointer;z-index:3;box-shadow:0 2px 10px rgba(0,0,0,.15);align-items:center;justify-content:center}
 .pm-gal-arr.prev{left:10px}.pm-gal-arr.next{right:10px}
@@ -720,7 +724,34 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .pm-spec-v{color:var(--ink2);text-align:right;word-break:break-word}
 .pm-fin-desc{font-size:14px;line-height:1.5;color:var(--ink2);margin-top:14px}
 .pm-fin-desc b{color:var(--ink);font-weight:600}
+/* Medidas y posición del "AÑADIR" de sahet.co (su .button-add-cart, medido en vivo): 120x31,
+   letra de 10px peso 400, negro, radio 0, padding 0 16px y pegado a la derecha con
+   justify-content:flex-end — no una barra a todo el ancho.
+   margin-left:auto es lo que lo empuja al filo derecho siendo un bloque. */
 .pm-add{display:block;width:100%;margin-top:16px;background:var(--ink);color:#fff;border:none;padding:13px;border-radius:0;font-family:var(--font);font-size:14px;font-weight:400;cursor:pointer;transition:transform .12s,background .15s}
+/* MÓVIL — bloque de la ficha, de las estrellas de reseña hasta "Añadir".
+   Todo el bloque venía en la escala vieja (título 16, precio 14, financiación 14 en negrita) y
+   pesaba de más al lado del resto de la tienda, que ya está en 10-12px.
+   Va en su propio @media y NO editando las reglas base porque varias de estas (estrellas,
+   tachado, ahorro, financiación, tallas) no tienen override de escritorio: tocarlas arriba las
+   habría encogido también en escritorio, que no es lo que se pidió.
+   El botón "Añadir" toma las medidas del AÑADIR de sahet.co (.button-add-cart, medido en vivo):
+   120x31, letra de 10px peso 400, radio 0, padding 0 16px y pegado a la derecha — no una barra a
+   todo el ancho. margin-left:auto es lo que lo empuja al filo derecho siendo un bloque.
+   Las negritas (600/700) de la financiación se van: en esta interfaz no hay negritas. */
+@media(max-width:699px){
+  .pm-stars{font-size:13px}
+  .pm-stars span{font-size:11px}
+  .pm-title{font-size:14px}
+  .pm-price{font-size:12px}
+  .pm-was{font-size:11px}
+  .pm-save{font-size:11px}
+  .pm-fin-desc{font-size:11px}
+  .pm-fin-desc b{font-weight:400}
+  .pm-sizes-unit{font-size:11px}
+  .pm-size{font-size:11px}
+  .pm-add{display:flex;align-items:center;justify-content:center;width:120px;height:31px;margin-left:auto;padding:0 16px;font-size:10px}
+}
 /* Barra sticky de compra (siempre visible, línea recta al checkout estilo Nike) */
 .pm-foot{display:none;flex:0 0 auto;background:var(--white);border-top:1px solid var(--line);padding:7px 14px max(10px,env(safe-area-inset-bottom));box-shadow:0 -4px 16px rgba(0,0,0,.07);z-index:5}
 .pm-foot-trust{display:block;width:100%;background:none;border:none;font-family:var(--font);font-size:11px;font-weight:400;color:var(--ink2);cursor:pointer;padding:3px 0 7px;text-align:center}
