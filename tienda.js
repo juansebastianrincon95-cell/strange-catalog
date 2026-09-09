@@ -556,6 +556,18 @@ function waMayoristas(){
     clearTimeout(nudgeT);
     nudgeT=setTimeout(nudgeNow,80);   // y otra vez apenas se asienta el scroll, por si ocurre después
   }
+  /* MÓVIL, dentro de catálogo/ficha/info: la cabecera se comporta como en el inicio — se va al
+     bajar y NO reaparece al subir; solo vuelve al llegar arriba del todo (lo resuelve el caso
+     y<=2 de más abajo, que manda siempre).
+     Por qué hace falta un caso aparte: en el inicio el header está EN EL FLUJO y se va con la
+     página porque comparte su scroll. En estas vistas no puede hacer eso — son capas
+     position:fixed con su propio scroll interno y el header es hermano, fuera de ese contenedor.
+     Lo más cercano es no devolverlo a media pantalla.
+     Se exige .pinned Y móvil: en escritorio la cabecera es fija en todas partes y su auto-ocultar
+     de ida y vuelta se conserva tal cual. */
+  function soloVuelveArriba(){
+    return bar.classList.contains('pinned') && window.matchMedia('(max-width:699px)').matches;
+  }
   function bind(getY){
     let lastY=getY(), ticking=false;
     function update(){
@@ -571,7 +583,7 @@ function waMayoristas(){
       if(performance.now()<suppressUntil){ lastY=y; ticking=false; return; }
       if(Math.abs(y-lastY)>TH){
         if(y>lastY && y>bar.offsetHeight) setHide(true);                 // bajando → ocultar
-        else setHide(false);                                             // subiendo → mostrar
+        else if(!soloVuelveArriba()) setHide(false);                     // subiendo → mostrar
       }
       lastY=y; ticking=false;
     }
