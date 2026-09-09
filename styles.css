@@ -835,11 +835,11 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
   .pm-sizes{flex:1;min-width:0}
   /* "Elige tu talla (EUR)" a 11px y pegado a los cuadros: iba en 14px con 9px de aire debajo y
      todo el bloque arrancaba 36px más abajo, así que el rótulo flotaba lejos de lo que nombra.
-     El margin-top del botón baja de 27 a 21 para seguir a ras de los cuadros: son el alto del
-     rótulo (16) más su margen (5), y ese alto cambió al achicar la letra. */
+     El margin-top del botón es el alto del rótulo (14, con la letra ya en 11px) más su margen
+     inferior (5) = 19. Medido en vivo: con 21 el botón quedaba 2px por debajo de los cuadros. */
   .pm-sizes-lbl{font-size:11px}
   .pm-sizes-top{margin-bottom:5px}
-  .pm-add{margin-top:21px;flex-shrink:0}
+  .pm-add{margin-top:19px;flex-shrink:0}
 }
 .pm-size:hover{border-color:var(--ink2)}
 .pm-size.on{background:var(--ink);color:#fff;border-color:var(--ink)}
