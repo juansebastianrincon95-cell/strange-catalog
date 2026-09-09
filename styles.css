@@ -372,11 +372,25 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 /* #D54E52 es el rojo exacto de sahet.co (su --color-red, el que pinta el SALE al tocarlo): mismo
    tono pero mucho menos saturado que nuestro --red #E8200A, así el badge deja de competir con la
    foto del producto. NO se toca la variable --red porque también pinta los precios en oferta. */
-.bdsc{position:absolute;top:8px;left:8px;background:#D54E52;color:#fff;font-size:10px;font-weight:400;padding:0 5px;height:19px;display:inline-flex;align-items:center;line-height:1;border-radius:0}
+/* Las tres medidas del badge salen de variables para que un solo bloque las reescale según el
+   tamaño de la tarjeta que lo contiene (ver el bloque de rejillas más abajo). El padding se deriva
+   del alto (19/3.8 = 5px, el valor de sahet) para que la proporción se mantenga sola al achicarlo. */
+.bdsc,.bnew,.bviews{--bdgH:19px;--bdgF:10px;--bdgO:8px}
+.bdsc{position:absolute;top:var(--bdgO);left:var(--bdgO);background:#D54E52;color:#fff;font-size:var(--bdgF);font-weight:400;padding:0 calc(var(--bdgH)/3.8);height:var(--bdgH);display:inline-flex;align-items:center;line-height:1;border-radius:0}
 .bsold{position:absolute;inset:0;background:rgba(255,255,255,.82);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:400;color:var(--ink3);letter-spacing:.08em;text-transform:uppercase;pointer-events:none}
 /* Mismas medidas que .bdsc: van en la misma línea de la tarjeta (esquinas opuestas), así que si
    uno se achica y el otro no, la fila queda despareja. */
-.bnew,.bviews{position:absolute;top:8px;right:8px;z-index:3;font-size:10px;font-weight:400;letter-spacing:.02em;padding:0 5px;height:19px;display:inline-flex;align-items:center;border-radius:0;line-height:1;pointer-events:none}
+.bnew,.bviews{position:absolute;top:var(--bdgO);right:var(--bdgO);z-index:3;font-size:var(--bdgF);font-weight:400;letter-spacing:.02em;padding:0 calc(var(--bdgH)/3.8);height:var(--bdgH);display:inline-flex;align-items:center;border-radius:0;line-height:1;pointer-events:none}
+/* MÓVIL, REJILLAS DE 2 COLUMNAS: la tarjeta baja de 316px a 175px, así que el badge fijo de 19px
+   pasaba de pesar el 6,0% del ancho a pesar el 10,9% — se veía enorme sobre la foto chica.
+   La proporción estricta (19 × 175/316) daría 10,5px de alto y 5,5px de letra: ilegible. Se aplica
+   un piso en 14px/8px, que deja el badge en el 8,0% del ancho: claramente más liviano y todavía
+   legible. El padding y la separación de la esquina se reescalan solos con las variables. */
+@media(max-width:699px){
+  .grid .bdsc,.grid .bnew,.grid .bviews,
+  .liq-grid .bdsc,.liq-grid .bnew,.liq-grid .bviews,
+  .preview-grid .bdsc,.preview-grid .bnew,.preview-grid .bviews{--bdgH:14px;--bdgF:8px;--bdgO:5px}
+}
 /* Apagados en la misma línea que el rojo de sahet: bajan saturación y suben luminosidad, pero
    conservan contraste suficiente con el texto blanco (8.9:1 el gris, 4.0:1 el verde). El negro
    puro y el verde oscuro de antes pesaban demasiado al lado del nuevo rojo suave. */
