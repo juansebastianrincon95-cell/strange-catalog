@@ -640,7 +640,9 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
      el archivo y a igual especificidad ganarían por orden. */
   #photoModal.photo-modal{padding-top:0;z-index:685}
   #photoModal .pm-wrap{padding-top:0}
-  .pm-back-float{left:auto;right:12px;width:24px;height:24px;border-radius:0;background:none;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+  /* top y right en 10px: la posición exacta del .product-header-back de sahet (medido: top 10,
+     borde derecho a 10 del viewport, caja de 24 con la ✕ de 20). */
+  .pm-back-float{top:10px;left:auto;right:10px;width:24px;height:24px;border-radius:0;background:none;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
   .pm-back-float svg{width:20px;height:20px}
   .pm-gal .fav-btn{left:12px;right:auto}
 }
