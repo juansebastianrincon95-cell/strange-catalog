@@ -436,7 +436,9 @@ function bmConfirmacionHTML(){
   const cards=Object.values(cart).map(({p,qty,type,talla})=>{
     const img=p.img?`<img src="${p.img}" alt="${altProd(p)}">`:`<span style="font-size:26px">${type==='liq'?'🔥':'👟'}</span>`;
     const nom=p.modelo||(type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer'));
-    const tag=talla?`<span class="sc-talla">${escHtml(String(talla))}${qty>1?' · '+qty:''}</span>`:'';
+    // Solo la talla. La cantidad NO se repite acá: ya va en el círculo .sc-qty sobre la foto, y
+    // ponerla en los dos lados hacía leer el mismo número dos veces en una tarjeta de 97px.
+    const tag=talla?`<span class="sc-talla">${escHtml(String(talla))}</span>`:'';
     // Precio y talla comparten fila: precio a la izquierda, talla pegada a la derecha. Antes la
     // talla iba en su propio renglón debajo del precio y estiraba la tarjeta un renglón de más
     // por cada producto.
