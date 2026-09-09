@@ -53,13 +53,21 @@ body{padding-top:calc(var(--annH) + var(--navH));padding-bottom:var(--barH)}
 
 .ann-panel{position:fixed;top:var(--annH);left:0;right:0;z-index:70;background:var(--white);border-bottom:1px solid var(--line);box-shadow:0 12px 30px rgba(0,0,0,.12);display:flex;flex-direction:column;max-height:calc(100vh - var(--annH));overflow-y:auto;clip-path:inset(0 0 100% 0);pointer-events:none;transition:clip-path .42s cubic-bezier(.4,0,.2,1)}
 .ann-panel.show{clip-path:inset(0 0 0% 0);pointer-events:auto}
-.ann-panel-x{position:absolute;top:10px;right:14px;width:32px;height:32px;border:1px solid var(--line);background:var(--white);border-radius:50%;font-size:13px;cursor:pointer;z-index:1}
+/* font-family explícita: los <button> NO heredan la tipografía del documento, así que sin esto
+   caía en la Arial por defecto del navegador. Se declara acá y no con una regla global para
+   button/input, porque ese cambio arrastraría también a los botones de puro símbolo (el ♥ de
+   favoritos crece 15% en Montserrat, y el −/+ del carrito y las flechas ‹› de la galería también
+   cambian de medida) — comprobado midiendo los glifos en las dos familias. */
+.ann-panel-x{position:absolute;top:10px;right:14px;width:32px;height:32px;border:1px solid var(--line);background:var(--white);border-radius:50%;font-family:var(--font);font-size:13px;cursor:pointer;z-index:1}
 .ann-panel-item{display:flex;align-items:flex-start;gap:12px;padding:16px 20px;cursor:pointer}
 .ann-panel-ic{font-size:20px;line-height:1;flex:0 0 auto;display:flex;align-items:center;height:20px}
-.ann-panel-body strong{display:block;font-size:14px;font-weight:600;color:var(--ink);margin-bottom:4px}
-.ann-panel-body p{font-size:12.5px;color:var(--ink2);line-height:1.5;margin-bottom:6px}
+/* Tipografía alineada con el resto del sitio: peso 400 y versalitas con tracking en el título,
+   como los rótulos de medios de pago y el toast. Iba en 14px/600 y 12,5px, que junto a una
+   interfaz donde nada más lleva negrita lo hacía leer como si fuera de otra plantilla. */
+.ann-panel-body strong{display:block;font-size:11px;font-weight:400;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);margin-bottom:5px}
+.ann-panel-body p{font-size:11px;color:var(--ink2);line-height:1.5;margin-bottom:6px}
 .ann-panel-body p a{color:var(--ink);text-decoration:underline}
-.ann-panel-cta{font-size:12px;font-weight:600;text-decoration:underline;color:var(--ink)}
+.ann-panel-cta{font-size:11px;font-weight:400;letter-spacing:.06em;text-transform:uppercase;text-decoration:underline;color:var(--ink)}
 /* Escritorio: ancho completo, los 3 mensajes en fila (calcado de adidas.co) en vez de apilados */
 @media(min-width:700px){
   .ann-panel{flex-direction:row;max-height:none;gap:48px;padding:28px 40px}
