@@ -840,6 +840,16 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
   .pm-sizes-lbl{font-size:11px}
   .pm-sizes-top{margin-bottom:5px}
   .pm-add{margin-top:19px;flex-shrink:0}
+  /* El aviso "Selecciona una talla" iba con opacity:0 — invisible pero OCUPANDO su lugar: como es
+     un flex item de .pm-sizes-row-wrap, envolvía a un segundo renglón y reservaba 25px muertos
+     (10 de gap + 15 de alto) bajo los cuadros, de forma permanente. Eso era lo que separaba a
+     "¿Cómo sé mi talla?" de los cuadros y empujaba hacia abajo todo lo que sigue.
+     Con display:none no ocupa nada y solo aparece al fallar la validación. Se pierde el fundido de
+     .2s (no se puede transicionar desde display:none): el aviso entra de golpe, que además es lo
+     que corresponde a un error — y va acompañado del temblor de .pm-sizes.err, así que no pasa
+     desapercibido. */
+  .pm-sizes-err{display:none}
+  .pm-sizes.err .pm-sizes-err{display:flex}
 }
 .pm-size:hover{border-color:var(--ink2)}
 .pm-size.on{background:var(--ink);color:#fff;border-color:var(--ink)}

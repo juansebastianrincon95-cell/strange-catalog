@@ -10,7 +10,7 @@
    - cross-origin      → passthrough sin tocar (supabase, GA, fbq, etc.).
 
    Sube el numero de version (v1 → v2 …) en cada deploy que cambie el app-shell. */
-const CACHE = 'strange-admin-v84';   // v84: Anadir a ras exacto de los cuadros
+const CACHE = 'strange-admin-v85';   // v85: fuera el hueco muerto bajo los cuadros de talla
 
 const SHELL = [
   '/',
