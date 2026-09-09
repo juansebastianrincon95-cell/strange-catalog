@@ -765,6 +765,16 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    revisión del carrito. Ver buyNowFicha() en tienda.js. */
 .pm-buyrow{display:flex;flex-direction:column;gap:10px;margin-top:10px}
 .pm-buy{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;border-radius:0;font-family:var(--font);font-size:14px;font-weight:400;text-transform:uppercase;cursor:pointer;transition:transform .12s,filter .15s}
+/* MÓVIL — "Comprar contra entrega" y "Comprar por WhatsApp" a la escala de sahet: alto de 31px y
+   letra de 10px con tracking, las mismas medidas de su "IR A PAGAR" (370x31 a 10px) y del
+   "Añadir" de la ficha. Median 354x44 con letra de 14, o sea eran lo más grande de la pantalla.
+   El alto va explícito en vez de por padding porque el botón lleva un icono absoluto dentro
+   (.pm-buy-cart, la animación del carrito al pasar por encima) y el padding solo no da una altura
+   predecible. */
+@media(max-width:699px){
+  .pm-buy{height:31px;padding:0 14px;font-size:10px;letter-spacing:.06em}
+  .pm-buyrow{gap:8px}
+}
 .pm-buy:active{transform:scale(.98)}
 .pm-buy-cod{background:#CDD3D8;color:var(--ink);border:none;overflow:hidden;position:relative}
 /* Carrito que "cae" al pasar el cursor y se enciende (destello) al aterrizar. Va con
@@ -860,6 +870,13 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 /* Guía de tallas (link colapsable + 2 fotos de marquilla) */
 .pm-guia{margin-top:11px}
 .pm-guia-toggle{background:none;border:none;font-family:var(--font);font-size:11px;font-weight:400;color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:6px 0;text-decoration:underline;text-underline-offset:3px}
+/* MÓVIL — "¿Cómo sé mi talla?" al mismo tratamiento que el resto del sistema sahet: 10px, peso
+   400, versalitas con tracking .06em. Es el mismo de los rótulos de medios de pago, del toast y
+   de las pestañas de la bolsa. Va acá abajo porque su regla base está justo encima y a igual
+   especificidad manda la última del archivo. */
+@media(max-width:699px){
+  .pm-guia-toggle{font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:4px 0}
+}
 .pm-guia-box{margin-top:8px;background:var(--bg);border:1px solid var(--line);border-radius:0;padding:12px}
 .pm-guia-tx{font-size:12px;line-height:1.5;color:var(--ink2);margin-bottom:10px}
 .pm-guia-imgs{display:flex;justify-content:center}
