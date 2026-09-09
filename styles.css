@@ -548,17 +548,23 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    Mismas variables que los badges para poder reescalarlo por contexto:
      --favS = caja del botón (invisible, es solo el área de toque)
      --favF = tamaño del corazón (lo único que se ve)
-     --favO = separación de la esquina
+     --favO = separación del borde derecho
+     --favB = separación del borde inferior (va aparte de --favO: el corazón sube más de lo que se
+              mete hacia el lado, y cada eje escala distinto en la tarjeta chica)
    La caja y el glifo se mueven por separado a propósito: al achicar el corazón en las tarjetas
    chicas la caja se mantiene en 28px, así el área de toque no se encoge con el dibujo. */
 .fav-btn{
-  --favS:30px; --favF:16px; --favO:7px;
+  --favS:30px; --favF:16px; --favO:8px; --favB:16px;
   position:absolute;
-  left:var(--favO); bottom:var(--favO);
+  right:var(--favO); bottom:var(--favB);
   width:var(--favS); height:var(--favS);
   background:none;
   border:none;
-  display:flex; align-items:center; justify-content:center;
+  /* El glifo va PEGADO al lado derecho de la caja, no centrado: así --favO es literalmente la
+     distancia del corazón al borde de la foto y queda a plomo con el badge de arriba (8px en la
+     tarjeta grande, 5px en la chica). Centrado, la media caja vacía lo empujaba 10px hacia adentro
+     y se veía desalineado. La caja sigue extendiéndose hacia la izquierda para el área de toque. */
+  display:flex; align-items:center; justify-content:flex-end;
   font-size:var(--favF); line-height:1;
   color:var(--ink);
   cursor:pointer;
@@ -568,13 +574,16 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .fav-btn:active{transform:scale(.85)}
 .fav-btn.on{color:var(--red)}
 .card.sold .fav-btn{display:none}
-.pm-gal .fav-btn{top:12px;right:12px;left:auto;bottom:auto;--favS:40px;--favF:21px}   /* corazón de la ficha: arriba-derecha de la galería */
+.pm-gal .fav-btn{top:12px;right:12px;bottom:auto;--favS:40px;--favF:21px}   /* corazón de la ficha: arriba-derecha de la galería */
+/* El + de "añadir rápido" también vive abajo a la derecha, pero solo aparece en productos SIN
+   tallas. Cuando coinciden, el corazón se corre a la izquierda para no quedar encima. */
+.fav-btn:has(~ .add-circle){right:calc(var(--favO) + 38px)}
 /* MÓVIL, REJILLAS DE 2 COLUMNAS: la tarjeta baja de 304px a 168px. El corazón de 16px pesaba ahí
    el 9,5% del ancho contra el 5,3% en la tarjeta grande. Baja a 12px (7,1%) siguiendo el mismo
    criterio que los badges. La caja se queda en 28px: es transparente, no se ve, y encogerla
    dejaría un área de toque demasiado chica para el dedo. */
 @media(max-width:699px){
-  .grid .fav-btn,.liq-grid .fav-btn,.preview-grid .fav-btn{--favS:28px;--favF:12px;--favO:1px}
+  .grid .fav-btn,.liq-grid .fav-btn,.preview-grid .fav-btn{--favS:28px;--favF:12px;--favO:5px;--favB:9px}
 }
 .pm-back-float{position:absolute;top:12px;left:12px;z-index:3;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.92);border:none;color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.18);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);transition:transform .2s cubic-bezier(.34,1.56,.64,1)}
 .pm-back-float:active{transform:scale(.85)}
