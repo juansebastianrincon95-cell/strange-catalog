@@ -822,14 +822,18 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
      el espacio libre y el botón pegado a la derecha. Es como ya funciona en escritorio (línea 894)
      y como lo tiene sahet en su tarjeta. Antes en móvil iban apilados, con el botón en su propio
      renglón.
-     align-items:flex-end y no center: el bloque de tallas incluye su rótulo "TALLA (EUR)" encima,
-     así que centrado por la caja el botón quedaría a media altura del rótulo en vez de a ras de
-     los cuadros. .pm-sizes-row ya trae flex-wrap, así que con 9 tallas (unisex) los cuadros bajan
-     a un segundo renglón sin empujar al botón.
-     margin-top:0 anula el de 16px que lleva el botón cuando va suelto en su propio renglón. */
-  .pm-sizes-cta{display:flex;align-items:flex-end;gap:12px}
+     ⚠️ flex-start + margin-top, NO flex-end. Alinear por abajo parece lo obvio pero no sirve: el
+     bloque de tallas no termina en los cuadros — debajo de ellos, dentro del mismo contenedor, va
+     el aviso "Selecciona una talla" (.pm-sizes-err), que estira el bloque 27px. Con flex-end el
+     botón se pegaba a ESE borde y quedaba 27px por debajo de los cuadros (medido en vivo).
+     Alineando arriba y bajando el botón el alto del rótulo "TALLA (EUR)" queda a ras de los
+     cuadros. Los 27px son el mismo valor que ya usa la regla de escritorio (más abajo), que
+     resolvió este mismo problema.
+     .pm-sizes-row ya trae flex-wrap, así que con 9 tallas (unisex) los cuadros bajan a un segundo
+     renglón sin empujar al botón. */
+  .pm-sizes-cta{display:flex;align-items:flex-start;gap:12px}
   .pm-sizes{flex:1;min-width:0}
-  .pm-add{margin-top:0;flex-shrink:0}
+  .pm-add{margin-top:27px;flex-shrink:0}
 }
 .pm-size:hover{border-color:var(--ink2)}
 .pm-size.on{background:var(--ink);color:#fff;border-color:var(--ink)}
