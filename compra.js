@@ -437,7 +437,10 @@ function bmConfirmacionHTML(){
     const img=p.img?`<img src="${p.img}" alt="${altProd(p)}">`:`<span style="font-size:26px">${type==='liq'?'🔥':'👟'}</span>`;
     const nom=p.modelo||(type==='liq'?'Liquidación':(p.g==='h'?'Hombre':'Mujer'));
     const tag=talla?`<span class="sc-talla">${escHtml(String(talla))}${qty>1?' · '+qty:''}</span>`:'';
-    return `<div class="sc-card"><div class="sc-ph">${img}${qty>1?`<span class="sc-qty">${qty}</span>`:''}</div><div class="sc-nom">${escHtml(nom)}</div><div class="sc-precio">${fmt(p.price*qty)}</div>${tag}</div>`;
+    // Precio y talla comparten fila: precio a la izquierda, talla pegada a la derecha. Antes la
+    // talla iba en su propio renglón debajo del precio y estiraba la tarjeta un renglón de más
+    // por cada producto.
+    return `<div class="sc-card"><div class="sc-ph">${img}${qty>1?`<span class="sc-qty">${qty}</span>`:''}</div><div class="sc-nom">${escHtml(nom)}</div><div class="sc-precio-row"><span class="sc-precio">${fmt(p.price*qty)}</span>${tag}</div></div>`;
   }).join('');
   return `<div class="${bmSecClass('conf')}" data-sec="conf">
     <div class="sf-head" onclick="bmToggleSec(this)"><span class="sf-num">3</span>Confirmación<span class="sf-chev">${BM_ICONS.chevron}</span></div>
