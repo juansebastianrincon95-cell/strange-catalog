@@ -10,7 +10,7 @@
    - cross-origin      → passthrough sin tocar (supabase, GA, fbq, etc.).
 
    Sube el numero de version (v1 → v2 …) en cada deploy que cambie el app-shell. */
-const CACHE = 'strange-admin-v56';   // v56: toast con la tipografía sahet + width:max-content
+const CACHE = 'strange-admin-v57';   // v57: FAB de WhatsApp ya no se pega a la barra en iPhone
 
 const SHELL = [
   '/',

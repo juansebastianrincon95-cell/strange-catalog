@@ -258,12 +258,20 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .admin-pill{background:var(--white);border:1.5px solid var(--line);border-radius:0;padding:7px 14px;font-family:var(--font);font-size:11px;font-weight:400;color:var(--ink2);cursor:pointer;transition:all .15s}
 .admin-pill:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
 .bag-btn{position:relative;width:40px;height:40px;background:var(--ink);border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .14s}
-.wa-fab{position:fixed;right:18px;bottom:calc(max(18px,env(safe-area-inset-bottom)) + var(--barH));width:56px;height:56px;background:#25D366;border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:565;box-shadow:0 4px 16px rgba(37,211,102,.45);transition:transform .15s}
+/* ⚠️ La separación se SUMA, no se compara. La .cart-bar mide var(--barH) MÁS el área segura del
+   iPhone (usa box-sizing:content-box con padding-bottom:env(safe-area-inset-bottom)), así que para
+   dejarle aire al FAB hay que sumar los tres valores. La fórmula anterior era
+   `max(18px, env(safe-area-inset-bottom)) + var(--barH)`: en un escritorio (área segura 0) daba
+   18+34=52px y se veía bien, pero en un iPhone 12 Pro el área segura vale 34px y el max() la usaba
+   EN LUGAR de los 18px de aire → 34+34=68px, que es exactamente el borde superior de la barra:
+   el botón quedaba pegado. Con la suma: 34+34+18=86px, los mismos 18px de aire en todos lados.
+   Es el mismo patrón que ya usaba .wm-reopen, que por eso nunca se pegó. */
+.wa-fab{position:fixed;right:18px;bottom:calc(var(--barH) + env(safe-area-inset-bottom) + 18px);width:56px;height:56px;background:#25D366;border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:565;box-shadow:0 4px 16px rgba(37,211,102,.45);transition:transform .15s}
 .wa-fab svg{width:30px;height:30px}
 .wa-fab:hover{transform:scale(1.08)}
 .wa-fab:active{transform:scale(.95)}
 /* Mini-anuncio sobre el FAB de WhatsApp ("Pregunta por los combos") */
-.wa-bubble{position:fixed;right:18px;bottom:calc(max(18px,env(safe-area-inset-bottom)) + var(--barH) + 66px);z-index:564;display:none;align-items:center;gap:8px;background:var(--white);color:var(--ink);border:1px solid var(--line);border-radius:0;padding:10px 12px 10px 14px;font-family:var(--font);font-size:12.5px;font-weight:400;box-shadow:0 8px 24px rgba(0,0,0,.18);cursor:pointer;animation:pmIn .3s ease both}
+.wa-bubble{position:fixed;right:18px;bottom:calc(var(--barH) + env(safe-area-inset-bottom) + 18px + 66px);z-index:564;display:none;align-items:center;gap:8px;background:var(--white);color:var(--ink);border:1px solid var(--line);border-radius:0;padding:10px 12px 10px 14px;font-family:var(--font);font-size:12.5px;font-weight:400;box-shadow:0 8px 24px rgba(0,0,0,.18);cursor:pointer;animation:pmIn .3s ease both}
 .wa-bubble.show{display:inline-flex}
 /* Medidas calcadas de la barra de precio/carrito de sahet.co (mismo patron: <a> con flex +
    space-between, todo clicable) — mas compacta que el tamaño original (52px de alto, texto
