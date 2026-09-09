@@ -10,7 +10,7 @@
    - cross-origin      → passthrough sin tocar (supabase, GA, fbq, etc.).
 
    Sube el numero de version (v1 → v2 …) en cada deploy que cambie el app-shell. */
-const CACHE = 'strange-admin-v53';   // v53: badges proporcionales al tamaño de la tarjeta
+const CACHE = 'strange-admin-v54';   // v54: corazón sin pastilla blanca y proporcional
 
 const SHELL = [
   '/',
