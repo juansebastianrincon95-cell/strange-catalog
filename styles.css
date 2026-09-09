@@ -1395,7 +1395,13 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    (62/64/100/62/100) en vez de según su contenido; con flex:0 0 auto cada una pide lo suyo.
    NO toca .sf-gw-row a secas: el estado "método ya elegido" mete ahí una ficha + el link
    "Cambiar", y ese sí necesita el reparto flexible. */
-.sf-gw-row.sf-gw-pick{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+/* Grupos de métodos con rótulo, calcados de sahet: 25px entre grupos, rótulo de 11px peso 400 en
+   versalitas con 10px de aire debajo, y 10px de separación entre fichas del mismo grupo.
+   El margin-bottom de .sf-gw-row se anula acá: dentro de un grupo lo maneja el gap de 25px. */
+.sf-gw-groups{display:flex;flex-direction:column;gap:25px;margin-bottom:14px}
+.sf-gw-gt{font-size:11px;font-weight:400;color:var(--ink);text-transform:uppercase;margin-bottom:10px}
+.sf-gw-group .sf-gw-row{margin-bottom:0}
+.sf-gw-row.sf-gw-pick{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
 .sf-gw-pick .sf-gw{flex:0 0 auto;max-width:none;height:31px;min-height:31px;padding:3px 6px}
 .sf-gw-pick .sf-gw-logo{height:16px}
 /* Etiqueta de texto para métodos sin logo de pasarela (Contra entrega, WhatsApp) — mismo tamaño

@@ -296,12 +296,29 @@ function bmMetodoInner(method){
 // ese método no vive en esta pantalla, solo en el botón directo de la ficha.
 // Solo aparece cuando bmIntent==='full' (camino general: grilla, ícono del carrito, /carrito) y
 // aún no se eligió método. "Contra entrega" cae en bmChooseMethod() al flujo de flete de siempre.
+// Los métodos van AGRUPADOS por naturaleza con un rótulo en versalitas encima, como sahet.co
+// (revisado en vivo: "TRANSFERENCIAS Y PSE" / "TARJETAS DÉBITO Y CRÉDITO" / "OTROS (CON RECARGO)",
+// rótulo de 11px peso 400 y 25px entre grupos). Cinco logos sueltos en fila no le dicen al cliente
+// que Addi y Sistecrédito son otra cosa que Wompi o Bold.
+//
+// ⚠️ NO copiamos su rótulo "(CON RECARGO)". En su tienda Addi cobra $20.000 extra al cliente y lo
+// muestran debajo de la ficha. En la NUESTRA no hay recargo: pagarAddi()/pagarSistecredito()
+// (carrito.js) mandan subtotal:tot, envio:0, total:tot — el cliente paga exactamente lo mismo que
+// con cualquier otro método. Poner "con recargo" sería decirle que va a pagar de más cuando no.
+// Tampoco decimos "sin recargo": la tienda no cobra nada extra, pero la financiación de Addi o
+// Sistecrédito puede tener su propio interés, y eso no lo controlamos ni lo sabemos acá.
 function bmMethodPickerHTML(){
-  const orden=['contra_entrega','wompi','bold','addi','sistecredito'];
-  const btns=orden.map(m=>`<button class="sf-gw" onclick="bmChooseMethod('${m}')">${bmMetodoInner(m)}</button>`).join('');
+  const grupos=[
+    {t:'Pago contra entrega', m:['contra_entrega']},
+    {t:'Tarjetas, PSE y transferencias', m:['wompi','bold']},
+    {t:'Paga a cuotas', m:['addi','sistecredito']}
+  ];
   // .sf-gw-pick: fichas que se ajustan a su logo, con alto y filete comunes — el patrón real de
   // sahet (ver styles.css). El ancho lo pone el contenido, no el espacio libre.
-  return `<div class="sf-gw-row sf-gw-pick">${btns}</div>`;
+  return `<div class="sf-gw-groups">`+grupos.map(g=>
+    `<div class="sf-gw-group"><div class="sf-gw-gt">${escHtml(g.t)}</div><div class="sf-gw-row sf-gw-pick">`
+    +g.m.map(m=>`<button class="sf-gw" onclick="bmChooseMethod('${m}')">${bmMetodoInner(m)}</button>`).join('')
+    +`</div></div>`).join('')+`</div>`;
 }
 
 // Método ya elegido (whatsapp/wompi/bold/addi/sistecredito) — MISMO patrón sf-gw-sel + "Cambiar"
