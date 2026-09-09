@@ -1670,8 +1670,18 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .upcell.mov{border-color:#7da7d9}.upcell.mov .upcell-t{color:#2563ab}
 .upcell.esc{border-color:#b59ddf}.upcell.esc .upcell-t{color:#6b46c1}
 
-/* TOAST */
-.toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:0;font-size:13px;font-weight:400;z-index:700;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;box-shadow:0 6px 24px rgba(0,0,0,.32);max-width:90vw;text-align:center}
+/* TOAST — mismo sistema tipográfico que los badges de la tarjeta y el SALE del header, calcado de
+   sahet.co: Montserrat 400 en versalitas con tracking, sin redondeo y sin negrita. Antes iba en
+   13px sin tracking, que junto al resto de la interfaz se leía como de otra tienda.
+   La sombra baja de 24px/.32 a 14px/.22: la anterior era un halo muy marcado al lado de la
+   estética plana del resto (los badges no llevan sombra).
+   line-height 1.45 porque hay avisos largos (el del combo completo) que ocupan dos líneas, y en
+   versalitas con tracking el interlineado por defecto los deja apretados.
+   ⚠️ width:max-content es OBLIGATORIO acá. Con position:fixed + left:50% el ancho disponible que
+   calcula el navegador es solo de la mitad de la pantalla hacia la derecha (195px en un móvil de
+   390), así que "Guardado en favoritos" se partía en dos líneas y el aviso del combo en tres pese
+   al max-width de 90vw. Con max-content el texto pide su ancho real y el 90vw sigue de tope. */
+.toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:0;font-size:11px;font-weight:400;text-transform:uppercase;letter-spacing:.06em;line-height:1.45;z-index:700;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;box-shadow:0 4px 14px rgba(0,0,0,.22);width:max-content;max-width:90vw;text-align:center}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
 
