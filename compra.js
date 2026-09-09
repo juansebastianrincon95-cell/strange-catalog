@@ -84,6 +84,20 @@ function closeBuyModal(){
 
 // ── Pestañas BOLSA / PAGAR (calcadas de sahet.co: "BOLSA [n]" con badge negro, "PAGAR $total"
 // con el monto — cambiar de una a otra no pierde nada, comparten el mismo cart/cData). ──
+// ── SECCIONES PLEGABLES (①Datos ②Medios ③Confirmación) — calcado de sahet.co: se toca el
+// encabezado COMPLETO, no solo la flecha, y la flecha gira 180°.
+// ⚠️ El estado vive acá y NO en el DOM porque renderBuyModal() reconstruye #bmBody entero al
+// cambiar de pestaña y al elegir método de pago. Si dependiera de la clase en el elemento,
+// plegar "Datos de envío" y después tocar Wompi lo volvería a abrir solo.
+const bmCollapsed=new Set();
+function bmSecClass(k){return 'sf-sec'+(bmCollapsed.has(k)?' sf-collapsed':'');}
+function bmToggleSec(head){
+  const sec=head.closest('.sf-sec'); if(!sec||!sec.dataset.sec)return;
+  const k=sec.dataset.sec;
+  if(bmCollapsed.has(k))bmCollapsed.delete(k);else bmCollapsed.add(k);
+  sec.classList.toggle('sf-collapsed');
+}
+
 function bmMontoAPagar(){
   const {pares,sub}=cartPricing();
   const flete=bmIntent==='contra_entrega'?calcFlete(pares,(($('fci')||{}).value)||(cData&&cData.ciudad)||'',sub):0;
@@ -202,8 +216,8 @@ function formEnvioSahetHTML(){
     const chain=`bmFieldValidate(this);${oninput||'bmRefreshDatosStep()'}`;
     return `<div class="sf-fld${stateCls}"><span class="sf-ic">${ic}</span><div class="sf-fld-b"><label class="sf-lbl" for="${id}">${ph}</label><input id="${id}" type="${type||'text'}" ${extra||''} oninput="${chain}" value="${escHtml(val||'')}"></div></div>`;
   };
-  return `<div class="sf-sec" id="sfSecDatos">
-    <div class="sf-head"><span class="sf-num">1</span>Datos de envío<span class="sf-chev">${BM_ICONS.chevron}</span></div>
+  return `<div class="${bmSecClass('envio')}" data-sec="envio" id="sfSecDatos">
+    <div class="sf-head" onclick="bmToggleSec(this)"><span class="sf-num">1</span>Datos de envío<span class="sf-chev">${BM_ICONS.chevron}</span></div>
     <div class="sf-body">
       ${f('fc','CÉDULA',BM_ICONS.cedula,cData.cedula,'text','inputmode="numeric" autocomplete="off"')}
       ${f('fn','NOMBRE COMPLETO',BM_ICONS.nombre,cData.nombre,'text','autocomplete="name" autocapitalize="words"')}
@@ -364,8 +378,8 @@ function bmMediosPagoBodyHTML(){
 }
 
 function bmMediosPagoHTML(){
-  return `<div class="sf-sec">
-    <div class="sf-head"><span class="sf-num">2</span>Medios de pago<span class="sf-chev">${BM_ICONS.chevron}</span></div>
+  return `<div class="${bmSecClass('pago')}" data-sec="pago">
+    <div class="sf-head" onclick="bmToggleSec(this)"><span class="sf-num">2</span>Medios de pago<span class="sf-chev">${BM_ICONS.chevron}</span></div>
     <div class="sf-body"><div id="srMedios">${bmMediosPagoBodyHTML()}</div></div>
   </div>`;
 }
@@ -396,8 +410,8 @@ function bmConfirmacionHTML(){
     const tag=talla?`<span class="sc-talla">${escHtml(String(talla))}${qty>1?' · '+qty:''}</span>`:'';
     return `<div class="sc-card"><div class="sc-ph">${img}${qty>1?`<span class="sc-qty">${qty}</span>`:''}</div><div class="sc-nom">${escHtml(nom)}</div><div class="sc-precio">${fmt(p.price*qty)}</div>${tag}</div>`;
   }).join('');
-  return `<div class="sf-sec">
-    <div class="sf-head"><span class="sf-num">3</span>Confirmación<span class="sf-chev">${BM_ICONS.chevron}</span></div>
+  return `<div class="${bmSecClass('conf')}" data-sec="conf">
+    <div class="sf-head" onclick="bmToggleSec(this)"><span class="sf-num">3</span>Confirmación<span class="sf-chev">${BM_ICONS.chevron}</span></div>
     <div class="sf-body">
       <div class="sr-badge">${totalPares} Producto${totalPares===1?'':'s'}</div>
       <div class="sc-grid">${cards}</div>

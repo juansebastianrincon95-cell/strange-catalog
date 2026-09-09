@@ -1210,7 +1210,14 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 @media(min-width:941px){.buy-modal{width:55%}}
 @media(min-width:1000px){.buy-modal{width:47%}}
 @media(min-width:1367px){.buy-modal{width:37%}}
-.bm-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 0;flex-shrink:0;gap:10px}
+/* Barra de pestañas al ras del borde superior y sin huecos, como sahet.co: la fila entera son tres
+   celdas pegadas (45% / 45% / 10%), sin padding ni gap. Antes llevaba padding:14px 18px 0 y un gap
+   de 10px, que dejaba las pestañas flotando en medio de un margen blanco. */
+.bm-head{display:flex;align-items:center;justify-content:space-between;padding:0;flex-shrink:0;gap:0}
+/* La ✕ es la tercera celda de la MISMA barra (10% del ancho) separada por un filete de 2px del
+   mismo gris de la pestaña apagada — no un botón redondo flotando aparte. Va scopeada a .bm-head
+   porque .cx también la usa el carrito clásico (#csheet), que no se toca. */
+.bm-head .cx{flex:0 0 10%;width:auto;height:44px;border-radius:0;border-left:2px solid #E9E9E7;background:transparent;font-size:14px;color:var(--ink)}
 /* padding-top: separa el contenido de la barra de pestañas — calcado de sahet.co (revisado en
    vivo: 35px entre el fondo de las pestañas y "① DATOS DE ENVÍO"). Antes era 0 y, sumado al
    margin-top:0 que traía la sección "Datos de envío" (compra.js), quedaba pegada al ras. */
@@ -1219,11 +1226,17 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 /* Pestañas BOLSA/PAGAR calcadas de sahet.co (revisado en vivo por DOM: "BOLSA 13" con badge
    negro / "PAGAR $552.700" con el monto, la activa con fondo oscuro) — ver bmTabsHTML() en
    compra.js. Comparten el mismo cart/cData: cambiar de pestaña no pierde nada. */
-.bm-tabs{display:flex;gap:6px;flex:1;min-width:0}
-.bm-tab{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--bg);border:none;border-radius:0;padding:10px 8px;font-family:var(--font);font-size:12.5px;font-weight:600;color:var(--ink2);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bm-tab.on{background:var(--ink);color:#fff}
-.bm-tab-badge{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 4px;border-radius:50%;background:rgba(0,0,0,.12);color:inherit;font-size:10px;font-weight:700}
-.bm-tab.on .bm-tab-badge{background:rgba(255,255,255,.25)}
+/* ⚠️ El color va INVERTIDO respecto a lo que teníamos. En sahet la pestaña ACTIVA es la clara (se
+   ve el blanco del panel) y la APAGADA es la gris #E9E9E7 al 80% de opacidad: el gris marca lo que
+   NO estás viendo, como una carpeta que quedó atrás. Nosotros pintábamos la activa de negro con
+   texto blanco, que la volvía un botón y hacía leer la apagada como la disponible.
+   Los 0.9s de transición también son suyos: al cambiar de pestaña el gris se funde, no salta.
+   Peso 400 y 11px (antes 600 y 12,5): en sahet no hay una sola negrita en toda la bolsa. */
+.bm-tabs{display:flex;gap:0;flex:0 0 90%;min-width:0}
+.bm-tab{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;height:44px;background:#E9E9E7;opacity:.8;border:none;border-radius:0;padding:0 8px;font-family:var(--font);font-size:11px;font-weight:400;color:var(--ink);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background-color .9s ease-out,opacity .9s ease-out}
+.bm-tab.on{background:transparent;opacity:1}
+/* Contador cuadrado con filete, no círculo relleno — el de sahet ("BOLSA 3"). */
+.bm-tab-badge{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 4px;border-radius:0;border:1px solid var(--ink);background:transparent;color:var(--ink);font-size:10px;font-weight:400}
 .bm-tab-tot{font-variant-numeric:tabular-nums}
 
 /* Resumen de compra rápida estilo sahet.co (revisado en vivo contra su "CONFIRMACIÓN" el
@@ -1315,8 +1328,17 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    bmRefreshDatosStep() en compra.js, que agrega/quita esta clase en #sfSecDatos. */
 .sf-sec.sf-done .sf-num{background:var(--ink);color:#fff}
 .sf-sec.sf-done::before{background:var(--ink)}
-.sf-chev{margin-left:auto;width:14px;height:14px;color:var(--ink2)}
+.sf-chev{margin-left:auto;width:14px;height:14px;color:var(--ink2);transition:transform .3s}
 .sf-chev svg{width:100%;height:100%}
+/* SECCIONES PLEGABLES — en sahet.co el encabezado ENTERO es el botón (no solo la flecha) y la
+   flecha gira al plegar, con transition:transform .3s. Su contenido desaparece de golpe (lo
+   desmontan, el alto pasa de 378 a 0 sin animar); acá basta un display:none.
+   El margin-bottom del encabezado se anula al plegar: si no, quedan 14px de aire bajo un título
+   que ya no tiene nada debajo. */
+.sf-head{cursor:pointer;-webkit-user-select:none;user-select:none}
+.sf-sec.sf-collapsed .sf-body{display:none}
+.sf-sec.sf-collapsed .sf-head{margin-bottom:0}
+.sf-sec.sf-collapsed .sf-chev{transform:rotate(180deg)}
 .sf-body{margin-left:28px;position:relative;z-index:1}
 /* Campo = icono + etiqueta chica arriba + input abajo (revisado en vivo: sahet NO usa un
    placeholder que desaparece al escribir, es una etiqueta fija de 10px siempre visible). */
