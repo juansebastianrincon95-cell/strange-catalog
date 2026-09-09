@@ -1289,7 +1289,12 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 /* Checkbox de consentimiento — mismo estilo inline que usaba el formulario clásico, ahora junto
    al resumen (posición calcada del aviso legal de sahet, justo después del total). */
 .sf-metodo{display:inline-block;font-size:13px;font-weight:600;color:var(--ink);background:var(--bg);border:1px solid var(--line);padding:8px 12px}
-.sf-metodo-tx{background:var(--bg);padding:12px 14px;margin-bottom:12px;font-size:12.5px;color:var(--ink2);line-height:1.5}
+/* Mismo tamaño y color que la línea "Pagos 100% Seguros procesados por…" de sahet: 10px sobre
+   negro al 80%. Antes iba en 12,5px sobre --ink2 dentro de una caja gris, que la volvía el bloque
+   más pesado de la pantalla estando por encima de las propias fichas de pago. Se quita la caja
+   (fondo y padding) para que sea una línea de apoyo, no un aviso. Las negritas del mensaje se
+   conservan: son las que llevan el dato (cuánto pagas ahora y cuánto al recibir). */
+.sf-metodo-tx{margin-bottom:12px;font-size:10px;color:rgba(0,0,0,.8);line-height:1.5}
 .sf-metodo-tx+.paychoice-list{margin-bottom:14px}
 .sf-consent{display:flex;gap:9px;align-items:flex-start;margin-top:14px;padding-top:14px;border-top:1px solid var(--line);font-size:11.5px;line-height:1.45;color:var(--ink2);cursor:pointer}
 .sf-consent input{margin-top:2px;width:16px;height:16px;flex:0 0 auto;accent-color:var(--ink)}

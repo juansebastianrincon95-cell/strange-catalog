@@ -391,14 +391,17 @@ function bmMediosPagoBodyHTML(){
   if(flete<=0)return `<div class="sf-metodo">🚚 Contra entrega</div>${bmConsentHTML()}`;
   const desc=`<div class="sf-metodo-tx">Paga ahora <b>solo el envío: ${fmt(flete)}</b>. Los zapatos (<b>${fmt(sub)}</b>) los pagas <b>al recibir en casa</b> 📦</div>`;
   // Botones pequeños solo-logo, calcados de los métodos de pago reales de sahet.co.
+  // Las fichas van SOLO con el logo, sin el monto debajo: la línea de arriba ya dice "solo el
+  // envío: $X" y repetirlo bajo cada ficha hacía leer el mismo número tres veces en la misma
+  // pantalla. Sahet tampoco lo pone: sus fichas de pasarela son solo el logo.
   const gws=bmGwSelected
     ? `<div class="sf-gw-row">
-        <button class="sf-gw sf-gw-sel" disabled><img src="/logos/${bmGwSelected}.png" alt="${bmGwSelected==='wompi'?'Wompi':'Bold'}" class="sf-gw-logo"><span class="sf-gw-tot">${fmt(flete)}</span></button>
+        <button class="sf-gw sf-gw-sel" disabled><img src="/logos/${bmGwSelected}.png" alt="${bmGwSelected==='wompi'?'Wompi':'Bold'}" class="sf-gw-logo"></button>
         <button type="button" class="sf-gw-cambiar" onclick="bmSelectGw(null)">Cambiar</button>
       </div>`
     : `<div class="sf-gw-row">
-        <button class="sf-gw" onclick="bmSelectGw('wompi')"><img src="/logos/wompi.png" alt="Wompi" class="sf-gw-logo"><span class="sf-gw-tot">${fmt(flete)}</span></button>
-        <button class="sf-gw" onclick="bmSelectGw('bold')"><img src="/logos/bold.png" alt="Bold" class="sf-gw-logo"><span class="sf-gw-tot">${fmt(flete)}</span></button>
+        <button class="sf-gw" onclick="bmSelectGw('wompi')"><img src="/logos/wompi.png" alt="Wompi" class="sf-gw-logo"></button>
+        <button class="sf-gw" onclick="bmSelectGw('bold')"><img src="/logos/bold.png" alt="Bold" class="sf-gw-logo"></button>
       </div>`;
   return desc+gws+bmConsentHTML();
 }
