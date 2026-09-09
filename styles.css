@@ -422,7 +422,12 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    puro y el verde oscuro de antes pesaban demasiado al lado del nuevo rojo suave. */
 .bnew{background:#4A4A47;color:#fff;text-transform:uppercase}
 .bviews{background:#4A8C62;color:#fff}
-.bchk{position:absolute;top:6px;right:6px;width:22px;height:22px;background:var(--blue);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;opacity:0;transform:scale(.2);transition:all .26s cubic-bezier(.34,1.56,.64,1)}
+/* ✓ azul de "ya está en la bolsa" en la esquina INFERIOR IZQUIERDA, la única libre de la tarjeta:
+   arriba-izquierda va el -XX% rojo, arriba-derecha van NUEVO / 🔥 Top, y abajo-derecha el ♥.
+   Estaba arriba-derecha, encima del badge, y lo tapaba justo cuando el producto es nuevo o top.
+   Se descartó esconder el badge mientras está elegido: .card.picked dura todo lo que el producto
+   siga en la bolsa, así que el "NUEVO" desaparecería durante toda la visita, no un instante. */
+.bchk{position:absolute;bottom:6px;left:6px;width:22px;height:22px;background:var(--blue);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;opacity:0;transform:scale(.2);transition:all .26s cubic-bezier(.34,1.56,.64,1)}
 .card.picked .bchk{opacity:1;transform:scale(1)}
 .cbrand{font-size:10.5px;font-weight:400;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* Tipografía calcada de la tarjeta de sahet.co: nombre 12px/400 uppercase, precio 12px (tachado
@@ -901,6 +906,15 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .pm-guia-tx{font-size:12px;line-height:1.5;color:var(--ink2);margin-bottom:10px}
 .pm-guia-imgs{display:flex;justify-content:center}
 .pm-guia-img{width:100%;max-width:280px;max-height:320px;object-fit:contain;border-radius:0;border:1px solid var(--line);cursor:zoom-in;background:var(--white)}
+/* MÓVIL — la miniatura de la marquilla se achica: es una referencia para reconocer DÓNDE mirar,
+   no para leer los números. Al tocarla abre en grande con zoomImg(), que es donde de verdad se
+   lee. Con 320px de alto se comía media pantalla para eso.
+   El texto de arriba baja a 11px, la escala del resto de la ficha. */
+@media(max-width:699px){
+  .pm-guia-img{max-width:160px;max-height:150px}
+  .pm-guia-tx{font-size:11px;margin-bottom:8px}
+  .pm-guia-box{padding:10px}
+}
 /* VISOR AMPLIADO — pellizco (móvil), rueda (escritorio), doble toque para acercar/alejar y
    arrastre para recorrer. Las fotos son de 1400x1400 y en la ficha se ven a ~560 px: aquí es
    donde el cliente ve de verdad la costura, el material y el estado de la suela.
