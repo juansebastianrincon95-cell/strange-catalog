@@ -1802,6 +1802,25 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    hacia abajo igual que antes, pero ahora la CAJA (con su fondo) cubre desde y=0 siempre. */
 .catview{position:fixed;top:0;padding-top:calc(var(--annH) + var(--navH));left:0;right:0;bottom:0;z-index:560;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;display:none;padding-bottom:var(--barH)}
 .catview.on{display:block}
+/* MÓVIL — CATÁLOGO EN EL FLUJO (body.cat-flow, lo pone openCatalog en tienda.js).
+   Deja de ser una capa fija con scroll propio y pasa a ser un bloque más de la página, debajo de
+   la cabecera. Así el header se va con el contenido porque los mueve el MISMO scroll, sin JS de
+   por medio — que es exactamente lo que hace que el inicio se sienta como una sola pieza.
+   Con la capa fija era imposible: el scroll ocurría dentro de ella y el header quedaba fuera.
+   !important en el ocultado del inicio porque esas secciones se muestran con style inline desde
+   JS (style.display='block'), y un estilo en línea le gana a cualquier selector.
+   Al cerrar se quita la clase y el inline vuelve a mandar solo: no hay estado que restaurar. */
+@media(max-width:699px){
+  body.cat-flow > #hero,
+  body.cat-flow > #lanz,
+  body.cat-flow > .cbanner,
+  body.cat-flow > .genrow,
+  body.cat-flow > .hdr,
+  body.cat-flow > #preview,
+  body.cat-flow > #testimonios,
+  body.cat-flow > #siteFooter{display:none!important}
+  body.cat-flow #catView.catview{position:static;overflow:visible;padding-top:0;min-height:100svh}
+}
 /* ELIMINADAS las 3 reglas `#topbar.hide ~ … {padding-top:0}` que colapsaban el padding superior
    al ocultarse la cabecera.
    Por qué: hacían que TODO el contenido saltara 77px hacia arriba por su cuenta, animándose .35s,

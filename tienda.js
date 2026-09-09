@@ -314,6 +314,9 @@ function closeHigherLayers(){
   {const im=$('infoModal');if(im&&im.classList.contains('on')){im.classList.remove('on');unlockScroll();unpinHeader();navRemove('info');}}
 }
 
+/* _catFlow: el catálogo se abrió en modo flujo (móvil). _catFlowY: dónde estaba el inicio, para
+   devolverlo intacto al cerrar — es lo que en la otra rama hace unlockScroll() por su cuenta. */
+let _catFlow=false,_catFlowY=0;
 function openCatalog(opts){
   opts=opts||{};
   closeHigherLayers();   // ver comentario arriba: Hombre/Mujer/Unisex/Ofertas/Inicio deben verse aunque venga de una ficha o de info
@@ -321,7 +324,24 @@ function openCatalog(opts){
   _sortBy='';{const _so=$('catSort');if(_so)_so.value='';}
   const v=$('catView');if(!v)return;
   // Mismo motivo que en la ficha: navPush('cat') deduplica, así que un bloqueo por capa.
-  {const _ya=v.classList.contains('on');if(!_ya)lockScroll();pinHeader(_ya);v.classList.add('on');}   // cabecera visible y fija al ver Hombre/Mujer/Unisex (estilo adidas)
+  /* MÓVIL — el catálogo entra al FLUJO de la página en vez de ser una capa fija con scroll propio.
+     Ese era el motivo de que la cabecera no se fuera con el dedo: al scrollear DENTRO de una capa
+     fixed, el header (que vive fuera de ella) solo se podía mover desde JS, y en iOS el scroll
+     táctil lo maneja el compositor — JS siempre llega tarde y se veía "se queda y luego salta".
+     En el flujo lo mueve el mismo motor que mueve el contenido, sin una línea de JS, igual que en
+     el inicio. Se esconde el inicio (CSS, body.cat-flow) y se guarda su posición para devolverla
+     al cerrar; NO se usa lockScroll porque acá el body SÍ tiene que poder scrollear.
+     El modo se recuerda en _catFlow y no se vuelve a consultar: si se consultara de nuevo al
+     cerrar y el ancho hubiera cambiado (giro de pantalla), se cerraría por la rama equivocada y
+     el contador de pinHeader quedaría descuadrado. */
+  {const _ya=v.classList.contains('on');
+   if(!_ya){
+     _catFlow=window.matchMedia('(max-width:699px)').matches;
+     if(_catFlow){_catFlowY=window.scrollY||document.documentElement.scrollTop||0;document.body.classList.add('cat-flow');}
+     else lockScroll();
+   }
+   if(!_catFlow)pinHeader(_ya);   // escritorio: cabecera visible y fija (estilo adidas)
+   v.classList.add('on');}
   const tabs=document.querySelectorAll('#catView .tabs .tab');
   if(opts.coleccion&&coleccionDe(opts.coleccion)){
     gSel='all';brandSel='all';colSel=opts.coleccion;
@@ -345,10 +365,21 @@ function openCatalog(opts){
              : opts.brand ? (typeof BRAND_LABELS!=='undefined' && BRAND_LABELS[opts.brand] ? BRAND_LABELS[opts.brand] : 'Productos')
              : (map[opts.gender||'all']||'Catálogo');
   v.scrollTop=0;
+  if(_catFlow)window.scrollTo(0,0);   // en flujo el que scrollea es la ventana, no el contenedor
   navPush('cat',navCatUrl(),_ct+' — '+STORE_NAME,closeCatalog);
 }
 
-function closeCatalog(){if(!_navPopping)navRemove('cat');const v=$('catView');if(v)v.classList.remove('on');unlockScroll();unpinHeader();}
+function closeCatalog(){
+  if(!_navPopping)navRemove('cat');
+  const v=$('catView');if(v)v.classList.remove('on');
+  if(_catFlow){
+    _catFlow=false;
+    document.body.classList.remove('cat-flow');
+    window.scrollTo(0,_catFlowY);
+  }else{
+    unlockScroll();unpinHeader();
+  }
+}
 
 /* ── ORDENAR POR (catálogo) ── '' = relevancia (orden actual), price_asc, price_desc, new, views ── */
 let _sortBy='';
