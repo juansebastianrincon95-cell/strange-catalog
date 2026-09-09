@@ -1398,6 +1398,13 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 /* Grupos de métodos con rótulo, calcados de sahet: 25px entre grupos, rótulo de 11px peso 400 en
    versalitas con 10px de aire debajo, y 10px de separación entre fichas del mismo grupo.
    El margin-bottom de .sf-gw-row se anula acá: dentro de un grupo lo maneja el gap de 25px. */
+/* Las dos líneas verdes de sahet, arriba de los grupos de métodos. Su verde es #51A540 — apagado y
+   más oscuro que nuestro --green (#1aad49), que al lado del resto de la bolsa (todo negro sobre
+   blanco) gritaba demasiado. Se usa el suyo tal cual, literal y no por variable, porque --green
+   pinta también los avisos de éxito del resto del sitio y no queremos moverlos. */
+.sf-apagar{font-size:12px;font-weight:400;color:#51A540;margin-bottom:5px}
+.sf-seguro{font-size:10px;font-weight:400;color:rgba(0,0,0,.8);margin-bottom:14px}
+.sf-seguro b{color:#51A540;font-weight:600}
 .sf-gw-groups{display:flex;flex-direction:column;gap:25px;margin-bottom:14px}
 .sf-gw-gt{font-size:11px;font-weight:400;color:var(--ink);text-transform:uppercase;margin-bottom:10px}
 .sf-gw-group .sf-gw-row{margin-bottom:0}

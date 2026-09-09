@@ -315,7 +315,16 @@ function bmMethodPickerHTML(){
   ];
   // .sf-gw-pick: fichas que se ajustan a su logo, con alto y filete comunes — el patrón real de
   // sahet (ver styles.css). El ancho lo pone el contenido, no el espacio libre.
-  return `<div class="sf-gw-groups">`+grupos.map(g=>
+  // Las dos líneas de arriba son las de sahet, en su mismo orden y su mismo verde #51A540:
+  //   "A pagar: $X"  (12px/400, todo verde)
+  //   "Pagos 100% Seguros ..."  (10px, solo las dos palabras del medio en verde y en 600)
+  // ⚠️ La suya termina en "procesados por [logo de Wompi]" porque Wompi les procesa TODO. Acá no:
+  // según lo que elija el cliente pasa por Wompi, Bold, Addi o Sistecrédito — y con contra entrega
+  // no pasa por ninguna. Nombrar una pasarela sería falso en 3 de los 5 casos, así que se queda la
+  // señal de confianza sin atribuirla.
+  const cabecera=`<div class="sf-apagar">A pagar: ${fmt(bmMontoAPagar())}</div>`
+    +`<div class="sf-seguro">Pagos <b>100% Seguros</b></div>`;
+  return cabecera+`<div class="sf-gw-groups">`+grupos.map(g=>
     `<div class="sf-gw-group"><div class="sf-gw-gt">${escHtml(g.t)}</div><div class="sf-gw-row sf-gw-pick">`
     +g.m.map(m=>`<button class="sf-gw" onclick="bmChooseMethod('${m}')">${bmMetodoInner(m)}</button>`).join('')
     +`</div></div>`).join('')+`</div>`;
