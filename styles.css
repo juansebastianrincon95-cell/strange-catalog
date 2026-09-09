@@ -1172,15 +1172,25 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    .testi-modal (640) y .topbar (680) — mismo criterio ya documentado arriba (línea 13). */
 .bm-scrim{position:fixed;inset:0;background:rgba(0,0,0,.4);backdrop-filter:blur(6px);z-index:625;display:none}
 .bm-scrim.on{display:block}
-.buy-modal{position:fixed;left:0;right:0;bottom:0;z-index:630;background:var(--white);border-radius:18px 18px 0 0;max-height:92vh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .34s cubic-bezier(.32,.72,0,1);padding-bottom:env(safe-area-inset-bottom)}
-/* ⚠️ svh, NO vh — mismo problema que ya arreglamos en el hero. En iOS, 100vh mide la pantalla CON
-   la barra de direcciones OCULTA (844px en un iPhone 12 Pro), pero el área realmente visible al
-   abrir la hoja son ~664px. Con max-height:92vh la hoja pedía 776px y, anclada a bottom:0, su
-   borde superior caía en -112px: las pestañas BOLSA/PAGAR quedaban fuera de pantalla por arriba y
-   no había forma de llegar a ellas. svh mide el viewport CHICO (barra visible), que es el mínimo
-   garantizado: 92svh = 611px y la hoja arranca en 53px. Verificado por simulación. */
-@supports (max-height:92svh){.buy-modal{max-height:92svh}}
+/* MÓVIL: pantalla COMPLETA desde y=0 y POR ENCIMA del topbar — el modelo real de sahet.co
+   (revisado en vivo por DOM, 2026-09-09: su .cart-container es position:fixed, top:0, right:0,
+   width:100%, height:100dvh, z-index:200, y tapa su propio header, que sigue en el DOM debajo).
+   Antes era una hoja anclada a bottom:0 con max-height, POR DEBAJO del topbar (630 < 680), y de
+   ahí venía toda la pelea: aunque el alto quedara bien, el header le seguía pisando 10px a las
+   pestañas BOLSA/PAGAR. Ocupando la pantalla entera por encima del header, ese problema no puede
+   existir — es la razón por la que sahet no tiene que calcular alturas.
+   z-index 690: por encima del topbar (680) y por debajo del toast (700), que TIENE que seguir
+   viéndose porque salta al cambiar cantidades o quitar productos dentro de la misma bolsa.
+   Alto en dvh (no vh ni svh): anclado ARRIBA y llenando, hay que seguir el viewport visible tal
+   como se mueve la barra de Safari. vh dejaría el pie debajo de la barra y svh dejaría un hueco
+   abajo al ocultarse. El anclaje manda: nuestro bug anterior fue usar vh anclando ABAJO. */
+.buy-modal{position:fixed;left:0;right:0;top:0;bottom:0;z-index:690;background:var(--white);border-radius:0;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .34s cubic-bezier(.32,.72,0,1);padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+@supports (height:100dvh){.buy-modal{height:100dvh;bottom:auto}}
 .buy-modal.on{transform:translateY(0)}
+/* En móvil el panel es opaco y cubre TODO, así que el velo queda invisible detrás — pero su
+   backdrop-filter:blur(6px) a pantalla completa se sigue componiendo y cuesta GPU al abrir.
+   Se apaga acá; en escritorio (drawer lateral) sí se ve y se conserva. */
+@media(max-width:699px){.bm-scrim.on{display:none}}
 /* ESCRITORIO: drawer lateral derecho a pantalla completa — calcado del panel real de sahet.co
    (revisado en vivo por CSS, 2026-09-10: NO es un ancho fijo en px — es un % del viewport que
    escala en 5 saltos: 90%/80%/55%/47%/37% a 601/724/941/1000/1367px. A 1920px eso da ~707px;
@@ -1190,7 +1200,10 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    padding, su propio encabezado ("Finaliza tu pedido"+✕) quedaría tapado detrás de la barra
    fija, igual que ya le pasa a .info-modal/.photo-modal si no llevaran este mismo cálculo. */
 @media(min-width:700px){
-  .buy-modal{left:auto;right:0;top:0;bottom:0;width:90%;max-width:none;height:100vh;max-height:none;border-radius:0;transform:translateX(100%);padding-bottom:0;padding-top:calc(var(--annH) + var(--navH))}
+  /* z-index 630 de vuelta: en escritorio el drawer va POR DEBAJO del topbar (680) a propósito —
+     el header se sigue viendo arriba y el panel se acomoda con el padding-top. Solo en móvil sube
+     a 690 para taparlo. */
+  .buy-modal{left:auto;right:0;top:0;bottom:0;z-index:630;width:90%;max-width:none;height:100vh;max-height:none;border-radius:0;transform:translateX(100%);padding-bottom:0;padding-top:calc(var(--annH) + var(--navH))}
   .buy-modal.on{transform:translateX(0)}
 }
 @media(min-width:724px){.buy-modal{width:80%}}
