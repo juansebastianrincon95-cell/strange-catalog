@@ -1921,8 +1921,15 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    tienda.js) y vuelve a mostrarse siempre en `y <= 2`. Entre 0 y 77px nunca está oculta, así que
    ese padding nunca queda a la vista sin cabecera encima — simplemente se revela el contenido que
    estaba detrás de ella, que es justo lo que pasa en el inicio.
-   Las transiciones de padding-top de .catview, .pm-wrap y .info-page se retiran también: ya no hay
-   nada que transicionar. */
+   Las transiciones de padding-top se retiran también: ya no hay nada que transicionar.
+   ⚠️ PERO la ficha y las páginas de info SÍ necesitan su regla, y por eso vuelven abajo. La
+   diferencia está en DÓNDE vive el padding: en .catview está dentro del propio contenedor que
+   scrollea, así que al bajar se va de pantalla solo. En .pm-wrap y .info-page está en un envoltorio
+   fijo que NO scrollea (el scroll ocurre en .pm-scroll / .info-scroll, más adentro), así que ese
+   padding es una banda permanente arriba: si la cabecera se oculta y el padding se queda, queda un
+   hueco blanco de 77px. Bug reportado y reproducido el 2026-09-09. */
+#topbar.hide ~ #photoModal .pm-wrap{padding-top:0}
+#topbar.hide ~ #infoModal .info-page{padding-top:0}
 
 /* TOGGLE Móvil/Escritorio (admin banners) */
 /* Subida de banner: las DOS versiones (móvil + escritorio) visibles a la vez, lado a lado.

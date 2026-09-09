@@ -299,9 +299,9 @@ function pinHeader(yaAbierta){
   const tb=$('topbar');if(tb){tb.classList.remove('hide');tb.classList.add('pinned');}
 }
 function unpinHeader(){if(_pinCount>0)_pinCount--;if(_pinCount===0){const tb=$('topbar');if(tb){tb.classList.remove('pinned');
-  // Limpia el arrastre 1:1 que aplica el listener de scroll mientras la vista está pinned (ver
-  // "seguirScroll" en el bloque de auto-ocultar). Sin esto el header volvería al inicio con un
-  // transform y un transition:none pegados de la vista anterior.
+  // Limpieza defensiva: el arrastre 1:1 que dejaba un transform y un transition inline ya no
+  // existe, pero un visitante que abrió la tienda con la versión anterior puede tener el JS viejo
+  // en caché y quedarse con la cabecera corrida. Estas dos líneas lo devuelven a cero al cerrar.
   tb.style.transform='';tb.style.transition='';}}}
 
 /* La ficha (#photoModal) y la ventana de info (#infoModal) tienen z-index más alto que el
@@ -603,31 +603,19 @@ function waMayoristas(){
   function soloVuelveArriba(){
     return bar.classList.contains('pinned') && window.matchMedia('(max-width:699px)').matches;
   }
-  /* ARRASTRE 1:1 — la cabecera se va CON el dedo, no después de él.
-     En el inicio el header está en el flujo: si scrolleas 30px, sube 30px, y a los 77 ya no está.
-     En catálogo/ficha/info no puede hacer eso solo, porque el scroll ocurre DENTRO de una capa
-     fixed y el header es hermano, fuera de ella. Antes se compensaba con un auto-ocultar: el
-     header se quedaba quieto un rato y luego se deslizaba solo en .35s. Eso es lo que se veía
-     como "no se pierde al mismo tiempo que scrolleo".
-     Acá se lo mueve a mano: translateY(-min(scroll, alto)). El resultado es idéntico a estar en
-     el flujo — acompaña el dedo, desaparece exactamente al pasar su propio alto, y al subir solo
-     reaparece en los últimos 77px, igual que en el inicio.
-     transition:none es obligatorio: con la transición de .35s puesta, cada frame animaría hacia
-     el valor nuevo y el header iría siempre retrasado respecto al dedo. unpinHeader() limpia las
-     dos propiedades al cerrar la vista. */
-  function seguirScroll(y){
-    const h=bar.offsetHeight||77;
-    bar.style.transition='none';
-    bar.classList.remove('hide');
-    bar.style.transform='translateY(-'+Math.min(Math.max(y,0),h)+'px)';
-  }
   function bind(getY){
     let lastY=getY(), ticking=false;
     function update(){
       const y=getY();
       nudgeRepaintSoon();
-      // Móvil dentro de catálogo/ficha/info: manda el arrastre 1:1, no el auto-ocultar por umbral.
-      if(soloVuelveArriba()){ seguirScroll(y); lastY=y; ticking=false; return; }
+      /* ⚠️ Acá vivía el arrastre 1:1 (seguirScroll). Se retiró: causaba una BANDA BLANCA de 77px
+         en la ficha y en las páginas de info. Esas dos son capas fixed cuyo contenedor (.pm-wrap /
+         .info-page) reserva el alto de la cabecera con un padding-top FIJO. Al arrastrar la
+         cabecera con un transform, el padding seguía ahí pero ya no había cabecera que lo ocupara.
+         El catálogo, que era para lo que se hizo, ya no lo necesita: pasó al flujo de la página
+         (body.cat-flow) y ahí lo mueve el motor nativo.
+         Tampoco sirve encoger ese padding al ritmo del arrastre: el contenido se movería al doble
+         de velocidad que el dedo (baja por el scroll Y por el padding que se achica a la vez). */
       // "Arriba del todo" manda SIEMPRE, incluso durante la ventana de supresión: si no, un
       // bajón rápido (oculta la cabecera y arranca la supresión de 400ms) seguido de una subida
       // rápida hasta el tope, con todo el gesto dentro de esos 400ms, deja el evento de "subir"

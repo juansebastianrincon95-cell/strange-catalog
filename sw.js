@@ -10,7 +10,7 @@
    - cross-origin      → passthrough sin tocar (supabase, GA, fbq, etc.).
 
    Sube el numero de version (v1 → v2 …) en cada deploy que cambie el app-shell. */
-const CACHE = 'strange-admin-v86';   // v86: guia de tallas y botones de compra a la escala sahet
+const CACHE = 'strange-admin-v87';   // v87: FIX banda blanca de 77px en la ficha
 
 const SHELL = [
   '/',
