@@ -199,22 +199,17 @@ function flyToCart(imgEl){
     clone.style.top=r0.top+'px';
     clone.style.width=r0.width+'px';
     clone.style.height=r0.height+'px';
-    document.body.appendChild(clone);
-    /* Fuerza el cálculo del estado INICIAL antes de tocar transform/opacity. Sin esto el navegador
-       puede juntar el "nació" y el "cambió" en el mismo paso de estilo, no ve dos valores entre
-       los cuales interpolar y salta directo al final: el clon aparece ya encogido y transparente
-       sobre la bolsa, sin vuelo. Medido en vivo: 19 muestras seguidas, todas en 15x15 con
-       opacidad 0 y sin moverse. */
-    void clone.offsetWidth;
+    /* El recorrido lo define @keyframes flyCart en el CSS; acá solo se le pasa CUÁNTO tiene que
+       viajar, porque cada tarjeta está a una distancia distinta del carrito.
+       Las variables van ANTES del appendChild: la animación arranca en cuanto el elemento entra al
+       documento, y si llegaran después el primer frame se calcularía con --dx/--dy vacías.
+       Ya no hace falta ni el rAF ni el void offsetWidth que necesitaba la versión con transition:
+       una animación por keyframes no depende de que existan dos valores previos que interpolar. */
     const dx=(r1.left+r1.width/2)-(r0.left+r0.width/2);
     const dy=(r1.top+r1.height/2)-(r0.top+r0.height/2);
-    requestAnimationFrame(()=>{
-      // rotate + scale muy chico = el "estrujón". La opacidad va a 0, pero su transición lleva
-      // 0,62s de retraso (ver .fly-cart en el CSS): la hoja se mantiene ENTERA todo el viaje y
-      // solo se apaga en el último instante, ya encogida dentro de la bolsa.
-      clone.style.transform=`translate(${dx}px,${dy}px) scale(.06) rotate(32deg)`;
-      clone.style.opacity='0';
-    });
+    clone.style.setProperty('--dx',dx+'px');
+    clone.style.setProperty('--dy',dy+'px');
+    document.body.appendChild(clone);
     setTimeout(()=>{
       clone.remove();
       bar.classList.add('bump');
