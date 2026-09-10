@@ -216,7 +216,7 @@ function escaleraAhorro(rows,pricing){
     applyBtn=`<button class="esc-apply" onclick="aplicarComboSug('${escHtml(cand.id)}')">Aplicar ${escHtml(cand.nombre)} ${cand.bandera||''} y ahorrar <span class="esc-apply-monto">${fmt(pricing.sub-parseInt(cand.precio))}</span></button>`;
   }
   return `<div class="esc-wrap">
-    <div class="esc-head"><span>🔥</span><span>COMPRA MÁS, AHORRA MÁS</span></div>
+    <div class="esc-head"><span class="esc-fuego">🔥</span><span>COMPRA MÁS, AHORRA MÁS</span></div>
     <div class="esc-sub">${head}</div>
     <div class="esc-ladder">${filas}</div>
     ${applyBtn}

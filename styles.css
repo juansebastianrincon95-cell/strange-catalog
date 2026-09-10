@@ -1221,6 +1221,43 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
   .esc-row .esc-pares{min-width:52px}
   .esc-row .esc-precio{min-width:66px}
   .esc-apply{margin-top:8px;padding:0;height:31px;font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+
+  /* ── DESTELLO Y FUEGO ─────────────────────────────────────────────────────────────────────
+     Es el único bloque de la tienda cuyo trabajo es interrumpir para proponer algo, así que un
+     brillo que llame el ojo tiene sentido acá y en ningún otro lado.
+     Va CONTENIDO a propósito. Todo el sitio es plano, sin negritas y en blanco y negro: un borde
+     neón girando sería el elemento más ruidoso de la tienda y delataría "esto es un anuncio"
+     justo donde el cliente mira precios. Un destello que se lee como publicidad se vuelve
+     invisible a la segunda visita.
+     Por eso: barrido de ~1s y luego 5s quieto (el ciclo dura 6s), blanco al 60% para que el texto
+     se siga leyendo mientras pasa, y el borde acompaña oscureciéndose apenas en ese mismo
+     instante en vez de parpadear todo el tiempo. */
+  .esc-wrap{position:relative;overflow:hidden;animation:escBorde 6s ease-in-out 1.2s infinite}
+  .esc-wrap::after{
+    content:'';position:absolute;inset:0;pointer-events:none;z-index:2;
+    background:linear-gradient(105deg,transparent 42%,rgba(255,255,255,.6) 50%,transparent 58%);
+    transform:translateX(-120%);
+    animation:escDestello 6s cubic-bezier(.4,0,.2,1) 1.2s infinite;
+  }
+  /* El barrido ocupa el primer 18% del ciclo (~1,08s) y el resto se queda fuera de cuadro. */
+  @keyframes escDestello{0%{transform:translateX(-120%)}18%,100%{transform:translateX(120%)}}
+  @keyframes escBorde{0%,100%{border-color:var(--line)}18%{border-color:rgba(0,0,0,.26)}}
+  /* Fuego: titila y se inclina, NO rebota. transform-origin abajo para que se mueva como llama
+     apoyada en su base. Ciclo propio de 2,4s, desacoplado del destello: si fueran iguales
+     parecería un banner con todo sincronizado. */
+  .esc-fuego{display:inline-block;transform-origin:50% 90%;animation:escFuego 2.4s ease-in-out infinite}
+  @keyframes escFuego{
+    0%,100%{transform:scale(1) rotate(0deg)}
+    25%{transform:scale(1.12) rotate(-6deg)}
+    50%{transform:scale(.97) rotate(3deg)}
+    75%{transform:scale(1.07) rotate(-3deg)}
+  }
+}
+/* Quien pidió menos movimiento en su teléfono no ve NADA de esto. No es un extra: para parte de
+   la gente el movimiento repetitivo produce mareo, y el sistema operativo ya lo avisa. */
+@media(prefers-reduced-motion:reduce){
+  .esc-wrap,.esc-wrap::after,.esc-fuego{animation:none}
+  .esc-wrap::after{display:none}
 }
 /* "También te puede gustar" — cross-sell en la ficha (reusa las tarjetas .xs-card) */
 .pmx{margin-top:18px;border-top:1px solid var(--line);padding-top:16px}
