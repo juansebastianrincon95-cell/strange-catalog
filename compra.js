@@ -187,7 +187,7 @@ function bmBolsaFooterHTML(){
      botón sería empujar a una pantalla sin sentido.
      aria-hidden porque es puramente decorativo: quien use lector de pantalla ya oye el botón. */
   const puntero=Object.keys(cart).length
-    ? `<span class="pay-pointer" aria-hidden="true"><span class="pay-ring"></span><svg viewBox="0 0 20 23" fill="none"><path d="M2 1.6 17.4 12.2l-6.6 1.1 3.4 6.6-2.6 1.4-3.4-6.6-4.2 4.3z" fill="#fff" stroke="#0E0E0C" stroke-width="1.2" stroke-linejoin="round"/></svg></span>`
+    ? `<span class="pay-pointer" aria-hidden="true"><span class="pay-ring"></span><svg viewBox="0 0 20 23" fill="none" preserveAspectRatio="xMidYMid meet"><path d="M2 1.6 17.4 12.2l-6.6 1.1 3.4 6.6-2.6 1.4-3.4-6.6-4.2 4.3z" fill="#fff" stroke="#0E0E0C" stroke-width="1.2" stroke-linejoin="round"/></svg></span>`
     : '';
   return `<button class="btnmain" onclick="bmSwitchTab('pagar')">Ir a pagar ${fmt(bmMontoAPagar())}</button>${puntero}`;
 }

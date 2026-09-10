@@ -1452,7 +1452,11 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    vivo: 35px entre el fondo de las pestañas y "① DATOS DE ENVÍO"). Antes era 0 y, sumado al
    margin-top:0 que traía la sección "Datos de envío" (compra.js), quedaba pegada al ras. */
 .bm-body{overflow-y:auto;flex:1;min-height:0;-webkit-overflow-scrolling:touch;padding:16px 18px 24px}
-.bm-foot{position:relative;padding:12px 18px 2px;border-top:1px solid var(--line);flex-shrink:0}
+/* padding inferior de 2 → 14px: el botón "Ir a pagar" quedaba a DOS píxeles del borde de la
+   pantalla (medido), pegado al filo. Los 14px le dan aire y de paso dejan sitio para que el cursor
+   asome por debajo. En móvil el área segura del iPhone la pone .buy-modal con su propio
+   padding-bottom, así que acá no se vuelve a sumar. */
+.bm-foot{position:relative;padding:12px 18px 14px;border-top:1px solid var(--line);flex-shrink:0}
 /* CURSOR QUE SEÑALA "IR A PAGAR" — calcado del .container-click de sahet.co: cursor de 20x23 con
    un anillo expandiéndose detrás, colocado encima del botón de pago.
    Se ancla a .bm-foot y no al botón porque el botón se regenera con cada cambio del carrito; el
@@ -1460,14 +1464,20 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    bottom:6px deja el cursor montado sobre la mitad baja, y right:26px lo mantiene lejos del texto.
    Blanco con filete oscuro para que se lea sobre el botón negro — el de sahet es blanco porque el
    suyo también es negro. */
-.pay-pointer{position:absolute;right:26px;bottom:6px;width:20px;height:23px;pointer-events:none;z-index:2}
-.pay-pointer svg{position:relative;z-index:2;width:20px;height:23px;display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))}
-/* El anillo nace en la punta del cursor y muere a 64px. 1,6s y no 1s como el suyo: acá el cursor
+/* CENTRADO, como el de sahet. Estaba pegado a la derecha (medido: 319px fuera del centro del
+   botón), que además es donde menos se nota.
+   La punta del cursor cae DENTRO del botón y el cuerpo asoma por debajo, sobre el padding nuevo
+   del pie: así se lee como un dedo tocando el botón y no como un adorno flotando encima del texto.
+   24x28 en vez de 20x23 (el de sahet): el suyo va suelto sobre fondo claro; el nuestro compite con
+   un botón negro y a 20px se perdía. */
+.pay-pointer{position:absolute;left:50%;right:auto;bottom:2px;transform:translateX(-50%);width:24px;height:28px;pointer-events:none;z-index:2}
+.pay-pointer svg{position:relative;z-index:2;width:24px;height:28px;display:block;filter:drop-shadow(0 1px 3px rgba(0,0,0,.45))}
+/* El anillo nace en la punta del cursor y muere a 76px. 1,6s y no 1s como el suyo: acá el cursor
    está ENCIMA del botón, no suelto debajo, y a un segundo el parpadeo compite con el texto. */
-.pay-ring{position:absolute;left:4px;top:3px;width:8px;height:8px;margin:-4px;border:4px solid #fff;border-radius:50%;animation:payRing 1.6s ease-out infinite}
+.pay-ring{position:absolute;left:5px;top:4px;width:8px;height:8px;margin:-4px;border:4px solid #fff;border-radius:50%;animation:payRing 1.6s ease-out infinite}
 @keyframes payRing{
-  0%{opacity:.85;width:8px;height:8px;margin:-4px;border-width:4px}
-  100%{opacity:0;width:64px;height:64px;margin:-32px;border-width:1px}
+  0%{opacity:.9;width:8px;height:8px;margin:-4px;border-width:4px}
+  100%{opacity:0;width:76px;height:76px;margin:-38px;border-width:1px}
 }
 /* Pestañas BOLSA/PAGAR calcadas de sahet.co (revisado en vivo por DOM: "BOLSA 13" con badge
    negro / "PAGAR $552.700" con el monto, la activa con fondo oscuro) — ver bmTabsHTML() en
