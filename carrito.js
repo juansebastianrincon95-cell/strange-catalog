@@ -208,7 +208,24 @@ function escaleraAhorro(rows,pricing){
   if(next){
     const faltan=parseInt(next.pares)-tot, ahorroNext=(parseInt(next.pares)*refUnit)-parseInt(next.precio);
     head=`Agrega <b>${faltan} modelo${faltan===1?'':'s'} más</b> → ahorras <b>${fmt(ahorroNext)}</b>`;
-  }else head=`🎉 ¡Llevas el máximo ahorro (${maxPares} pares)!`;
+  }else if(tot===maxPares){
+    // Justo en el tope: acá la felicitación SÍ es cierta, el precio de combo está aplicando.
+    const ahorroMax=(maxPares*refUnit)-parseInt(tiers[tiers.length-1].precio);
+    head=`🎉 <b>¡Desbloqueaste el máximo ahorro!</b> Llevas ${maxPares} pares y te ahorras <b>${fmt(ahorroMax)}</b>.`;
+  }else{
+    /* PASADO el tope. Acá NO se felicita: el precio de combo exige que la cantidad coincida
+       EXACTO (ver cartPricing: `pares===parseInt(comboActivo.pares)`), así que con un par de más
+       el combo deja de aplicar y se paga todo a precio normal. Con la configuración real —4 pares
+       a $700.000 y un par promedio de $197.000— el quinto par no sale barato: sale a $285.000,
+       porque arrastra la pérdida de los $88.000 del combo.
+       Antes acá decía "🎉 ¡Llevas el máximo ahorro!", que era falso justo cuando el cliente estaba
+       pagando de más. Ahora se le dice qué pasó y cómo recuperarlo — que además es lo que salva
+       la venta en vez de dejarlo descubrirlo en el total. */
+    const sobran=tot-maxPares;
+    const ahorroMax=(maxPares*refUnit)-parseInt(tiers[tiers.length-1].precio);
+    const nombreMax=escHtml(tiers[tiers.length-1].nombre||`${maxPares} pares`);
+    head=`Con ${tot} pares el precio de <b>${nombreMax}</b> ya no aplica. Quita ${sobran} par${sobran===1?'':'es'} y recuperas <b>${fmt(ahorroMax)}</b> de ahorro.`;
+  }
   // Botón aplicar si el nivel EXACTO está disponible y sale más barato que lo que va a pagar.
   const cand=tiers.find(t=>parseInt(t.pares)===tot);
   let applyBtn='';
