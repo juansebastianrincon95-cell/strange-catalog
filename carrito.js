@@ -384,9 +384,18 @@ function cartKey(id,type,talla){return (type==='liq'?'L'+id:''+id)+(talla?'-t'+t
 function enCarrito(id,type){return Object.values(cart).some(it=>it.type===type&&it.p.id===id);}
 // Sincroniza la tarjeta (grid + lanzamientos + preview + recientes): ✓ si está en el carrito
 // en ALGUNA talla. Separado de togCard() para poder reusarlo desde addItemToCart().
+/* TODOS los sitios donde puede existir una tarjeta del mismo producto, cada uno con su prefijo de
+   id (cardHTML los recibe para no repetir ids). ÚNICA fuente de la lista: antes estaba copiada en
+   syncCardUI() y en rmItem(), y cuando se agregaron las filas de género del inicio ('kgm'/'kgh')
+   nadie actualizó las copias — esas tarjetas se quedaban con el ✓ azul encendido aunque el
+   producto ya no estuviera en la bolsa. Bug reportado y reproducido el 2026-09-10. */
+function cardEls(id,type){
+  if(type==='liq')return [$('lk'+id)];
+  return ['k','kl','kp','kr','kf','kgm','kgh'].map(pre=>$(pre+id));
+}
 function syncCardUI(id,type){
   const anyIn=enCarrito(id,type);
-  const els=type==='liq'?[$('lk'+id)]:[$('k'+id),$('kl'+id),$('kp'+id),$('kr'+id),$('kf'+id)];
+  const els=cardEls(id,type);
   els.forEach(el=>{
     if(!el)return;
     el.classList.toggle('picked',anyIn);
@@ -573,14 +582,8 @@ function rmItem(key){
   const it=cart[key];delete cart[key];
   if(it){
     // El ✓ solo se quita si NO queda otra talla del mismo modelo en el carrito (igual que togCard).
-    const anyIn=enCarrito(it.p.id,it.type);
-    const els=it.type==='liq'?[$('lk'+it.p.id)]:[$('k'+it.p.id),$('kl'+it.p.id),$('kp'+it.p.id),$('kr'+it.p.id),$('kf'+it.p.id)];
-    els.forEach(el=>{
-      if(!el)return;
-      el.classList.toggle('picked',anyIn);
-      const circle=el.querySelector('.add-circle');
-      if(circle)circle.textContent=anyIn?'✓':'+';
-    });
+    // Misma lógica que syncCardUI(): se delega en ella para no volver a mantener dos copias.
+    syncCardUI(it.p.id,it.type);
     if(pmId===it.p.id&&pmType===it.type)syncPmBtn();
   }
   syncDot();renderStep();

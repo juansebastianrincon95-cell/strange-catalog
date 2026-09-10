@@ -10,7 +10,7 @@
    - cross-origin      → passthrough sin tocar (supabase, GA, fbq, etc.).
 
    Sube el numero de version (v1 → v2 …) en cada deploy que cambie el app-shell. */
-const CACHE = 'strange-admin-v99';   // v99: el check azul se apaga al vaciar la bolsa
+const CACHE = 'strange-admin-v100';   // v100: el check azul tambien se apaga en las filas del inicio
 
 const SHELL = [
   '/',
