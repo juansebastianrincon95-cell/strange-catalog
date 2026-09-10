@@ -219,7 +219,7 @@ function flyToCart(imgEl){
       clone.remove();
       bar.classList.add('bump');
       setTimeout(()=>bar.classList.remove('bump'),300);
-    },780);
+    },1060);   // 1s de vuelo + margen: el clon se retira justo cuando termina y ahí rebota la barra
     return true;
   }catch(e){return false;}
 }
