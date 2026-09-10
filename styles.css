@@ -1263,8 +1263,8 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 /* Quien pidió menos movimiento en su teléfono no ve NADA de esto. No es un extra: para parte de
    la gente el movimiento repetitivo produce mareo, y el sistema operativo ya lo avisa. */
 @media(prefers-reduced-motion:reduce){
-  .esc-wrap,.esc-wrap::after,.esc-fuego,#bmFoot .btnmain::after{animation:none}
-  .esc-wrap::after,#bmFoot .btnmain::after{display:none}
+  .esc-wrap,.esc-wrap::after,.esc-fuego,.pay-ring{animation:none}
+  .esc-wrap::after,.pay-pointer{display:none}
 }
 /* "También te puede gustar" — cross-sell en la ficha (reusa las tarjetas .xs-card) */
 .pmx{margin-top:18px;border-top:1px solid var(--line);padding-top:16px}
@@ -1452,7 +1452,23 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    vivo: 35px entre el fondo de las pestañas y "① DATOS DE ENVÍO"). Antes era 0 y, sumado al
    margin-top:0 que traía la sección "Datos de envío" (compra.js), quedaba pegada al ras. */
 .bm-body{overflow-y:auto;flex:1;min-height:0;-webkit-overflow-scrolling:touch;padding:16px 18px 24px}
-.bm-foot{padding:12px 18px 2px;border-top:1px solid var(--line);flex-shrink:0}
+.bm-foot{position:relative;padding:12px 18px 2px;border-top:1px solid var(--line);flex-shrink:0}
+/* CURSOR QUE SEÑALA "IR A PAGAR" — calcado del .container-click de sahet.co: cursor de 20x23 con
+   un anillo expandiéndose detrás, colocado encima del botón de pago.
+   Se ancla a .bm-foot y no al botón porque el botón se regenera con cada cambio del carrito; el
+   pie no. Las medidas salen de su padding: el botón ocupa de 12 a 43px dentro del pie, así que
+   bottom:6px deja el cursor montado sobre la mitad baja, y right:26px lo mantiene lejos del texto.
+   Blanco con filete oscuro para que se lea sobre el botón negro — el de sahet es blanco porque el
+   suyo también es negro. */
+.pay-pointer{position:absolute;right:26px;bottom:6px;width:20px;height:23px;pointer-events:none;z-index:2}
+.pay-pointer svg{position:relative;z-index:2;width:20px;height:23px;display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))}
+/* El anillo nace en la punta del cursor y muere a 64px. 1,6s y no 1s como el suyo: acá el cursor
+   está ENCIMA del botón, no suelto debajo, y a un segundo el parpadeo compite con el texto. */
+.pay-ring{position:absolute;left:4px;top:3px;width:8px;height:8px;margin:-4px;border:4px solid #fff;border-radius:50%;animation:payRing 1.6s ease-out infinite}
+@keyframes payRing{
+  0%{opacity:.85;width:8px;height:8px;margin:-4px;border-width:4px}
+  100%{opacity:0;width:64px;height:64px;margin:-32px;border-width:1px}
+}
 /* Pestañas BOLSA/PAGAR calcadas de sahet.co (revisado en vivo por DOM: "BOLSA 13" con badge
    negro / "PAGAR $552.700" con el monto, la activa con fondo oscuro) — ver bmTabsHTML() en
    compra.js. Comparten el mismo cart/cData: cambiar de pestaña no pierde nada. */
@@ -1590,22 +1606,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    botón del paso ④ de la pestaña PAGAR, que ya usaba estas medidas.
    Va scopeado a #bmFoot: .btnmain a secas la usan también el carrito clásico y la ficha del
    producto, donde 31px sería un botón principal demasiado chico. */
-#bmFoot .btnmain{height:31px;padding:0 22px;font-size:10px;text-transform:uppercase;position:relative}
-/* Latido en "Ir a pagar" — la idea es de sahet: tienen un .click-effect (anillo que se expande en
-   bucle de 1s) justo debajo de su IR A PAGAR, como un "toca aquí" que empuja la vista al pago.
-   El suyo es un anillo blanco suelto bajo el botón; acá sale del propio botón, porque el nuestro es
-   negro sobre blanco y un aro blanco sobre fondo blanco no se vería.
-   2,6s y no 1s: en un botón que ya es el elemento más oscuro de la pantalla, latir cada segundo
-   pasa de guiar a apurar. Con opacidad que arranca en .55 y muere en 0, el anillo se insinúa y se
-   va — nunca compite con el texto del botón. */
-#bmFoot .btnmain::after{
-  content:'';position:absolute;inset:0;pointer-events:none;
-  border:1px solid var(--ink);
-  animation:pagarPulso 2.6s ease-out infinite;
-}
-@keyframes pagarPulso{
-  0%{transform:scale(1);opacity:.55}
-  70%,100%{transform:scale(1.07);opacity:0}
+#bmFoot .btnmain{height:31px;padding:0 22px;font-size:10px;text-transform:uppercase}
 }
 /* Medidas calcadas de sahet.co (revisado en vivo por DOM el 2026-09-03): título 12px SIN
    negrita, círculo de 16px sin borde con fondo gris claro (no blanco+contorno) — todo el

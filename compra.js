@@ -180,7 +180,16 @@ function bmRefreshEscalera(){
   box.innerHTML=escaleraAhorro(rows,cartPricing(rows));
 }
 function bmBolsaFooterHTML(){
-  return `<button class="btnmain" onclick="bmSwitchTab('pagar')">Ir a pagar ${fmt(bmMontoAPagar())}</button>`;
+  /* El cursor que señala "Ir a pagar", calcado del de sahet.co: su .container-click lleva un
+     .click-effect (anillo que se expande en bucle) MÁS un .icon-pointer de 20x23 — el cursor.
+     Solo con el anillo el efecto no se lee; el dedo/cursor es lo que dice "toca AQUÍ".
+     Va condicionado a que haya productos: con la bolsa vacía no hay nada que pagar y señalar el
+     botón sería empujar a una pantalla sin sentido.
+     aria-hidden porque es puramente decorativo: quien use lector de pantalla ya oye el botón. */
+  const puntero=Object.keys(cart).length
+    ? `<span class="pay-pointer" aria-hidden="true"><span class="pay-ring"></span><svg viewBox="0 0 20 23" fill="none"><path d="M2 1.6 17.4 12.2l-6.6 1.1 3.4 6.6-2.6 1.4-3.4-6.6-4.2 4.3z" fill="#fff" stroke="#0E0E0C" stroke-width="1.2" stroke-linejoin="round"/></svg></span>`
+    : '';
+  return `<button class="btnmain" onclick="bmSwitchTab('pagar')">Ir a pagar ${fmt(bmMontoAPagar())}</button>${puntero}`;
 }
 function bmRefreshProductos(){
   const list=$('srList');if(list)list.innerHTML=bmProductosListHTML();
