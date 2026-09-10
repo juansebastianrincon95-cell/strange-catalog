@@ -443,7 +443,7 @@ function togCard(id,type,talla,fromEl,sinAbrirBolsa){
   const voló=typeof flyToCart==='function'&&flyToCart(fromEl);
   if(!_bolsaAbiertaUnaVez&&!sinAbrirBolsa){
     _bolsaAbiertaUnaVez=true;
-    if(voló)setTimeout(()=>openBuyModal('full'),920);else openBuyModal('full');
+    if(voló)setTimeout(()=>openBuyModal('full'),800);else openBuyModal('full');   // 800 = lo que dura el vuelo
   }else if(!voló){
     toast('Agregado a tu bolsa');
   }

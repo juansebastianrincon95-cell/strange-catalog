@@ -10,7 +10,7 @@
    - cross-origin      → passthrough sin tocar (supabase, GA, fbq, etc.).
 
    Sube el numero de version (v1 → v2 …) en cada deploy que cambie el app-shell. */
-const CACHE = 'strange-admin-v93';   // v93: la bolsa ya no se abre encima al anadir desde la ficha
+const CACHE = 'strange-admin-v94';   // v94: fly-cart estilo sahet — la hoja se estruja y cae
 
 const SHELL = [
   '/',

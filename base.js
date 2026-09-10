@@ -186,9 +186,15 @@ function flyToCart(imgEl){
     if(!r0.width||!r0.height)return false;   // tarjeta fuera de pantalla (ej. carrusel escondido)
     const icon=bar.querySelector('.cart-bar-icon')||bar;
     const r1=icon.getBoundingClientRect();
-    const cut=cutoutSilueta(imgEl,220);
-    const clone=cut||imgEl.cloneNode();
-    clone.className='fly-cart'+(cut?' fly-cart-cut':'');
+    /* Vuela la foto ENTERA, con su fondo blanco, como una hoja de papel — no la silueta recortada.
+       Antes se llamaba a cutoutSilueta() para que viajara solo el zapato; el resultado era que la
+       silueta se desvanecía a media ruta ("se desintegra en el camino"). El de sahet se lee como
+       agarrar una hoja, estrujarla y tirarla a la bolsa, y para eso el papel tiene que existir:
+       un rectángulo opaco que se arruga y cae, no una silueta que se apaga.
+       cutoutSilueta() sigue en el archivo y la usan otros sitios; acá se deja de llamar a
+       propósito, y de paso el vuelo ya no depende de que la foto permita leer sus píxeles. */
+    const clone=imgEl.cloneNode();
+    clone.className='fly-cart';
     clone.style.left=r0.left+'px';
     clone.style.top=r0.top+'px';
     clone.style.width=r0.width+'px';
@@ -197,14 +203,17 @@ function flyToCart(imgEl){
     const dx=(r1.left+r1.width/2)-(r0.left+r0.width/2);
     const dy=(r1.top+r1.height/2)-(r0.top+r0.height/2);
     requestAnimationFrame(()=>{
-      clone.style.transform=`translate(${dx}px,${dy}px) scale(.12)`;
-      clone.style.opacity='.2';
+      // rotate + scale muy chico = el "estrujón". La opacidad va a 0, pero su transición lleva
+      // 0,62s de retraso (ver .fly-cart en el CSS): la hoja se mantiene ENTERA todo el viaje y
+      // solo se apaga en el último instante, ya encogida dentro de la bolsa.
+      clone.style.transform=`translate(${dx}px,${dy}px) scale(.06) rotate(32deg)`;
+      clone.style.opacity='0';
     });
     setTimeout(()=>{
       clone.remove();
       bar.classList.add('bump');
       setTimeout(()=>bar.classList.remove('bump'),300);
-    },920);
+    },780);
     return true;
   }catch(e){return false;}
 }

@@ -295,7 +295,12 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 /* Animación "vuela al carrito" (flyToCart en base.js): clon fixed de la foto de la tarjeta que
    viaja hasta el ícono del carrito y se achica/desvanece. transform+opacity nada más (compositor,
    sin reflow) para que ande fluido aunque haya muchas tarjetas en pantalla. */
-.fly-cart{position:fixed;z-index:9999;border-radius:12px;object-fit:cover;pointer-events:none;background:var(--white);box-shadow:0 8px 24px rgba(0,0,0,.28);transition:transform .9s cubic-bezier(.4,0,.2,1),opacity .9s ease .2s}
+/* Curva de ENTRADA (arranca lento, acelera) en vez de la de salida que había: es lo que hace que
+   se lea como algo LANZADO a la bolsa y no como algo que aterriza con suavidad.
+   La opacidad ya no se desvanece durante el viaje — eso era lo que hacía que el zapato "se
+   desintegrara en el camino". Ahora se mantiene entera 0,62s y solo se apaga en los últimos
+   0,14s, cuando ya está encogida dentro de la bolsa. */
+.fly-cart{position:fixed;z-index:9999;border-radius:12px;object-fit:cover;pointer-events:none;background:var(--white);box-shadow:0 8px 24px rgba(0,0,0,.28);transition:transform .72s cubic-bezier(.55,.06,.68,.19),opacity .14s ease .62s}
 /* Cuando SÍ se pudo recortar el fondo (cutoutSilueta devolvió un <canvas>): nada de tarjeta
    blanca detrás, se ve solo la silueta del zapato "volando" sola. */
 .fly-cart-cut{background:transparent;box-shadow:none;object-fit:contain}
