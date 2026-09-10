@@ -465,6 +465,16 @@ function syncDot(){
 // Guarda SOLO identificadores (id/type/talla/qty); al restaurar re-hidrata el producto desde
 // prods/liqs (precio/stock FRESCOS) y descarta los que ya no existen o están agotados.
 // El combo NO se persiste a propósito (evita el "combo fantasma" — ver restaurarCombo).
+/* Quita el ✓ azul de TODAS las tarjetas. Se usa donde el carrito se vacía de golpe (compra
+   pagada): ahí se hace `for(const k in cart)delete cart[k]` y ninguna tarjeta se entera, así que
+   quedaban marcadas como "en la bolsa" con la bolsa vacía. No se puede resolver con syncCardUI(),
+   que trabaja producto por producto y necesita saber cuáles había. */
+function limpiarMarcasDeCarrito(){
+  document.querySelectorAll('.card.picked,.liq-card.picked').forEach(el=>{
+    el.classList.remove('picked');
+    const c=el.querySelector('.add-circle');if(c)c.textContent='+';
+  });
+}
 function saveCart(){
   try{
     const items=Object.values(cart).map(({p,qty,type,talla})=>({id:p.id,type,talla:talla||null,qty}));
@@ -1094,7 +1104,7 @@ async function checkWompiReturn(){
   }
   if(verified){
     comboActivo=null;   // ciclo del combo cerrado
-    for(const k in cart)delete cart[k];syncDot();   // compra pagada → vaciar el carrito (y ss_cart)
+    for(const k in cart)delete cart[k];syncDot();limpiarMarcasDeCarrito();   // compra pagada → vaciar el carrito (y ss_cart) y apagar los ✓ de las tarjetas
     const order=orders.find(o=>o.reference===reference)||
                 orders.filter(o=>o.pago==='wompi'&&o.status==='pending').pop();
     if(order){
@@ -1185,7 +1195,7 @@ async function checkBoldReturn(){
   }
   if(verified){
     comboActivo=null;   // ciclo del combo cerrado
-    for(const k in cart)delete cart[k];syncDot();   // compra pagada → vaciar el carrito (y ss_cart)
+    for(const k in cart)delete cart[k];syncDot();limpiarMarcasDeCarrito();   // compra pagada → vaciar el carrito (y ss_cart) y apagar los ✓ de las tarjetas
     const order=orders.find(o=>o.reference===reference)||orders.filter(o=>o.pago==='bold'&&o.status==='pending').pop();
     if(order){
       order.status='venta';saveState();

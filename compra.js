@@ -191,7 +191,19 @@ function bmChQty(key,d){
   if($('bmFoot')&&bmTab==='bolsa')$('bmFoot').innerHTML=bmBolsaFooterHTML();
 }
 function bmRmItem(key){
+  /* El ✓ azul de la tarjeta hay que apagarlo acá. Este modal borraba del carrito y actualizaba el
+     contador, pero nunca sincronizaba la tarjeta de atrás: quedaba marcada como "en la bolsa" con
+     la bolsa ya vacía. El rmItem() del carrito clásico sí lo hacía; este camino nació después y se
+     quedó sin esa parte.
+     El ítem se lee ANTES del delete, que es de donde salen su id y su tipo. syncCardUI() decide
+     sola si el ✓ se va o se queda: si el cliente tenía dos tallas del mismo modelo y quita una,
+     la tarjeta sigue marcada, que es lo correcto. */
+  const it=cart[key];
   delete cart[key];
+  if(it){
+    syncCardUI(it.p.id,it.type);
+    if(pmId===it.p.id&&pmType===it.type)syncPmBtn();   // y el botón de la ficha, si está abierta
+  }
   syncDot();
   // Este modal existe SOLO porque ya había un producto elegido — si el cliente lo quita y no
   // queda nada más, no hay nada que pagar: se cierra y listo (la ficha ya estaba abierta detrás,
