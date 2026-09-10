@@ -10,7 +10,7 @@
    - cross-origin      → passthrough sin tocar (supabase, GA, fbq, etc.).
 
    Sube el numero de version (v1 → v2 …) en cada deploy que cambie el app-shell. */
-const CACHE = 'strange-admin-v106';   // v106: destello y fuego en 'compra mas ahorra mas'
+const CACHE = 'strange-admin-v107';   // v107: el destello tambien en escritorio
 
 const SHELL = [
   '/',
