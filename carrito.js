@@ -232,10 +232,18 @@ function escaleraAhorro(rows,pricing){
   if(cand&&parseInt(cand.precio)<pricing.sub){
     applyBtn=`<button class="esc-apply" onclick="aplicarComboSug('${escHtml(cand.id)}')">Aplicar ${escHtml(cand.nombre)} ${cand.bandera||''} y ahorrar <span class="esc-apply-monto">${fmt(pricing.sub-parseInt(cand.precio))}</span></button>`;
   }
-  return `<div class="esc-wrap">
+  /* Con la promo COMPLETA (cantidad exacta del tope) se muestra solo el mensaje: la escalera
+     "2 pares / 3 pares / 4 pares" ya no tiene nada que ofrecer y compite con la felicitación.
+     Es una condición de igualdad estricta, así que se resuelve sola en los dos sentidos: si el
+     cliente quita un par la promo deja de estar completa y la tarjeta vuelve a mostrar la escalera
+     de siempre, sin ningún estado que recordar.
+     Pasado el tope la escalera SÍ vuelve, a propósito: ahí la promo se perdió y ver los niveles es
+     justo lo que le ayuda a entender a cuál conviene volver. */
+  const completo=tot===maxPares;
+  return `<div class="esc-wrap${completo?' esc-listo':''}">
     <div class="esc-head"><span class="esc-fuego">🔥</span><span>COMPRA MÁS, AHORRA MÁS</span></div>
     <div class="esc-sub">${head}</div>
-    <div class="esc-ladder">${filas}</div>
+    ${completo?'':`<div class="esc-ladder">${filas}</div>`}
     ${applyBtn}
   </div>`;
 }

@@ -10,7 +10,7 @@
    - cross-origin      → passthrough sin tocar (supabase, GA, fbq, etc.).
 
    Sube el numero de version (v1 → v2 …) en cada deploy que cambie el app-shell. */
-const CACHE = 'strange-admin-v108';   // v108: felicitacion al llegar al tope y aviso al pasarse
+const CACHE = 'strange-admin-v109';   // v109: con la promo completa solo se ve el mensaje
 
 const SHELL = [
   '/',

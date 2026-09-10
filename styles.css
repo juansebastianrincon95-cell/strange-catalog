@@ -1237,6 +1237,10 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    siga leyendo mientras pasa, y el borde acompaña oscureciéndose apenas en ese mismo instante en
    vez de parpadear todo el tiempo. */
 .esc-wrap{position:relative;overflow:hidden;animation:escBorde 6s ease-in-out 1.2s infinite}
+/* Promo completa: sin escalera, la tarjeta queda en dos líneas. Se le quita el padding de más que
+   existía para separar la última fila de la escalera, que ya no está. */
+.esc-listo{padding-bottom:12px}
+.esc-listo .esc-sub{margin-top:5px}
 .esc-wrap::after{
   content:'';position:absolute;inset:0;pointer-events:none;z-index:2;
   background:linear-gradient(105deg,transparent 42%,rgba(255,255,255,.6) 50%,transparent 58%);
