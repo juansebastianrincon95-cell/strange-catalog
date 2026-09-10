@@ -158,7 +158,13 @@ function bmBolsaHTML(){
     return `<div class="sf-empty">NO HAY ARTÍCULOS EN TU BOLSA</div>`;
   }
   const rows=Object.values(cart);
-  return `<div id="srList">${bmProductosListHTML()}</div><div id="srEscalera">${escaleraAhorro(rows,cartPricing(rows))}</div>`;
+  /* La escalera "COMPRA MÁS, AHORRA MÁS" va ARRIBA de la lista de productos: es lo primero que ve
+     el cliente al abrir la bolsa, cuando todavía está decidiendo, y no al final cuando ya bajó
+     hasta el botón de pagar. Antes iba después y en una bolsa de varios pares quedaba fuera de
+     pantalla.
+     El orden del HTML es lo único que cambia: bmRefreshEscalera() y bmRefreshProductos() buscan
+     #srEscalera y #srList por id, así que siguen actualizando cada bloque donde esté. */
+  return `<div id="srEscalera">${escaleraAhorro(rows,cartPricing(rows))}</div><div id="srList">${bmProductosListHTML()}</div>`;
 }
 // Recalcula la escalera "COMPRA MÁS, AHORRA MÁS" con la cantidad ACTUAL del carrito — separada de
 // bmRefreshProductos() porque el +/- de cantidad (bmChQty) cambia cuántos pares hay en la bolsa,

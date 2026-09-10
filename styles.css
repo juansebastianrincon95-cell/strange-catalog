@@ -1209,7 +1209,9 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    La negrita del subtítulo se va: en esta interfaz no hay negritas. El monto de .esc-apply-monto
    la conserva a propósito — es la cifra del ahorro, el único dato que debe saltar. */
 @media(max-width:699px){
-  .esc-wrap{margin-top:12px;padding:10px 10px 6px}
+  /* margin-top:0 — ahora es el PRIMER bloque de la pestaña (va antes de la lista de productos) y
+     un margen superior lo separaba de las pestañas sin motivo. El aire de abajo lo pone la lista. */
+  .esc-wrap{margin-top:0;margin-bottom:14px;padding:10px 10px 6px}
   .esc-head{font-size:10px}
   .esc-sub{font-size:11px;margin-top:4px}
   .esc-sub b{font-weight:400}
