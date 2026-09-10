@@ -200,6 +200,12 @@ function flyToCart(imgEl){
     clone.style.width=r0.width+'px';
     clone.style.height=r0.height+'px';
     document.body.appendChild(clone);
+    /* Fuerza el cálculo del estado INICIAL antes de tocar transform/opacity. Sin esto el navegador
+       puede juntar el "nació" y el "cambió" en el mismo paso de estilo, no ve dos valores entre
+       los cuales interpolar y salta directo al final: el clon aparece ya encogido y transparente
+       sobre la bolsa, sin vuelo. Medido en vivo: 19 muestras seguidas, todas en 15x15 con
+       opacidad 0 y sin moverse. */
+    void clone.offsetWidth;
     const dx=(r1.left+r1.width/2)-(r0.left+r0.width/2);
     const dy=(r1.top+r1.height/2)-(r0.top+r0.height/2);
     requestAnimationFrame(()=>{
