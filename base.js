@@ -186,35 +186,25 @@ function flyToCart(imgEl){
     if(!r0.width||!r0.height)return false;   // tarjeta fuera de pantalla (ej. carrusel escondido)
     const icon=bar.querySelector('.cart-bar-icon')||bar;
     const r1=icon.getBoundingClientRect();
-    /* Vuela la foto ENTERA, con su fondo blanco, como una hoja de papel — no la silueta recortada.
-       Antes se llamaba a cutoutSilueta() para que viajara solo el zapato; el resultado era que la
-       silueta se desvanecía a media ruta ("se desintegra en el camino"). El de sahet se lee como
-       agarrar una hoja, estrujarla y tirarla a la bolsa, y para eso el papel tiene que existir:
-       un rectángulo opaco que se arruga y cae, no una silueta que se apaga.
-       cutoutSilueta() sigue en el archivo y la usan otros sitios; acá se deja de llamar a
-       propósito, y de paso el vuelo ya no depende de que la foto permita leer sus píxeles. */
-    const clone=imgEl.cloneNode();
-    clone.className='fly-cart';
+    const cut=cutoutSilueta(imgEl,220);
+    const clone=cut||imgEl.cloneNode();
+    clone.className='fly-cart'+(cut?' fly-cart-cut':'');
     clone.style.left=r0.left+'px';
     clone.style.top=r0.top+'px';
     clone.style.width=r0.width+'px';
     clone.style.height=r0.height+'px';
-    /* El recorrido lo define @keyframes flyCart en el CSS; acá solo se le pasa CUÁNTO tiene que
-       viajar, porque cada tarjeta está a una distancia distinta del carrito.
-       Las variables van ANTES del appendChild: la animación arranca en cuanto el elemento entra al
-       documento, y si llegaran después el primer frame se calcularía con --dx/--dy vacías.
-       Ya no hace falta ni el rAF ni el void offsetWidth que necesitaba la versión con transition:
-       una animación por keyframes no depende de que existan dos valores previos que interpolar. */
+    document.body.appendChild(clone);
     const dx=(r1.left+r1.width/2)-(r0.left+r0.width/2);
     const dy=(r1.top+r1.height/2)-(r0.top+r0.height/2);
-    clone.style.setProperty('--dx',dx+'px');
-    clone.style.setProperty('--dy',dy+'px');
-    document.body.appendChild(clone);
+    requestAnimationFrame(()=>{
+      clone.style.transform=`translate(${dx}px,${dy}px) scale(.12)`;
+      clone.style.opacity='.2';
+    });
     setTimeout(()=>{
       clone.remove();
       bar.classList.add('bump');
       setTimeout(()=>bar.classList.remove('bump'),300);
-    },1010);   // 950ms de vuelo + margen: el clon se retira al aterrizar y ahí rebota la barra
+    },920);
     return true;
   }catch(e){return false;}
 }

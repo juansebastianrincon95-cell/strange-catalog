@@ -452,7 +452,7 @@ function togCard(id,type,talla,fromEl,sinAbrirBolsa){
   const voló=typeof flyToCart==='function'&&flyToCart(fromEl);
   if(!_bolsaAbiertaUnaVez&&!sinAbrirBolsa){
     _bolsaAbiertaUnaVez=true;
-    if(voló)setTimeout(()=>openBuyModal('full'),1030);else openBuyModal('full');   // 1030 = lo que dura el vuelo + el retiro del clon
+    if(voló)setTimeout(()=>openBuyModal('full'),920);else openBuyModal('full');   
   }else if(!voló){
     toast('Agregado a tu bolsa');
   }

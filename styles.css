@@ -295,23 +295,7 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 /* Animación "vuela al carrito" (flyToCart en base.js): clon fixed de la foto de la tarjeta que
    viaja hasta el ícono del carrito y se achica/desvanece. transform+opacity nada más (compositor,
    sin reflow) para que ande fluido aunque haya muchas tarjetas en pantalla. */
-/* Curva de ENTRADA (arranca lento, acelera) en vez de la de salida que había: es lo que hace que
-   se lea como algo LANZADO a la bolsa y no como algo que aterriza con suavidad.
-   DOS TRAMOS, y por eso es @keyframes y no una transición: con una transición solo se puede
-   interpolar de un estado a otro, y lo que se busca es "primero encoge, después viaja".
-     0 → 25% (238ms): se achica en el sitio, avanzando apenas un 8% del camino. Es el "estrujón".
-     25 → 100% (712ms): recorrido LINEAL hasta la bolsa. Lineal a propósito: con una curva de
-       entrada el trayecto se concentraba al final y pasaba demasiado rápido para seguirlo con la
-       vista. A velocidad constante el recorrido se ve.
-   La opacidad se mantiene en 1 hasta el 88% y solo cae en el último 12%, ya sobre la bolsa.
-   --dx/--dy los calcula flyToCart() en JS: cada tarjeta está a una distancia distinta del carrito. */
-@keyframes flyCart{
-  0%  {transform:translate(0,0) scale(1) rotate(0deg);opacity:1;animation-timing-function:cubic-bezier(.4,0,.2,1)}
-  25% {transform:translate(calc(var(--dx)*.08),calc(var(--dy)*.08)) scale(.16) rotate(10deg);opacity:1;animation-timing-function:linear}
-  88% {opacity:1}
-  100%{transform:translate(var(--dx),var(--dy)) scale(.06) rotate(26deg);opacity:0}
-}
-.fly-cart{position:fixed;z-index:9999;border-radius:12px;object-fit:cover;pointer-events:none;background:var(--white);box-shadow:0 8px 24px rgba(0,0,0,.28);animation:flyCart .95s both}
+.fly-cart{position:fixed;z-index:9999;border-radius:12px;object-fit:cover;pointer-events:none;background:var(--white);box-shadow:0 8px 24px rgba(0,0,0,.28);transition:transform .9s cubic-bezier(.4,0,.2,1),opacity .9s ease .2s}
 /* Cuando SÍ se pudo recortar el fondo (cutoutSilueta devolvió un <canvas>): nada de tarjeta
    blanca detrás, se ve solo la silueta del zapato "volando" sola. */
 .fly-cart-cut{background:transparent;box-shadow:none;object-fit:contain}
