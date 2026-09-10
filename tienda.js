@@ -22,7 +22,9 @@ function closeWelcome(){const m=$('welcomeModal');if(m)m.classList.remove('on');
   if(!localStorage.getItem('ss_subscribed')){const t=$('wmReopen');if(t)t.classList.add('show');}}
 
 // Aparece en cada visita HASTA que el cliente se registre (ss_subscribed). Si está activo y sin otro modal abierto.
-// Delay 7s (benchmark 5-10s): que la persona vea producto antes de interrumpir — 2.2s era agresivo.
+// Delay 4s: alcanza a ver el hero y la primera fila de producto antes de que aparezca. Venía de
+// 7s (y antes de 2.2s, que sí era agresivo). Si al medirlo baja el registro de correos, subirlo de
+// nuevo es cambiar este número — es el único sitio donde vive.
 function maybeWelcome(){
   if(!WELCOME_ON)return;
   if(localStorage.getItem('ss_subscribed'))return;
@@ -31,7 +33,7 @@ function maybeWelcome(){
     const open=document.querySelector('.photo-modal.on,.guia-modal.on,.csheet.on,.apanel.on,.buy-modal.on');
     if(open)return;   // no interrumpir si el usuario ya está en otra cosa (deep link, etc.)
     openWelcome();
-  },7000);
+  },4000);
 }
 
 // Vigencia del código de bienvenida: 7 días desde el registro (ss_welcome_ts).

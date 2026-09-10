@@ -194,6 +194,15 @@ function flyToCart(imgEl){
     clone.style.width=r0.width+'px';
     clone.style.height=r0.height+'px';
     document.body.appendChild(clone);
+    /* ⚠️ Sin esta línea la animación NO ocurre: el clon aparece de golpe ya encogido y semi
+       transparente sobre la bolsa. El navegador junta el "nació" y el "cambió" en un mismo paso de
+       estilo, no tiene dos valores entre los cuales interpolar y salta al estado final. El
+       requestAnimationFrame de abajo no basta.
+       Leer offsetWidth fuerza el cálculo del estado inicial y deja la transición con un punto de
+       partida real. Medido en producción antes de esto: 32 muestras seguidas, todas idénticas
+       (scale .12, opacidad .2, quietas sobre el carrito). Bug reportado el 2026-09-10, y es
+       ANTERIOR a cualquier cambio del efecto — el vuelo nunca llegó a verse. */
+    void clone.offsetWidth;
     const dx=(r1.left+r1.width/2)-(r0.left+r0.width/2);
     const dy=(r1.top+r1.height/2)-(r0.top+r0.height/2);
     requestAnimationFrame(()=>{
