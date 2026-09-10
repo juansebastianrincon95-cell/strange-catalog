@@ -1263,8 +1263,8 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 /* Quien pidió menos movimiento en su teléfono no ve NADA de esto. No es un extra: para parte de
    la gente el movimiento repetitivo produce mareo, y el sistema operativo ya lo avisa. */
 @media(prefers-reduced-motion:reduce){
-  .esc-wrap,.esc-wrap::after,.esc-fuego{animation:none}
-  .esc-wrap::after{display:none}
+  .esc-wrap,.esc-wrap::after,.esc-fuego,#bmFoot .btnmain::after{animation:none}
+  .esc-wrap::after,#bmFoot .btnmain::after{display:none}
 }
 /* "También te puede gustar" — cross-sell en la ficha (reusa las tarjetas .xs-card) */
 .pmx{margin-top:18px;border-top:1px solid var(--line);padding-top:16px}
@@ -1590,7 +1590,23 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
    botón del paso ④ de la pestaña PAGAR, que ya usaba estas medidas.
    Va scopeado a #bmFoot: .btnmain a secas la usan también el carrito clásico y la ficha del
    producto, donde 31px sería un botón principal demasiado chico. */
-#bmFoot .btnmain{height:31px;padding:0 22px;font-size:10px;text-transform:uppercase}
+#bmFoot .btnmain{height:31px;padding:0 22px;font-size:10px;text-transform:uppercase;position:relative}
+/* Latido en "Ir a pagar" — la idea es de sahet: tienen un .click-effect (anillo que se expande en
+   bucle de 1s) justo debajo de su IR A PAGAR, como un "toca aquí" que empuja la vista al pago.
+   El suyo es un anillo blanco suelto bajo el botón; acá sale del propio botón, porque el nuestro es
+   negro sobre blanco y un aro blanco sobre fondo blanco no se vería.
+   2,6s y no 1s: en un botón que ya es el elemento más oscuro de la pantalla, latir cada segundo
+   pasa de guiar a apurar. Con opacidad que arranca en .55 y muere en 0, el anillo se insinúa y se
+   va — nunca compite con el texto del botón. */
+#bmFoot .btnmain::after{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  border:1px solid var(--ink);
+  animation:pagarPulso 2.6s ease-out infinite;
+}
+@keyframes pagarPulso{
+  0%{transform:scale(1);opacity:.55}
+  70%,100%{transform:scale(1.07);opacity:0}
+}
 /* Medidas calcadas de sahet.co (revisado en vivo por DOM el 2026-09-03): título 12px SIN
    negrita, círculo de 16px sin borde con fondo gris claro (no blanco+contorno) — todo el
    acordeón de sahet es peso 400, nunca bold. */

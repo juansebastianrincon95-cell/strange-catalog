@@ -49,7 +49,12 @@ function openBuyModal(intent){
   // puede abrirse con la bolsa VACÍA — en ese caso arranca en BOLSA (su estado vacío), no en PAGAR:
   // no hay nada que pagar ni formulario que llenar todavía.
   const hayItems=!!Object.keys(cart).length;
-  bmTab=hayItems?'pagar':'bolsa';
+  /* Arranca en BOLSA salvo que el cliente haya pulsado explícitamente "Comprar contra entrega" en
+     la ficha. Antes cualquier apertura con productos saltaba a PAGAR, así que al añadir algo se
+     encontraba de golpe con un formulario de envío en vez de con lo que acababa de agregar.
+     La excepción se mantiene porque ahí sí pidió pagar: mandarlo a BOLSA sería devolverle un paso.
+     Con la bolsa vacía siempre es BOLSA (su estado vacío); no hay nada que pagar. */
+  bmTab=(hayItems&&intent==='contra_entrega')?'pagar':'bolsa';
   // Limpia el csheet clásico: si quedó renderizado detrás (ej. el cliente había abierto el
   // carrito antes), sus inputs #fn/#fc/... duplicarían los ids del formulario de este modal y
   // $('fn') tomaría el primero en el DOM (el del csheet, que precede a #buyModal) — vacío o
