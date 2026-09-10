@@ -1200,6 +1200,26 @@ nav{position:relative;z-index:60;height:var(--navH);display:grid;grid-template-c
 .esc-apply{margin-top:10px;width:100%;padding:11px;background:var(--ink);color:#fff;border:none;border-radius:0;font-family:var(--font);font-size:13px;font-weight:400;cursor:pointer}
 .esc-apply-monto{color:var(--red);font-weight:600}
 .esc-apply:active{transform:scale(.99)}
+/* MÓVIL — "COMPRA MÁS, AHORRA MÁS" a la escala del resto de la bolsa. Medía 339x214: con textos de
+   12,5 y 13px y filas de 29px era el bloque más grande de la pestaña, más alto que las propias
+   tarjetas de producto que va debajo a complementar.
+   Se aprieta por los cuatro lados a la vez (letra, padding de la caja, padding de cada fila y los
+   espacios entre partes) en vez de solo achicar la letra: el alto lo hacían sobre todo los huecos.
+   Va después de las reglas base porque están justo encima y a igual especificidad manda la última.
+   La negrita del subtítulo se va: en esta interfaz no hay negritas. El monto de .esc-apply-monto
+   la conserva a propósito — es la cifra del ahorro, el único dato que debe saltar. */
+@media(max-width:699px){
+  .esc-wrap{margin-top:12px;padding:10px 10px 6px}
+  .esc-head{font-size:10px}
+  .esc-sub{font-size:11px;margin-top:4px}
+  .esc-sub b{font-weight:400}
+  .esc-ladder{margin-top:7px}
+  .esc-row{font-size:11px;padding:4px 7px}
+  .esc-row .esc-ahorro{font-size:10px}
+  .esc-row .esc-pares{min-width:52px}
+  .esc-row .esc-precio{min-width:66px}
+  .esc-apply{margin-top:8px;padding:0;height:31px;font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+}
 /* "También te puede gustar" — cross-sell en la ficha (reusa las tarjetas .xs-card) */
 .pmx{margin-top:18px;border-top:1px solid var(--line);padding-top:16px}
 .pmx-t{font-size:14px;font-weight:400;color:var(--ink);margin-bottom:10px}
